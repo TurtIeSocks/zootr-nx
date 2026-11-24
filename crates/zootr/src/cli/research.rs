@@ -67,7 +67,7 @@ pub(super) fn census(romfs: &Romfs) -> Result<()> {
             c.hash,
             c.item,
             c.get_event.as_deref().unwrap_or("-"),
-            c.presence.as_ref().map_or("-".into(), |p| p.to_string())
+            crate::world::shown(c.presence.as_ref())
         );
     }
     let unique: HashSet<u64> = checks.iter().map(|c| c.hash).collect();
@@ -103,7 +103,7 @@ pub(super) fn chest_events(romfs: &Romfs) -> Result<()> {
         if !seen.insert(c.hash) {
             continue;
         }
-        let area = c.file.split('/').nth(1).unwrap_or("?");
+        let area = crate::checks::area_of(&c.file);
         println!("{area} {} {} {event}", c.hash, c.item);
         match flows.effects(event) {
             Some(effects) => effects.iter().for_each(|e| println!("    {e}")),
@@ -410,9 +410,8 @@ fn derive(
     for w in &d.warnings {
         println!("warning: {w}");
     }
-    let at = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
     for j in &d.jumps {
-        let (from, to) = (at(j.at.0), at(j.at.1));
+        let (from, to) = (checks::xyz(j.at.0), checks::xyz(j.at.1));
         println!(
             "jump {} to {}: {:.1} m, {from} to {to}",
             j.from, j.to, j.width

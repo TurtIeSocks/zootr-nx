@@ -1,13 +1,25 @@
-//! Raw-format subcommands: BYML, AINB, restbl and string dumps, and the
-//! file greps over the unpacked game.
+//! Raw-format subcommands: BYML, AINB, restbl, tagfile type and string
+//! dumps, and the file greps over the unpacked game.
 
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, Byml, BymlDoc, Romfs};
+use ounce_formats::{ActorPack, Byml, BymlDoc, Romfs, Tagfile};
 use roead::sarc::Sarc;
 
 use crate::items::scalar;
+
+/// Every type a tagfile declares, with its fields.
+pub(super) fn print_types(bytes: &[u8]) -> Result<()> {
+    let file = Tagfile::parse(bytes)?;
+    for (i, t) in file.types.iter().enumerate().skip(1) {
+        println!("{i} {} parent {} size {}", t.name, t.parent, file.size(i));
+        for f in &t.fields {
+            println!("    {} @{} {}", f.name, f.offset, file.types[f.ty].name);
+        }
+    }
+    Ok(())
+}
 
 pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str, file: bool) -> Result<()> {
     let show = |path: &str, doc: &BymlDoc| {

@@ -1,11 +1,12 @@
 import { Skull } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Summary } from "@/bindings";
+import { InlineError } from "@/components/callout";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { reconnecting, refusal } from "@/play/ap-lines";
+import { gameLost, reconnecting, refusal } from "@/play/ap-lines";
 import { connect, disconnect, useAp } from "@/stores/ap";
 import { useLive } from "@/stores/live";
 import { useUi } from "@/stores/ui";
@@ -27,10 +28,22 @@ interface RoomStatusProps {
   onSetUp?: () => void;
 }
 
+/** The room line, and under it why the last Connect couldn't start. The
+ * header shows this too, so the error sits with the button that failed. */
+export function RoomStatus(props: RoomStatusProps) {
+  const error = useAp((s) => s.error);
+  return (
+    <>
+      <RoomLine {...props} />
+      <InlineError error={error ?? undefined} />
+    </>
+  );
+}
+
 /** One line saying whether the game is talking to its Archipelago room,
  * with the one step that fits. The bold word names the state, so the dot
  * is never alone. */
-export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
+function RoomLine({ entry, onSetUp }: RoomStatusProps) {
   const status = useAp((s) => s.status);
   const lines = useAp((s) => s.lines);
   const [rooms] = useUi.usePath("ap.rooms");
@@ -44,13 +57,15 @@ export function RoomStatus({ entry, onSetUp }: RoomStatusProps) {
   const playing = useLive((s) => s.status.state !== "Waiting");
 
   if (status === "connected") {
+    const lost = gameLost(lines);
     return (
       <Strip
-        dot="on"
+        dot={lost ? "wait" : "on"}
         action={<Act variant="ghost" label="Disconnect" onClick={disconnect} />}
       >
         <span>
           <b className="font-semibold">Connected</b> as {slot}
+          {lost && ", but the game isn't answering"}
         </span>
         {addr}
         {entry.death_link && <DeathLinkBadge />}

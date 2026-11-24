@@ -110,6 +110,7 @@ pub struct Play {
 
 /// Reads the Banc files once: places, obstacles, warp pads, and which nodes
 /// each placement hash sits in.
+#[derive(Clone)]
 struct Scan {
     places: BTreeSet<Place>,
     obstacles: BTreeMap<String, BTreeMap<String, usize>>,
@@ -154,6 +155,7 @@ fn scan(romfs: &Romfs, tools: &mut Tools) -> Result<Scan> {
 
 /// What the world reads from the game: the same for every seed with the
 /// same checks, so a seed that rolls new doors reads it once.
+#[derive(Clone)]
 pub struct Data<'a> {
     tools: Tools<'a>,
     scan: Scan,
@@ -166,6 +168,30 @@ pub struct Data<'a> {
 
 impl<'a> Data<'a> {
     pub fn read(romfs: &'a Romfs, checks: &[ItemCheck]) -> Result<Self> {
+        let (shops, cows) = kinds(checks);
+        Self::read_kinds(romfs, shops, cows)
+    }
+
+    /// The data for any checks, for many seeds to share through
+    /// [`Data::only`].
+    pub fn every(romfs: &'a Romfs) -> Result<Self> {
+        Self::read_kinds(romfs, true, true)
+    }
+
+    /// This data as [`Data::read`] gives it for `checks`.
+    pub fn only(&self, checks: &[ItemCheck]) -> Self {
+        let mut out = self.clone();
+        let (shops, cows) = kinds(checks);
+        if !shops {
+            out.shop_slots.clear();
+        }
+        if !cows {
+            out.cows.clear();
+        }
+        out
+    }
+
+    fn read_kinds(romfs: &'a Romfs, shops: bool, cows: bool) -> Result<Self> {
         let mut tools = Tools::new(romfs);
         let scan = scan(romfs, &mut tools)?;
         Ok(Self {
@@ -174,16 +200,25 @@ impl<'a> Data<'a> {
             alternatives: world::alternatives(romfs)?,
             exits: world::exits(romfs)?,
             gates: gates::gates(romfs)?,
-            shop_slots: match checks.iter().any(shops::is_shop) {
+            shop_slots: match shops {
                 true => shops::slots(romfs)?,
                 false => Vec::new(),
             },
-            cows: match checks.iter().any(cows::is_cow) {
+            cows: match cows {
                 true => cows::find(romfs)?,
                 false => Vec::new(),
             },
         })
     }
+}
+
+/// Whether `checks` hold a shop's and a cow's, whose data the world reads
+/// only then.
+fn kinds(checks: &[ItemCheck]) -> (bool, bool) {
+    (
+        checks.iter().any(shops::is_shop),
+        checks.iter().any(cows::is_cow),
+    )
 }
 
 /// The eras a node's places come in.
@@ -678,10 +713,14 @@ pub(super) mod tests {
     }
 
     /// The edges from `from` to `to`, both as adult Link.
-    pub(super) fn adult_edges<'a>(world: &'a World, from: &Name, to: &Name) -> Vec<&'a Edge> {
+    pub(super) fn adult_edges<'a>(
+        world: &'a World,
+        from: &impl ToString,
+        to: &impl ToString,
+    ) -> Vec<&'a Edge> {
         let at =
-            |node: &Name| (world.places.iter()).position(|p| p == &(node.to_string(), Era::Adult));
-        let (from, to) = (at(from), at(to));
+            |node: String| (world.places.iter()).position(|p| p.0 == node && p.1 == Era::Adult);
+        let (from, to) = (at(from.to_string()), at(to.to_string()));
         (world.edges.iter())
             .filter(|e| e.from == from && Some(e.to) == to)
             .collect()
@@ -709,7 +748,9 @@ pub(super) mod tests {
             return;
         };
         let world = world(&romfs, &[]);
-        let doors = adult_edges(&world, map::INSIDE_THE_DEKU_TREE, map::GOHMA_STAGE);
+        // The Deku Tree is live, so its door leaves from Gohma's room.
+        let room = format!("{}#10", map::INSIDE_THE_DEKU_TREE);
+        let doors = adult_edges(&world, &room, map::GOHMA_STAGE);
         let mut have = Have::default();
         for item in [
             "item:hylian-shield-chest",

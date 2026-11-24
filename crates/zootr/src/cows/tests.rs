@@ -123,7 +123,7 @@ fn eight_cows_five_plain_and_kakarikos_in_three_files() {
         panic!("{} cows in Kakariko", kakariko.len())
     };
     assert_eq!(kakariko.placements.len(), 3);
-    assert!(child(&kakariko.check().file));
+    assert!(is_child(&kakariko.check().file));
     // Each cow runs its own event.
     let events: BTreeSet<&str> = cows.iter().map(|c| c.event.as_str()).collect();
     assert_eq!(events.len(), 8);
@@ -402,10 +402,7 @@ fn each_plain_cow_gets_a_pack_rows_and_an_event_of_its_own() {
     tables.write(&mut builder).unwrap();
     events.write(&mut builder).unwrap();
     builder.finish().unwrap();
-    let read = |rel: &str| {
-        let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-        romfs.dicts().decompress(rel, &raw).unwrap()
-    };
+    let read = |rel: &str| crate::game::read_built(&romfs, &dir, rel);
     let events = BymlDoc::parse(&read(&rsdb::path(rsdb::EVENTS))).unwrap();
     let template = row(&events, actor::ANIMAL_COW_GIVE_MILK).unwrap();
     let analyzed = BymlDoc::parse(&read(&rsdb::path(rsdb::ANALYZED))).unwrap();

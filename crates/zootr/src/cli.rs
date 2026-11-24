@@ -56,14 +56,17 @@ pub fn run() -> Result<()> {
     // The dump's files, and the dump, for the commands that read them.
     let dump = || -> Result<(Romfs, PathBuf)> {
         let path = path()?;
-        Ok((game::prepare(&path, &Run::silent())?, path))
+        Ok((game::prepare(&path, None, &Run::silent())?, path))
     };
     let romfs = || Ok::<_, anyhow::Error>(dump()?.0);
     match cli.command {
         Command::Turn(args) => turn(args),
         Command::Target(cmd) => target_command(cmd),
         Command::Extract => {
-            println!("{}", game::folder(&path()?, &Run::silent())?.display());
+            println!(
+                "{}",
+                game::folder(&path()?, None, &Run::silent())?.display()
+            );
             Ok(())
         }
         // Its run reads the dump as its first step.
@@ -88,7 +91,12 @@ pub fn run() -> Result<()> {
             for e in world::exits(&romfs()?)? {
                 println!(
                     "{:<28} {} {:<28} {:<44} {:<36} {}",
-                    e.from, e.era, e.to, e.to_start, e.name, e.presence
+                    e.from,
+                    e.era,
+                    e.to,
+                    e.to_start,
+                    e.name.as_deref().unwrap_or("-"),
+                    world::shown(e.presence.as_ref())
                 );
             }
             Ok(())

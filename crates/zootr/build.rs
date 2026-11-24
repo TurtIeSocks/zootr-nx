@@ -1,12 +1,23 @@
 //! Builds `zootr-hook` for the game's CPU and keeps only its code, which a
 //! seed's cheat file writes into `main`: the cave's, `hook.bin`, and the
 //! far code, `far.bin`. The code has to run where it lands, so the build
-//! fails on anything that would need relocating.
+//! fails on anything that would need relocating. It builds once for each
+//! build of the game, each against its own offsets, into a folder of its
+//! own.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use zootr_hook::{Build, V65536, V131072};
+
 const TARGET: &str = "aarch64-unknown-none";
+/// Each build the hook is built for: its folder under `OUT_DIR`, the
+/// `zootr_build` it's compiled with (none for 1.1.1, whose offsets the
+/// hook takes by default), and its offsets.
+const BUILDS: [(&str, Option<&str>, Build); 2] = [
+    ("v131072", None, V131072),
+    ("v65536", Some("v65536"), V65536),
+];
 /// The PIE boilerplate the linker always emits, none of it used by the code.
 const ALLOWED: [&str; 7] = [
     ".text",
@@ -49,7 +60,15 @@ fn main() {
     for p in [&hook.join("src"), &script] {
         println!("cargo:rerun-if-changed={}", p.display());
     }
-    let out = out_dir();
+    for (name, cfg, build) in BUILDS {
+        hook_for(name, cfg, &build, &src, &script);
+    }
+}
+
+/// Builds the hook against `build`'s offsets into `OUT_DIR/name`.
+fn hook_for(name: &str, cfg: Option<&str>, build: &Build, src: &Path, script: &Path) {
+    let out = out_dir().join(name);
+    std::fs::create_dir_all(&out).unwrap();
     let elf = out.join("hook.elf");
     let rustc = std::env::var("RUSTC").unwrap_or_else(|_| "rustc".into());
     let status = Command::new(rustc)
@@ -84,15 +103,19 @@ fn main() {
         // into a function that hands back flags or takes stray registers.
         .args(["-C", "jump-tables=no"])
         .args(["-C", "llvm-args=-enable-machine-outliner=never"])
+        .args(cfg.map(|c| format!("--cfg=zootr_build=\"{c}\"")))
         .arg(format!(
             "-Clink-arg=--defsym=__cave={:#x}",
-            zootr_hook::CAVE
+            build.regions.cave
         ))
-        .arg(format!("-Clink-arg=--defsym=__far={:#x}", zootr_hook::FAR))
+        .arg(format!(
+            "-Clink-arg=--defsym=__far={:#x}",
+            build.regions.far
+        ))
         .arg(format!("-Clink-arg=-T{}", script.display()))
         .arg("-o")
         .arg(&elf)
-        .arg(&src)
+        .arg(src)
         .status()
         .expect("running rustc for the hook");
     assert!(
@@ -100,13 +123,14 @@ fn main() {
         "the hook didn't build. Is the {TARGET} target installed?"
     );
     let data = std::fs::read(&elf).unwrap();
-    let (code, far) = code(&data);
+    let (code, far) = code(&data, name, build);
     std::fs::write(out.join("hook.bin"), code).unwrap();
     std::fs::write(out.join("far.bin"), far).unwrap();
 }
 
-/// `.text` and `.far`, after checking the hook needs nothing outside them.
-fn code(d: &[u8]) -> (&[u8], &[u8]) {
+/// `.text` and `.far`, after checking the hook needs nothing outside them
+/// and is linked at `build`'s cave and far code.
+fn code<'a>(d: &'a [u8], folder: &str, build: &Build) -> (&'a [u8], &'a [u8]) {
     let u16_at = |at: usize| u16::from_le_bytes(d[at..at + 2].try_into().unwrap()) as usize;
     let u32_at = |at: usize| u32::from_le_bytes(d[at..at + 4].try_into().unwrap());
     let u64_at = |at: usize| u64::from_le_bytes(d[at..at + 8].try_into().unwrap());
@@ -145,13 +169,13 @@ fn code(d: &[u8]) -> (&[u8], &[u8]) {
     let (addr, off, len) = text.expect("the hook has no .text");
     assert_eq!(
         addr,
-        u64::from(zootr_hook::CAVE),
+        u64::from(build.regions.cave),
         "the hook isn't linked at the cave"
     );
     let far = far.map_or(&[][..], |(at, off, len)| {
         assert_eq!(
             at,
-            u64::from(zootr_hook::FAR),
+            u64::from(build.regions.far),
             "the far code isn't linked at FAR"
         );
         &d[off..off + len]
@@ -176,7 +200,11 @@ fn code(d: &[u8]) -> (&[u8], &[u8]) {
         "the entries aren't the first thing in the hook"
     );
     // Code before the strings, for the test that it never uses x18.
-    println!("cargo:rustc-env=HOOK_CODE={}", symbol("__code_end") - addr);
+    println!(
+        "cargo:rustc-env=HOOK_CODE_{}={}",
+        folder.to_uppercase(),
+        symbol("__code_end") - addr
+    );
     let text = &d[off..off + len];
     let branches = text.chunks(4).take_while(|w| w[3] & 0xfc == 0x14).count();
     assert!(

@@ -5,10 +5,15 @@ export function once(start: () => Promise<() => void>) {
   let running: Promise<() => void> | undefined;
   return {
     init: async () => {
-      running ??= start().catch((e: unknown) => {
-        running = undefined;
-        throw e;
-      });
+      if (!running) {
+        // A start that fails after a stop and a new start leaves the new
+        // one be.
+        const started: Promise<() => void> = start().catch((e: unknown) => {
+          if (running === started) running = undefined;
+          throw e;
+        });
+        running = started;
+      }
       await running;
     },
     stop: () => {

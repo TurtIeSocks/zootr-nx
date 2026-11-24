@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::xyz;
+use crate::checks::xyz;
 use crate::nav::Level;
 
 /// Prints each climb in `map`: its actor and placement, how high it rises

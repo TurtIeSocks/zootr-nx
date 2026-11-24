@@ -1,0 +1,17 @@
+[package]
+name = "zbic"
+# ruzstd's, which this crate is a copy of (see README.md).
+version = "0.9.1"
+description = "A decoder for ZBIC, the zstd variant NSO segments use: ruzstd's decoder with ZBIC's table headers"
+edition = "2018"
+license = "MIT"
+publish.workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[lints.rust]
+# ruzstd's checksum code, left out with its xxhash dependency: ZBIC
+# segments are checked by their NSO header's SHA-256 instead.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("hash"))'] }

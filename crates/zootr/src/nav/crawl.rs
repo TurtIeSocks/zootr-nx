@@ -4,6 +4,7 @@
 //! them are one crawl's ends. A route crawls one as a link between the
 //! floor at each end, like a door's.
 
+use super::flat_unit;
 use super::shape::rotation;
 use crate::known::actor;
 use crate::warp::Placement;
@@ -25,9 +26,7 @@ pub struct Crawl {
 /// The way `p` faces, flat and of length 1, up to its sign.
 fn facing(p: &Placement) -> [f32; 2] {
     let r = rotation(p.pose.rotate);
-    let [x, z] = [r[0][2], r[2][2]];
-    let n = x.hypot(z).max(f32::EPSILON);
-    [x / n, z / n]
+    flat_unit([r[0][2], r[2][2]])
 }
 
 /// The crawls `placed` holds: each anchor with the nearest other one

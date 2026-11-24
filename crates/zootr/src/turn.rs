@@ -32,6 +32,12 @@ pub fn playing(turn: &TurnConfig) -> String {
         .unwrap_or_else(|| turn.here.clone())
 }
 
+/// The slot this shell plays: [`playing`], `None` when that's this
+/// machine's own game.
+pub fn slot(turn: &TurnConfig) -> Option<String> {
+    Some(playing(turn)).filter(|g| *g != turn.here)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Player {

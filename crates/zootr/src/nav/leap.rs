@@ -20,8 +20,8 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use super::trace::{Sample, Step, Traced};
-use super::{CLOCKWISE, eighths};
+use super::trace::{Sample, Step, Traced, check_settle};
+use super::{CLOCKWISE, eighths, flat_dir};
 use crate::checks::flat;
 use crate::dev::Dev;
 use crate::live::Memory;
@@ -94,15 +94,8 @@ impl fmt::Display for Leap {
     }
 }
 
-/// The jump's line from `from` to `to`, flat: a unit direction.
-fn line(from: [f32; 3], to: [f32; 3]) -> (f32, f32) {
-    let (dx, dz) = (to[0] - from[0], to[2] - from[2]);
-    let len = dx.hypot(dz).max(f32::EPSILON);
-    (dx / len, dz / len)
-}
-
-/// How far `at` is past `from` along the line `(ux, uz)`.
-fn along(from: [f32; 3], (ux, uz): (f32, f32), at: [f32; 3]) -> f32 {
+/// How far `at` is past `from` along the line `[ux, uz]`.
+fn along(from: [f32; 3], [ux, uz]: [f32; 2], at: [f32; 3]) -> f32 {
     (at[0] - from[0]) * ux + (at[2] - from[2]) * uz
 }
 
@@ -175,8 +168,10 @@ pub fn leap<M: Memory, I: Input>(
     settle: f32,
     out: Option<&Path>,
 ) -> Result<Leap> {
-    let dir = line(from, to);
-    let start = [from[0] - dir.0 * run, from[1], from[2] - dir.1 * run];
+    check_settle(settle)?;
+    // The jump's line, flat.
+    let dir = flat_dir(from, to);
+    let start = [from[0] - dir[0] * run, from[1], from[2] - dir[1] * run];
     dev.warp(start)?;
     sleep(Duration::from_secs_f32(STOP));
     let mut cam = find_camera(dev, input)?;
@@ -250,6 +245,20 @@ pub fn leap<M: Memory, I: Input>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::nav::sim;
+
+    #[test]
+    fn a_settle_that_never_runs_out_or_is_negative_is_refused_before_the_warp() {
+        let (_, mut hands) = sim::start([0.0; 3], 0.0);
+        let dev = sim::dev();
+        // A negative settle only ends the read early, but `trace` refuses
+        // it too, so `leap` takes the same times.
+        for bad in [f32::INFINITY, f32::NAN, -1.0] {
+            let line = ([0.0; 3], [1.0, 0.0, 0.0]);
+            let err = leap(&dev, &mut hands, line, 2.0, 0.0, bad, None).unwrap_err();
+            assert!(err.to_string().starts_with("--settle"), "{bad}: {err}");
+        }
+    }
 
     #[test]
     fn x_goes_in_a_latency_early() {
@@ -313,8 +322,8 @@ mod tests {
     #[test]
     fn a_landing_counts_only_on_the_far_floor() {
         let to = [0.0, 10.0, 3.0];
-        let dir = line([0.0, 10.0, 0.0], to);
-        assert_eq!(dir, (0.0, 1.0));
+        let dir = flat_dir([0.0, 10.0, 0.0], to);
+        assert_eq!(dir, [0.0, 1.0]);
         assert!(landed(to, 3.0, 3.4, [0.0, 10.1, 3.4]));
         // Short of the far edge, or on a lip below it.
         assert!(!landed(to, 3.0, 2.0, [0.0, 10.0, 2.0]));

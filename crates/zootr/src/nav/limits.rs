@@ -221,9 +221,15 @@ mod tests {
 
     #[test]
     fn the_file_loads_and_the_graph_takes_the_lower_age() {
-        let l = limits();
-        assert_eq!(l.step_up(), 0.99, "the child's, under the adult's 1.29");
-        assert!(l.drop() >= 4.65, "a child lands a measured 4.65 m drop");
+        assert!(
+            limits().drop() >= 4.65,
+            "a child lands a measured 4.65 m drop"
+        );
+        let mut l = Limits::parse(TEXT).unwrap();
+        for (child, adult) in [(1.0, 2.0), (2.0, 1.0)] {
+            (l.child.step_up.value, l.adult.step_up.value) = (child, adult);
+            assert_eq!(l.step_up(), 1.0, "child {child}, adult {adult}");
+        }
     }
 
     #[test]

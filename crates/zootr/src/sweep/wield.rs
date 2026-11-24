@@ -8,6 +8,7 @@
 use std::time::Duration;
 
 use crate::known::{Name, actor, item};
+use crate::nav::flat_dir;
 use crate::nav::graph::dist;
 
 /// Give `item`, put it on ZR, face `on` and press ZR, then wait `after`
@@ -91,9 +92,8 @@ const STEP: f32 = 1.0;
 /// Where Link warps to wield on `on` from `from`: [`STEP`] from it on the
 /// way to `from`, at its height.
 pub fn beside(on: [f32; 3], from: [f32; 3]) -> [f32; 3] {
-    let (dx, dz) = (from[0] - on[0], from[2] - on[2]);
-    let n = dx.hypot(dz).max(1e-3);
-    [on[0] + dx / n * STEP, on[1], on[2] + dz / n * STEP]
+    let [ux, uz] = flat_dir(on, from);
+    [on[0] + ux * STEP, on[1], on[2] + uz * STEP]
 }
 
 #[cfg(test)]

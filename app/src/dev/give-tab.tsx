@@ -9,7 +9,7 @@ import { DevCard } from "@/dev/dev-card";
 import { give, giveLabel } from "@/dev/requests";
 import { useDevValue } from "@/dev/use-dev-value";
 import { call } from "@/lib/api";
-import { SAVED, stepOf } from "@/lib/quest-step";
+import { SAVED, stepOf, stepsOf } from "@/lib/quest-step";
 import { send, useCanSend, useDev } from "@/stores/dev";
 import { useUi } from "@/stores/ui";
 
@@ -145,7 +145,9 @@ function RecentGives() {
 function QuestStepCard() {
   const [quests] = useDev.usePath("options.quests");
   const [pick, setPick] = useUi.usePath("dev.quest");
-  const challenge = quests[pick.challenge.trim()] ? pick.challenge.trim() : "";
+  const challenge = stepsOf(quests, pick.challenge.trim())
+    ? pick.challenge.trim()
+    : "";
   const [round, setRound] = useState(0);
 
   return (

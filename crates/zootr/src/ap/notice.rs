@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 
-use super::client::Game;
+use super::game::Game;
 use crate::notice::Shown;
 
 /// The least time between two notices. Each replaces the last on screen.
@@ -81,7 +81,7 @@ fn summary(items: impl Iterator<Item = Shown>) -> Shown {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ap::client::tests::Fake;
+    use crate::ap::game::tests::Fake;
     use zootr_hook::Notice;
 
     const SARIA: u32 = 2;

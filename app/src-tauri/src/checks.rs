@@ -54,7 +54,7 @@ impl Checks {
     /// first finding places for a seed saved before they were kept.
     pub(crate) fn state(&self, app: &AppHandle) -> anyhow::Result<ChecksState> {
         let mut history = History::load()?;
-        let Some(id) = history.installed else {
+        let Some(id) = history.installed().id else {
             *self.0.lock().unwrap() = None;
             return Ok(ChecksState {
                 id: None,
@@ -80,7 +80,8 @@ impl Checks {
             let mut t = Tracker::new(&gd, &report.spots)?.with_doors(&report.entrances);
             // Only a save played since this seed went in: an older one
             // holds another seed's checks.
-            if let Some(save) = savefile::newest_since(&config.save_dir()?, history.installed_at)? {
+            let since = history.installed().at;
+            if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
                 t.load(tracker::in_save(&savefile::load(&save)?));
             }
             *tracker = Some((id, t));

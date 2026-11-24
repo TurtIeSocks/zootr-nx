@@ -1,7 +1,8 @@
 //! Placed actors that hold an item as a check without a chest: freestanding
 //! heart pieces, Gold Skulltulas, whose kill drops their token, the
 //! pots, crates, rocks, grass, hives and flying pots that drop something
-//! when broken, and the Gerudo thieves' keys. One
+//! when broken, the Gerudo thieves' keys, and the rupees and hearts lying
+//! loose, which no setting deals yet. One
 //! that holds something else gets a pickup for it, a stand-in built on a
 //! pickup that gives a major item when no `Obj_*` form exists.
 
@@ -221,6 +222,23 @@ pub const RUTOS_LETTER: Kind = Kind {
     named: None,
 };
 
+/// Rupees and Recovery Hearts lying in the open, each its own pickup. No
+/// setting deals them yet (EIE row 18, debt): they're here so the ledger
+/// lists them and derive gives each a room rule.
+pub const LOOSE: Kind = Kind {
+    actors: &[
+        actor::OBJ_RUPEE_GREEN,
+        actor::OBJ_RUPEE_BLUE,
+        actor::OBJ_RUPEE_RED,
+        actor::OBJ_RUPEE_PURPLE,
+        actor::OBJ_HEART,
+    ],
+    item: None,
+    field: GYAML,
+    needs: None,
+    named: None,
+};
+
 /// The holders Link breaks for what they drop.
 const BREAKABLE: [&Kind; 4] = [&POTS, &CRATES, &ROCKS, &GRASS];
 
@@ -232,7 +250,7 @@ fn any_holds(kinds: &[&Kind], holder: &str) -> bool {
 /// Whether the sweep takes what `holder` holds by walking up to it: a
 /// pickup lying in the open, which A takes, or one of [`BREAKABLE`].
 pub fn within_reach(holder: &str) -> bool {
-    any_holds(&[&FREESTANDING, &BOSS_HEARTS, &LOOSE_KEYS], holder) || broken(holder)
+    any_holds(&[&FREESTANDING, &BOSS_HEARTS, &LOOSE_KEYS, &LOOSE], holder) || broken(holder)
 }
 
 /// Whether `holder` is broken for what it drops: a pot, crate, rock or
@@ -241,7 +259,7 @@ pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 13] = [
+const KINDS: [&Kind; 14] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
@@ -255,6 +273,7 @@ const KINDS: [&Kind; 13] = [
     &LOOSE_KEYS,
     &FIRE_ARROWS,
     &RUTOS_LETTER,
+    &LOOSE,
 ];
 
 /// What a thief's key check is held by, in the spoiler.
@@ -298,7 +317,7 @@ impl Kind {
         if !self.places(gyaml) {
             return Ok(None);
         }
-        let dynamic = actor.as_map()?.get("Dynamic");
+        let dynamic = actor.as_map()?.get(crate::checks::DYNAMIC);
         let held =
             (dynamic.and_then(|d| str_field(d, DROP_ACTOR))).filter(|d| !d.starts_with(ANIMAL));
         let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
@@ -311,14 +330,16 @@ impl Kind {
                 (*holder, gyaml)
             }
             None => {
-                let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
+                // A placement that is its own pickup holds itself.
+                let itself = (self.field == GYAML).then_some(gyaml);
+                let Some(item) = self.item.map(|i| i.get()).or(held).or(own).or(itself) else {
                     return Ok(None);
                 };
                 (gyaml, item)
             }
         };
         let hash = hash_of(actor).context("actor without Hash")?;
-        let area = file.split('/').nth(1).unwrap_or("?");
+        let area = crate::checks::area_of(file);
         let mut check = gifts::check(file.into(), area, hash, holder.into(), item);
         // A named holder is there once its event has put it there,
         // which the seed doesn't have to wait for.
@@ -725,7 +746,22 @@ mod tests {
         // read state and make the Skulltula and its web.
         assert_eq!(watched(&SKULLTULAS), (101, 3, 114));
         // Most watched pots sit in rooms whose groups set flags or play.
-        assert_eq!(watched(&POTS), (14, 47, 530));
+        assert_eq!(watched(&POTS), (25, 36, 530));
+    }
+
+    /// The Deku Tree's regrowing shrubs (rooms C and H) are watched quiet:
+    /// their modules write only their own autogen GameData. Watched loud,
+    /// a twin named beside its holder, kept out by its Presence, hung the
+    /// map's load (research: Fire Temple crate freeze).
+    #[test]
+    fn regrowing_grass_is_watched_quiet() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut checks = GRASS.checks(&romfs).unwrap();
+        watch(&romfs, &mut checks).unwrap();
+        for hash in [12536486041203664147, 2540384747854371104] {
+            let check = checks.iter().find(|c| c.hash == hash).unwrap();
+            assert_eq!(check.watched, Watched::Quiet, "{hash}");
+        }
     }
 
     #[test]
@@ -762,6 +798,23 @@ mod tests {
         assert!(fields.contains(&format!("{letter}.{GYAML}={}", actor::OBJ_SHIELD_HYLIAN)));
         builder.finish().unwrap();
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// Each rupee or heart lying loose is a check holding itself, and no
+    /// setting deals one yet.
+    #[test]
+    fn a_loose_rupee_or_heart_holds_itself_and_no_setting_deals_it() {
+        let Some(romfs) = dev_dump() else { return };
+        let loose = LOOSE.checks(&romfs).unwrap();
+        assert_eq!(loose.len(), 192);
+        assert!(loose.iter().all(|c| c.item == c.holder));
+        let every = NewGame::from_settings(&crate::ledger::every_shuffle(), &[]).unwrap();
+        assert!(
+            !dealt(&romfs, &every)
+                .unwrap()
+                .iter()
+                .any(|c| LOOSE.holds(c))
+        );
     }
 
     #[test]
@@ -809,8 +862,7 @@ mod tests {
 
         let built = |name: &str| {
             let rel = format!("Pack/Actor/{name}.pack.zs");
-            let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-            let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &rel);
             Sarc::new(data).unwrap()
         };
         let param = |sarc: &Sarc, path: &str| -> BymlMap {

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Info } from "@/bindings";
 import { NameField } from "@/components/name-field";
 import { ValueInput } from "@/components/value-input";
-import { type QuestStep, type Quests, stepOf } from "@/lib/quest-step";
+import { type QuestStep, type Quests, stepOf, stepsOf } from "@/lib/quest-step";
 
 /** Pinned, so a long step name can't squeeze the quest field shut. */
 const STEP_WIDTH = "w-40 shrink-0";
@@ -34,7 +34,7 @@ export function QuestStepPicker({
   onEnter,
   children,
 }: QuestStepPickerProps) {
-  const steps = quests[value.challenge.trim()] ?? [];
+  const steps = stepsOf(quests, value.challenge.trim()) ?? [];
   const info: Info = {
     kind: "Enum",
     input: "choice",

@@ -51,7 +51,7 @@ impl Generating {
         *self.log.lock().unwrap() = run.log().map(Into::into);
         let report = self.stoppable(&run, || {
             progress::caught(|| {
-                let romfs = zootr::game::prepare(game, &run)?;
+                let romfs = zootr::game::prepare(game, extras.release, &run)?;
                 let write = |d: &std::path::Path| {
                     generate::generate(&romfs, d, seed, settings, extras, &run)
                 };

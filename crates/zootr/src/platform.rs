@@ -111,6 +111,27 @@ pub fn running(app: &Path) -> bool {
         .is_ok_and(|s| s.success())
 }
 
+/// Where Linux lists its processes, one folder each.
+pub const PROC: &str = "/proc";
+
+/// Whether a process listed under `proc` (one folder per pid, as in
+/// [`PROC`]) works in `folder` or names a path inside it on its command
+/// line, zootr itself aside. `None` when `proc` can't be read, as on any
+/// system without one.
+pub fn inside(proc: &Path, folder: &Path) -> Option<bool> {
+    let me = std::process::id().to_string();
+    let pids = (std::fs::read_dir(proc).ok()?.flatten()).filter(|e| {
+        let name = e.file_name();
+        let name = name.to_string_lossy();
+        name != me && !name.is_empty() && name.bytes().all(|b| b.is_ascii_digit())
+    });
+    let names = |arg: &[u8]| Path::new(&*String::from_utf8_lossy(arg)).starts_with(folder);
+    Some(pids.map(|e| e.path()).any(|pid| {
+        std::fs::read_link(pid.join("cwd")).is_ok_and(|c| c.starts_with(folder))
+            || std::fs::read(pid.join("cmdline")).is_ok_and(|a| a.split(|b| *b == 0).any(names))
+    }))
+}
+
 /// Whether a process's executable is `app`, or inside it.
 #[cfg(windows)]
 pub fn running(app: &Path) -> bool {
@@ -270,6 +291,54 @@ mod tests {
 
     fn path(parts: &[&str]) -> PathBuf {
         parts.iter().collect()
+    }
+
+    /// A fake process list: `cwds` and `cmdlines` by pid.
+    #[cfg(unix)]
+    fn procs(name: &str, cwds: &[(u32, &Path)], cmdlines: &[(u32, &[&str])]) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("zootr-proc-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("self")).unwrap();
+        for (pid, cwd) in cwds {
+            std::fs::create_dir_all(root.join(pid.to_string())).unwrap();
+            std::os::unix::fs::symlink(cwd, root.join(pid.to_string()).join("cwd")).unwrap();
+        }
+        for (pid, args) in cmdlines {
+            let dir = root.join(pid.to_string());
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("cmdline"), args.join("\0") + "\0").unwrap();
+        }
+        root
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_process_is_inside_a_folder_by_its_cwd_or_a_path_it_names() {
+        let folder = Path::new("/fake/build");
+        let watch: &[&str] = &[
+            "/opt/fake-game",
+            "--crash-watch",
+            "12",
+            "ff",
+            "/fake/build/",
+        ];
+        let named = procs("named", &[], &[(12, watch)]);
+        assert_eq!(inside(&named, folder), Some(true));
+        let sub = Path::new("/fake/build/bin");
+        let working = procs("working", &[(13, sub)], &[(13, &["./game"])]);
+        assert_eq!(inside(&working, folder), Some(true));
+        let near: &[&str] = &["/fake/build-other/game", "/fake/buildx"];
+        let elsewhere = procs("elsewhere", &[(14, Path::new("/fake"))], &[(14, near)]);
+        assert_eq!(inside(&elsewhere, folder), Some(false));
+        // zootr itself, and folders that aren't a pid, don't count.
+        let me = std::process::id();
+        let mine = procs("mine", &[(me, folder)], &[]);
+        std::os::unix::fs::symlink(folder, mine.join("self").join("cwd")).unwrap();
+        assert_eq!(inside(&mine, folder), Some(false));
+        assert_eq!(inside(Path::new("/nowhere/proc"), folder), None);
+        for root in [named, working, elsewhere, mine] {
+            std::fs::remove_dir_all(root).unwrap();
+        }
     }
 
     /// A process counts only when it is the app, or a shell running it, never

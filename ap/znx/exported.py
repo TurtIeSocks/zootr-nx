@@ -8,7 +8,23 @@ def load(name: str):
     return json.loads(pkgutil.get_data(__name__, f"data/{name}.json"))
 
 
-WORLD = load("world")
+def shared(world: dict) -> dict:
+    """`world` with each `{"ref": n}` as the rule it names: the export
+    writes a rule many places hold once, in `rules`, each after the rules
+    it holds."""
+    rules = []
+
+    def expand(tree):
+        if isinstance(tree, dict):
+            return rules[tree["ref"]] if "ref" in tree else {k: expand(v) for k, v in tree.items()}
+        return [expand(v) for v in tree] if isinstance(tree, list) else tree
+
+    for rule in world.pop("rules"):
+        rules.append(expand(rule))
+    return expand(world)
+
+
+WORLD = shared(load("world"))
 ITEMS = load("items")
 _POOL = load("pool")
 # Rows of the pool before the trade; an `added` row's item takes the place
@@ -19,11 +35,13 @@ JUNK = _POOL["junk"]
 # Ice Traps' value, as the app's `ice_traps::swap` does.
 TRAP = _POOL["trap"]
 SHARES = _POOL["shares"]
-# Each upgrade line's levels by its name, lowest first, each its own name
-# then the events that give it: with progressive items on, the world deals
-# each level as its line and reads rules that way (`rules.lined`).
+# Each upgrade line's levels by its name, lowest first: each one's names
+# (its own, then the events that give it) and the `when` it holds under.
+# With progressive items on, the world deals each level as its line and
+# reads rules that way, over the levels its options keep (`kept`,
+# `rules.lined`).
 LEVELS = _POOL["levels"]
-LINES = {step[0]: line for line, steps in LEVELS.items() for step in steps}
+LINES = {level["names"][0]: line for line, levels in LEVELS.items() for level in levels}
 OPTIONS = load("options")
 
 ITEM_NAME_TO_ID = {item["name"]: item["id"] for item in ITEMS}

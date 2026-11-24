@@ -4,51 +4,11 @@
 use std::collections::{BTreeMap, HashSet};
 
 use anyhow::Result;
-use ounce_formats::{Byml, Romfs};
+use ounce_formats::Romfs;
 
-use super::{Filter, xyz};
-use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_banc, str_field, vec3};
+use super::filter::{Filter, Hit, hits};
+use crate::checks::{GYAML, flat, str_field, xyz};
 use crate::items::show;
-
-pub(super) struct Hit {
-    /// Without `Banc/` and the extension.
-    pub(super) file: String,
-    pub(super) gyaml: String,
-    pub(super) hash: u64,
-    pub(super) pos: [f32; 3],
-    pub(super) actor: Byml,
-}
-
-pub(super) fn hits(romfs: &Romfs, f: &Filter) -> Result<Vec<Hit>> {
-    let has = |want: &Option<String>, s: &str| want.as_ref().is_none_or(|w| s.contains(w.as_str()));
-    let mut seen = HashSet::new();
-    let mut out = Vec::new();
-    for rel in banc_files(romfs)? {
-        if !has(&f.file, &rel) {
-            continue;
-        }
-        for a in actors(&load_banc(romfs, &rel)?.root)? {
-            let gyaml = str_field(a, GYAML).unwrap_or_default();
-            let hash = hash_of(a).unwrap_or_default();
-            let pos = vec3(a, "Translate").unwrap_or_default();
-            let near = f.near.is_none_or(|p| flat(p, pos) <= f.within);
-            if has(&f.gyaml, gyaml)
-                && f.hash.is_none_or(|h| h == hash)
-                && near
-                && (!f.dedupe || seen.insert(hash))
-            {
-                out.push(Hit {
-                    file: short(&rel).to_owned(),
-                    gyaml: gyaml.to_owned(),
-                    hash,
-                    pos,
-                    actor: a.clone(),
-                });
-            }
-        }
-    }
-    Ok(out)
-}
 
 pub(super) fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
     let hits = hits(romfs, f)?;
@@ -93,34 +53,4 @@ fn print_hits(hits: &[Hit], f: &Filter) -> Result<()> {
         println!("{line}");
     }
     Ok(())
-}
-
-fn short(rel: &str) -> &str {
-    let rel = rel.strip_prefix("Banc/").unwrap_or(rel);
-    rel.strip_suffix(".bcett.byml.zs").unwrap_or(rel)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::known::actor;
-
-    #[test]
-    fn hundred_gold_skulltulas_once_deduped() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let gold = |dedupe| Filter {
-            gyaml: Some(actor::ENEMY_SKULLTULA_GOLD.to_string()),
-            dedupe,
-            ..Filter::default()
-        };
-        let exact = |hits: Vec<Hit>| {
-            hits.iter()
-                .filter(|h| h.gyaml == actor::ENEMY_SKULLTULA_GOLD)
-                .count()
-        };
-        assert_eq!(exact(hits(&romfs, &gold(false)).unwrap()), 114);
-        assert_eq!(exact(hits(&romfs, &gold(true)).unwrap()), 100);
-    }
 }

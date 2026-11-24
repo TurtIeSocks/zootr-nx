@@ -286,9 +286,10 @@ impl Own {
 /// Write the setting's files: the pause menu's table, both Links' packs,
 /// the borrowed archives, both Links' graphs and the sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let table = opened(&builder.read(POUCH_TABLE)?)?;
-    let table = crate::ageless::two_handed_opened(romfs, &table)?;
-    builder.write(POUCH_TABLE, &table)?;
+    let mut table = BymlDoc::parse(&builder.read(POUCH_TABLE)?)?;
+    opened(&mut table.root)?;
+    crate::ageless::two_handed_opened(romfs, &mut table.root)?;
+    builder.write(POUCH_TABLE, &table.to_binary())?;
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
         let lender = ActorPack::load(romfs, link.from)?;
@@ -344,32 +345,17 @@ fn own_archives(pack: &ActorPack) -> Result<Vec<String>> {
         .collect()
 }
 
-/// The pause menu's table at `bytes` with each of [`ITEMS`] usable at both
-/// ages.
-fn opened(bytes: &[u8]) -> Result<Vec<u8>> {
-    let mut doc = BymlDoc::parse(bytes)?;
+/// Makes each of [`ITEMS`] usable at both ages in `root`, the pause menu's
+/// table, on every page it shows on.
+fn opened(root: &mut Byml) -> Result<()> {
     let mut found = [false; ITEMS.len()];
-    for slots in doc.root.as_mut_map()?.values_mut() {
-        let Byml::Array(slots) = slots else { continue };
-        let actors = slots.iter_mut().filter_map(|slot| {
-            match slot.as_mut_map().ok()?.get_mut(field::ACTOR.get()) {
-                Some(Byml::Array(actors)) => Some(actors),
-                _ => None,
-            }
-        });
-        for actor in actors.flatten().filter_map(|a| a.as_mut_map().ok()) {
-            let short = actor
-                .get(field::ACTOR_SHORT.get())
-                .and_then(|s| s.as_string().ok());
-            let Some(i) = short.and_then(|s| ITEMS.iter().position(|i| i.get() == s.as_str()))
-            else {
-                continue;
-            };
-            for flag in [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT] {
-                actor.insert(flag.get().into(), Byml::Bool(true));
-            }
-            found[i] = true;
-        }
+    for actor in crate::ageless::rows(root, None)? {
+        let short = crate::ageless::name(actor);
+        let Some(i) = short.and_then(|s| ITEMS.iter().position(|i| i.get() == s)) else {
+            continue;
+        };
+        crate::ageless::open(actor);
+        found[i] = true;
     }
     let missing: Vec<&str> = (ITEMS.iter().zip(found))
         .filter(|(_, found)| !found)
@@ -380,7 +366,7 @@ fn opened(bytes: &[u8]) -> Result<Vec<u8>> {
         "the pause menu lacks {}",
         missing.join(", ")
     );
-    Ok(doc.to_binary())
+    Ok(())
 }
 
 /// A file of a pack edited, and the RESTBL room it needs past its size.
@@ -523,20 +509,15 @@ mod tests {
     #[test]
     fn the_menu_opens_the_items_to_both_ages_and_nothing_else() {
         let Some(romfs) = dev_dump() else { return };
-        let vanilla = romfs.read(POUCH_TABLE).unwrap();
-        let open = opened(&vanilla).unwrap();
-        let actors = |bytes: &[u8]| -> Vec<BymlMap> {
-            let doc = BymlDoc::parse(bytes).unwrap();
-            let mut found = vec![];
-            for slots in doc.root.as_map().unwrap().values() {
-                let Byml::Array(slots) = slots else { continue };
-                for slot in slots.iter().filter_map(|s| s.as_map().ok()) {
-                    if let Some(Byml::Array(a)) = slot.get(field::ACTOR.get()) {
-                        found.extend(a.iter().filter_map(|a| a.as_map().ok()).cloned());
-                    }
-                }
-            }
-            found
+        let vanilla = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap())
+            .unwrap()
+            .root;
+        let mut open = vanilla.clone();
+        opened(&mut open).unwrap();
+        let actors = |root: &Byml| -> Vec<BymlMap> {
+            let mut root = root.clone();
+            let rows = crate::ageless::rows(&mut root, None).unwrap();
+            rows.into_iter().map(|a| a.clone()).collect()
         };
         let (was, now) = (actors(&vanilla), actors(&open));
         assert_eq!(was.len(), now.len());
@@ -566,28 +547,17 @@ mod tests {
         // match as before, but the first item is gone.
         let mut doc = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap()).unwrap();
         let mut renamed = 0;
-        for slots in doc.root.as_mut_map().unwrap().values_mut() {
-            let Byml::Array(slots) = slots else { continue };
-            for slot in slots.iter_mut().filter_map(|s| s.as_mut_map().ok()) {
-                let Some(Byml::Array(actors)) = slot.get_mut(field::ACTOR.get()) else {
-                    continue;
-                };
-                for actor in actors.iter_mut().filter_map(|a| a.as_mut_map().ok()) {
-                    let short = actor.get(field::ACTOR_SHORT.get());
-                    if short.and_then(|s| s.as_string().ok()).map(|s| s.as_str())
-                        == Some(ITEMS[0].get())
-                    {
-                        actor.insert(
-                            field::ACTOR_SHORT.get().into(),
-                            Byml::String(ITEMS[1].get().into()),
-                        );
-                        renamed += 1;
-                    }
-                }
+        for actor in crate::ageless::rows(&mut doc.root, None).unwrap() {
+            if crate::ageless::name(actor) == Some(ITEMS[0].get()) {
+                actor.insert(
+                    field::ACTOR_SHORT.get().into(),
+                    Byml::String(ITEMS[1].get().into()),
+                );
+                renamed += 1;
             }
         }
         assert!(renamed > 0);
-        let error = opened(&doc.to_binary()).unwrap_err().to_string();
+        let error = opened(&mut doc.root).unwrap_err().to_string();
         assert!(error.contains(ITEMS[0].get()), "{error}");
     }
 
@@ -758,6 +728,23 @@ mod tests {
                 0
             };
             assert!(two_handed >= want, "{}: {two_handed}", link.who);
+        }
+    }
+
+    /// Each map's hasher is seeded anew, so a lend that followed a map's
+    /// order took room in a different order each time.
+    #[test]
+    fn a_lend_writes_the_same_bytes_every_time() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let own = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            for archive in link.archives {
+                let (_, first) = link.lent(&romfs, archive, &own).unwrap();
+                for _ in 0..3 {
+                    let (_, again) = link.lent(&romfs, archive, &own).unwrap();
+                    assert!(first == again, "{}", archive.from);
+                }
+            }
         }
     }
 

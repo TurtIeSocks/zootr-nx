@@ -15,6 +15,7 @@ import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
+import { summary } from "@/test/fixtures";
 
 /** The window's file drops, as the panel last listened for them. */
 const drops = vi.hoisted(() => ({
@@ -34,21 +35,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: opened }));
 const savedTo = vi.hoisted(() => vi.fn());
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: savedTo }));
 
-const slot: Summary = {
-  id: 3,
-  time: 0,
-  seed: "1",
-  icons: [],
-  share: "",
-  settings: {},
-  label: {},
-  chests: 0,
-  changed: 0,
-  test: false,
-  plando: false,
-  ap_slot: "FakeSlot",
-  death_link: false,
-};
+const slot = summary({ id: 3, seed: "1", ap_slot: "FakeSlot" });
 
 /** Renders the folder with `installed`, the client at `status` having said
  * `log`, and the room kept as `server`. */

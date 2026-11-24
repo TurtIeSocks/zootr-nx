@@ -6,6 +6,7 @@
 //! is a footprint on the floor that a route keeps clear of.
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use anyhow::Result;
 use ounce_formats::{ActorPack, Byml, BymlMap, Romfs, pack_file};
@@ -60,10 +61,26 @@ pub(super) fn text<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
     map.get(key)?.as_string().ok().map(|s| s.as_str())
 }
 
+/// The entries of the array under `key`, none when there is none.
+pub(super) fn array<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a Byml> {
+    (map.get(key).and_then(|v| v.as_array().ok()).into_iter()).flatten()
+}
+
 pub(super) fn maps<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a BymlMap> {
-    (map.get(key).and_then(|v| v.as_array().ok()).into_iter())
-        .flatten()
-        .filter_map(|v| v.as_map().ok())
+    array(map, key).filter_map(|v| v.as_map().ok())
+}
+
+/// `key`'s value in `map`, loaded by `load` the first time it's asked
+/// for.
+pub(super) fn cached<'m, 'k, V>(
+    map: &'m mut HashMap<&'k str, V>,
+    key: &'k str,
+    load: impl FnOnce() -> Result<V>,
+) -> Result<&'m V> {
+    Ok(match map.entry(key) {
+        Entry::Occupied(e) => e.into_mut(),
+        Entry::Vacant(e) => e.insert(load()?),
+    })
 }
 
 fn point(map: &BymlMap, key: &str) -> Option<[f32; 3]> {
@@ -335,12 +352,8 @@ pub fn solid(part: &Part, placed: &Placement) -> Solid {
 pub fn solids(romfs: &Romfs, placed: &[Placement]) -> Result<Vec<Solid>> {
     let mut shapes: HashMap<&str, Option<Shape>> = HashMap::new();
     let mut out = vec![];
-    let doors = |p: &&Placement| kinds::word(&p.name) == Some("door");
-    for p in placed.iter().filter(|p| !doors(p)) {
-        if !shapes.contains_key(p.name.as_str()) {
-            shapes.insert(&p.name, shape_of(romfs, &p.name)?);
-        }
-        let Some(shape) = &shapes[p.name.as_str()] else {
+    for p in placed.iter().filter(|p| !kinds::is_door(&p.name)) {
+        let Some(shape) = cached(&mut shapes, &p.name, || shape_of(romfs, &p.name))? else {
             continue;
         };
         if shape.cuts_mesh && shape.collides {
@@ -462,12 +475,7 @@ mod tests {
         let named = |name: &str| level.solids.iter().filter(|s| s.name == name).count();
         assert_eq!(named(actor::OBJ_T_BOX_A_01), 5);
         assert!(level.solids.len() >= 50, "{}", level.solids.len());
-        assert!(
-            level
-                .solids
-                .iter()
-                .all(|s| kinds::word(&s.name) != Some("door"))
-        );
+        assert!(level.solids.iter().all(|s| !kinds::is_door(&s.name)));
         for s in &level.solids {
             assert!(s.ring.len() >= 3, "{s:?}");
             assert!(s.high > s.low && s.high - s.low < 10.0, "{s:?}");

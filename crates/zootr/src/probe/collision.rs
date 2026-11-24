@@ -6,7 +6,8 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::{tally, xyz};
+use super::tally;
+use crate::checks::xyz;
 use crate::nav::filter::Filter;
 use crate::nav::mesh::{self, MeshUse};
 use crate::warp;
@@ -106,8 +107,7 @@ fn floors_under(
 ) -> Result<()> {
     let walls = mesh::walls(romfs, game, placed)?;
     let stands = |p: &&warp::Placement| {
-        let held = p.name.starts_with("Obj_")
-            && matches!(crate::nav::kinds::word(&p.name), Some("chest" | "pot"));
+        let held = p.name.starts_with("Obj_") && crate::nav::kinds::is_chest_or_pot(&p.name);
         uses[p.name.as_str()].1.is_empty()
             && (held || p.name == crate::known::actor::START_POS.get())
     };

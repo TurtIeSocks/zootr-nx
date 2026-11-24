@@ -257,8 +257,15 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
+        let all = Flows::load(&romfs).unwrap();
         let mut flow = flows::load(&romfs, starting::OPENING).unwrap().unwrap();
         let save = only(&flow, starting::AUTOSAVE).unwrap();
-        assert!(relink(&mut flow, save, Vec::new(), save).is_err());
+        // Away from the autosave, as a branch can't end the flow.
+        let elsewhere = u16::from(save == 0);
+        for link in flow.links_to(save) {
+            flow.link(link, Some(elsewhere)).unwrap();
+        }
+        let refused = grant_before_save(&mut flow, &all, item::HOOKSHOT.get()).unwrap_err();
+        assert!(refused.to_string().contains("never reaches"), "{refused}");
     }
 }

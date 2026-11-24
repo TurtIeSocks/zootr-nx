@@ -12,7 +12,7 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, BymlMap, Romfs};
 
-use super::shape::{maps, text};
+use super::shape::{array, maps, text};
 use crate::known::{Name, field};
 
 /// The pack holding the config, by the stem of its file (named for its
@@ -55,21 +55,17 @@ pub struct Filter {
 
 /// A list of names, each entry n of the list.
 fn names(config: &BymlMap, key: &Name) -> Vec<String> {
-    (config
-        .get(key.get())
-        .and_then(|v| v.as_array().ok())
-        .into_iter())
-    .flatten()
-    .map(|v| match v {
-        Byml::String(s) => s.to_string(),
-        v => v
-            .as_map()
-            .ok()
-            .and_then(|m| text(m, field::COMPONENT_NAME.get()))
-            .unwrap_or_default()
-            .to_owned(),
-    })
-    .collect()
+    array(config, key.get())
+        .map(|v| match v {
+            Byml::String(s) => s.to_string(),
+            v => v
+                .as_map()
+                .ok()
+                .and_then(|m| text(m, field::COMPONENT_NAME.get()))
+                .unwrap_or_default()
+                .to_owned(),
+        })
+        .collect()
 }
 
 /// A mask list: each entry's name and value.
@@ -134,11 +130,8 @@ impl Filter {
         let presets = maps(config, field::MATERIAL_PRESET_COLLECTION.get())
             .filter_map(|m| {
                 let name = text(m, field::COMPONENT_NAME.get())?;
-                let tag_names = (m.get(field::USER_SHAPE_TAG_MASK.get()))
-                    .and_then(|v| v.as_array().ok())
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|v| v.as_string().ok());
+                let tag_names =
+                    array(m, field::USER_SHAPE_TAG_MASK.get()).filter_map(|v| v.as_string().ok());
                 let preset = Preset {
                     layers: named(&layer_masks, text(m, field::LAYER_HIT_MASK_ENTITY.get())),
                     sub_layers: named(

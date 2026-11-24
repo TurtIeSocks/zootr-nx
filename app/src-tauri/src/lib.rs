@@ -23,6 +23,7 @@ use zootr::platform;
 use zootr::progress::{self, Run};
 use zootr::recorder;
 use zootr::savefile::{self, Change};
+use zootr::settings::favorites::{self, BuiltIn};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 
@@ -111,10 +112,37 @@ async fn status() -> Res<Status> {
     .await
 }
 
+/// What the sidebar says this build is.
+#[derive(Serialize, Type)]
+struct BuildInfo {
+    version: String,
+    /// The short commit it was built from, `*` when dirty. Empty without git.
+    commit: String,
+    /// A tagged build from the release workflow. Any other is a source build.
+    release: bool,
+}
+
+#[tauri::command]
+#[specta::specta]
+fn build_info(app: tauri::AppHandle) -> BuildInfo {
+    BuildInfo {
+        version: app.package_info().version.to_string(),
+        commit: env!("ZNX_COMMIT").into(),
+        release: option_env!("ZNX_RELEASE").is_some(),
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 fn schema() -> Vec<SettingDef> {
     zootr::settings::shown()
+}
+
+/// The favorites that come with the app, as the Favorites list shows them.
+#[tauri::command]
+#[specta::specta]
+fn built_in_favorites() -> Vec<BuiltIn> {
+    favorites::built_in()
 }
 
 #[tauri::command]
@@ -168,13 +196,14 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
             tracker: old.tracker.clone(),
             ..config
         };
+        favorites::check(&config.favorites)?;
         let notes = config.fix_mods_roots();
         if let Some(game) = config
             .game
             .as_ref()
             .filter(|&g| old.game.as_ref() != Some(g))
         {
-            zootr::game::prepare(game, &Run::silent())?;
+            zootr::game::prepare(game, None, &Run::silent())?;
         }
         check_steps(&old, &config)?;
         config.save()?;
@@ -190,7 +219,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
 /// The game files from the config's dump.
 fn romfs(config: &Config) -> anyhow::Result<Romfs> {
     let game = config.game.as_ref().context("Set the game dump first")?;
-    zootr::game::prepare(game, &Run::silent())
+    zootr::game::prepare(game, None, &Run::silent())
 }
 
 /// What `slot` holds, loaded into it by `load` the first time. Kept until
@@ -313,6 +342,7 @@ fn record(
         built.and_then(|r| History::record(settings, extras, Label::default(), r, install));
     // A stopped install that took the mod off changed it too.
     if install {
+        app.state::<archipelago::Ap>().reset(app);
         app.state::<Items>().emit(app);
     }
     summary
@@ -346,6 +376,7 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
             history.save()
         });
         // A stopped install that took the mod off changed it too.
+        app.state::<archipelago::Ap>().reset(&app);
         app.state::<Items>().emit(&app);
         done
     })
@@ -371,6 +402,7 @@ async fn uninstall(app: AppHandle) -> Res<()> {
         history.install(None);
         history.save()?;
         log::info!("Took the mod off every target");
+        app.state::<archipelago::Ap>().reset(&app);
         app.state::<Items>().emit(&app);
         Ok(())
     })
@@ -479,7 +511,7 @@ struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
 impl Items {
     fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
         let config = Config::load()?;
-        let since = History::load()?.installed_at;
+        let since = History::load()?.installed().at;
         let mut items = self.0.lock().unwrap();
         if items.as_ref().is_none_or(|(at, _)| *at != since) {
             let gd = app.state::<Live>().gamedata(&config)?;
@@ -628,7 +660,9 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new()
         .commands(collect_commands![
             status,
+            build_info,
             schema,
+            built_in_favorites,
             config,
             set_config,
             generate,

@@ -14,6 +14,7 @@ use crate::bombchu_bags;
 use crate::checks::{self, Drop, ItemCheck};
 use crate::events::Flows;
 use crate::flows::Rewrites;
+use crate::game::Release;
 use crate::gamedata::{GameData, Op};
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
@@ -97,8 +98,8 @@ pub(super) fn flows_alone(
     flows(romfs, all, new_game, drops, &reads)
 }
 
-/// The flows the skips, the starting items and the boot rewrite, and the
-/// GameData edits they need.
+/// The flows the skips, the starting items and the boot rewrite make, and
+/// the GameData edits they need.
 fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, Vec<String>)> {
     // The opening movie and Navi's wake-up play in Kokiri Forest only.
     let skips = cutscenes::Skips {
@@ -270,20 +271,22 @@ pub fn write_mod(
     let keyed: Vec<_> = (parts.rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
-    patch::install(
-        mod_dir,
-        Lines::of(new_game),
-        &keyed,
-        hook_flags(new_game),
-        &credits(new_game),
-        &spots,
-        look.as_ref(),
-    )?;
+    let release = Release::of(romfs.root());
+    let table = patch::SeedTable {
+        progressive: Lines::of(new_game),
+        keyed: &keyed,
+        flags: hook_flags(new_game),
+        credits: &credits(new_game),
+        spots: &spots,
+        look: look.as_ref(),
+    };
+    patch::install(mod_dir, release, &table)?;
     Ok(Written {
         defaults,
         actors,
         files,
         stand_ins: parts.stand_ins,
+        release,
     })
 }
 
@@ -608,7 +611,7 @@ fn levels(
 
 /// What each copy `new_game` deals sets as it's found: its key copies',
 /// and with maps and compasses moving theirs.
-fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
+fn sets(new_game: &NewGame) -> Vec<(String, crate::copies::Sets)> {
     let fortress = new_game.fortress_keys.copies();
     let mut sets = key_tints::sets(BOSS_COPIES, new_game.keys, fortress);
     if maps_move(new_game) {
@@ -620,7 +623,7 @@ fn sets(new_game: &NewGame) -> Vec<(String, key_tints::Sets)> {
 /// [`sets`] as the hook's table names it. Traps need none: the hook
 /// freezes Link for any of them by name.
 fn credits(new_game: &NewGame) -> Vec<(String, zootr_hook::Credit)> {
-    key_tints::as_credits(sets(new_game))
+    crate::copies::as_credits(sets(new_game))
 }
 
 /// The settings the hook acts on, as the table's flag bits. Every seed

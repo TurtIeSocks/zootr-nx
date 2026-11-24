@@ -59,6 +59,8 @@ const fn kind(segment: &'static str, word: &'static str, act: Option<Act>) -> Ki
 
 /// The words logic tells kinds apart by, beside showing them.
 const DOOR: &str = "door";
+const CHEST: &str = "chest";
+const POT: &str = "pot";
 const ITEM: &str = "item";
 const LADDER: &str = "ladder";
 const CLIMB_WALL: &str = "climb wall";
@@ -70,8 +72,8 @@ const KINDS: &[Kind] = &[
     // A chained door: A spends a key, from 0.6 m off the lock (Forest
     // Temple, Mac, 2026-11-16).
     kind("Lock", "lock", Some(Act::Face { stand: 0.6 })),
-    kind("TBox", "chest", Some(Act::Face { stand: 0.8 })),
-    kind("Pot", "pot", Some(SLASH)),
+    kind("TBox", CHEST, Some(Act::Face { stand: 0.8 })),
+    kind("Pot", POT, Some(SLASH)),
     // Hyrule Field's shrubs are named for their drop table, not as grass.
     kind("Grass", "grass", Some(SLASH)),
     kind("DropFixed", "grass", Some(SLASH)),
@@ -132,6 +134,16 @@ pub fn climbs(name: &str) -> bool {
 /// Whether a placement named `name` is a door.
 pub fn is_door(name: &str) -> bool {
     word(name) == Some(DOOR)
+}
+
+/// Whether a placement named `name` is a chest.
+pub fn is_chest(name: &str) -> bool {
+    word(name) == Some(CHEST)
+}
+
+/// Whether a placement named `name` is a chest or a pot.
+pub fn is_chest_or_pot(name: &str) -> bool {
+    matches!(word(name), Some(CHEST | POT))
 }
 
 /// Whether a placement named `name` is an item lying out.
@@ -195,6 +207,14 @@ mod tests {
             assert_eq!(super::word(name), Some(word), "{name}");
         }
         assert_eq!(super::word("Obj_M"), None);
+    }
+
+    #[test]
+    fn doors_chests_and_pots_are_told_by_their_word() {
+        assert!(is_door("Obj_FakeDoor"));
+        assert!(is_chest("Obj_FakeTBox") && !is_chest("Obj_FakePot"));
+        assert!(is_chest_or_pot("Obj_FakeTBox") && is_chest_or_pot("Obj_FakePot"));
+        assert!(!is_door("Obj_FakeTBox") && !is_chest_or_pot("Obj_FakeDoor"));
     }
 
     #[test]

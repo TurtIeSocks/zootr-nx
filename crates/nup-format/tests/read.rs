@@ -130,6 +130,21 @@ fn rejects_a_node_listed_twice_or_a_listed_root() {
 }
 
 #[test]
+fn rejects_child_ranges_that_overlap() {
+    // The tree is root (0) -> romfs (1) -> a (2) -> f, one slot each. Point
+    // romfs's range at a's: every slot is still listed once, but f is
+    // reached through both dirs.
+    let mut bytes = base(&[("romfs/a/f", b"hi")]);
+    let first = |bytes: &[u8], dir| fixture::dir_record(bytes, dir) + 8;
+    let a = first(&bytes, 2);
+    let a_first: [u8; 4] = bytes[a..a + 4].try_into().unwrap();
+    let romfs = first(&bytes, 1);
+    bytes[romfs..romfs + 4].copy_from_slice(&a_first);
+    fixture::rehash(&mut bytes);
+    assert!(matches!(open("overlap", &bytes), Err(Error::Corrupt(_))));
+}
+
+#[test]
 fn rejects_reserved_kinds() {
     for kind in [3, 4, 9] {
         let bytes = fixture::build(&[Package {

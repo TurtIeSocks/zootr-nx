@@ -402,7 +402,7 @@ pub unsafe extern "C" fn content_name(
     let main = main();
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        let setter: Setter = func(main, OFFSETS.setter);
+        let setter: Setter = func(main, OFFSETS.funcs.setter);
         let Some((_, table)) = table else {
             return setter(request, key, value);
         };
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn drop_actor(
         {
             rewrite(main, &table, value);
         }
-        let reader: Reader = func(main(), OFFSETS.reader);
+        let reader: Reader = func(main(), OFFSETS.funcs.reader);
         reader(out, placement, a2, a3)
     }
 }
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         {
             return seeds;
         }
-        let child: Childhood = func(main(), OFFSETS.childhood);
+        let child: Childhood = func(main(), OFFSETS.funcs.childhood);
         child(link)
     }
 }
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
         return false;
     }
     unsafe {
-        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        let child: Childhood = func(main(), OFFSETS.funcs.childhood);
         child(link)
     }
 }
@@ -527,12 +527,12 @@ const PARAMS_OWNER: usize = 0x70;
 pub unsafe extern "C" fn gear_create(name: *const *const u8, params: usize) -> Created {
     unsafe {
         let main = main();
-        let create = main + OFFSETS.make_actor as usize;
+        let create = main + OFFSETS.funcs.make_actor as usize;
         let worn = core::ffi::CStr::from_ptr((*name).cast()).to_bytes();
         let renamed = table().and_then(|(_, table)| {
             let at = crate::child_armor(worn, table.flags)?;
             let link = *((params + PARAMS_OWNER) as *const usize);
-            let child: Childhood = func(main, OFFSETS.childhood);
+            let child: Childhood = func(main, OFFSETS.funcs.childhood);
             (link != 0 && child(link)).then_some(at)
         });
         let Some(at) = renamed else {
@@ -582,7 +582,7 @@ extern "C" fn gear_worn(empty: bool, child: bool) -> bool {
 #[unsafe(link_section = ".far")]
 pub unsafe extern "C" fn gear_mark(menu: usize, cell: *const *const u8, worn: *const u8) -> bool {
     unsafe {
-        let test: WornTest = func(main(), OFFSETS.worn_test);
+        let test: WornTest = func(main(), OFFSETS.funcs.worn);
         if test(menu, cell) {
             return true;
         }

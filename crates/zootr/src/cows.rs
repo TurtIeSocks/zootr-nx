@@ -12,7 +12,9 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Romfs, pack_path};
 
-use crate::checks::{GYAML, ItemCheck, actors, bancs, flat, hash_of, str_field, vec3};
+use crate::checks::{
+    GYAML, ItemCheck, actors, area_of, bancs, flat, hash_of, is_child, str_field, vec3,
+};
 use crate::flows;
 use crate::gifts;
 use crate::known::{Name, actor, field, item};
@@ -86,11 +88,6 @@ pub struct Cow {
     pub event: String,
 }
 
-/// Whether `file` is a child map's.
-fn child(file: &str) -> bool {
-    file.contains("_Child_")
-}
-
 impl Cow {
     /// The check's hash: its lowest child-file placement hash, else its
     /// lowest.
@@ -102,7 +99,7 @@ impl Cow {
     pub fn check(&self) -> &Placement {
         let all = self.placements.iter();
         (all.clone()
-            .filter(|p| child(&p.file))
+            .filter(|p| is_child(&p.file))
             .min_by_key(|p| p.hash))
         .or_else(|| all.min_by_key(|p| p.hash))
         .expect("a cow has a placement")
@@ -114,7 +111,7 @@ impl Cow {
 
     /// Its Banc folder.
     pub fn area(&self) -> &str {
-        area(&self.placements[0].file)
+        area_of(&self.placements[0].file)
     }
 
     /// Whether it's one of the cows sharing the plain pack.
@@ -147,10 +144,6 @@ pub fn flag_at(hash: u64) -> Option<String> {
     CHECKS.iter().position(|&h| h == hash).map(flag_name)
 }
 
-fn area(file: &str) -> &str {
-    file.split('/').nth(1).unwrap_or("?")
-}
-
 /// Placements of one actor in one area within `NEAR` of each other are one
 /// cow. Numbers the cows in the order of their check hashes.
 fn group(placed: Vec<Placement>) -> Vec<Cow> {
@@ -158,7 +151,7 @@ fn group(placed: Vec<Placement>) -> Vec<Cow> {
     for p in placed {
         let same = |g: &&mut Vec<Placement>| {
             g[0].actor == p.actor
-                && area(&g[0].file) == area(&p.file)
+                && area_of(&g[0].file) == area_of(&p.file)
                 && flat(g[0].pos, p.pos) <= NEAR
         };
         match groups.iter_mut().find(same) {

@@ -28,6 +28,15 @@ test("areas keep Link's age and maps for either age, sorted", () => {
   expect(adult.map((a) => a.area)).toEqual(["DekuTree", "FakeKakariko"]);
 });
 
+test("Link's area comes first, then the rest sorted", () => {
+  const here = areas(PLACES, true, "", "FakeKakariko_Child");
+  expect(here.map((a) => a.area)).toEqual([
+    "FakeKakariko",
+    "DekuTree",
+    "FakeHill",
+  ]);
+});
+
 test("with no age known, both show", () => {
   const kak = areas(PLACES, undefined, "").find(
     (a) => a.area === "FakeKakariko",

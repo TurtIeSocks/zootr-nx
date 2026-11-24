@@ -60,6 +60,14 @@ test("a failed run marks the step it failed in", () => {
   expect(screen.getByText("Copy Log")).toBeTruthy();
 });
 
+test("a failed step shows no time while the run's answer is still on its way", () => {
+  const error = { kind: "failed", error: "broke" } as const;
+  show({ ...running, end: error }, true);
+  expect(label("Failed")).toBeTruthy();
+  expect(label("Running")).toBeNull();
+  expect(screen.getAllByRole("listitem")[1]?.textContent).not.toMatch(/ s$/);
+});
+
 test("a stopped run says what the targets hold", () => {
   const end = { kind: "stopped", took_off: false } as const;
   const stopped = "Stopped: the targets are as they were";

@@ -11,6 +11,7 @@ import { type FullConfig, full } from "@/lib/config";
 import { PlandoPane } from "@/settings/plando-pane";
 import { useConfig } from "@/stores/config";
 import { useSeeds } from "@/stores/seeds";
+import { toggleDef } from "@/test/fixtures";
 
 const setConfig = vi.fn((_c: FullConfig) =>
   Promise.resolve({ status: "ok", data: [] }),
@@ -72,20 +73,7 @@ afterEach(() => {
 function show(config: FullConfig) {
   useSeeds.setPath("status", { game: true, targets: [] });
   useConfig.setPath("schema", [
-    {
-      id: "npc-gifts",
-      group: "Shuffles",
-      label: "NPC gifts",
-      description: "",
-      kind: { type: "toggle", default: false },
-      parent: null,
-      requires: null,
-      section: "Fake section",
-      section_about: "Fake about",
-      list: false,
-      gives: [],
-      archipelago: { ap: "offered" },
-    },
+    toggleDef("npc-gifts", { group: "Shuffles", label: "NPC gifts" }),
   ]);
   useConfig.setPath("config", config);
   render(<PlandoPane />);

@@ -9,13 +9,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
+use ounce_formats::vec3::{cross, dot, sub};
 use ounce_formats::{ActorPack, BymlMap, Romfs, ShapeMesh};
 
 use super::filter::{Filter, Touch};
 use super::shape::{
-    BODY_SHAPE, ENTRY_NAME, FILE, Physics, RIGID_BODIES, SHAPES, maps, physics_of, place, text,
+    BODY_SHAPE, ENTRY_NAME, FILE, Physics, RIGID_BODIES, SHAPES, cached, maps, physics_of, place,
+    text,
 };
-use super::vec3::{cross, dot, sub};
 use crate::known::field;
 use crate::warp::Placement;
 
@@ -264,9 +265,7 @@ pub fn walls(romfs: &Romfs, game: &Path, placed: &[Placement]) -> Result<Walls> 
     let filter = Filter::get(romfs)?;
     let mut names: HashMap<&str, Vec<MeshUse>> = HashMap::new();
     for p in placed {
-        if !names.contains_key(p.name.as_str()) {
-            names.insert(&p.name, mesh_names(romfs, filter, &p.name)?);
-        }
+        cached(&mut names, &p.name, || mesh_names(romfs, filter, &p.name))?;
     }
     let wanted: HashSet<&str> = names.values().flatten().map(|u| u.name.as_str()).collect();
     let mut walls = Walls::default();

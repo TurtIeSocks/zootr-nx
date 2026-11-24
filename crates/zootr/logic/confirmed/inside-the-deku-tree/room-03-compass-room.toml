@@ -1,0 +1,12 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 3
+name = "Compass Room"
+
+[[check]]
+hash = 13609975487234437568
+name = "Compass Room Gold Skulltula"
+needs = "melee or hammer or slingshot or bow or boomerang or hookshot or dins-fire or explosives"
+why = "0.8 m from the floor: any damage kills it"
+evidence = [
+    "playtest 2026-11-24, the maintainer: any damage kills it",
+]

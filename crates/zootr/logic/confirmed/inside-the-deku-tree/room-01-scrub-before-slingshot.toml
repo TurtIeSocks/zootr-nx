@@ -18,3 +18,21 @@ evidence = [
     "playtest 2026-11-22, the maintainer: its nut sent back with the shield lifts it out, then a sword stops it",
     "playtest 2026-11-22, the maintainer: once it runs, any weapon stops it, and the talk after unlocks the door",
 ]
+
+[[check]]
+hash = 8632533875205065781
+name = "Recovery Heart"
+needs = "flag:#64edd2f3"
+why = "lies under the room's Deku Scrub, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under the room's Deku Scrub, named ScrubDekuHeart",
+]
+
+[[check]]
+hash = 9391308054738304433
+name = "Green Rupee"
+needs = "flag:#64edd2f3"
+why = "lies under the room's Deku Scrub, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under the room's Deku Scrub, named ScrubDekuRupee",
+]

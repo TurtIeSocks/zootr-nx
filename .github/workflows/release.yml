@@ -198,6 +198,14 @@ jobs:
         shell: bash
         run: echo "ZNX_APWORLD=$GITHUB_WORKSPACE/apworld/znx.apworld" >> "$GITHUB_ENV"
 
+      # Marks a release build (build.rs): the sidebar shows its version
+      # and the update notice offers the install. Any other build shows
+      # its commit, and the notice only says a release is out.
+      - name: Mark a release build
+        if: env.TAGGED == 'true'
+        shell: bash
+        run: echo "ZNX_RELEASE=1" >> "$GITHUB_ENV"
+
       # build.runner, set for macOS only in tauri.macos.conf.json, is a
       # shell script that signs debug builds for `tauri dev`. A release
       # build has nothing for it to do, so `--runner cargo` skips it.

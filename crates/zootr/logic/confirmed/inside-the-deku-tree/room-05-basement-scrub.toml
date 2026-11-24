@@ -1,0 +1,21 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 5
+name = "Basement Scrub"
+
+[[check]]
+hash = 5920725837809443985
+name = "Recovery Heart"
+needs = "flag:#c90d4ed1"
+why = "lies under the room's Deku Scrub, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under the room's Deku Scrub, named ScrubDekuHeart",
+]
+
+[[check]]
+hash = 10420058391592786882
+name = "Green Rupee"
+needs = "flag:#c90d4ed1"
+why = "lies under the room's Deku Scrub, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under the room's Deku Scrub, named ScrubDekuRupee",
+]

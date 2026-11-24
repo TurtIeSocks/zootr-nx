@@ -39,12 +39,12 @@ type NameCopy = unsafe extern "C" fn(*mut Fixed, usize);
 /// `user` is Link's EquipmentUser component.
 unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
     unsafe {
-        let drawn: Drawn = func(main, OFFSETS.drawn_bow);
+        let drawn: Drawn = func(main, OFFSETS.funcs.drawn_bow);
         let bow = drawn(user);
         if bow == 0 {
             return None;
         }
-        let shootable: Shootable = func(main, OFFSETS.shootable);
+        let shootable: Shootable = func(main, OFFSETS.funcs.shootable);
         let name = shootable(&bow);
         let mut fixed = Fixed {
             text: core::ptr::null_mut(),
@@ -52,13 +52,13 @@ unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
             buffer: [0; 64],
         };
         fixed.text = fixed.buffer.as_mut_ptr();
-        let copy: NameCopy = func(main, OFFSETS.name_copy);
+        let copy: NameCopy = func(main, OFFSETS.funcs.name_copy);
         copy(&mut fixed, name);
         fixed.buffer[63] = 0;
         if *fixed.text == 0 {
             return None;
         }
-        let hash: Hash = func(main, OFFSETS.hash);
+        let hash: Hash = func(main, OFFSETS.funcs.hash);
         Some(hash(fixed.text, 0))
     }
 }

@@ -7,7 +7,8 @@ use std::sync::LazyLock;
 use anyhow::Result;
 
 use super::landing::flat;
-use super::{Halt, NPC, Planner, Ready, Trigger, anchor, lazy, steps};
+use super::quest::steps;
+use super::{Halt, NPC, Planner, Ready, Trigger, anchor, lazy};
 use crate::cutscenes::Catalogue;
 use crate::gifts::{self, Gift, How};
 use crate::known::{Name, actor, field, flag, flow, item, scene};

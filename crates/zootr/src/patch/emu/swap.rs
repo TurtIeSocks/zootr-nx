@@ -8,9 +8,10 @@ use std::collections::BTreeMap;
 use std::mem::offset_of;
 
 use unicorn_engine::RegisterARM64 as R;
-use zootr_hook::{Ask, Mailbox, OFFSETS, Outcome, Shared, Swap};
+use zootr_hook::{Ask, Mailbox, Outcome, Shared, Swap};
 
 use super::*;
+use crate::progressive;
 
 /// The fake game's memory, apart from everything else.
 pub(super) const FAKE: u64 = 0x5000_0000;
@@ -58,6 +59,8 @@ pub(super) struct Game {
     calls: Vec<Call>,
     /// What create answers, call by call (1 once it runs out).
     creates: Vec<u64>,
+    /// The name hash of what Link's drawn bow shoots, or no bow drawn.
+    pub(super) projectile: Option<u32>,
 }
 
 pub(super) fn u64s(words: &[u64]) -> Vec<u8> {
@@ -69,12 +72,17 @@ fn f32s(words: &[f32]) -> Vec<u8> {
 }
 
 impl Game {
-    /// The machine with a table (dev on) and the fake game: a child Link
-    /// in play, his adult self not made yet.
-    pub(super) fn new() -> Option<Self> {
-        let mut m = Machine::new()?;
-        let table = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
-        for p in table.iter().filter(|p| (TABLE..TABLE_END).contains(&p.at)) {
+    /// `h`'s machine with a table (dev on) and the fake game: a child
+    /// Link in play, his adult self not made yet.
+    pub(super) fn new(h: &'static Hook) -> Option<Self> {
+        let mut m = Machine::new(h)?;
+        let r = &h.build.regions;
+        let table = h.patches(&progressive::LINES, &[], 0, &[], &[], None);
+        let table = table.unwrap();
+        for p in table
+            .iter()
+            .filter(|p| (r.table..r.table_end).contains(&p.at))
+        {
             m.uc.mem_write(at(p.at), &p.bytes).unwrap();
         }
         m.uc.mem_map(FAKE, 0x1_0000, Prot::READ | Prot::WRITE)
@@ -84,8 +92,9 @@ impl Game {
             bools: BTreeMap::from([(CHILD, true)]),
             calls: vec![],
             creates: vec![],
+            projectile: None,
         };
-        let o = &OFFSETS;
+        let o = &h.build;
         // Each list: one entry, its link holding its actor while the ids
         // match. The adult's doesn't yet.
         for (i, &(list, actor)) in LISTS.iter().enumerate() {
@@ -108,18 +117,27 @@ impl Game {
         // Child Link where he stands, and the player checks.
         g.write(LINK + 0x31c, &f32s(&POSITION));
         g.write(LINK + 0x328, &f32s(&ROTATION));
-        g.write(LINK, &u64s(&[at(o.player_vtable)]));
+        g.write(LINK, &u64s(&[at(o.vtables.player)]));
         g.write(LINK + 0x270, &u64s(&[LINK + 0x800]));
         g.write(LINK + 0x800 + 0x320, &u64s(&[MOVEMENT]));
         g.write(MOVEMENT + 0x18, &u64s(&[LINK]));
-        g.write(OWNER, &u64s(&[at(o.move_vtable)]));
+        g.write(OWNER, &u64s(&[at(o.vtables.movement)]));
         g.write(OWNER + 0x10, &u64s(&[RESOURCE]));
         g.write(RESOURCE + 0x58, b"Player\0");
         // GameData and the events (none playing) through main's globals.
         g.write(CELLS, &u64s(&[GAMEDATA, EVENTS]));
-        g.write(at(o.gamedata), &u64s(&[CELLS]));
-        g.write(at(o.events), &u64s(&[CELLS + 8]));
+        g.write(at(o.got.gamedata), &u64s(&[CELLS]));
+        g.write(at(o.got.events), &u64s(&[CELLS + 8]));
         Some(g)
+    }
+
+    /// Maps `len` more zeroed bytes of fake memory at `from`, for a test
+    /// that needs pages the swap's don't use.
+    pub(super) fn map(&mut self, from: u64, len: u64) {
+        self.m
+            .uc
+            .mem_map(from, len, Prot::READ | Prot::WRITE)
+            .unwrap();
     }
 
     pub(super) fn write(&mut self, to: u64, bytes: &[u8]) {
@@ -143,21 +161,32 @@ impl Game {
         std::array::from_fn(|i| f32::from_le_bytes(b[i * 4..][..4].try_into().unwrap()))
     }
 
+    /// The build this game is.
+    pub(super) fn build(&self) -> &'static Build {
+        &self.m.h.build
+    }
+
+    /// Where the hook keeps its shared state in this build.
+    fn list(&self) -> u64 {
+        at(list(self.build()))
+    }
+
     fn mailbox(&self, field: usize) -> u32 {
-        let at = at(LIST) + (offset_of!(Shared, dev) + field) as u64;
+        let at = self.list() + (offset_of!(Shared, dev) + field) as u64;
         u32::from_le_bytes(self.read(at))
     }
 
     /// The swap the hook keeps: a lock word, then the swap.
     fn swap(&self) -> Swap {
-        let b: [u8; size_of::<Swap>()] = self.read(at(LIST) + offset_of!(Shared, swap) as u64 + 8);
+        let b: [u8; size_of::<Swap>()] =
+            self.read(self.list() + offset_of!(Shared, swap) as u64 + 8);
         // SAFETY: Swap is plain data, repr(C), read as the hook wrote it.
         unsafe { std::mem::transmute(b) }
     }
 
     /// The app asks for request `n`, `ask`.
     fn ask(&mut self, n: u32, ask: Ask) {
-        let dev = at(LIST) + offset_of!(Shared, dev) as u64;
+        let dev = self.list() + offset_of!(Shared, dev) as u64;
         self.write(
             dev + offset_of!(Mailbox, ask) as u64,
             &(ask as u32).to_le_bytes(),
@@ -193,22 +222,22 @@ impl Game {
 
     /// What the game's routine at `offset` does here, as `x0`.
     fn stub(&mut self, hooked: u32, offset: u32) -> u64 {
-        let o = &OFFSETS;
+        let o = self.build();
         let x = |r| self.m.uc.reg_read(r).unwrap();
         let (x0, x1, x2) = (x(R::X0), x(R::X1), x(R::X2));
         match offset {
             _ if offset == hooked + 4 => 0,
-            _ if offset == o.get_bool => {
+            _ if offset == o.funcs.get_bool => {
                 let value = self.bools.get(&(x2 as u32));
                 self.write(x1, &[value.copied().unwrap_or(false) as u8]);
                 1
             }
-            _ if offset == o.set_bool => {
+            _ if offset == o.funcs.set_bool => {
                 self.bools.insert(x2 as u32, x1 & 1 == 1);
                 self.calls.push(Call::SetBool(x2 as u32, x1 & 1 == 1));
                 0
             }
-            _ if offset == o.resident_create => {
+            _ if offset == o.entries.resident_create => {
                 let made = if self.creates.is_empty() {
                     1
                 } else {
@@ -217,19 +246,19 @@ impl Game {
                 self.calls.push(Call::Create(x0, x1));
                 made
             }
-            _ if offset == o.cancel_sleep => {
+            _ if offset == o.funcs.cancel_sleep => {
                 let followed = self.u64(CAMERA_COMPONENT + 0xfe0);
                 self.calls
                     .push(Call::Wake(x0, self.f32s(x1), self.f32s(x2), followed));
                 1
             }
-            _ if offset == o.request_pause || offset == o.release_pause => {
+            _ if offset == o.funcs.request_pause || offset == o.funcs.release_pause => {
                 let name = self.u64(self.u64(x0 + 0x20));
                 let text: Vec<u8> = (0..)
                     .map(|i| self.read::<1>(name + i)[0])
                     .take_while(|&b| b != 0)
                     .collect();
-                let what = if offset == o.request_pause {
+                let what = if offset == o.funcs.request_pause {
                     "request"
                 } else {
                     "release"
@@ -238,25 +267,35 @@ impl Game {
                     .push(Call::Pause(what, String::from_utf8(text).unwrap()));
                 0
             }
+            // A drawn bow is any word but 0, and its projectile's name one
+            // letter, whose hash is `projectile`.
+            _ if offset == o.funcs.drawn_bow => self.projectile.is_some() as u64,
+            _ if offset == o.funcs.shootable => 1,
+            _ if offset == o.funcs.name_copy => {
+                let text = self.u64(x0);
+                self.write(text, b"x\0");
+                0
+            }
+            _ if offset == o.funcs.hash => self.projectile.map_or(0, u64::from),
             _ => panic!("the hook ran the game's code at {offset:#x}"),
         }
     }
 
     /// The game makes the residents: the hook keeps the manager.
     fn area_loaded(&mut self) {
-        self.call(OFFSETS.resident_create, MANAGER);
+        self.call(self.build().entries.resident_create, MANAGER);
         self.calls.clear();
     }
 
     /// Link's update (the mailbox), as long as he's there.
     fn link_update(&mut self) {
-        self.call(OFFSETS.link_update, LINK);
+        self.call(self.build().entries.link_update, LINK);
     }
 
     /// The UI's update `n` times: the swap's frames.
     fn frames(&mut self, n: usize) {
         for _ in 0..n {
-            self.call(OFFSETS.ui_update, 0);
+            self.call(self.build().entries.ui_update, 0);
         }
     }
 
@@ -271,79 +310,81 @@ impl Game {
     }
 }
 
+/// A game for each build whose `main` is here.
+pub(super) fn games() -> impl Iterator<Item = Game> {
+    Hook::all().iter().filter_map(Game::new)
+}
+
 fn pause(what: &'static str) -> Call {
     Call::Pause(what, "SceneTransition".into())
 }
 
 #[test]
 fn a_swap_makes_the_other_age_and_wakes_him_where_link_stood_camera_kept() {
-    let Some(mut g) = Game::new() else {
-        return;
-    };
-    g.area_loaded();
-    g.creates = vec![0, 1];
-    g.ask(1, Ask::AgeHere);
-    g.link_update();
-    assert_eq!(g.calls, [pause("request"), Call::SetBool(CHILD, false)]);
-    assert_eq!(g.answered().0, 0, "answered before the swap is done");
+    for mut g in games() {
+        g.area_loaded();
+        g.creates = vec![0, 1];
+        g.ask(1, Ask::AgeHere);
+        g.link_update();
+        assert_eq!(g.calls, [pause("request"), Call::SetBool(CHILD, false)]);
+        assert_eq!(g.answered().0, 0, "answered before the swap is done");
 
-    // Create, until it says it made him; then he isn't there for a while.
-    g.frames(5);
-    assert_eq!(
-        g.calls[2..],
-        [Call::Create(MANAGER, 0), Call::Create(MANAGER, 0)]
-    );
-    assert_eq!(g.answered().0, 0);
-    g.adult_made();
-    g.frames(2);
-    let woken = Call::Wake(MANAGER, POSITION, ROTATION, PART);
-    assert_eq!(g.calls[4..], [woken, pause("release")]);
-    assert_eq!(g.answered(), (1, Outcome::Done as u32));
-    assert_eq!(g.swap(), Swap::default());
-    // Nothing more once it's done.
-    g.frames(3);
-    assert_eq!(g.calls.len(), 6);
+        // Create, until it says it made him; then he isn't there for a while.
+        g.frames(5);
+        assert_eq!(
+            g.calls[2..],
+            [Call::Create(MANAGER, 0), Call::Create(MANAGER, 0)]
+        );
+        assert_eq!(g.answered().0, 0);
+        g.adult_made();
+        g.frames(2);
+        let woken = Call::Wake(MANAGER, POSITION, ROTATION, PART);
+        assert_eq!(g.calls[4..], [woken, pause("release")]);
+        assert_eq!(g.answered(), (1, Outcome::Done as u32));
+        assert_eq!(g.swap(), Swap::default());
+        // Nothing more once it's done.
+        g.frames(3);
+        assert_eq!(g.calls.len(), 6);
+    }
 }
 
 #[test]
 fn a_swap_whose_new_link_never_comes_goes_back_and_says_stuck() {
-    let Some(mut g) = Game::new() else {
-        return;
-    };
-    g.area_loaded();
-    g.ask(1, Ask::AgeHere);
-    g.link_update();
-    g.frames(1 + LIMIT + 1);
-    // Given up: the age flipped back and the child made again.
-    assert_eq!(
-        g.calls[2..],
-        [Call::Create(MANAGER, 0), Call::SetBool(CHILD, true)]
-    );
-    assert!(g.bools[&CHILD]);
-    g.frames(1);
-    assert_eq!(g.calls[4..], [Call::Create(MANAGER, 1)]);
-    assert_eq!(g.answered().0, 0);
-    // The child's entry holds him, but awake: still never asleep.
-    g.frames(LIMIT + 1);
-    assert_eq!(g.calls[5..], [pause("release")]);
-    assert_eq!(g.answered(), (1, Outcome::Stuck as u32));
+    for mut g in games() {
+        g.area_loaded();
+        g.ask(1, Ask::AgeHere);
+        g.link_update();
+        g.frames(1 + LIMIT + 1);
+        // Given up: the age flipped back and the child made again.
+        assert_eq!(
+            g.calls[2..],
+            [Call::Create(MANAGER, 0), Call::SetBool(CHILD, true)]
+        );
+        assert!(g.bools[&CHILD]);
+        g.frames(1);
+        assert_eq!(g.calls[4..], [Call::Create(MANAGER, 1)]);
+        assert_eq!(g.answered().0, 0);
+        // The child's entry holds him, but awake: still never asleep.
+        g.frames(LIMIT + 1);
+        assert_eq!(g.calls[5..], [pause("release")]);
+        assert_eq!(g.answered(), (1, Outcome::Stuck as u32));
+    }
 }
 
 #[test]
 fn a_swap_is_refused_before_an_area_load_and_while_one_is_under_way() {
-    let Some(mut g) = Game::new() else {
-        return;
-    };
-    g.ask(1, Ask::AgeHere);
-    g.link_update();
-    assert_eq!(g.answered(), (1, Outcome::NoResident as u32));
-    assert_eq!(g.calls, []);
+    for mut g in games() {
+        g.ask(1, Ask::AgeHere);
+        g.link_update();
+        assert_eq!(g.answered(), (1, Outcome::NoResident as u32));
+        assert_eq!(g.calls, []);
 
-    g.area_loaded();
-    g.ask(2, Ask::AgeHere);
-    g.link_update();
-    g.ask(3, Ask::AgeHere);
-    g.link_update();
-    assert_eq!(g.answered(), (3, Outcome::Soon as u32));
-    assert_eq!(g.calls, [pause("request"), Call::SetBool(CHILD, false)]);
+        g.area_loaded();
+        g.ask(2, Ask::AgeHere);
+        g.link_update();
+        g.ask(3, Ask::AgeHere);
+        g.link_update();
+        assert_eq!(g.answered(), (3, Outcome::Soon as u32));
+        assert_eq!(g.calls, [pause("request"), Call::SetBool(CHILD, false)]);
+    }
 }

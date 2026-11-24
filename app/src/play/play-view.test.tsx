@@ -16,6 +16,7 @@ import { stop } from "@/stores/ap";
 import { useConfig } from "@/stores/config";
 import { refresh, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { summary, toggleDef } from "@/test/fixtures";
 
 const picked = vi.fn(async () => "/seeds/AP_1_P1_Link.apznx" as string | null);
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -31,21 +32,12 @@ afterEach(() => {
 });
 
 const target = { name: "Emu", app: "/a.app", mod_dir: "/m" };
-const seed = {
-  id: 1,
-  time: 0,
-  seed: "42",
-  settings: {},
-  label: {},
+const seed = summary({
   chests: 104,
   changed: 92,
   icons: ["Sun", "Moon", "Sun", "Key", "Fish"],
   share: "ZR1-shared",
-  test: false,
-  plando: false,
-  ap_slot: null,
-  death_link: false,
-};
+});
 
 const ok = { status: "ok", data: null } as const;
 
@@ -67,22 +59,7 @@ function show(
   older: Summary[] = [],
   devTools = false,
 ) {
-  useConfig.setPath("schema", [
-    {
-      id: "x",
-      group: "g",
-      label: "X",
-      description: "",
-      kind: { type: "toggle", default: false },
-      parent: null,
-      requires: null,
-      section: "Fake section",
-      section_about: "Fake about",
-      list: false,
-      gives: [],
-      archipelago: { ap: "offered" },
-    },
-  ]);
+  useConfig.setPath("schema", [toggleDef("x", { label: "X" })]);
   useConfig.setPath(
     "config",
     full({ targets: [target], settings, test, dev_tools: devTools }),
@@ -234,6 +211,7 @@ test("an installed seed can be played", () => {
   ).toHaveLength(1);
   expect(screen.queryByText("42")).toBeNull();
   expect(button("Play Emu").disabled).toBe(false);
+  expect(screen.getByText("92 of 104 checks changed")).toBeTruthy();
 });
 
 test("a seed shows its icons and can't delete itself while installed", () => {
@@ -246,6 +224,30 @@ test("a seed shows its icons and can't delete itself while installed", () => {
   expect(button("Installed").getAttribute("aria-disabled")).toBe("true");
   expect(button("Use settings").getAttribute("aria-disabled")).toBe("true");
   expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+});
+
+test("installing from History darkens the old badge and spins on the new row", async () => {
+  const older = summary({ id: 2, seed: "7" });
+  let finish = () => {};
+  vi.spyOn(commands, "install").mockImplementation(
+    () =>
+      new Promise((done) => {
+        finish = () => done(ok);
+      }),
+  );
+  backend({ installed: older, entries: [seed, older] });
+  show(seed, {}, {}, [older]);
+  openTab("History");
+  fireEvent.click(button("Install"));
+  const was = button("Installed");
+  expect(was.dataset.variant).toBe("default");
+  expect(button("Installing").dataset.variant).toBe("info");
+  expect(screen.queryByRole("button", { name: "Install" })).toBeNull();
+  await act(async () => finish());
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Installing" })).toBeNull(),
+  );
+  expect(button("Installed").dataset.variant).toBe("green");
 });
 
 test("a seed's name and note show in history and prefill its label", async () => {
@@ -495,12 +497,13 @@ test("a blocked Generate stays hoverable, says why, and generates nothing", () =
   expect(card("New Seed").getByText("Add a Target first")).toBeTruthy();
 });
 
-test("Standard, Archipelago and History each open their folder", () => {
+test("Standard, Archipelago, History and Favorites each open their folder", () => {
   show(seed);
   expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
     "Standard",
     "Archipelago",
     "History1",
+    "Favorites",
   ]);
   expect(screen.getByRole("heading", { name: "New Seed" })).toBeTruthy();
   openTab("History");
@@ -532,7 +535,7 @@ test("arrow keys move between the tabs", async () => {
   fireEvent.keyDown(standard, { key: "ArrowRight" });
   await waitFor(() => expect(selected().textContent).toBe("Archipelago"));
   fireEvent.keyDown(selected(), { key: "End" });
-  await waitFor(() => expect(selected().textContent).toMatch(/^History/));
+  await waitFor(() => expect(selected().textContent).toBe("Favorites"));
 });
 
 test("an installed AP slot is named by its slot, badged, and shows its room", () => {

@@ -132,12 +132,14 @@ const ENEMY: &str = "Enemy_";
 pub(super) fn print(romfs: &Romfs, actors: &[String], map: Option<String>) -> Result<()> {
     let mut all: BTreeSet<String> = actors.iter().cloned().collect();
     if let Some(file) = map {
-        let filter = super::Filter {
+        let filter = super::filter::Filter {
             gyaml: Some(ENEMY.into()),
             file: Some(file),
             ..Default::default()
         };
-        let hits = super::hits(romfs, &filter)?.into_iter().map(|h| h.gyaml);
+        let hits = super::filter::hits(romfs, &filter)?
+            .into_iter()
+            .map(|h| h.gyaml);
         all.extend(hits.filter(|g| g.starts_with(ENEMY)));
     }
     all.iter().try_for_each(|a| hurts(romfs, a))

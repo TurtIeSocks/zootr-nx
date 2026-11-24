@@ -174,7 +174,7 @@ mod tests {
     /// Each Equipment page actor in the table at `bytes`: its name and ages.
     fn rows(bytes: &[u8]) -> Vec<(String, [bool; 2])> {
         let mut root = BymlDoc::parse(bytes).unwrap().root;
-        let rows = super::super::equipment(&mut root, &|_: &str| true).unwrap();
+        let rows = super::super::rows(&mut root, Some(field::EQUIPMENT_ARRAY)).unwrap();
         let row = |a: &mut BymlMap| {
             (
                 super::super::name(a).unwrap().to_owned(),

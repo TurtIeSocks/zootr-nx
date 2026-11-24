@@ -11,7 +11,7 @@ use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 use zootr_hook::{CHILD_ARMOR, CHILD_GEAR, child_armor};
 
 use super::files::{CLOTH, MODEL, VEST};
-use crate::key_tints::pointed_at;
+use crate::copies::pointed_at;
 use crate::known::{Name, actor, field};
 use crate::medallions::paint::{self, Band, Colour, Hues};
 use crate::standins::{Tables, actor_path, raw, write_clone};

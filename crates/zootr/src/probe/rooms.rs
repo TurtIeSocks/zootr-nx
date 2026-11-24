@@ -6,8 +6,8 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 
-use super::{root, xyz};
-use crate::checks::flat;
+use crate::checks::{flat, xyz};
+use crate::nav::disjoint::DisjointSet;
 use crate::nav::graph::{Cross, Graph, Via, step_up};
 use crate::nav::{kinds, navmesh_file};
 use crate::warp::{self, Placement};
@@ -48,7 +48,7 @@ pub(super) fn locked_doors(placed: &[Placement]) -> BTreeSet<u64> {
     let near_lock = |at: [f32; 3]| locks.iter().any(|l| flat(l.pose.at, at) < LOCK_REACH);
     placed
         .iter()
-        .filter(|p| kinds::word(&p.name) == Some("door") && near_lock(p.pose.at))
+        .filter(|p| kinds::is_door(&p.name) && near_lock(p.pose.at))
         .filter_map(|p| p.hash)
         .collect()
 }
@@ -56,7 +56,7 @@ pub(super) fn locked_doors(placed: &[Placement]) -> BTreeSet<u64> {
 /// Each face's room: the faces joined by any crossing but a locked door,
 /// named by one face of each.
 pub(super) fn split(graph: &Graph, locked: &BTreeSet<u64>) -> Vec<usize> {
-    let mut parent: Vec<usize> = (0..graph.centers.len()).collect();
+    let mut sets = DisjointSet::new(graph.centers.len());
     for (from, arcs) in graph.arcs.iter().enumerate() {
         for arc in arcs {
             if let Cross::Link {
@@ -67,11 +67,10 @@ pub(super) fn split(graph: &Graph, locked: &BTreeSet<u64>) -> Vec<usize> {
             {
                 continue;
             }
-            let (a, b) = (root(&mut parent, from), root(&mut parent, arc.to));
-            parent[a] = b;
+            sets.union(from, arc.to);
         }
     }
-    (0..parent.len()).map(|f| root(&mut parent, f)).collect()
+    sets.roots()
 }
 
 /// Prints each room (the faces joined without a locked door) holding a
@@ -82,8 +81,7 @@ pub(super) fn rooms(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
     let (graph, locked, roots) = level.split();
     let room = |at: [f32; 3]| graph.locate(at).map(|s| roots[s.face]);
     for p in placed {
-        let word = kinds::word(&p.name);
-        if word != Some("chest") && !p.name.contains(LOCK) {
+        if !kinds::is_chest(&p.name) && !p.name.contains(LOCK) {
             continue;
         }
         let r = room(p.pose.at).map_or("off".into(), |r| r.to_string());

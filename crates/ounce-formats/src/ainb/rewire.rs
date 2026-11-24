@@ -98,7 +98,8 @@ impl File {
         let (was, _) = self.output(from.0, t, from.1)?;
         let old = entry(i16::try_from(from.0)?, i16::try_from(was)?);
         let to_node = i16::try_from(to.0)?;
-        // Every lookup that can fail goes before the first write.
+        // Every step that can fail goes before the first edit to the graph:
+        // a failure adds at most the input's name to the string pool.
         let (node, count) = self.source_of(t, i);
         let place = match node > MULTI {
             true => {

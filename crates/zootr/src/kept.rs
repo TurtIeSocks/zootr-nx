@@ -149,14 +149,46 @@ fn copy(from: &Path, to: &Path, slot: Option<u8>) -> Result<()> {
         let _ = std::fs::remove_dir_all(&part);
         return Err(e);
     }
-    match std::fs::remove_dir_all(to) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-            let _ = std::fs::remove_dir_all(&part);
-            return Err(e).with_context(|| format!("replacing {}", to.display()));
-        }
-        _ => {}
+    swap(&part, to).inspect_err(|_| {
+        let _ = std::fs::remove_dir_all(&part);
+    })
+}
+
+/// Put the finished `part` in `to`'s place. The old `to` is moved aside
+/// first and deleted only once `part` is in, so a failed swap puts it
+/// back, or names where it's left when that fails too. A leftover old
+/// copy with no `to` is the only one, so it's refused, never deleted.
+fn swap(part: &Path, to: &Path) -> Result<()> {
+    let name = to.file_name().context("a kept save's folder has no name")?;
+    let old = to.with_file_name(format!(".{}.old", name.to_string_lossy()));
+    if old.exists() {
+        ensure!(
+            to.exists(),
+            "{} holds the only copy of an earlier keep: move it back to {} or delete it",
+            old.display(),
+            to.display()
+        );
+        let _ = std::fs::remove_dir_all(&old);
     }
-    std::fs::rename(&part, to).with_context(|| format!("moving the copy to {}", to.display()))
+    let aside = match std::fs::rename(to, &old) {
+        Ok(()) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(e).with_context(|| format!("moving {} aside", to.display())),
+    };
+    if let Err(e) = std::fs::rename(part, to) {
+        let err = anyhow::Error::new(e).context(format!("moving the copy to {}", to.display()));
+        return match aside.then(|| std::fs::rename(&old, to)) {
+            Some(Err(back)) => Err(err.context(format!(
+                "the earlier keep is left in {} ({back})",
+                old.display()
+            ))),
+            _ => Err(err),
+        };
+    }
+    if aside && let Err(e) = std::fs::remove_dir_all(&old) {
+        log::warn!("removing the old copy {}: {e}", old.display());
+    }
+    Ok(())
 }
 
 /// `copy`'s files, into a `to` made for them.
@@ -283,6 +315,45 @@ mod tests {
         assert!(to.join("option.sav").exists());
         assert!(!to.join("slot_00").exists());
         assert!(!root.join(".kept.part").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_failed_swap_puts_the_old_keep_back() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-swap-{}", std::process::id()));
+        let to = root.join("kept");
+        std::fs::create_dir_all(&to).unwrap();
+        std::fs::write(to.join("option.sav"), "kept before").unwrap();
+        let err = format!("{:#}", swap(&root.join(".kept.part"), &to).unwrap_err());
+        assert!(err.contains("moving the copy"), "{err}");
+        assert!(to.join("option.sav").exists());
+        assert!(!root.join(".kept.old").exists());
+        // A whole part goes in, and the old copy goes.
+        let part = root.join(".kept.part");
+        std::fs::create_dir_all(&part).unwrap();
+        std::fs::write(part.join("account.sav"), "new").unwrap();
+        swap(&part, &to).unwrap();
+        assert!(to.join("account.sav").exists() && !to.join("option.sav").exists());
+        assert!(!part.exists() && !root.join(".kept.old").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_leftover_old_keep_is_never_deleted_when_it_is_the_only_copy() {
+        let root = std::env::temp_dir().join(format!("zootr-keep-old-{}", std::process::id()));
+        let (from, to, old) = (root.join("save"), root.join("kept"), root.join(".kept.old"));
+        std::fs::create_dir_all(from.join("slot_00")).unwrap();
+        std::fs::write(from.join("slot_00/progress.sav"), "new").unwrap();
+        std::fs::create_dir_all(&old).unwrap();
+        std::fs::write(old.join("option.sav"), "kept before").unwrap();
+        let err = format!("{:#}", copy(&from, &to, None).unwrap_err());
+        assert!(err.contains(".kept.old"), "{err}");
+        assert!(old.join("option.sav").exists());
+        assert!(!to.exists() && !root.join(".kept.part").exists());
+        // Beside a whole keep, a leftover is stale and goes.
+        std::fs::create_dir_all(&to).unwrap();
+        copy(&from, &to, None).unwrap();
+        assert!(to.join("slot_00/progress.sav").exists() && !old.exists());
         std::fs::remove_dir_all(root).unwrap();
     }
 

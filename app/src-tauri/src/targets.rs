@@ -7,12 +7,14 @@ use zootr::config::{Config, Target};
 
 use crate::{Res, text};
 
-/// A shared preset as a new target, named so no saved target has its name.
+/// A shared preset as a new target, named so no saved target has its name,
+/// another game's included: saving drops another game's target that
+/// shares a name with one of this shell's.
 #[tauri::command]
 #[specta::specta]
 pub(crate) fn import_target(preset: String) -> Res<Target> {
     let mut target = Target::import(&preset).map_err(text)?;
-    target.name = target.unique_name(&Config::load().map_err(text)?.targets);
+    target.name = target.unique_name(&Config::load_all().map_err(text)?.targets);
     Ok(target)
 }
 

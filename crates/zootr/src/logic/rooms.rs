@@ -132,8 +132,8 @@ mod tests {
             era: Era::Child,
             to: to.into(),
             to_start: start.into(),
-            name: "-".into(),
-            presence: "-".into(),
+            name: None,
+            presence: None,
         }
     }
 
@@ -146,7 +146,7 @@ mod tests {
         let boss = format!(
             "room = 7\nname = \"Lair\"\n[[exit]]\nhash = {}\nname = \"boss\"\n\
              [[check]]\nhash = 1\nname = \"Fake Chest\"\nneeds = \"always\"\nwhy = \"\"\n",
-            spot("FakeBoss", "-")
+            spot("FakeBoss", world::NO_START_POS)
         );
         let rooms = [room("FakeDungeon", &hall), room("FakeDungeon", &boss)];
         let exits = BTreeSet::from([exit("FakeField", "FakeDungeon", "Front")]);
@@ -157,7 +157,9 @@ mod tests {
             "FakeDungeon"
         );
         assert_eq!(
-            places.leave("FakeDungeon", "FakeBoss", "-").unwrap(),
+            places
+                .leave("FakeDungeon", "FakeBoss", world::NO_START_POS)
+                .unwrap(),
             "FakeDungeon#07"
         );
         assert_eq!(

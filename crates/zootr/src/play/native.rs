@@ -140,8 +140,13 @@ impl Input for Native {
     }
 
     fn quit(&mut self) -> Result<()> {
-        // A game already gone answers nothing, which is as good.
-        let _ = self.send("quit", Value::Null, Duration::ZERO);
+        // A game already gone answers nothing, which is as good. One still
+        // up that didn't take the request won't go, so it says why now.
+        if let Err(e) = self.send("quit", Value::Null, Duration::ZERO)
+            && self.running()
+        {
+            return Err(e).context("asking the game to quit");
+        }
         gone(self)
     }
 
@@ -258,6 +263,31 @@ mod tests {
         game.quit().unwrap();
         assert!(!path.exists());
         assert!(!game.running());
+    }
+
+    #[test]
+    fn a_quit_the_game_refuses_fails_at_once() {
+        let path = std::env::temp_dir().join(format!("zootr-native-{}-stay", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let listener = UnixListener::bind(&path).unwrap();
+        std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut out = stream.try_clone().unwrap();
+            let mut line = String::new();
+            BufReader::new(stream).read_line(&mut line).unwrap();
+            let req: Value = serde_json::from_str(&line).unwrap();
+            let reply =
+                json!({"id": req["id"], "ok": false, "error": "refused", "message": "FakeNo"});
+            writeln!(out, "{reply}").unwrap();
+            // Still up: the listener lives on with this thread.
+            std::thread::sleep(Duration::from_secs(5));
+        });
+        let mut game = Native::new("/none".into(), vec![], vec![], path.clone());
+        let start = std::time::Instant::now();
+        let err = format!("{:#}", game.quit().unwrap_err());
+        assert!(err.contains("asking the game to quit"), "{err}");
+        assert!(start.elapsed() < Duration::from_secs(3));
+        std::fs::remove_file(&path).unwrap();
     }
 
     #[test]

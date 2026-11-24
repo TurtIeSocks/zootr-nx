@@ -207,10 +207,11 @@ function SaveBar({ onSaved, onReload }: SaveBarProps) {
       if (now !== undefined && now !== stamp) return setStale(now);
       const edit = await call(commands.saveWrite(slot, pending, stamp ?? 0));
       // The write moved the file's stamp: take it, so the next save here
-      // doesn't read as the game's.
-      const after = await call(commands.saveSlots());
+      // doesn't read as the game's. The file is written either way, so a
+      // failed read leaves the stamp for the reload to take.
+      const after = await call(commands.saveSlots()).catch(() => undefined);
       discard();
-      setStamp(after.find((r) => r.slot === slot)?.stamp ?? null);
+      setStamp(after?.find((r) => r.slot === slot)?.stamp ?? null);
       onSaved(edit);
     });
   return (

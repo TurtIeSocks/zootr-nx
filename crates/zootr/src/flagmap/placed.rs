@@ -39,15 +39,14 @@ fn names(romfs: &Romfs, rel: &str, flows: &Flows) -> Result<Vec<Names>> {
         return Ok(Vec::new());
     }
     let doc = BymlDoc::parse(&data)?;
-    let area = rel.trim_start_matches("Banc/");
-    let area = area.split('/').next().unwrap_or(area);
+    let area = crate::checks::area_of(rel);
     let mut out = Vec::new();
     for a in actors(&doc.root)? {
         let (Some(actor), Some(hash), Ok(map)) = (str_field(a, GYAML), hash_of(a), a.as_map())
         else {
             continue;
         };
-        let Some(Ok(dynamic)) = map.get("Dynamic").map(|d| d.as_map()) else {
+        let Some(Ok(dynamic)) = map.get(crate::checks::DYNAMIC).map(|d| d.as_map()) else {
             continue;
         };
         for (key, value) in dynamic.iter() {

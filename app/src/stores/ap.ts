@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type ApStatus, commands, events } from "@/bindings";
+import { type ApEvent, type ApStatus, commands, events } from "@/bindings";
 import { call, message } from "@/lib/api";
 import { once } from "@/stores/once";
 import { useUi } from "@/stores/ui";
@@ -32,16 +32,27 @@ export const useAp = create<Ap>()(() => ({
   error: null,
 }));
 
+/** `now` with the client's `event` in it: its status and line, after the
+ * old lines and error when it isn't `clear`ing them for another seed. */
+export const applied = (
+  now: Pick<Ap, "lines" | "error">,
+  event: ApEvent,
+): Pick<Ap, "status" | "lines" | "error"> => {
+  const before = event.clear ? [] : now.lines;
+  return {
+    status: event.status,
+    lines: event.line
+      ? appended(before, { time: Date.now(), text: event.line })
+      : before,
+    error: event.clear ? null : now.error,
+  };
+};
+
 /** Listens for the client's notes, then takes what it has said so far.
  * Those earlier notes carry the time they were read. */
 const started = once(async () => {
   const unlisten = await events.apEvent.listen(({ payload }) =>
-    useAp.setState((s) => ({
-      status: payload.status,
-      lines: payload.line
-        ? appended(s.lines, { time: Date.now(), text: payload.line })
-        : s.lines,
-    })),
+    useAp.setState((s) => applied(s, payload)),
   );
   const { status, log } = await commands.apState();
   const time = Date.now();

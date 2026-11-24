@@ -27,7 +27,7 @@ from .exported import (
     WORLD,
 )
 from .options import ZnxOptions, attr, setting_values
-from .output import GAME, ZnxContainer, placement
+from .output import GAME, ZnxContainer, hints, placement
 
 VICTORY = WORLD["goal"]
 ICE_TRAPS = "ice-traps"
@@ -89,6 +89,44 @@ def lined(counts: Counter) -> Counter:
     out = Counter()
     for item, count in counts.items():
         out[LINES.get(item, item)] += count
+    return out
+
+
+def spelled(counts: dict, holds, progressive: bool) -> dict:
+    """The items of a start inventory with each name of the other progressive
+    mode spelled as this one's, so logic counts them. On, a level's name is
+    its line's copies up to it (Longshot is two Progressive Hookshots);
+    off, a line's copies are its first levels. Only levels the options keep
+    are spelled: the rest are never dealt."""
+    out = {}
+    for name, count in counts.items():
+        spelling = {name: count}
+        if progressive and name in LINES:
+            held = [level["names"][0] for level in LEVELS[LINES[name]] if holds(level)]
+            if name in held:
+                spelling = {LINES[name]: held.index(name) + 1}
+        elif not progressive and name in LEVELS:
+            held = [level["names"][0] for level in LEVELS[name] if holds(level)]
+            spelling = {level: 1 for level in held[:count]}
+        for item, n in spelling.items():
+            # Two spellings of one item name it once; a higher level holds
+            # the ones below.
+            out[item] = max(out.get(item, 0), n)
+    return out
+
+
+def kept(holds) -> dict:
+    """Each line's levels the options `holds` keeps, each its names, as
+    `rules.lined` reads them. A level they drop is never dealt: its names
+    go with the next level kept, so a rule naming it reads as that one."""
+    out = {}
+    for line, levels in LEVELS.items():
+        out[line], names = [], []
+        for level in levels:
+            names += level["names"]
+            if holds(level):
+                out[line].append(names)
+                names = []
     return out
 
 
@@ -154,6 +192,7 @@ class ZnxWorld(World):
 
     setting_values: dict[str, Any]
     dealt: Counter
+    levels: dict
 
     def generate_early(self) -> None:
         values = {}
@@ -161,20 +200,26 @@ class ZnxWorld(World):
             values.update(setting_values(entry, getattr(self.options, attr(entry["id"]))))
         self.setting_values = forced(values)
         self.origin_region_name = start(self.setting_values)
+        self.levels = kept(self.holds)
         share = SHARES[self.setting_values.get(ICE_TRAPS, "off")]
         self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
         if self.setting_values[PROGRESSIVE]:
             self.dealt = lined(self.dealt)
+        # Both inventories take either mode's names: logic reads this one's.
+        for option in (self.options.start_inventory, self.options.start_inventory_from_pool):
+            spelled_items = spelled(option.value, self.holds, bool(self.setting_values[PROGRESSIVE]))
+            option.value.clear()
+            option.value.update(spelled_items)
 
     def holds(self, row: dict) -> bool:
-        """Whether these options hold `row`: a check, event or pool row an
-        option adds or takes away carries `when`."""
+        """Whether these options hold `row`: a check, event, pool row or
+        line's level an option adds or takes away carries `when`."""
         return "when" not in row or rules.fold(row["when"], self.setting_values) is True
 
     def rule(self, tree) -> rules.Rule | None:
         tree = rules.fold(tree, self.setting_values)
         if self.setting_values[PROGRESSIVE]:
-            tree = rules.lined(tree, LEVELS)
+            tree = rules.lined(tree, self.levels)
         return None if tree is True else rules.closure(tree, self.player)
 
     def live_places(self, exits: list) -> set[str]:
@@ -296,6 +341,9 @@ class ZnxWorld(World):
                 if item.code is not None
             ],
         }
+        if self.setting_values.get("hints"):
+            locations = list(self.multiworld.get_locations())
+            seed["hints"] = hints(locations, self.player, names, HASHES, self.random)
         name = self.multiworld.get_out_file_name_base(self.player)
         ZnxContainer(
             seed,

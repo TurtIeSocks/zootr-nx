@@ -49,7 +49,7 @@ impl Page {
 }
 
 /// An Equipment cell's icon animation, its frame the item's place in the
-/// page's icon list, its picture (the texture panes `0xa737e0` loads by
+/// page's icon list, its picture (the texture panes the game's `icon` loads by
 /// name), and the size of its name buffer.
 const EQUIPMENT_ICON: usize = 0x58;
 const EQUIPMENT_PICTURE: usize = 0x80;
