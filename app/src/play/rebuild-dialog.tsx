@@ -58,7 +58,7 @@ export function RebuildDialog({
           </Button>
           <WhyButton
             variant="secondary"
-            why={running && alreadyRunning(name)}
+            why={running && name !== undefined && alreadyRunning(name)}
             onClick={then(onPlay)}
           >
             Play Anyway
