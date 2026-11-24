@@ -252,10 +252,6 @@ pub fn named() -> impl Iterator<Item = &'static str> {
     tables.chain(COPIES.keys().map(String::as_str)).chain(trap)
 }
 
-/// The trap the world swaps in for junk. Not a [`Name`]: no dump holds
-/// it, and it has no pack of its own.
-const TRAP: &str = "Ice Trap";
-
 /// The item's name: its line's with progressive items on, else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
@@ -263,7 +259,8 @@ pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
         return Ok(name);
     }
     if actor == ice_traps::POOLED {
-        return Ok(TRAP);
+        // Not a [`Name`]: no dump holds it.
+        return Ok(ice_traps::NAME);
     }
     // The game's lines, and the Bombchu Bags', whose first level is the
     // same with or without them. A shuffled starter bag keeps its own name:

@@ -33,6 +33,9 @@ pub const FOOL: &str = "FOOL!";
 /// In an Archipelago seed it's also the copy the room's traps give
 /// ([`received`]).
 pub const POOLED: &str = zootr_hook::traps::ITEM;
+/// What a trap is called where it isn't disguised: the spoiler, the
+/// Archipelago item, and the room's traps as they arrive.
+pub const NAME: &str = "Ice Trap";
 /// What the copy the room's traps give passes for: what Link holds up
 /// before "FOOL!".
 const RECEIVED_SHOWS: &Name = item::HOOKSHOT;
