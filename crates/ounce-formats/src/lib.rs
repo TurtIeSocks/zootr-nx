@@ -68,7 +68,7 @@ pub use tagfile::{Field, Item, Obj, Tagfile, Type};
 pub use walk::files_with_suffix;
 pub use xlink::{
     add_case as xlink_add_case, call_names as xlink_calls, child_names as xlink_children,
-    copy_call as xlink_copy_call, nest as xlink_nest, tree_names as xlink_tree,
-    trigger_names as xlink_triggers,
+    copy_call as xlink_copy_call, copy_property as xlink_copy_property, nest as xlink_nest,
+    property_names as xlink_properties, tree_names as xlink_tree, trigger_names as xlink_triggers,
 };
 pub use zs::{Dicts, frame_dict_id};
