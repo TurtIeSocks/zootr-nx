@@ -98,16 +98,12 @@ pub unsafe fn shoots_seeds(main: usize, link: usize) -> Option<bool> {
 /// # Safety
 /// `node` is the Bow node, as the out of ammo handler gets it.
 pub unsafe fn emptied(main: usize, node: usize) {
-    let at = |p: usize| unsafe { *(p as *const usize) };
     unsafe {
-        let link = at(at(at(node + 8) + 8) + 0x1f0);
-        let parts = at(link + 0x270);
-        if parts == 0 {
+        let Some((user, player)) = parts_of(node) else {
             return;
-        }
-        let (user, player) = (at(parts + 0x200), at(parts + 0x358));
+        };
         let flags = (player + FLAGS) as *mut u32;
-        if user == 0 || player == 0 || *flags & (NO_ARROWS | NO_SEEDS) == 0 {
+        if *flags & (NO_ARROWS | NO_SEEDS) == 0 {
             return;
         }
         let Some(hash) = projectile(main, user) else {
@@ -119,5 +115,18 @@ pub unsafe fn emptied(main: usize, node: usize) {
             NO_ARROWS
         };
         *flags = *flags & !(NO_ARROWS | NO_SEEDS) | says;
+    }
+}
+
+/// Link's EquipmentUser and player components, from the Bow node `node`.
+/// None if any pointer on the way is null.
+///
+/// # Safety
+/// `node` is null or the Bow node.
+unsafe fn parts_of(node: usize) -> Option<(usize, usize)> {
+    unsafe {
+        let link = at(at(at(node, 8)?, 8)?, 0x1f0)?;
+        let parts = at(link, 0x270)?;
+        Some((at(parts, 0x200)?, at(parts, 0x358)?))
     }
 }
