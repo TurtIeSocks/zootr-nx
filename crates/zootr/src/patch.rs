@@ -178,7 +178,7 @@ pub fn code_patches() -> Result<Vec<Patch>> {
 }
 
 /// The table's writes: its body, then its magic, so a table caught
-/// halfway never parses.
+/// halfway never parses. The table is whole words.
 fn table_writes(Patch { at, mut bytes }: Patch) -> [Patch; 2] {
     let body = bytes.split_off(4);
     [
@@ -242,7 +242,7 @@ fn writes(p: &Patch) -> impl Iterator<Item = (Vec<String>, usize)> + '_ {
 }
 
 /// Atmosphère master codes writing `patches` in order, each cheat under the
-/// engine's word limit.
+/// engine's word limit. Each patch is whole words.
 pub fn cheat(patches: &[Patch]) -> String {
     let mut cheats: Vec<(usize, Vec<String>)> = vec![];
     for (words, n) in patches.iter().flat_map(writes) {
@@ -381,8 +381,9 @@ pub fn install(
 /// the cheat writes the table alone, as data the game reads as it runs. A
 /// folder with no patch of ours stays as it is.
 pub fn split(mod_dir: &Path) -> Result<()> {
-    let Ok(text) = std::fs::read_to_string(exefs(mod_dir)) else {
-        return Ok(());
+    let text = match std::fs::read_to_string(exefs(mod_dir)) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        read => read.with_context(|| format!("reading {}", exefs(mod_dir).display()))?,
     };
     let table = table_of(&text)?;
     std::fs::write(exefs(mod_dir), pchtxt(&code_patches()?))?;
@@ -417,6 +418,7 @@ fn table_of(pchtxt: &str) -> Result<Patch> {
         bytes.extend(line);
     }
     ensure!(!bytes.is_empty(), "an exefs patch with no table");
+    ensure!(bytes.len() % 4 == 0, "a table that isn't whole words");
     Ok(Patch { at: TABLE, bytes })
 }
 
@@ -967,5 +969,22 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
         split(&dir).unwrap();
         assert!(!dir.exists(), "no patch, nothing written");
+    }
+
+    #[test]
+    fn a_patch_the_split_cant_read_is_an_error() {
+        let dir = std::env::temp_dir().join(format!("zootr-unread-{}", std::process::id()));
+        std::fs::create_dir_all(exefs(&dir).parent().unwrap()).unwrap();
+        std::fs::write(exefs(&dir), [0xFF, 0xFE]).unwrap();
+        assert!(split(&dir).is_err(), "not text isn't no patch");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_table_that_isnt_whole_words_is_an_error() {
+        let line = |hex: &str| format!("{TABLE:08X} {hex}\n");
+        assert!(table_of(&line("0102")).is_err());
+        assert!(table_of(&line("0102030405")).is_err());
+        assert_eq!(table_of(&line("01020304")).unwrap().bytes, [1, 2, 3, 4]);
     }
 }

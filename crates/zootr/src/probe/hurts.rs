@@ -82,8 +82,8 @@ fn hurts(romfs: &Romfs, actor: &str) -> Result<()> {
     };
     let map = pack.resolve(&path)?.unwrap_or_default();
     let ext = map.get("ExternalDamageParameters");
-    let field = |k: &str| ext.and_then(|e| e.as_map().ok()).and_then(|m| m.get(k));
-    let mut rates: Vec<(String, f32)> = match field("DamageRates") {
+    let ext_field = |k: &str| ext.and_then(|e| e.as_map().ok()).and_then(|m| m.get(k));
+    let mut rates: Vec<(String, f32)> = match ext_field("DamageRates") {
         Some(Byml::HashMap(h)) => (h.iter())
             .map(|(k, v)| (named(*k), v.as_float().unwrap_or(f32::NAN)))
             .collect(),
@@ -94,7 +94,7 @@ fn hurts(romfs: &Romfs, actor: &str) -> Result<()> {
     println!("{actor}: Life {life}");
     let shown: Vec<String> = rates.iter().map(|(n, r)| format!("{n} {r}")).collect();
     println!("  rates: {}", shown.join(", "));
-    let exceptions = field("ExternalDamageExceptionDefines").and_then(|v| v.as_array().ok());
+    let exceptions = ext_field("ExternalDamageExceptionDefines").and_then(|v| v.as_array().ok());
     for ex in exceptions
         .into_iter()
         .flatten()

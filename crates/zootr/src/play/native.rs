@@ -8,7 +8,7 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
 
-use super::mac::{line, stick};
+use super::input::{check_buttons, gone, stick};
 use super::{Boot, Input};
 use crate::config::with_save;
 use crate::live::{Bridge, PATIENCE};
@@ -87,7 +87,7 @@ fn frames(ms: u64, fps: f64) -> u64 {
 
 /// Our button names as the socket spells them: `A+LUp` is `A+LUP`.
 fn buttons(names: &str) -> Result<String> {
-    line(names, None)?;
+    check_buttons(names)?;
     Ok(names.to_uppercase())
 }
 
@@ -142,7 +142,7 @@ impl Input for Native {
     fn quit(&mut self) -> Result<()> {
         // A game already gone answers nothing, which is as good.
         let _ = self.send("quit", Value::Null, Duration::ZERO);
-        Ok(())
+        gone(self)
     }
 
     fn boot(&mut self) -> Result<Option<Boot>> {
@@ -234,6 +234,30 @@ mod tests {
                 .to_string()
                 .contains("isn't a button")
         );
+    }
+
+    /// Quit waits for the game to go, as on the Mac: here its socket goes
+    /// a moment after it answers.
+    #[test]
+    fn quit_returns_once_the_game_is_gone() {
+        let path = std::env::temp_dir().join(format!("zootr-native-{}-quit", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let listener = UnixListener::bind(&path).unwrap();
+        let socket = path.clone();
+        std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            let mut out = stream.try_clone().unwrap();
+            let mut line = String::new();
+            BufReader::new(stream).read_line(&mut line).unwrap();
+            let req: Value = serde_json::from_str(&line).unwrap();
+            writeln!(out, "{}", json!({"id": req["id"], "ok": true})).unwrap();
+            std::thread::sleep(Duration::from_millis(300));
+            std::fs::remove_file(&socket).unwrap();
+        });
+        let mut game = Native::new("/none".into(), vec![], vec![], path.clone());
+        game.quit().unwrap();
+        assert!(!path.exists());
+        assert!(!game.running());
     }
 
     #[test]

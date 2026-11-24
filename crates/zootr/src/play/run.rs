@@ -16,8 +16,9 @@ use crate::gamedata::GameData;
 use crate::live::{self, Memory, NotSigned, Poll, Unsupported};
 
 /// Attach to the game with `connect`, starting it first unless `attach`,
-/// then wait for `ready`. Without `attach` a game already running is
-/// refused, since it may be the maintainer's.
+/// then wait for `ready`. With `attach` the game is taken as it is, with
+/// no wait. Without it a game already running is refused, since it may be
+/// the maintainer's.
 pub fn session<T>(
     input: &mut impl Input,
     attach: bool,
@@ -44,11 +45,19 @@ pub fn session<T>(
             Err(_) => std::thread::sleep(tick),
         }
     };
-    while !ready(&game).unwrap_or(false) {
-        ensure!(start.elapsed() <= limit, "the game never finished loading");
+    let mut last = None;
+    loop {
+        match ready(&game) {
+            Ok(true) => return Ok(game),
+            Ok(false) => {}
+            Err(e) => last = Some(e),
+        }
+        if start.elapsed() > limit {
+            let never = "the game never finished loading";
+            return Err(last.map_or_else(|| anyhow!(never), |e| e.context(never)));
+        }
         std::thread::sleep(tick);
     }
-    Ok(game)
 }
 
 /// GameData changes and the stall check, ticked between and during steps.
@@ -71,7 +80,8 @@ impl<M: Memory> Watch<'_, M> {
         let changed = !changes.is_empty();
         self.changes.extend(changes.into_iter().map(|c| (at, c)));
         let state = self.dev.state()?;
-        if self.stall.tick(at, state.event, state.loading, changed) {
+        // The first stall is the one reported: later ticks stay stalled.
+        if self.stall.tick(at, state.event, state.loading, changed) && self.stalled.is_none() {
             self.stalled = Some(Stalled {
                 at,
                 map: state.map,
@@ -95,7 +105,7 @@ impl<M: Memory> Watch<'_, M> {
 }
 
 /// What a run needs besides the game: its script, test start and the
-/// spot its `near` warps to, folder, stall limit, and the report to fill.
+/// spot its `near` warps to, folder and stall limit.
 pub struct Run<'a> {
     pub script: &'a Script,
     pub setup: Option<&'a TestSetup>,
@@ -104,17 +114,17 @@ pub struct Run<'a> {
     pub stall: Duration,
 }
 
-/// Run `run.script` on the game and fill `report`. Errors only when the
+/// Run `plan.script` on the game and fill `report`. Errors only when the
 /// report can't be written, a failing step fails the report instead.
 pub fn run<M: Memory>(
     dev: &Dev<M>,
     gd: &GameData,
     input: &mut impl Input,
-    run: Run,
+    plan: &Run,
     mut report: Report,
 ) -> Result<Report> {
-    std::fs::create_dir_all(run.dir)?;
-    if let Err(e) = steps(dev, gd, input, &run, &mut report) {
+    std::fs::create_dir_all(plan.dir)?;
+    if let Err(e) = steps(dev, gd, input, plan, &mut report) {
         report.error = Some(format!("{e:#}"));
     }
     if report.stall.is_some() {
@@ -123,10 +133,10 @@ pub fn run<M: Memory>(
                 .notes
                 .push(format!("asking the game what it waits on: {e:#}"));
         }
-        shoot(input, run.dir, "stall.png", &mut report);
+        shoot(input, plan.dir, "stall.png", &mut report);
     }
-    shoot(input, run.dir, "end.png", &mut report);
-    report.write(run.dir)?;
+    shoot(input, plan.dir, "end.png", &mut report);
+    report.write(plan.dir)?;
     Ok(report)
 }
 
@@ -169,18 +179,13 @@ fn steps<M: Memory>(
         changes: Vec::new(),
         stalled: None,
     };
-    let result = each(&mut watch, input, run, report);
+    each(&mut watch, input, run, report);
     report.changes = std::mem::take(&mut watch.changes);
     report.stall = watch.stalled.take();
-    result
+    Ok(())
 }
 
-fn each<M: Memory>(
-    watch: &mut Watch<M>,
-    input: &mut impl Input,
-    run: &Run,
-    report: &mut Report,
-) -> Result<()> {
+fn each<M: Memory>(watch: &mut Watch<M>, input: &mut impl Input, run: &Run, report: &mut Report) {
     for (n, step) in run.script.steps.iter().enumerate() {
         let at = watch.start.elapsed();
         let outcome = one(watch, input, step);
@@ -203,7 +208,6 @@ fn each<M: Memory>(
             break;
         }
     }
-    Ok(())
 }
 
 /// Run one step: what it did, or why it failed.
@@ -341,6 +345,13 @@ mod tests {
         let mut never = Fake::default();
         let err = session(&mut never, false, || Ok(()), |_| Ok(false), QUICK);
         assert!(err.unwrap_err().to_string().contains("never finished"));
+        let mut failing = Fake::default();
+        let err = session(&mut failing, false, || Ok(()), |_| bail!("no map"), QUICK);
+        let err = format!("{:#}", err.unwrap_err());
+        assert!(
+            err.contains("never finished") && err.contains("no map"),
+            "{err}"
+        );
     }
 
     #[test]

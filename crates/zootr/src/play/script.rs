@@ -8,6 +8,7 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::Deserialize;
 use toml::Spanned;
 
+use super::input::{check_buttons, stick};
 use crate::config::TestSetup;
 
 /// How long `until` and `expect` wait when the step doesn't say.
@@ -157,22 +158,38 @@ impl Script {
 
 impl Raw {
     fn step(self, line: usize) -> Result<Step> {
+        let timed = self.hold.is_some() || self.stick.is_some();
+        ensure!(self.ms.is_none() || timed, "ms is for a hold or a stick");
+        let waits = self.until.is_some() || self.expect.is_some();
+        ensure!(
+            self.within.is_none() || waits,
+            "within is for an until or an expect"
+        );
         let ms = self.ms.unwrap_or(MS);
-        let within = secs(self.within.unwrap_or(WITHIN))?;
+        let within = || secs(self.within.unwrap_or(WITHIN));
         let mut kinds = Vec::new();
         kinds.extend(self.play.map(Kind::Play));
-        kinds.extend(self.press.map(Kind::Press));
-        kinds.extend(self.hold.map(|b| Kind::Hold(b, ms)));
-        kinds.extend(self.stick.map(|d| Kind::Stick(d, ms)));
+        if let Some(button) = self.press {
+            check_buttons(&button)?;
+            kinds.push(Kind::Press(button));
+        }
+        if let Some(button) = self.hold {
+            check_buttons(&button)?;
+            kinds.push(Kind::Hold(button, ms));
+        }
+        if let Some(direction) = self.stick {
+            check_buttons(&stick(&direction))?;
+            kinds.push(Kind::Stick(direction, ms));
+        }
         kinds.extend(self.wait.map(secs).transpose()?.map(Kind::Wait));
         if let Some(goal) = self.until {
             name_value(&goal)?;
-            kinds.push(Kind::Until(goal, within));
+            kinds.push(Kind::Until(goal, within()?));
         }
         if let Some(goals) = self.expect {
             ensure!(!goals.is_empty(), "expect lists no lines");
             goals.iter().try_for_each(|g| name_value(g).map(drop))?;
-            kinds.push(Kind::Expect(goals, within));
+            kinds.push(Kind::Expect(goals, within()?));
         }
         if kinds.is_empty() && self.shot {
             kinds.push(Kind::Shot);
@@ -326,5 +343,21 @@ expect = ["{}.{}=true"]
         assert!(error(late).contains("line 2"), "{}", error(late));
         let both = "name = \"x\"\ntest = \"t\"\n[setup]\nspawn = \"A/B\"\n";
         assert!(error(both).contains("not both"));
+    }
+
+    #[test]
+    fn a_step_refuses_settings_it_ignores_and_unknown_buttons() {
+        let step = |body: &str| error(&format!("name = \"x\"\n[[step]]\n{body}\n"));
+        let err = step("press = \"A\"\nms = 800");
+        assert!(err.contains("line 2") && err.contains("ms is for"), "{err}");
+        let err = step("wait = 2\nwithin = 5");
+        assert!(err.contains("within is for"), "{err}");
+        let err = step("press = \"Start\"");
+        assert!(
+            err.contains("line 2") && err.contains("Start isn't a button"),
+            "{err}"
+        );
+        assert!(step("hold = \"A+Nope\"").contains("Nope isn't a button"));
+        assert!(step("stick = \"sideways\"").contains("sideways isn't a button"));
     }
 }

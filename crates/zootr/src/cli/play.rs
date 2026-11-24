@@ -123,7 +123,7 @@ pub(super) fn play(
         dir: &dir,
         stall: Duration::from_secs(stall),
     };
-    let report = play::run(&dev, &gd, &mut input, run, report)?;
+    let report = play::run(&dev, &gd, &mut input, &run, report)?;
     println!("{}", report.verdict());
     println!("{}", dir.join("report.md").display());
     if !report.passed() {
