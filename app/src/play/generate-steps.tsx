@@ -106,7 +106,6 @@ const MARKS = {
  * while it runs. A step the run failed or stopped in shows no time, since
  * its clock stopped with the run. */
 function StepLine({ row, failed, running }: StepLineProps) {
-  const now = useNow(running);
   const state = failed
     ? "failed"
     : running
@@ -114,9 +113,16 @@ function StepLine({ row, failed, running }: StepLineProps) {
       : row.secs === null
         ? "stopped"
         : "done";
+  // A failed step stops its clock even before the run's answer lands.
+  const ticking = state === "running";
+  const now = useNow(ticking);
   const { Icon, label, className } = MARKS[state];
-  const secs = running ? (now - row.started) / 1000 : row.secs;
-  const long = running && now - row.started > HINT_AFTER;
+  const secs = ticking
+    ? (now - row.started) / 1000
+    : state === "failed"
+      ? null
+      : row.secs;
+  const long = ticking && now - row.started > HINT_AFTER;
   return (
     <li className="flex flex-col">
       <span className="flex items-center gap-2">
