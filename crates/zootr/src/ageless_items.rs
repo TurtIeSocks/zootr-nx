@@ -670,6 +670,23 @@ mod tests {
         }
     }
 
+    /// Each map's hasher is seeded anew, so a lend that followed a map's
+    /// order took room in a different order each time.
+    #[test]
+    fn a_lend_writes_the_same_bytes_every_time() {
+        let Some(romfs) = dev_dump() else { return };
+        for link in &LINKS {
+            let own = Own::read(&romfs, &ActorPack::load(&romfs, link.who).unwrap()).unwrap();
+            for archive in link.archives {
+                let (_, first) = link.lent(&romfs, archive, &own).unwrap();
+                for _ in 0..3 {
+                    let (_, again) = link.lent(&romfs, archive, &own).unwrap();
+                    assert!(first == again, "{}", archive.from);
+                }
+            }
+        }
+    }
+
     fn effects_user(pack: &ActorPack) -> String {
         let effects = file(pack, field::E_LINK_REF);
         effects[field::USER_NAME.get()]

@@ -12,7 +12,7 @@
 //! The eyelids are rigged at other angles at each age, so a lent archive
 //! leaves them unbound and the Link keeps his own.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::fska::{
@@ -297,8 +297,10 @@ fn curves(d: &[u8], at: usize) -> impl Iterator<Item = (&str, usize)> {
         .flat_map(|t| (0..t.curve_count).map(move |j| (t.name, t.curves + j * CURVE)))
 }
 
-/// The clip's root curves, the motion of where its body stands, by target.
-fn roots(d: &[u8], at: usize) -> HashMap<u32, usize> {
+/// The clip's root curves, the motion of where its body stands, by target,
+/// in target order: `rooted` takes room for each in turn, so the order
+/// decides where the data lands.
+fn roots(d: &[u8], at: usize) -> BTreeMap<u32, usize> {
     (curves(d, at).filter(|&(bone, _)| bone == field::ROOT.get()))
         .filter_map(|(_, c)| Some((u32_at(d, c + TARGET)?, c)))
         .collect()
