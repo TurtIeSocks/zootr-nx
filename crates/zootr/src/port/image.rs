@@ -99,7 +99,7 @@ impl<'a> Image<'a> {
 
     /// Whether `at` is a text word.
     pub fn in_text(&self, at: u64) -> bool {
-        at % 4 == 0 && at < u64::from(self.text.end)
+        at.is_multiple_of(4) && at < u64::from(self.text.end)
     }
 
     /// The function holding `at`.
