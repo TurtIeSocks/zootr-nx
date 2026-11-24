@@ -1,25 +1,16 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import type { Summary } from "@/bindings";
 import { ExtrasBadges, Name } from "@/play/seed";
+import { summary } from "@/test/fixtures";
 
 afterEach(cleanup);
 
-const entry: Summary = {
-  id: 1,
-  time: 0,
-  seed: "42",
-  settings: {},
+const entry = summary({
   label: { name: "Fake seed", note: "A fake note" },
-  chests: 0,
-  changed: 0,
-  icons: [],
   share: "ZR1-fake",
   test: true,
   plando: true,
-  ap_slot: null,
-  death_link: false,
-};
+});
 
 test.each([
   ["Plando", "Built with a plando: items pinned to checks"],

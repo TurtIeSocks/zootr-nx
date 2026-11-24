@@ -7,13 +7,13 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import type { SettingDef } from "@/bindings";
 import { SettingsView } from "@/settings/settings-view";
 import { Find } from "@/shell/find/find";
 import { Topbar } from "@/shell/page-header";
 import { useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
 import { checkNow } from "@/stores/update";
+import { toggleDef } from "@/test/fixtures";
 
 vi.mock("@/stores/update", async (real) => ({
   ...(await real<typeof import("@/stores/update")>()),
@@ -22,20 +22,12 @@ vi.mock("@/stores/update", async (real) => ({
 
 afterEach(cleanup);
 
-const cows: SettingDef = {
-  id: "fake-cows",
+const cows = toggleDef("fake-cows", {
   group: "Shuffles",
   label: "Shuffle fake cows",
   description: "Each fake cow gives an item.",
-  kind: { type: "toggle", default: false },
-  parent: null,
-  requires: null,
-  section: "Fake section",
   section_about: "",
-  list: false,
-  gives: [],
-  archipelago: { ap: "offered" },
-};
+});
 
 /** The top bar, the settings page while it's open, and the search. */
 // biome-ignore lint/style/useComponentExportOnlyModules: a test file never hot reloads

@@ -16,6 +16,7 @@ import { stop } from "@/stores/ap";
 import { useConfig } from "@/stores/config";
 import { refresh, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { summary, toggleDef } from "@/test/fixtures";
 
 const picked = vi.fn(async () => "/seeds/AP_1_P1_Link.apznx" as string | null);
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -31,21 +32,12 @@ afterEach(() => {
 });
 
 const target = { name: "Emu", app: "/a.app", mod_dir: "/m" };
-const seed = {
-  id: 1,
-  time: 0,
-  seed: "42",
-  settings: {},
-  label: {},
+const seed = summary({
   chests: 104,
   changed: 92,
   icons: ["Sun", "Moon", "Sun", "Key", "Fish"],
   share: "ZR1-shared",
-  test: false,
-  plando: false,
-  ap_slot: null,
-  death_link: false,
-};
+});
 
 const ok = { status: "ok", data: null } as const;
 
@@ -67,22 +59,7 @@ function show(
   older: Summary[] = [],
   devTools = false,
 ) {
-  useConfig.setPath("schema", [
-    {
-      id: "x",
-      group: "g",
-      label: "X",
-      description: "",
-      kind: { type: "toggle", default: false },
-      parent: null,
-      requires: null,
-      section: "Fake section",
-      section_about: "Fake about",
-      list: false,
-      gives: [],
-      archipelago: { ap: "offered" },
-    },
-  ]);
+  useConfig.setPath("schema", [toggleDef("x", { label: "X" })]);
   useConfig.setPath(
     "config",
     full({ targets: [target], settings, test, dev_tools: devTools }),

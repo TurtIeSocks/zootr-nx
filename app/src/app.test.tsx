@@ -8,12 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { App } from "@/app";
-import {
-  type Config,
-  commands,
-  type SettingDef,
-  type Summary,
-} from "@/bindings";
+import { type Config, commands, type Summary } from "@/bindings";
 import { Sidebar } from "@/shell/sidebar";
 import { useChecks } from "@/stores/checks";
 import { useConfig } from "@/stores/config";
@@ -21,37 +16,16 @@ import { useLive } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { openSpoiler, useShell } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
+import { summary, toggleDef } from "@/test/fixtures";
 
-const toggle = (id: string, group: string): SettingDef => ({
-  id,
-  group,
-  label: id,
-  description: "",
-  kind: { type: "toggle", default: false },
-  parent: null,
-  requires: null,
-  section: "Fake section",
-  section_about: "Fake about",
-  list: false,
-  gives: [],
-  archipelago: { ap: "offered" },
-});
+const toggle = (id: string, group: string) => toggleDef(id, { group });
 
-const seed: Summary = {
+const seed = summary({
   id: 7,
-  time: 0,
-  seed: "42",
-  settings: {},
-  label: {},
   chests: 104,
   changed: 92,
   icons: ["Sun", "Moon", "Sun", "Key", "Fish"],
-  test: false,
-  plando: false,
-  ap_slot: null,
-  death_link: false,
-  share: "",
-};
+});
 
 /** The config each test starts from. */
 const CONFIG: Config = {

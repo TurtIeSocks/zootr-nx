@@ -20,6 +20,7 @@ import { SettingsView } from "@/settings/settings-view";
 import { useConfig } from "@/stores/config";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { summary, toggleDef } from "@/test/fixtures";
 
 afterEach(() => {
   cleanup();
@@ -27,25 +28,8 @@ afterEach(() => {
   useUi.setPath("settings", { closed: [], reset: "defaults" });
 });
 
-const toggle = (
-  id: string,
-  label: string,
-  patch: Partial<SettingDef> = {},
-): SettingDef => ({
-  id,
-  group: "General",
-  label,
-  description: "",
-  kind: { type: "toggle", default: false },
-  parent: null,
-  requires: null,
-  section: "Fake section",
-  section_about: "Fake about",
-  list: false,
-  gives: [],
-  archipelago: { ap: "offered" },
-  ...patch,
-});
+const toggle = (id: string, label: string, patch: Partial<SettingDef> = {}) =>
+  toggleDef(id, { group: "General", label, ...patch });
 
 const choice = (id: string, label: string, options: string[]): SettingDef => ({
   ...toggle(id, label),
@@ -73,21 +57,7 @@ const schema: SettingDef[] = [
   toggle("elsewhere", "Not in this group", { group: "Cutscenes" }),
 ];
 
-const installed = (settings: Settings): Summary => ({
-  id: 1,
-  time: 0,
-  seed: "42",
-  icons: [],
-  share: "",
-  settings,
-  label: {},
-  chests: 1,
-  changed: 0,
-  test: false,
-  plando: false,
-  ap_slot: null,
-  death_link: false,
-});
+const installed = (settings: Settings) => summary({ settings, chests: 1 });
 
 function show({
   defs = schema,

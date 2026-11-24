@@ -1,8 +1,9 @@
 import { expect, test, vi } from "vitest";
-import type { Config, SettingDef } from "@/bindings";
+import type { Config } from "@/bindings";
 import { full } from "@/lib/config";
 import { changeSettings, useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
+import { toggleDef } from "@/test/fixtures";
 
 /** Each save waits here until the test lets it finish. */
 const saves: { config: Config; finish: () => void }[] = [];
@@ -33,20 +34,7 @@ test("a second change made while the first saves keeps the first", async () => {
 });
 
 test("a saved section whose panel is gone opens the first panel", () => {
-  const def = (id: string, group: string): SettingDef => ({
-    id,
-    group,
-    label: id,
-    description: "",
-    kind: { type: "toggle", default: false },
-    parent: null,
-    requires: null,
-    section: "Fake section",
-    section_about: "Fake about",
-    list: false,
-    gives: [],
-    archipelago: { ap: "offered" },
-  });
+  const def = (id: string, group: string) => toggleDef(id, { group });
   useUi.setPath("section", "Hints");
   useConfig.setPath("schema", [def("a", "General"), def("b", "Cutscenes")]);
   expect(useUi.getState().section).toBe("General");
