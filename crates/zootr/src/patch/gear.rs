@@ -2,7 +2,7 @@
 //! opened so the Iron and Hover Boots and the Zora and Goron Tunics reach
 //! him in a seed with ageless gear.
 
-use zootr_hook::entry::{GEAR_CHILD, GEAR_CREATE, GEAR_HUD, GEAR_MENU};
+use zootr_hook::entry::{GEAR_CHILD, GEAR_CREATE, GEAR_HUD, GEAR_MARK, GEAR_MENU, GEAR_WORN};
 
 /// The boot state's `tbz` past its child test's early return, and where it
 /// skips to: reading which boots Link wears. Made a `b`, a child in the
@@ -48,9 +48,26 @@ pub(super) const CREATE: [(u32, u32); 5] = [
 /// to in its place: `gear_menu`, which answers as [`HUD`]'s does.
 pub(super) const MENU: (u32, u32) = (0x33b_a4a8, GEAR_MENU);
 
+/// The equipment cells' child test (`ccmp w28, #0x0, #0x0, ne`) for the
+/// armor's worn mark, and the hook entry its `bl` goes to in its place:
+/// `gear_worn`. For a child every Kokiri Tunic cell shows as worn, without
+/// reading what he wears, so in a seed with `CHILD_GEAR` his cells take
+/// [`MARK`]'s test instead.
+pub(super) const WORN: (u32, u32) = (0xa7_0818, GEAR_WORN);
+
+/// The equipment cells' call to the worn test, and the hook entry it goes
+/// to in its place: `gear_mark`, which in a seed with `CHILD_GEAR` also
+/// takes either age's Kokiri Tunic, or none, for the Kokiri Tunic.
+pub(super) const MARK: (u32, u32) = (0xa7_05a8, GEAR_MARK);
+
+/// The equipment menu's worn test.
+#[cfg(test)]
+const WORN_TEST: u32 = 0xa7_1080;
+
 /// Every site above that a `bl` goes over.
-pub(super) const SITES: [(u32, u32); 9] = [
-    CALLS[0], CALLS[1], HUD, MENU, CREATE[0], CREATE[1], CREATE[2], CREATE[3], CREATE[4],
+pub(super) const SITES: [(u32, u32); 11] = [
+    CALLS[0], CALLS[1], HUD, MENU, WORN, MARK, CREATE[0], CREATE[1], CREATE[2], CREATE[3],
+    CREATE[4],
 ];
 
 #[cfg(test)]
@@ -74,6 +91,9 @@ mod tests {
         assert_eq!(word(BOOTS.0), 0x3600_00e0, "tbz w0, #0, 0x4b6ef4");
         assert_eq!(word(HUD.0), 0x3957_0108, "ldrb w8, [x8, #0x5c0]");
         assert_eq!(word(MENU.0), 0x3957_0139, "ldrb w25, [x9, #0x5c0]");
+        assert_eq!(word(WORN.0), 0x7a40_1b80, "ccmp w28, #0x0, #0x0, ne");
+        assert_eq!(word(MARK.0), call(MARK.0, WORN_TEST));
+        assert_eq!(zootr_hook::OFFSETS.worn_test, WORN_TEST);
         for (at, _) in CREATE {
             assert_eq!(word(at), call(at, CREATOR), "{at:#x}");
         }

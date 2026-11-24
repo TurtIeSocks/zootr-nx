@@ -121,6 +121,8 @@ pub struct Offsets {
     pub childhood: u32,
     /// The actor creator, which the equipment code hands an armor's name.
     pub make_actor: u32,
+    /// The equipment menu's test of whether a cell is worn.
+    pub worn_test: u32,
     /// The game's own `malloc`.
     pub malloc: u32,
     /// Builds an event request in place.

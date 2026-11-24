@@ -45,7 +45,8 @@ pub mod traps;
 pub mod ui;
 
 pub use gear::{
-    ARMOR_SLOT, BOOTS_SLOT, CHILD_ARMOR, CHILD_GEAR, child_armor, gear_through, hud_child,
+    ADULT_KOKIRI, ARMOR_SLOT, BOOTS_SLOT, CHILD_ARMOR, CHILD_GEAR, child_armor, every_kokiri_worn,
+    gear_through, hud_child, kokiri_worn,
 };
 pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
@@ -88,7 +89,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 100;
+pub const SLOTS: u32 = 108;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
@@ -130,6 +131,8 @@ pub const OFFSETS: Offsets = Offsets {
     childhood: 0x4b_6db0,
     // The actor creator, which the equipment code hands an armor's name.
     make_actor: 0x37_2a70,
+    // The equipment menu's test of whether a cell is worn.
+    worn_test: 0xa7_1080,
     malloc: 0x14c_6c90,
     make_arg: 0xd7_9f10,
     request: 0xd7_a820,

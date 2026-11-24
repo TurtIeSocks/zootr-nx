@@ -166,7 +166,7 @@ fn painted(data: &[u8], path: &str, mark: u8, colour: Colour) -> Result<(String,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zootr_hook::fnv;
+    use zootr_hook::{fnv, kokiri_worn};
 
     #[test]
     fn the_hook_dresses_a_child_in_each_tunics_copy() {
@@ -185,6 +185,24 @@ mod tests {
         }
         let adult = actor::ARMOR_ADULT_NORMAL.as_bytes();
         assert_eq!(child_armor(adult, CHILD_GEAR), None);
+    }
+
+    #[test]
+    fn the_menu_marks_either_ages_kokiri_tunic_as_the_kokiri_tunic() {
+        if crate::game::no_names() {
+            return;
+        }
+        let (adult, child) = (actor::ARMOR_ADULT_NORMAL, actor::OBJ_ARMOR_CHILD_NORMAL);
+        assert_eq!(fnv(adult.as_bytes()), zootr_hook::ADULT_KOKIRI);
+        let zora = TUNICS[0].0.as_bytes();
+        for cell in [adult, child] {
+            for worn in [adult.as_bytes(), child.as_bytes(), b""] {
+                assert!(kokiri_worn(cell.as_bytes(), worn, CHILD_GEAR), "{cell}");
+                assert!(!kokiri_worn(cell.as_bytes(), worn, 0), "{cell}");
+            }
+            assert!(!kokiri_worn(cell.as_bytes(), zora, CHILD_GEAR), "{cell}");
+            assert!(!kokiri_worn(zora, cell.as_bytes(), CHILD_GEAR), "{cell}");
+        }
     }
 
     #[test]

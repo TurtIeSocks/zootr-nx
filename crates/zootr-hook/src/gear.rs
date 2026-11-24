@@ -28,6 +28,10 @@ pub static CHILD_ARMOR: [Armor; 3] = [
     Armor::new(0xa433_3f57, "Rando_Armor_Kokiri"),
 ];
 
+/// The [`fnv`] of the adult's Kokiri Tunic, his empty armor, which the
+/// armor slot holds after an adult turns child in it.
+pub const ADULT_KOKIRI: u32 = 0xedda_5997;
+
 /// A tunic's armor for a child. Its name sits in the table itself, padded,
 /// since a table of pointers would need relocating, which the hook can't.
 pub struct Armor {
@@ -78,6 +82,38 @@ pub fn child_armor(worn: &[u8], flags: u32) -> Option<usize> {
 /// Whether the D-pad's Down icon takes Link for a child, from the HUD
 /// status's own answer (`child`): it hides the boots icon from a child.
 /// Not in a seed with [`CHILD_GEAR`], where he wears them too.
+/// Whether the equipment menu marks every Kokiri Tunic cell as worn,
+/// rather than testing each cell, for no armor worn (`empty`) and the
+/// game's `child` answer, in a seed with `flags`. The game does for a
+/// child, who wore nothing else, and for an adult with no armor, whom it
+/// then dresses in the Kokiri Tunic. With [`CHILD_GEAR`] only for the
+/// adult: each cell's test, with [`kokiri_worn`], marks what a child wears.
+#[inline(always)]
+pub fn every_kokiri_worn(empty: bool, child: bool, flags: u32) -> bool {
+    if child_gear(flags) {
+        empty && !child
+    } else {
+        empty || child
+    }
+}
+
+/// Whether the equipment menu marks the cell named `cell` as worn where
+/// its own test (the cell's name against the armor slot's, `worn`)
+/// doesn't, in a seed with `flags`. With [`CHILD_GEAR`] the Kokiri Tunic
+/// is worn when the slot holds either age's name for it, or nothing: an
+/// age switch keeps the other age's name, and a new game starts empty.
+#[inline(always)]
+pub fn kokiri_worn(cell: &[u8], worn: &[u8], flags: u32) -> bool {
+    child_gear(flags) && kokiri(cell) && (worn.is_empty() || kokiri(worn))
+}
+
+/// Whether `name` is either age's Kokiri Tunic.
+#[inline(always)]
+fn kokiri(name: &[u8]) -> bool {
+    let hash = fnv(name);
+    hash == CHILD_ARMOR[2].worn || hash == ADULT_KOKIRI
+}
+
 pub fn hud_child(child: bool, flags: u32) -> bool {
     child && !child_gear(flags)
 }
@@ -108,6 +144,28 @@ mod tests {
         assert!(!hud_child(true, CHILD_GEAR));
         assert!(!hud_child(false, 0));
         assert!(!hud_child(false, CHILD_GEAR));
+    }
+
+    #[test]
+    fn the_menu_marks_every_kokiri_cell_as_the_game_does_without_the_flag() {
+        for child in [false, true] {
+            assert!(every_kokiri_worn(true, child, !CHILD_GEAR));
+            assert_eq!(every_kokiri_worn(false, child, !CHILD_GEAR), child);
+        }
+    }
+
+    #[test]
+    fn with_the_flag_only_an_adult_with_no_armor_marks_every_kokiri_cell() {
+        assert!(every_kokiri_worn(true, false, CHILD_GEAR));
+        assert!(!every_kokiri_worn(true, true, CHILD_GEAR));
+        assert!(!every_kokiri_worn(false, true, CHILD_GEAR));
+        assert!(!every_kokiri_worn(false, false, CHILD_GEAR));
+    }
+
+    #[test]
+    fn another_cell_keeps_the_games_test() {
+        // The Kokiri Tunics' names are checked against the dump's in `zootr`.
+        assert!(!kokiri_worn(b"FakeArmor", b"", CHILD_GEAR));
     }
 
     #[test]
