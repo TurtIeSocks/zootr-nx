@@ -27,7 +27,6 @@ export const COLUMNS = { time: 48, name: 360, type: 112 };
 /** Live's column widths, by column. */
 export type Widths = typeof COLUMNS;
 
-/** View state, kept in `ui.json` across tabs and restarts. */
 /** The Play page's folders. */
 export type PlayTab = "standard" | "archipelago" | "history";
 
@@ -49,6 +48,11 @@ export interface Found {
   key: string;
 }
 
+/** What a settings page's reset puts back: the defaults, or the seed
+ * drift measures from. */
+export type ResetTo = "defaults" | "seed";
+
+/** View state, kept in `ui.json` across tabs and restarts. */
 export interface Ui {
   /** The view showing. */
   tab: Tab | "Settings";
@@ -375,10 +379,6 @@ export function remember<T>(
 }
 
 /** Opens or closes a settings page's section, by its id. */
-/** What a settings page's reset puts back: the defaults, or the seed
- * drift measures from. */
-export type ResetTo = "defaults" | "seed";
-
 export const setSectionOpen = (id: string, open: boolean) =>
   useUi.setPath("settings.closed", (c) =>
     open ? c.filter((t) => t !== id) : [...c, id],
