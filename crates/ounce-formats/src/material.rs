@@ -25,7 +25,7 @@ const FLOAT4: u8 = 0x0f;
 fn locate(data: &[u8], hash: u64) -> Result<usize> {
     let r = Reader(data);
     // At any byte: whether a material is aligned isn't checked.
-    let mut found = find_magic(data, MAGIC, MAGIC.len() - 1, 1);
+    let mut found = find_magic(data, MAGIC, MAGIC.len(), 1);
     let material = found.next().context("no material")?;
     ensure!(found.next().is_none(), "more than one material");
     let shader = r.ptr(r.ptr(material + SHADER)?)?;

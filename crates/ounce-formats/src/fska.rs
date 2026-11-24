@@ -104,7 +104,8 @@ pub fn translation_at(flags: usize, base: usize) -> Option<usize> {
 
 /// Every skeletal animation header's offset, by magic, 8-aligned.
 pub fn animations(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
-    find_magic(data, MAGIC, BONE_COUNT + 4, 8)
+    // Its last field read is the 16-bit bone count.
+    find_magic(data, MAGIC, BONE_COUNT + 2, 8)
 }
 
 #[cfg(test)]
