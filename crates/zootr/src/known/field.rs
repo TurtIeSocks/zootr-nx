@@ -104,6 +104,7 @@ pub const CLIMBING_PLAYER: &Name = &n!(0x092a3df0cd171a3f);
 pub const COLLECT_HEART_PIECE_00: &Name = &n!(0xda38ff869bc55d00);
 pub const COLOR: &Name = &n!(0x344ea8f4939cdc98);
 pub const COMPONENT_NAME: &Name = &n!(0x1229523bf2a520e3);
+pub const CONDITION_FROZEN: &Name = &n!(0x72d07165d33febf5);
 pub const CONDITION_REF: &Name = &n!(0x741cdd63ef614e8f);
 pub const CONTROLLER_SET_PATH: &Name = &n!(0xe70f57243f31deb0);
 pub const CYLINDER: &Name = &n!(0x508151e60612c66f);
