@@ -28,7 +28,8 @@ pub fn length(v: [f32; 3]) -> f32 {
     v[0].hypot(v[1]).hypot(v[2])
 }
 
-/// `a` at length 1, the same way.
+/// `a` scaled to length 1: not a number for a zero vector, so callers
+/// that can meet one check first.
 pub fn normalized(a: [f32; 3]) -> [f32; 3] {
     scale(a, 1.0 / dot(a, a).sqrt())
 }

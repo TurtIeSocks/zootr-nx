@@ -45,7 +45,6 @@ pub fn textures_named(data: &[u8], keep: impl Fn(&str) -> bool) -> Result<Vec<Te
 /// The texture at `brti`'s first level, read as [`top_level`] reads it.
 fn texture(data: &[u8], brti: usize) -> Result<Texture> {
     let info = Info::read(data, brti)?;
-    (data.get(info.start..info.start + info.size)).context("texture data past the end")?;
     level(data, &info, 0)
 }
 
