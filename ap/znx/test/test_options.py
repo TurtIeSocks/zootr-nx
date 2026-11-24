@@ -220,3 +220,24 @@ class TestTrapShare(unittest.TestCase):
         counts, trappable = dealt(rows)
         self.assertEqual(trappable, Counter({JUNK[0]: 1}))
         self.assertEqual(counts, Counter({JUNK[0]: 1, "Fake Bag": 1}))
+
+
+class TestStartingAgeOffersChildAndAdult(unittest.TestCase):
+    """Random is AP's own YAML `random`: the fill needs the age first."""
+
+    def test_no_random(self) -> None:
+        entry = next(e for e in OPTIONS if e["id"] == "starting-age")
+        self.assertEqual([o["id"] for o in entry["options"]], ["child", "adult"])
+
+
+class TestAdultStartOpensTheDoorAndForest(ZnxTestBase):
+    """Adult forces the Door of Time and the forest open, as the app and
+    our seed do, and starts Link where an adult wakes."""
+
+    options = {"starting_age": "adult", "open_forest": False, "door_of_time": "closed"}
+
+    def test_forced_and_started(self) -> None:
+        world = self.multiworld.worlds[self.player]
+        self.assertIs(world.setting_values["open-forest"], True)
+        self.assertEqual(world.setting_values["door-of-time"], "open")
+        self.assertEqual(world.origin_region_name, WORLD["starts"][0]["place"])
