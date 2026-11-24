@@ -32,10 +32,10 @@ const KEY: &[u8] = b"ContentName";
 /// Longer than any actor name, so a runaway string stops here.
 const MAX: usize = 128;
 
-// The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
-// at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
-// +72, +76 and +80 in place of their pacibsp.
+// The call sites `bl` to content_name, drop_actor, run_speed, the
+// controller reads and seed_guide, and the hooked functions `b` to their
+// entries in place of their pacibsp, each at its offset in `entry`, one
+// word apart in the order the table below lays them out.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
