@@ -58,9 +58,10 @@ pub struct Obj<'a> {
 }
 
 /// The chunks directly inside `bytes[from..to]`, as (tag, body).
-fn chunks(bytes: &[u8], from: usize, to: usize) -> Result<Vec<(&str, &[u8])>> {
+fn chunks(bytes: &[u8]) -> Result<Vec<(&str, &[u8])>> {
     let mut out = vec![];
-    let mut at = from;
+    let mut at = 0;
+    let to = bytes.len();
     while at + 8 <= to {
         let head = u32::from_be_bytes(bytes[at..at + 4].try_into()?);
         let size = (head & 0x3fff_ffff) as usize;
@@ -141,17 +142,11 @@ impl Tagfile {
         let head = bytes.get(start..start + 4).context("no tagfile")?;
         let end = start + (u32::from_be_bytes(head.try_into()?) & 0x3fff_ffff) as usize;
         ensure!(end <= bytes.len(), "tagfile overruns the file");
-        let top = chunks(bytes, start, end)?;
-        let tag0 = chunk(&top, "TAG0")?;
-        let base = tag0.as_ptr() as usize - bytes.as_ptr() as usize;
-        let inner = chunks(bytes, base, base + tag0.len())?;
+        let top = chunks(&bytes[start..end])?;
+        let inner = chunks(chunk(&top, "TAG0")?)?;
         let data = chunk(&inner, "DATA")?.to_vec();
-        let type_chunk = chunk(&inner, "TYPE")?;
-        let type_at = type_chunk.as_ptr() as usize - bytes.as_ptr() as usize;
-        let ty = chunks(bytes, type_at, type_at + type_chunk.len())?;
-        let index = chunk(&inner, "INDX")?;
-        let index_at = index.as_ptr() as usize - bytes.as_ptr() as usize;
-        let indx = chunks(bytes, index_at, index_at + index.len())?;
+        let ty = chunks(chunk(&inner, "TYPE")?)?;
+        let indx = chunks(chunk(&inner, "INDX")?)?;
         let types = Self::types(
             &strings(chunk(&ty, "TST1")?),
             &strings(chunk(&ty, "FST1")?),
@@ -248,12 +243,14 @@ impl Tagfile {
         self.types[ty].size
     }
 
+    /// Item `index` of the item list.
+    fn entry(&self, index: usize) -> Result<&Item> {
+        (self.items.get(index)).with_context(|| format!("no item {index}"))
+    }
+
     /// The `i`th value of item `index`.
     pub fn item(&self, index: usize, i: usize) -> Result<Obj<'_>> {
-        let item = self
-            .items
-            .get(index)
-            .with_context(|| format!("no item {index}"))?;
+        let item = self.entry(index)?;
         ensure!(
             i < item.count,
             "item {index} has {} values, not {}",
@@ -324,7 +321,7 @@ impl<'a> Obj<'a> {
         if index == 0 {
             return Ok(vec![]);
         }
-        let len = self.file.items.get(index).map_or(0, |i| i.count);
+        let len = self.file.entry(index)?.count;
         (0..len).map(|i| self.file.item(index, i)).collect()
     }
 
@@ -347,7 +344,8 @@ impl<'a> Obj<'a> {
     /// typed as `hkUint8`.
     pub fn rel_bytes(&self, name: &str) -> Result<&'a [u8]> {
         let (ty, at, len) = self.rel(name)?;
-        self.r().bytes(at, len * self.file.size(ty))
+        let n = (len.checked_mul(self.file.size(ty))).context("relative array too large")?;
+        self.r().bytes(at, n)
     }
 
     /// The element type, start and length of the relative array `name`.
@@ -363,7 +361,8 @@ impl<'a> Obj<'a> {
         };
         let len = f.field("size")?.i32()?;
         ensure!(len >= 0, "{name} holds {len} values");
-        let at = usize::try_from(f.at as i64 + offset)
+        let at = ((f.at as i64).checked_add(offset))
+            .and_then(|at| usize::try_from(at).ok())
             .with_context(|| format!("{name} points before the data"))?;
         Ok((ty, at, len as usize))
     }
@@ -388,7 +387,7 @@ impl<'a> Obj<'a> {
         if index == 0 {
             return Ok(String::new());
         }
-        let item = self.file.items[index];
+        let item = self.file.entry(index)?;
         let bytes = Reader(&self.file.data).bytes(item.offset, item.count)?;
         Ok(String::from_utf8_lossy(bytes).trim_end_matches('\0').into())
     }
@@ -532,5 +531,15 @@ mod tests {
     #[test]
     fn refuses_other_files() {
         assert!(Tagfile::parse(b"YB\x07\x00").is_err());
+    }
+
+    #[test]
+    fn a_dangling_item_index_is_an_error() {
+        let mut file = Tagfile::parse(&sample()).unwrap();
+        file.data[0..4].copy_from_slice(&9u32.to_le_bytes());
+        file.data[16..20].copy_from_slice(&9u32.to_le_bytes());
+        let root = file.item(1, 0).unwrap();
+        assert!(root.array("points").is_err());
+        assert!(root.field("label").unwrap().string().is_err());
     }
 }

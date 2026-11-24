@@ -162,22 +162,58 @@ struct Place {
 /// parents, children, its calls by name, and its triggers' calls.
 fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<Vec<u8>> {
     let r = Reader(file);
-    ensure!(&file[..4] == b"XLNK", "not an XLink2 file");
+    ensure!(r.bytes(0, 4)? == b"XLNK", "not an XLink2 file");
     let version = r.u32(VERSION_AT)?;
     ensure!(
         version == VERSION,
         "XLink2 version {version:#x}, not {VERSION:#x}"
     );
-    let at = place.at;
-    ensure!(at <= b.count, "a place past {}'s calls", b.count);
-    let shift = |i: usize| if i >= at { i + 1 } else { i };
+    let insert_at = place.at;
+    ensure!(insert_at <= b.count, "a place past {}'s calls", b.count);
     let order = tree(file, a, root)?;
-    let moved = |old: usize| match order.iter().position(|&o| o == old).expect("in the tree") {
-        0 => at,
-        k => b.count + k,
-    };
+    let (own, own_params) = renumber_own(file, b, &place)?;
+    let tree = copy_tree(file, a, b, &order, &place)?;
 
-    // The user's own calls and container params, renumbered.
+    let mut calls = own[..insert_at * CALL].to_vec();
+    calls.extend(&tree.root);
+    calls.extend(&own[insert_at * CALL..]);
+    calls.extend(&tree.rest);
+    // Every shipped user numbers its assets in call order: kept so.
+    let mut assets = 0u32;
+    for call in calls.as_chunks_mut::<CALL>().0 {
+        if u16::from_le_bytes([call[CALL_FLAGS], call[CALL_FLAGS + 1]]) & IS_CONTAINER == 0 {
+            put(call, ASSET, &(assets as i16).to_le_bytes());
+            assets += 1;
+        }
+    }
+    let ids = sorted_ids(file, b, &calls, insert_at)?;
+
+    let mut out = Vec::with_capacity(file.len() + ids.len() + calls.len() + tree.params.len());
+    out.extend(&file[..b.ids]);
+    out.extend(&ids);
+    out.extend(&calls);
+    out.extend(&own_params);
+    out.extend(&tree.params);
+    out.extend(&file[b.triggers..]);
+    let counts = Counts {
+        calls: calls.len() / CALL,
+        assets,
+        randoms: tree.randoms,
+    };
+    patch_header(file, b, &mut out, insert_at, counts)?;
+    Ok(out)
+}
+
+/// `i`, the index of a call, once a call is put at `insert_at`.
+fn shift(i: usize, insert_at: usize) -> usize {
+    if i >= insert_at { i + 1 } else { i }
+}
+
+/// `b`'s own calls and container params, with every index of a call from
+/// `place` on moved up one, and `place`'s switch, if any, ending at it.
+fn renumber_own(file: &[u8], b: &User, place: &Place) -> Result<(Vec<u8>, Vec<u8>)> {
+    let r = Reader(file);
+    let insert_at = place.at;
     let mut own = r.bytes(b.calls, b.count * CALL)?.to_vec();
     let mut own_params = r.bytes(b.containers, b.triggers - b.containers)?.to_vec();
     let mut renumbered = std::collections::HashSet::new();
@@ -185,11 +221,8 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
         let call = i * CALL;
         let parent = i32_in(&own, call + PARENT);
         if parent >= 0 {
-            put(
-                &mut own,
-                call + PARENT,
-                &(shift(parent as usize) as i32).to_le_bytes(),
-            );
+            let parent = shift(parent as usize, insert_at) as i32;
+            put(&mut own, call + PARENT, &parent.to_le_bytes());
         }
         if u16::from_le_bytes([own[call + CALL_FLAGS], own[call + CALL_FLAGS + 1]]) & IS_CONTAINER
             == 0
@@ -201,25 +234,48 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
             continue;
         }
         for field in [FIRST, LAST] {
-            let child = i32_in(&own_params, param + field) as usize;
-            put(
-                &mut own_params,
-                param + field,
-                &(shift(child) as i32).to_le_bytes(),
-            );
+            let child = shift(i32_in(&own_params, param + field) as usize, insert_at) as i32;
+            put(&mut own_params, param + field, &child.to_le_bytes());
         }
         if place.parent == i as i32 {
             ensure!(
-                i32_in(&own_params, param + LAST) as usize + 1 == at,
+                i32_in(&own_params, param + LAST) as usize + 1 == insert_at,
                 "a case not after its switch's last"
             );
-            put(&mut own_params, param + LAST, &(at as i32).to_le_bytes());
+            put(
+                &mut own_params,
+                param + LAST,
+                &(insert_at as i32).to_le_bytes(),
+            );
         }
     }
+    Ok((own, own_params))
+}
 
-    // The tree, copied: the root's call, then the rest's.
-    let (mut root_call, mut rest, mut params) = (Vec::new(), Vec::new(), Vec::new());
-    let mut randoms = 0;
+/// A call tree copied for its new user: the root's call, the rest's
+/// calls, their container params, and how many of those are random.
+struct Copied {
+    root: Vec<u8>,
+    rest: Vec<u8>,
+    params: Vec<u8>,
+    randoms: u32,
+}
+
+/// The calls `order` of user `a`, a tree, copied for user `b`: the root
+/// named and placed at `place`, the rest after `b`'s calls, their params
+/// after `b`'s.
+fn copy_tree(file: &[u8], a: &User, b: &User, order: &[usize], place: &Place) -> Result<Copied> {
+    let r = Reader(file);
+    let moved = |old: usize| match order.iter().position(|&o| o == old).expect("in the tree") {
+        0 => place.at,
+        k => b.count + k,
+    };
+    let mut copied = Copied {
+        root: Vec::new(),
+        rest: Vec::new(),
+        params: Vec::new(),
+        randoms: 0,
+    };
     let param_base = b.triggers - b.containers;
     for (k, &old) in order.iter().enumerate() {
         let from_call = a.calls + old * CALL;
@@ -235,41 +291,31 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
         };
         put(&mut call, PARENT, &parent.to_le_bytes());
         if r.u16(from_call + CALL_FLAGS)? & IS_CONTAINER != 0 {
-            let at = a.containers + r.u64(from_call + PARAM)? as usize;
-            let mut param = r.bytes(at, container_size(file, at)?)?.to_vec();
+            let param_at = container_at(file, a, from_call)?;
+            let mut param = r.bytes(param_at, container_size(file, param_at)?)?.to_vec();
             for field in [FIRST, LAST] {
-                put(
-                    &mut param,
-                    field,
-                    &(moved(r.i32(at + field)? as usize) as i32).to_le_bytes(),
-                );
+                let child = moved(r.i32(param_at + field)? as usize) as i32;
+                put(&mut param, field, &child.to_le_bytes());
             }
-            randoms += u32::from(param[0] == RANDOM);
-            let offset = (param_base + params.len()) as u64;
+            copied.randoms += u32::from(param[0] == RANDOM);
+            let offset = (param_base + copied.params.len()) as u64;
             put(&mut call, PARAM, &offset.to_le_bytes());
-            params.extend(param);
+            copied.params.extend(param);
         }
         match k {
-            0 => root_call = call,
-            _ => rest.extend(call),
+            0 => copied.root = call,
+            _ => copied.rest.extend(call),
         }
     }
-    let mut calls = own[..at * CALL].to_vec();
-    calls.extend(&root_call);
-    calls.extend(&own[at * CALL..]);
-    calls.extend(&rest);
-    // Every shipped user numbers its assets in call order: kept so.
-    let mut assets = 0u32;
-    for call in calls.as_chunks_mut::<CALL>().0 {
-        if u16::from_le_bytes([call[CALL_FLAGS], call[CALL_FLAGS + 1]]) & IS_CONTAINER == 0 {
-            put(call, ASSET, &(assets as i16).to_le_bytes());
-            assets += 1;
-        }
-    }
+    Ok(copied)
+}
 
-    // The calls by name, which the game searches by halves. The shipped
-    // order is kept, ties too, and each new call goes after its equals.
-    let total = b.count + order.len();
+/// The new `calls` of user `b` by name, which the game searches by halves,
+/// padded to four bytes. The shipped order is kept, ties too, and each new
+/// call goes after its equals.
+fn sorted_ids(file: &[u8], b: &User, calls: &[u8], insert_at: usize) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let total = calls.len() / CALL;
     let names = (0..total)
         .map(|i| {
             name_at(
@@ -279,53 +325,58 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
         })
         .collect::<Result<Vec<_>>>()?;
     let mut sorted = (0..b.count)
-        .map(|k| Ok(shift(r.u16(b.ids + 2 * k)? as usize) as u16))
+        .map(|k| Ok(shift(r.u16(b.ids + 2 * k)? as usize, insert_at) as u16))
         .collect::<Result<Vec<_>>>()?;
-    for new in std::iter::once(at).chain(b.count + 1..total) {
+    for new in std::iter::once(insert_at).chain(b.count + 1..total) {
         let place = sorted.partition_point(|&i| names[i as usize] <= names[new]);
         sorted.insert(place, new as u16);
     }
     let mut ids: Vec<u8> = sorted.iter().flat_map(|i| i.to_le_bytes()).collect();
     ids.resize(align4(total * 2), 0);
+    Ok(ids)
+}
 
-    let mut out = Vec::with_capacity(file.len() + ids.len() + calls.len() + params.len());
-    out.extend(&file[..b.ids]);
-    out.extend(&ids);
-    out.extend(&calls);
-    out.extend(&own_params);
-    out.extend(&params);
-    out.extend(&file[b.triggers..]);
+/// Counts written into user `b`'s header after a graft.
+struct Counts {
+    calls: usize,
+    assets: u32,
+    randoms: u32,
+}
+
+/// Bring `out`, `file` with user `b` grown, up to date: `b`'s counts and
+/// trigger offset, its triggers' calls from `insert_at` on, every offset
+/// past `b`, and the file's size.
+fn patch_header(
+    file: &[u8],
+    b: &User,
+    out: &mut Vec<u8>,
+    insert_at: usize,
+    counts: Counts,
+) -> Result<()> {
+    let r = Reader(file);
     let grown = out.len() - file.len();
-
     let w = |out: &mut Vec<u8>, at: usize, v: u32| put(out, at, &v.to_le_bytes());
-    w(&mut out, b.base + NUM_CALL, total as u32);
-    w(&mut out, b.base + NUM_ASSET, assets);
-    w(
-        &mut out,
-        b.base + NUM_RANDOM,
-        r.u32(b.base + NUM_RANDOM)? + randoms,
-    );
+    w(out, b.base + NUM_CALL, counts.calls as u32);
+    w(out, b.base + NUM_ASSET, counts.assets);
+    let randoms = r.u32(b.base + NUM_RANDOM)? + counts.randoms;
+    w(out, b.base + NUM_RANDOM, randoms);
     let triggers = r.u64(b.base + TRIGGERS)? + grown as u64;
-    put(&mut out, b.base + TRIGGERS, &triggers.to_le_bytes());
-    if at < b.count {
+    put(out, b.base + TRIGGERS, &triggers.to_le_bytes());
+    if insert_at < b.count {
         for pos in trigger_calls(file, b)? {
-            let call = trigger_call(file, b, pos)?;
-            put(
-                &mut out,
-                pos + grown,
-                &((shift(call) * CALL) as u64).to_le_bytes(),
-            );
+            let call = shift(trigger_call(file, b, pos)?, insert_at);
+            put(out, pos + grown, &((call * CALL) as u64).to_le_bytes());
         }
     }
-    for at in user_offsets(file)?.chain([CONDITIONS, NAMES]) {
-        let offset = r.u64(at)? as usize;
+    for header_at in user_offsets(file)?.chain([CONDITIONS, NAMES]) {
+        let offset = r.u64(header_at)? as usize;
         if offset > b.base {
-            put(&mut out, at, &((offset + grown) as u64).to_le_bytes());
+            put(out, header_at, &((offset + grown) as u64).to_le_bytes());
         }
     }
     let size = out.len() as u32;
-    w(&mut out, DATA_SIZE, size);
-    Ok(out)
+    w(out, DATA_SIZE, size);
+    Ok(())
 }
 
 /// The names of `user`'s calls, in their order.
@@ -389,7 +440,7 @@ fn children(file: &[u8], user: &User, i: usize) -> Result<std::ops::Range<usize>
     if r.u16(call + CALL_FLAGS)? & IS_CONTAINER == 0 {
         return Ok(0..0);
     }
-    let at = user.containers + r.u64(call + PARAM)? as usize;
+    let at = container_at(file, user, call)?;
     let (first, last) = (r.i32(at + FIRST)?, r.i32(at + LAST)?);
     ensure!(
         0 <= first && first <= last && (last as usize) < user.count,
@@ -463,7 +514,7 @@ fn switch_param(file: &[u8], user: &User, i: usize) -> Result<usize> {
         r.u16(call + CALL_FLAGS)? & IS_CONTAINER != 0,
         "not a switch"
     );
-    let at = user.containers + r.u64(call + PARAM)? as usize;
+    let at = container_at(file, user, call)?;
     ensure!(r.u8(at)? == SWITCH, "not a switch");
     Ok(at)
 }
@@ -484,7 +535,7 @@ fn local_property<'a>(file: &'a [u8], user: &User, i: usize) -> Result<Option<&'
     if r.u16(call + CALL_FLAGS)? & IS_CONTAINER == 0 {
         return Ok(None);
     }
-    let at = user.containers + r.u64(call + PARAM)? as usize;
+    let at = container_at(file, user, call)?;
     let reads = match r.u8(at)? {
         SWITCH => true,
         BLEND => r.u8(at + BY_PROPERTY)? != 0,
@@ -494,6 +545,12 @@ fn local_property<'a>(file: &'a [u8], user: &User, i: usize) -> Result<Option<&'
         return Ok(None);
     }
     Ok(Some(name_at(file, r.u64(at + PROPERTY)? as usize)?))
+}
+
+/// Where the params of `user`'s container call at `call` are, in the file.
+fn container_at(file: &[u8], user: &User, call: usize) -> Result<usize> {
+    let param = Reader(file).ptr(call + PARAM)?;
+    (user.containers.checked_add(param)).context("a container's params past the end")
 }
 
 fn i32_in(d: &[u8], at: usize) -> i32 {
@@ -526,8 +583,10 @@ fn call_name(file: &[u8], call: usize) -> Result<&[u8]> {
 }
 
 fn name_at(file: &[u8], offset: usize) -> Result<&[u8]> {
-    let at = Reader(file).u64(NAMES)? as usize + offset;
-    let rest = file.get(at..).context("a name past the end")?;
+    let at = Reader(file).ptr(NAMES)?.checked_add(offset);
+    let rest = at
+        .and_then(|at| file.get(at..))
+        .context("a name past the end")?;
     let end = rest
         .iter()
         .position(|&b| b == 0)

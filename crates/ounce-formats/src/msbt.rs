@@ -125,7 +125,8 @@ impl Msbt {
     pub fn set(&mut self, label: &str, parts: &[Part]) -> Result<()> {
         let text = self.encode(parts);
         if let Some(i) = self.index(label)? {
-            self.texts_mut()?[i as usize] = text;
+            let slot = self.texts_mut()?.get_mut(i as usize);
+            *slot.with_context(|| past_last(label))? = text;
             return Ok(());
         }
         if let Some((magic, _)) = self
@@ -207,8 +208,7 @@ impl Msbt {
     /// Text `i`, as stored, for `label`.
     fn text(&self, label: &str, i: u32) -> Result<&[u8]> {
         let text = self.texts()?.get(i as usize);
-        text.map(Vec::as_slice)
-            .with_context(|| format!("label {label} points past the last text"))
+        text.map(Vec::as_slice).with_context(|| past_last(label))
     }
 
     /// A stored text split into parts, up to its terminator. A tag is its
@@ -326,6 +326,11 @@ fn write_texts(texts: &[Vec<u8>]) -> Vec<u8> {
     }
     out.extend(texts.concat());
     out
+}
+
+/// The error for a label whose text index is past the last text.
+fn past_last(label: &str) -> String {
+    format!("label {label} points past the last text")
 }
 
 #[cfg(test)]
@@ -474,5 +479,14 @@ mod tests {
     #[test]
     fn other_files_are_refused() {
         assert!(messages(b"YB\x07\0").is_err());
+    }
+
+    #[test]
+    fn setting_a_label_past_the_last_text_is_an_error() {
+        let mut msbt = Msbt::parse(&build(true, false, &[&[Text("x")]])).unwrap();
+        if let Some(Body::Labels(buckets)) = msbt.section_mut(LABELS) {
+            buckets.iter_mut().flatten().for_each(|(_, i)| *i = 5);
+        }
+        assert!(msbt.set("a", &[]).is_err());
     }
 }
