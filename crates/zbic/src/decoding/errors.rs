@@ -1,5 +1,8 @@
 //! Errors that might occur while decoding zstd formatted data
 
+// file-size-guard: vendored from ruzstd 0.9.1 and kept whole, so it diffs
+// cleanly against the release it came from (see the crate's README.md).
+
 use crate::bit_io::GetBitsError;
 use crate::blocks::block::BlockType;
 use crate::blocks::literals_section::LiteralsSectionType;
@@ -918,6 +921,7 @@ pub enum FSETableError {
     TooManySymbols {
         got: usize,
     },
+    Zbic(&'static str),
 }
 
 #[cfg(feature = "std")]
@@ -956,6 +960,7 @@ impl core::fmt::Display for FSETableError {
                     "There are too many symbols in this distribution: {got}. Max: 256",
                 )
             }
+            FSETableError::Zbic(why) => write!(f, "Bad ZBIC table header: {why}"),
         }
     }
 }

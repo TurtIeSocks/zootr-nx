@@ -1,4 +1,4 @@
-use crate::bit_io::{BitReader, BitReaderReversed};
+use crate::bit_io::BitReaderReversed;
 use crate::decoding::errors::{FSEDecoderError, FSETableError};
 use alloc::vec::Vec;
 
@@ -221,88 +221,18 @@ impl FSETable {
 
     /// Read the accuracy log and the probability table from the source and return the number of bytes
     /// read. If the size of the table is larger than the provided `max_log`, return an error.
+    ///
+    /// ZBIC: the table is written by binary interpolative coding, which [`crate::bic`] reads.
     fn read_probabilities(&mut self, source: &[u8], max_log: u8) -> Result<usize, FSETableError> {
-        self.symbol_probabilities.clear(); //just clear, we will fill a probability for each entry anyways. No need to force new allocs here
-
-        let mut br = BitReader::new(source);
-        self.accuracy_log = ACC_LOG_OFFSET + (br.get_bits(4)? as u8);
-        if self.accuracy_log > max_log {
+        let (accuracy_log, bytes_read) =
+            crate::bic::read(source, self.max_symbol, &mut self.symbol_probabilities)?;
+        if accuracy_log > max_log {
             return Err(FSETableError::AccLogTooBig {
-                got: self.accuracy_log,
+                got: accuracy_log,
                 max: max_log,
             });
         }
-        if self.accuracy_log == 0 {
-            return Err(FSETableError::AccLogIsZero);
-        }
-
-        let probability_sum = 1 << self.accuracy_log;
-        let mut probability_counter = 0;
-
-        while probability_counter < probability_sum {
-            let max_remaining_value = probability_sum - probability_counter + 1;
-            let bits_to_read = highest_bit_set(max_remaining_value);
-
-            let unchecked_value = br.get_bits(bits_to_read as usize)? as u32;
-
-            let low_threshold = ((1 << bits_to_read) - 1) - (max_remaining_value);
-            let mask = (1 << (bits_to_read - 1)) - 1;
-            let small_value = unchecked_value & mask;
-
-            let value = if small_value < low_threshold {
-                br.return_bits(1);
-                small_value
-            } else if unchecked_value > mask {
-                unchecked_value - low_threshold
-            } else {
-                unchecked_value
-            };
-            //println!("{}, {}, {}", self.symbol_probablilities.len(), unchecked_value, value);
-
-            let prob = (value as i32) - 1;
-
-            self.symbol_probabilities.push(prob);
-            if prob != 0 {
-                if prob > 0 {
-                    probability_counter += prob as u32;
-                } else {
-                    // probability -1 counts as 1
-                    assert!(prob == -1);
-                    probability_counter += 1;
-                }
-            } else {
-                //fast skip further zero probabilities
-                loop {
-                    let skip_amount = br.get_bits(2)? as usize;
-
-                    self.symbol_probabilities
-                        .resize(self.symbol_probabilities.len() + skip_amount, 0);
-                    if skip_amount != 3 {
-                        break;
-                    }
-                }
-            }
-        }
-
-        if probability_counter != probability_sum {
-            return Err(FSETableError::ProbabilityCounterMismatch {
-                got: probability_counter,
-                expected_sum: probability_sum,
-                symbol_probabilities: self.symbol_probabilities.clone(),
-            });
-        }
-        if self.symbol_probabilities.len() > self.max_symbol as usize + 1 {
-            return Err(FSETableError::TooManySymbols {
-                got: self.symbol_probabilities.len(),
-            });
-        }
-
-        let bytes_read = if br.bits_read().is_multiple_of(8) {
-            br.bits_read() / 8
-        } else {
-            (br.bits_read() / 8) + 1
-        };
-
+        self.accuracy_log = accuracy_log;
         Ok(bytes_read)
     }
 }
@@ -318,10 +248,6 @@ pub struct Entry {
     /// The byte that should be put in the decode output when encountering this state.
     pub symbol: u8,
 }
-
-/// This value is added to the first 4 bits of the stream to determine the
-/// `Accuracy_Log`
-const ACC_LOG_OFFSET: u8 = 5;
 
 fn highest_bit_set(x: u32) -> u32 {
     assert!(x > 0);

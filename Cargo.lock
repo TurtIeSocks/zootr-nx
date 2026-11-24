@@ -6125,6 +6125,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "zbic"
+version = "0.9.1"
+
+[[package]]
 name = "zbus"
 version = "5.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
