@@ -113,6 +113,6 @@ mod tests {
     #[test]
     fn an_unknown_preset_names_the_ones_there_are() {
         let err = options("everything").unwrap_err().to_string();
-        assert_eq!(err, "no preset everything: all-on, defaults");
+        assert_eq!(err, "no preset everything: all-on, defaults, progressive-off");
     }
 }
