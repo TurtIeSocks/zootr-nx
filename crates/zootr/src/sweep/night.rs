@@ -759,7 +759,7 @@ mod tests {
     #[test]
     fn a_crash_restarts_the_game_without_reading_its_age() {
         needs_names!();
-        let crash = Verdict::Crash("the game closed the bridge".into());
+        let crash = Verdict::Crash(live::CLOSED.into());
         let unread = || -> Option<bool> { panic!("the game is gone") };
         assert!(other_age(&open(flag::SPIRIT_TEMPLE), &crash, unread).is_none());
         assert!(crash.broke());
