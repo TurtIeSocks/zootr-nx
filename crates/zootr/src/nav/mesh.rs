@@ -9,12 +9,13 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::Result;
-use ounce_formats::{Romfs, ShapeMesh};
+use ounce_formats::{ActorPack, BymlMap, Romfs, ShapeMesh};
 
 use super::filter::{Filter, Touch};
 use super::shape::{
     BODY_SHAPE, ENTRY_NAME, FILE, Physics, RIGID_BODIES, SHAPES, maps, physics_of, place, text,
 };
+use super::vec3::{cross, dot, sub};
 use crate::known::field;
 use crate::warp::Placement;
 
@@ -89,7 +90,7 @@ impl Wall {
             return vec![];
         }
         (self.triangles.iter())
-            .filter(|t| floor_normal(t))
+            .filter(|t| floor_normal(t) && facing_up(t))
             .filter_map(|t| height_in(t, x, z))
             .collect()
     }
@@ -98,7 +99,8 @@ impl Wall {
 /// The least a floor's normal points up: steeper ground is a wall.
 const FLOOR_UP: f32 = 0.7;
 
-/// Whether `t` faces up, gently enough to stand on.
+/// Whether `t` lies no steeper than Link walks, facing up or down:
+/// [`facing_up`] tells which.
 pub fn floor_normal([p, q, r]: &[[f32; 3]; 3]) -> bool {
     let n = cross(sub(*q, *p), sub(*r, *p));
     let len = dot(n, n).sqrt();
@@ -122,38 +124,27 @@ pub fn height_in([p, q, r]: &[[f32; 3]; 3], x: f32, z: f32) -> Option<f32> {
     (u >= 0.0 && v >= 0.0 && w >= 0.0).then(|| u * p[1] + v * q[1] + w * r[1])
 }
 
-fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    std::array::from_fn(|i| a[i] - b[i])
-}
-
-fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
-}
-
-fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-/// Whether the segment from `a` to `b` passes through triangle `t`
-/// (Moller and Trumbore's test, kept to the segment).
-pub(super) fn through(a: [f32; 3], b: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> bool {
-    let d = sub(b, a);
+/// Where the line from `o` by `d` meets triangle `t`'s plane, Moller and
+/// Trumbore's way: `(u, v, t)`, the hit's weights along the triangle's
+/// second and third corners and how far along `d` (times its length).
+/// `None` when the line runs along the plane.
+pub(super) fn moller(o: [f32; 3], d: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> Option<[f32; 3]> {
     let (e1, e2) = (sub(*q, *p), sub(*r, *p));
     let h = cross(d, e2);
     let det = dot(e1, h);
     if det.abs() < 1e-9 {
-        return false;
+        return None;
     }
-    let s = sub(a, *p);
-    let u = dot(s, h) / det;
+    let s = sub(o, *p);
     let k = cross(s, e1);
-    let v = dot(d, k) / det;
-    let t = dot(e2, k) / det;
-    (0.0..=1.0).contains(&u) && v >= 0.0 && u + v <= 1.0 && (0.0..=1.0).contains(&t)
+    Some([dot(s, h) / det, dot(d, k) / det, dot(e2, k) / det])
+}
+
+/// Whether the segment from `a` to `b` passes through triangle `t`.
+pub(super) fn through(a: [f32; 3], b: [f32; 3], tri: &[[f32; 3]; 3]) -> bool {
+    moller(a, sub(b, a), tri).is_some_and(|[u, v, t]| {
+        (0.0..=1.0).contains(&u) && v >= 0.0 && u + v <= 1.0 && (0.0..=1.0).contains(&t)
+    })
 }
 
 /// One mesh of an actor's shapes: whether its rigid body stands on the
@@ -166,15 +157,21 @@ pub struct MeshUse {
     pub body: [u64; 2],
 }
 
-/// The meshes of `actor`'s shapes.
+/// The file `file` names in `pack`, if it names one the pack holds.
+fn resolved(pack: &ActorPack, file: Option<&str>) -> Result<Option<BymlMap>> {
+    Ok(file.map(|f| pack.resolve(f)).transpose()?.flatten())
+}
+
+/// The meshes of `actor`'s shapes. A body or shape whose file the pack
+/// lacks is left out: a shape with no body is no airwall and has all
+/// ones for its masks, so it touches everything.
 pub fn mesh_names(romfs: &Romfs, filter: &Filter, actor: &str) -> Result<Vec<MeshUse>> {
     let Some(Physics { pack, set, .. }) = physics_of(romfs, actor)? else {
         return Ok(vec![]);
     };
     let mut bodies = HashMap::new();
     for body in maps(&set, RIGID_BODIES.get()) {
-        let file = text(body, FILE.get());
-        let Some(body) = file.map(|f| pack.resolve(f)).transpose()?.flatten() else {
+        let Some(body) = resolved(&pack, text(body, FILE.get()))? else {
             continue;
         };
         let Some(shape) = text(&body, BODY_SHAPE.get()) else {
@@ -190,8 +187,7 @@ pub fn mesh_names(romfs: &Romfs, filter: &Filter, actor: &str) -> Result<Vec<Mes
     let mut out = vec![];
     for shape in maps(&set, SHAPES.get()) {
         let name = text(shape, ENTRY_NAME).unwrap_or_default();
-        let file = text(shape, FILE.get());
-        let Some(param) = file.map(|f| pack.resolve(f)).transpose()?.flatten() else {
+        let Some(param) = resolved(&pack, text(shape, FILE.get()))? else {
             continue;
         };
         let (air, body) = bodies.get(name).copied().unwrap_or((false, [u64::MAX; 2]));
@@ -253,6 +249,14 @@ pub struct Walls {
     pub air: Vec<Wall>,
     /// The walls and floors Link sees, which the navmesh keeps off.
     pub solid: Vec<Wall>,
+}
+
+impl Walls {
+    /// Seen walls `solid`, no invisible ones, as a test builds them.
+    #[cfg(test)]
+    pub fn solid_only(solid: Vec<Wall>) -> Self {
+        Self { air: vec![], solid }
+    }
 }
 
 /// The collision meshes placed in a level, from one walk of the dump.
@@ -332,7 +336,7 @@ pub fn mesh(romfs: &Romfs, game: &Path, name: &str) -> Result<Option<ShapeMesh>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ounce_formats::{ActorPack, pack_file};
+    use ounce_formats::pack_file;
 
     /// The faces the graph reaches from `start`.
     fn reached(graph: &super::super::graph::Graph, start: usize) -> Vec<bool> {
@@ -350,7 +354,15 @@ mod tests {
     fn joined(graph: &super::super::graph::Graph, island: &[bool]) -> bool {
         let jump = super::super::limits::limits().level_jump();
         (graph.gaps(jump).into_iter().chain(graph.plunges()))
-            .any(|(a, b, ..)| island[a] != island[b])
+            .any(|hop| island[hop.from] != island[hop.to])
+    }
+
+    #[test]
+    fn a_walls_floor_is_only_what_faces_up() {
+        let floor = [[0.0, 0.0, 0.0], [0.0, 0.0, 4.0], [4.0, 0.0, 0.0]];
+        let ceiling = [[0.0, 2.0, 0.0], [4.0, 2.0, 0.0], [0.0, 2.0, 4.0]];
+        let wall = Wall::new("FakeRoom", vec![floor, ceiling]);
+        assert_eq!(wall.floors_at(1.0, 1.0), [0.0]);
     }
 
     /// The Deku basement's strip beside the ivy, where derive once measured
@@ -362,7 +374,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(crate::game::DEV_DUMP);
         let deku = crate::known::map::INSIDE_THE_DEKU_TREE.get();
         let mut level = crate::nav::Level::of(&romfs, game, deku).unwrap();
         assert!(!level.walls.air.is_empty() && !level.walls.solid.is_empty());
@@ -390,7 +402,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(crate::game::DEV_DUMP);
         let mut read = 0;
         crate::game::each(game, MESHES, |path, data| {
             let mesh = ShapeMesh::parse(&romfs.dicts().decompress(&path, &data)?)?;
@@ -410,7 +422,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(crate::game::DEV_DUMP);
         let mut checked = 0;
         crate::game::each(game, &format!("{MESHES}Land_Deku_"), |path, data| {
             let file = path.rsplit('/').next().unwrap_or_default();
@@ -459,7 +471,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(crate::game::DEV_DUMP);
         let deku = crate::known::map::INSIDE_THE_DEKU_TREE.get();
         let placed = crate::warp::placements_in(&romfs, deku).unwrap();
         let walls = walls(&romfs, game, &placed).unwrap();

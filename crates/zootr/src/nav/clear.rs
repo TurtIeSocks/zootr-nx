@@ -81,6 +81,9 @@ pub fn grown(ring: &[[f32; 2]], by: f32) -> Vec<[f32; 2]> {
 /// Whether the leg `p`..`q` runs through the inside of the convex
 /// counterclockwise `ring`, more than touching it.
 pub fn crosses(ring: &[[f32; 2]], p: [f32; 2], q: [f32; 2]) -> bool {
+    if ring.len() < 3 {
+        return false;
+    }
     let d = [q[0] - p[0], q[1] - p[1]];
     let (mut t0, mut t1) = (0.0_f32, 1.0_f32);
     for i in 0..ring.len() {
@@ -104,7 +107,7 @@ pub fn crosses(ring: &[[f32; 2]], p: [f32; 2], q: [f32; 2]) -> bool {
             return false;
         }
     }
-    ring.len() >= 3 && (t1 - t0) * d[0].hypot(d[1]) > TOUCH
+    (t1 - t0) * d[0].hypot(d[1]) > TOUCH
 }
 
 /// Whether the mesh lies under the leg `a`..`b` all along, near the
@@ -147,8 +150,16 @@ fn around(graph: &Graph, a: [f32; 3], b: [f32; 3]) -> Vec<[f32; 3]> {
         [fa[0].min(fb[0]) - NEAR, fa[1].min(fb[1]) - NEAR],
         [fa[0].max(fb[0]) + NEAR, fa[1].max(fb[1]) + NEAR],
     );
+    // A ring's bounds overlapping the leg's: a long solid across a short
+    // leg has no corner near it.
     let near = |ring: &[[f32; 2]]| {
-        (ring.iter()).any(|p| (lo[0]..=hi[0]).contains(&p[0]) && (lo[1]..=hi[1]).contains(&p[1]))
+        (0..2).all(|k| {
+            let (min, max) = (ring.iter())
+                .fold((f32::INFINITY, f32::NEG_INFINITY), |(min, max), p| {
+                    (min.min(p[k]), max.max(p[k]))
+                });
+            min <= hi[k] && max >= lo[k]
+        })
     };
     let walls: Vec<Vec<[f32; 2]>> = (graph.solids.iter())
         .filter(|s| s.high > floor + STEP_OVER && s.low < top + TALL && near(&s.ring))
@@ -224,8 +235,6 @@ fn around(graph: &Graph, a: [f32; 3], b: [f32; 3]) -> Vec<[f32; 3]> {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::*;
     use crate::known::map;
     use crate::nav::Level;
@@ -312,6 +321,18 @@ mod tests {
     }
 
     #[test]
+    fn a_long_solid_across_a_short_walk_is_gone_round() {
+        // A fence 13 m long across a 2 m walk: no corner of it lies near
+        // the walk, but it's in the way all the same.
+        let fence = crate_at(4.8, 3.5, 5.2, 16.5, 0.0, 1.0);
+        let floor = mesh(&[quad(0.0, 0.0, 10.0, 20.0, 0.0)]);
+        let graph = Graph::build(&floor, &[], step_up()).with_solids(std::slice::from_ref(&fence));
+        let r = plan(&graph, [4.0, 0.0, 10.0], [6.0, 0.0, 10.0]).unwrap();
+        assert!(r.waypoints.len() > 2, "{r:?}");
+        assert!(clear_of(&r, &fence, 0.39), "{r:?}");
+    }
+
+    #[test]
     fn a_solid_from_wall_to_wall_leaves_the_walk_as_it_was() {
         let (from, to) = ([1.0, 0.0, 2.0], [9.0, 0.0, 2.0]);
         let across = crate_at(4.5, -1.0, 5.5, 5.0, 0.0, 1.0);
@@ -327,7 +348,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = std::path::Path::new(crate::game::DEV_DUMP);
         let level = Level::of(&romfs, game, map::KOKIRI_FOREST_CHILD).unwrap();
         let sign = (level.solids.iter())
             .find(|s| s.hash == Some(12912552292955267819))

@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use super::Level;
 use super::drive::{Drive, SPEED};
-use super::scene::{Entry, scene};
+use super::scene::{BorderKind, Entry, scene};
 use crate::checks::flat;
 use crate::dev::Dev;
 use crate::live::Memory;
@@ -22,7 +22,8 @@ pub(super) const LEVEL: f32 = 0.5;
 /// under `SLOWED` is blocked.
 const FREE: f32 = 0.8;
 const SLOWED: f32 = 0.3;
-/// Walls this many hours apart or more, 60 degrees, corner Link.
+/// Walls this many hours apart or more (90 degrees, so more than 60)
+/// corner Link.
 const CORNER: u8 = 3;
 /// How near a wall is to be one of those that corner Link, in m.
 const CLOSE: f32 = 1.0;
@@ -43,7 +44,8 @@ pub enum Contact {
     Dropped(f32),
     /// His height rose by this many m.
     Climbed(f32),
-    /// Blocked, with walls close at two hours 60 degrees apart or more.
+    /// Blocked, with walls close at two hours `CORNER` (90 degrees) apart
+    /// or more.
     Cornered,
     /// A loading zone took Link to another map, so where he stands isn't
     /// on this map's mesh.
@@ -141,7 +143,7 @@ pub fn judge(level: &Level, push: &Shove) -> Moved {
         LOOK,
     );
     let walls: Vec<u8> = (around.entries.iter())
-        .filter(|e| e.what == "wall" && e.distance <= CLOSE)
+        .filter(|e| e.border == Some(BorderKind::Wall) && e.distance <= CLOSE)
         .map(|e| e.hour)
         .collect();
     let contact = match push.left {

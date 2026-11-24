@@ -66,20 +66,9 @@ mod tests {
 
     use super::*;
     use crate::nav::graph::dist;
-    use crate::warp::Pose;
 
     fn anchor(at: [f32; 3], yaw: f32, hash: u64) -> Placement {
-        Placement {
-            name: actor::CRAWL_ANCHOR.to_string(),
-            hash: Some(hash),
-            pose: Pose {
-                at,
-                rotate: [0.0, yaw, 0.0],
-                scale: [1.0; 3],
-            },
-            label: None,
-            presence: None,
-        }
+        crate::nav::fixture::turned(actor::CRAWL_ANCHOR, Some(hash), at, [0.0, yaw, 0.0])
     }
 
     #[test]

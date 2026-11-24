@@ -164,14 +164,14 @@ fn landed(to: [f32; 3], width: f32, ahead: f32, end: [f32; 3]) -> bool {
 }
 
 /// Run Link from `run` m behind `from` toward `to` and jump, X going in
-/// as he's due `past` m beyond `from`. Reads him every frame until
+/// as he's due `aim_past` m beyond `from`. Reads him every frame until
 /// `settle` s after the jump, saving the trace in `out` when given.
 pub fn leap<M: Memory, I: Input>(
     dev: &Dev<M>,
     input: &mut I,
     (from, to): ([f32; 3], [f32; 3]),
     run: f32,
-    past: f32,
+    aim_past: f32,
     settle: f32,
     out: Option<&Path>,
 ) -> Result<Leap> {
@@ -189,10 +189,10 @@ pub fn leap<M: Memory, I: Input>(
         let at = dev.link()?;
         let ahead = along(from, dir, at);
         if jumped.is_none() {
-            let speed = samples.last().map_or(0.0, |s| {
+            let pace = samples.last().map_or(0.0, |s| {
                 (ahead - along(from, dir, s.at)) / (t - s.t).max(f32::EPSILON)
             });
-            if due(ahead, speed, past) {
+            if due(ahead, pace, aim_past) {
                 let (_, way) = aim(cam, at, to);
                 input.queue(&format!("{way}+X~{JUMP}"))?;
                 (jumped, hold) = (Some(Sample { t, at }), t + JUMP);
@@ -224,27 +224,27 @@ pub fn leap<M: Memory, I: Input>(
     let traced = Traced::of(&steps, samples, vec![])?;
     let width = flat(from, to);
     let made = jumped.is_some() && landed(to, width, along(from, dir, traced.end), traced.end);
-    let past = jumped.map(|j| along(from, dir, j.at));
-    let speed = jumped.and_then(|j| speed(&traced.samples, &j));
-    let air = jumped.and_then(|j| air(&traced.samples, &j));
-    let leap = Leap {
+    let went_past = jumped.map(|j| along(from, dir, j.at));
+    let run_speed = jumped.and_then(|j| speed(&traced.samples, &j));
+    let in_air = jumped.and_then(|j| air(&traced.samples, &j));
+    let went = Leap {
         from,
         to,
         width,
         jumped,
-        past,
-        speed,
-        air,
+        past: went_past,
+        speed: run_speed,
+        air: in_air,
         made,
         traced,
     };
     if let Some(dir) = out {
         std::fs::create_dir_all(dir).with_context(|| format!("making {}", dir.display()))?;
         let file = dir.join(FILE);
-        std::fs::write(&file, serde_json::to_string_pretty(&leap)?)
+        std::fs::write(&file, serde_json::to_string_pretty(&went)?)
             .with_context(|| format!("writing {}", file.display()))?;
     }
-    Ok(leap)
+    Ok(went)
 }
 
 #[cfg(test)]

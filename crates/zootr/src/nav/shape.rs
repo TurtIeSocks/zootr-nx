@@ -267,7 +267,7 @@ const STRAIGHT: f32 = 1e-4;
 
 /// Twice the signed area of a, b, c: positive when they turn
 /// counterclockwise.
-fn turn(a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> f32 {
+pub(super) fn turn(a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> f32 {
     (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 }
 
