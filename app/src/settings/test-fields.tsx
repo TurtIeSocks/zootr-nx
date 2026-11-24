@@ -63,9 +63,11 @@ export function SpawnField() {
   );
 }
 
-/** A map's placed actors, or none for no map. */
+/** A map's placed actors, each once, or none for no map. */
 const actorsOf = async (map: string): Promise<string[]> =>
-  map ? Object.keys(await call(commands.devActors(map))) : [];
+  map
+    ? [...new Set((await call(commands.devActors(map))).map((a) => a.actor))]
+    : [];
 
 /** A placed actor of the spawn's map to warp beside, and which side. */
 export function NearField() {
