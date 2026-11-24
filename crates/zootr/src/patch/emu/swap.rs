@@ -11,6 +11,7 @@ use unicorn_engine::RegisterARM64 as R;
 use zootr_hook::{Ask, Mailbox, OFFSETS, Outcome, Shared, Swap};
 
 use super::*;
+use crate::progressive;
 
 /// The fake game's memory, apart from everything else.
 pub(super) const FAKE: u64 = 0x5000_0000;
