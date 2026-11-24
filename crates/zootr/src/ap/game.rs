@@ -97,6 +97,11 @@ impl Live {
     fn get(&self, hash: u32) -> Result<String> {
         self.dev.game().get(&self.gd, hash)
     }
+
+    /// [`SCREEN`] reads `name`.
+    fn screen_is(&self, name: &str) -> Result<bool> {
+        Ok(self.get(SCREEN)? == self.gd.name(live::hash(name)?))
+    }
 }
 
 /// Link's deaths in the save (GameData, unnamed). It counts the moment his
@@ -108,13 +113,18 @@ const DEATHS: u32 = 0xd30c_8e29;
 const SCREEN: u32 = 0x578d_41e1;
 /// [`SCREEN`] while a save loads, and on a reload after Game Over.
 const SCREEN_LOADING: &str = "Loading";
+/// [`SCREEN`] while Link is in play: no menu, title or load.
+const SCREEN_PLAY: &str = "None";
 
 /// The step Ganon's defeat reaches once his last fight is over.
 const GOAL_DONE: &str = "Complete";
 
 impl Game for Live {
+    /// In play and nothing playing. Try Again's reload wipes the save and
+    /// loads it back before the map load starts, so `busy` misses it: a
+    /// give there lands in the wiped save and is lost.
     fn ready(&mut self) -> Result<bool> {
-        Ok(!self.dev.busy()?)
+        Ok(self.screen_is(SCREEN_PLAY)? && !self.dev.busy()?)
     }
 
     /// One read for every Bool, and the per-placement flags only when a
@@ -153,7 +163,7 @@ impl Game for Live {
     }
 
     fn died(&mut self) -> Result<bool> {
-        let loading = self.get(SCREEN)? == self.gd.name(live::hash(SCREEN_LOADING)?);
+        let loading = self.screen_is(SCREEN_LOADING)?;
         Ok(self.deaths.died(self.get(DEATHS)?.parse()?, loading))
     }
 
@@ -231,6 +241,20 @@ pub(super) mod tests {
         fn kill(&mut self) -> Result<()> {
             self.kills += 1;
             Ok(())
+        }
+    }
+
+    /// Gives wait for [`SCREEN_PLAY`]: a name the game doesn't have would
+    /// hold every give forever.
+    #[test]
+    fn the_screen_names_are_the_games() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let choices = gd.info(&format!("#{SCREEN:08x}")).unwrap().choices;
+        for name in [SCREEN_PLAY, SCREEN_LOADING] {
+            assert!(choices.iter().any(|c| c == name), "{name} in {choices:?}");
         }
     }
 }
