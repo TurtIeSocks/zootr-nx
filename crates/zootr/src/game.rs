@@ -38,7 +38,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain([POUCH_TABLE])
         .chain(crate::ice_traps::FILES)
         .chain(crate::ageless_items::FILES)
-        .chain(crate::ageless::gear::FILES)
+        .chain(crate::ageless::files::FILES)
         .chain(crate::marks::FILES)
 }
 

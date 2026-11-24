@@ -17,6 +17,7 @@ use crate::game::POUCH_TABLE;
 use crate::known::{Name, field};
 use crate::standins::{POUCH_ACTOR_INFO, row_id};
 
+pub mod files;
 pub mod gear;
 
 /// The flags, each age's.

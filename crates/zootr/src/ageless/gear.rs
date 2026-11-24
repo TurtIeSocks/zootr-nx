@@ -23,10 +23,6 @@ const GROUP: (&Name, [&Name; 2]) = (
     [field::MT_FUR_BOOTS, field::MT_FUR_BOOTS_ALPHA_MASK],
 );
 
-/// The files read beside the packs: his model, whose materials the group
-/// names.
-pub const FILES: [&str; 1] = ["Model/Player_Child.Player_Child.bfres.zs"];
-
 /// His base equipment user file, which only his two packs carry.
 fn user_path() -> String {
     let param = field::EQUIPMENT_USER_PARAM;
