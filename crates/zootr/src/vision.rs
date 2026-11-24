@@ -165,8 +165,21 @@ fn openai_body(vision: &Vision, ask: &Ask, base64_png: &str) -> Value {
     })
 }
 
+/// A reply that answered but held no text to read, such as one cut off
+/// while thinking. Its message says why.
+#[derive(Debug)]
+pub struct NoText(String);
+
+impl std::fmt::Display for NoText {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for NoText {}
+
 /// The text of an Anthropic reply's first `text` block.
-fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
+pub(crate) fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
     if reply["type"] == "error" {
         let message = reply["error"]["message"].as_str().unwrap_or("no message");
         bail!("{model} refused: {message}");
@@ -184,7 +197,7 @@ fn parse_anthropic(reply: &Value, model: &str) -> Result<String> {
         Some(text) => Ok(text.to_owned()),
         None => {
             let stop = reply["stop_reason"].as_str().unwrap_or("none");
-            bail!("{model} gave no text: stop_reason {stop}")
+            Err(NoText(format!("{model} gave no text: stop_reason {stop}")).into())
         }
     }
 }
@@ -194,10 +207,10 @@ fn parse_openai(reply: &Value, model: &str) -> Result<String> {
     if let Some(error) = reply.get("error") {
         bail!("{model} refused: {error}");
     }
-    let text = reply["choices"][0]["message"]["content"].as_str();
-    Ok(text
-        .with_context(|| format!("{model} gave no choices or content"))?
-        .to_owned())
+    match reply["choices"][0]["message"]["content"].as_str() {
+        Some(text) => Ok(text.to_owned()),
+        None => Err(NoText(format!("{model} gave no choices or content")).into()),
+    }
 }
 
 /// How many times a question is asked while the model is out of memory.
@@ -475,8 +488,10 @@ mod tests {
         ]});
         let err = parse_anthropic(&thought, "m").unwrap_err();
         assert!(err.to_string().contains("max_tokens"), "{err}");
+        assert!(err.is::<NoText>());
         let err = parse_openai(&json!({"choices": []}), "m").unwrap_err();
         assert!(err.to_string().contains("no choices"), "{err}");
+        assert!(err.is::<NoText>());
     }
 
     #[test]
@@ -484,6 +499,7 @@ mod tests {
         let refusal = json!({"stop_reason": "refusal", "content": []});
         let err = parse_anthropic(&refusal, "m").unwrap_err();
         assert!(err.to_string().contains("refusal"), "{err}");
+        assert!(!err.is::<NoText>(), "a refusal is no reply to judge");
         let error = json!({"type": "error", "error": {"type": "invalid_request_error", "message": "bad key"}});
         let err = parse_anthropic(&error, "m").unwrap_err();
         assert!(err.to_string().contains("bad key"), "{err}");
