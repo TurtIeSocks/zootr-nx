@@ -35,17 +35,12 @@ pub use slay::{Fate, Foe, Lines, Slain, Target};
 
 /// The arrival event a teleport plays. Some areas may want their own.
 const ARRIVE: &Name = scene::SY_BANC_CHANGE_ARRIVE;
-pub(crate) const CHILD: &str = "_Child";
-pub(crate) const ADULT: &str = "_Adult";
 /// Link's yaw (GameData, unnamed).
 const LINK_YAW: u32 = 0x1ea93bd8;
 /// The Iron Boots on (a Bool): Link sinks, and the HUD shows them. A
 /// member of `PlayerStatus` no name table names, found by putting them on
 /// from the menu (Mac, 2026-11-17).
 const BOOTS_ON: &str = "#a6719419";
-/// Link's live hearts, in quarters (`PlayerStatus.Life` is only the save's
-/// copy).
-pub(crate) const HEARTS: u32 = switches::HEARTS;
 /// How long Link has to pick a request up.
 const WAIT: Duration = Duration::from_secs(3);
 /// An age swap in place takes about 2 s, 20 at worst (made, given up,
@@ -253,7 +248,7 @@ impl<M: Memory> Dev<M> {
 
     /// Link's hearts now, in quarters.
     pub fn hearts(&self) -> Result<i32> {
-        let bytes = self.value_of(HEARTS)?;
+        let bytes = self.value_of(switches::HEARTS)?;
         let quarters = bytes.get(..4).context("Link's hearts are under 4 bytes")?;
         Ok(i32::from_le_bytes(quarters.try_into()?))
     }

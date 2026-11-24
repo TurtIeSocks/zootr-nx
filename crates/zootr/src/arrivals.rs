@@ -9,7 +9,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{EventKind, Flowchart, Romfs, Value};
 
 use crate::checks;
-use crate::cutscenes::{PLAYED, lasting, transition};
+use crate::cutscenes::{lasting, played_flag, played_name, played_set, transition};
 use crate::events::Flows;
 use crate::flows::{self, Rewrites, SET_BOOL};
 use crate::gamedata::GameData;
@@ -35,7 +35,7 @@ const BANNER: &Name = flow::EVENT_TRIGGER_OPEN_LOCATION_UI;
 pub(crate) fn visits<'a>(flows: &Flows, scenes: impl IntoIterator<Item = &'a str>) -> Vec<String> {
     scenes
         .into_iter()
-        .filter_map(|s| flows.0.get(s))
+        .filter_map(|s| flows.charts.get(s))
         .flat_map(|f| f.events.iter().filter_map(|e| banner(f, &e.kind)))
         .map(|area| format!("{}.{area}=true", field::IS_VISIT_LOCATION))
         .collect()
@@ -128,7 +128,7 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
             .and_then(|e| e.into_iter().next())
             .map(|e| e.to_string())
     };
-    let cutscene = played_cutscene(flag);
+    let cutscene = played_name(flag);
     if let Some(why) = cutscene.and_then(first) {
         return Ok(Skip::Plays(why));
     }
@@ -140,7 +140,7 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
     };
     if let Some(cutscene) = cutscene {
         for (flow, entry) in flows.resolve(event) {
-            let chart = &flows.0[flow];
+            let chart = &flows.charts[flow];
             if flow == cutscene {
                 continue;
             }
@@ -159,15 +159,10 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
     Ok(Skip::Plays(why))
 }
 
-/// The cutscene a `PLAYED.<cutscene>` flag names.
-fn played_cutscene(flag: &str) -> Option<&str> {
-    flag.strip_prefix(&**PLAYED)?.strip_prefix('.')
-}
-
 /// The flag that stops the entrance booting `event`: `flag` itself, or the
 /// played flag a BoolExp `flag` reads.
 fn settable(gd: &GameData, event: &str, flag: &str) -> Result<Option<String>> {
-    let played = format!("{PLAYED}.{event}");
+    let played = played_flag(event);
     Ok(match gd.table(flag) {
         Some(t) if t == flag::BOOL_EXP && gd.implied_by(flag, &played)? => Some(played),
         Some("Bool") => Some(flag.to_owned()),
@@ -233,7 +228,7 @@ pub fn skip(
 ) -> Result<()> {
     for a in all(romfs, flows)? {
         if !matches!(a.skip, Skip::Plays(_)) {
-            let cutscene = played_cutscene(&a.flag);
+            let cutscene = played_name(&a.flag);
             flags.extend(visits(
                 flows,
                 [a.event.as_str()].into_iter().chain(cutscene),
@@ -251,7 +246,7 @@ pub fn skip(
     for (flow, cutscene, visit) in REQUESTED {
         flags.extend(visits(flows, [&**cutscene]));
         flows::edit(romfs, rewrites, flow, |f| swap(f, cutscene, visit))?;
-        flags.push(format!("{PLAYED}.{cutscene}=true"));
+        flags.push(played_set(cutscene));
     }
     Ok(())
 }
@@ -305,7 +300,7 @@ mod tests {
         let mut rewrites = Rewrites::new();
         let mut flags = Vec::new();
         skip(&romfs, &flows, &BTreeSet::new(), &mut rewrites, &mut flags).unwrap();
-        assert!(flags.contains(&format!("{PLAYED}.{}=true", scene::LON_LON_0010)));
+        assert!(flags.contains(&played_set(scene::LON_LON_0010)));
         let rel = flows::rel(flow::ENTRY_LON_LON_RANCH);
         let rendered = flows::render(&Flowchart::parse(&rewrites[&rel]).unwrap().unwrap());
         assert!(!rendered.contains(&format!(

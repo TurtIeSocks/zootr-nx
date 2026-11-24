@@ -12,6 +12,7 @@ use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use crate::checks::ItemCheck;
 use crate::copies::{self, MADE, Sets, TEXT_PARTS};
+use crate::keys;
 use crate::known::{Name, flag, flow, item};
 use crate::standins::Tables;
 use crate::text::{CopyLine, Named, Says};
@@ -47,7 +48,7 @@ const KINDS: [Kind; 2] = [
     Kind {
         template: item::DUNGEON_MAP,
         part: "Map",
-        field: "IsGetMap",
+        field: keys::IS_GET_MAP,
         text: [
             ("{} Map", true),
             ("You found {the} {} map!", true),
@@ -57,7 +58,7 @@ const KINDS: [Kind; 2] = [
     Kind {
         template: item::DUNGEON_COMPASS,
         part: "Compass",
-        field: "IsGetCompass",
+        field: keys::IS_GET_COMPASS,
         text: [
             ("{} Compass", true),
             ("You found {the} {} compass!", true),
@@ -108,7 +109,7 @@ pub fn template(item: &str) -> Option<&'static Name> {
 pub fn sets() -> Vec<(String, Sets)> {
     (ALL.iter())
         .map(|(c, k, n)| {
-            let flag = format!("DungeonInfo.{}.{}", DUNGEONS[n - 1].get(), k.field);
+            let flag = keys::dungeon_flag(DUNGEONS[n - 1], k.field);
             (c.clone(), Sets::Bool(flag))
         })
         .collect()
@@ -122,7 +123,7 @@ pub fn copy_name(item: &str, area: impl Fn(&str) -> String) -> Option<String> {
 
 /// The label naming `item`, if it's a copy.
 pub fn name_label(item: &str) -> Option<String> {
-    is_copy(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
+    is_copy(item).then(|| copies::label(item))
 }
 
 /// The lines each copy's get shows, the game's map or compass lines

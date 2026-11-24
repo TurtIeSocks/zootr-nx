@@ -22,7 +22,7 @@ use zootr_hook::Credit;
 use crate::checks::{self, DROP_ACTOR, GYAML};
 #[cfg(test)]
 use crate::copies::as_credits;
-use crate::copies::{MADE, POUCH_TEXT, Sets, TEXT_PARTS, copy, own_pack, pointed};
+use crate::copies::{self, MADE, POUCH_TEXT, Sets, TEXT_PARTS, copy, own_pack, pointed};
 use crate::keys::{
     BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon, dungeon_of,
     has_boss, small_flag,
@@ -157,7 +157,7 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
 /// lives only in the seed, and it answers to its own name, whose lines
 /// [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    copy_of(item, DungeonKeys::default()).map(|_| format!("{item}{}", TEXT_PARTS[0]))
+    copy_of(item, DungeonKeys::default()).map(|_| copies::label(item))
 }
 
 /// The key `item` copies and the model it shows as `keys` deals it.

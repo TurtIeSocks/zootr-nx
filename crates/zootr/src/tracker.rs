@@ -10,7 +10,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anyhow::Result;
-use ounce_formats::{Save, murmur3};
+use ounce_formats::{BOOL, Save, murmur3};
 use serde::Serialize;
 
 use crate::entrances::{DUNGEONS, reveal};
@@ -182,13 +182,13 @@ impl Tracker {
     pub fn change(&mut self, c: &Change) -> Flips {
         let flag = match c.key() {
             Some(key) => Flag::Key(key),
-            None if c.kind == "Bool" => Flag::Bool(c.hash),
+            None if c.kind == BOOL => Flag::Bool(c.hash),
             None => return Flips::default(),
         };
         if !self.flags().any(|f| f == flag) {
             return Flips::default();
         }
-        if c.change.ends_with("-> true") {
+        if c.turned_on() == Some(true) {
             self.on.insert(flag);
         } else {
             self.on.remove(&flag);
@@ -299,7 +299,7 @@ mod tests {
     }
 
     fn bool_(hash: u32, change: &str) -> Change {
-        Change::new(&GameData::default(), hash, "Bool", change)
+        Change::new(&GameData::default(), hash, BOOL, change)
     }
 
     /// Kokiri Forest's door holding the Fire Temple, and the Fire Temple's

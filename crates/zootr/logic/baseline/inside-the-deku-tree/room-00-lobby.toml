@@ -18,19 +18,21 @@ why = "walk, 10 edges"
 to = 3
 needs = "always"
 via = "jump"
-why = "level gap 1.8 m: within a running jump (2.7 m)"
+why = "level gap 0.8 to 1.8 m: within a running jump (2.7 m); on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 4
 needs = "fire"
 via = "drop"
-why = "drop 18.4 to 25.6 m into water; Inside The Deku Tree Spider Web A 01 278772661473487189: fire"
+why = "drop 25.6 m into water; Inside The Deku Tree Spider Web A 01 278772661473487189: fire"
 
 [[link]]
 to = 4
 needs = "always"
 via = "climb"
-why = "climb 14670770652390206064, 17725402113092522180"
+why = "climb 14670770652390206064, 17725402113092522180; on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 185722044654914961

@@ -80,7 +80,7 @@ pub fn show(v: &Byml) -> String {
 
 /// `Components.<key>`, the usual way one param file points at another.
 pub(crate) fn component<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
-    map.get("Components")?
+    map.get(crate::standins::COMPONENTS)?
         .as_map()
         .ok()?
         .get(key)?

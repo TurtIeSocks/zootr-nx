@@ -13,7 +13,7 @@
 use anyhow::{Result, ensure};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, pack_file, set_param};
 
-use crate::copies::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
+use crate::copies::{self, MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
 use crate::keys::SMALL;
@@ -127,7 +127,7 @@ pub fn is_copy(item: &str) -> bool {
 /// The label naming `item`, if it's a copy: like a key ring, it answers
 /// to its own name, whose lines [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    is_copy(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
+    is_copy(item).then(|| copies::label(item))
 }
 
 /// The longest a player's or item's name reads in a get, past which it's

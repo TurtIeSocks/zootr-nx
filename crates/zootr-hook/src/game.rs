@@ -24,16 +24,18 @@ use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 type Childhood = unsafe extern "C" fn(usize) -> bool;
 type Setter = unsafe extern "C" fn(*mut u8, *const *const u8, *const *const u8);
 type Reader = unsafe extern "C" fn(*mut u8, *const u8, usize, usize) -> usize;
+/// The game's name hash, as the nock and the chest list use it.
+type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 
 /// The argument the chest's get event gives and shows.
 const KEY: &[u8] = b"ContentName";
 /// Longer than any actor name, so a runaway string stops here.
 const MAX: usize = 128;
 
-// The call sites `bl` to content_name at +0, drop_actor at +4, run_speed
-// at +24, the controller reads to +32, +36 and +40, and seed_guide at +68. The hooked
-// functions `b` to +8, +12, +16, +20, +28, +44, +48, +52, +56, +60, +64,
-// +72, +76 and +80 in place of their pacibsp.
+// The call sites `bl` to content_name, drop_actor, run_speed, the
+// controller reads and seed_guide, and the hooked functions `b` to their
+// entries in place of their pacibsp, each at its offset in `entry`, one
+// word apart in the order the table below lays them out.
 // The opening node is in x20 at both content_name call sites.
 //
 // A function hook keeps every argument register and the link register,
@@ -278,6 +280,16 @@ unsafe fn at(p: usize, off: usize) -> Option<usize> {
     (v != 0).then_some(v)
 }
 
+/// The game's function at `off` in `main`, as the fn pointer type `F`.
+///
+/// # Safety
+/// `off` is a function of type `F` in this build of `main`.
+#[inline(always)]
+unsafe fn func<F: Copy>(main: usize, off: u32) -> F {
+    const { assert!(size_of::<F>() == size_of::<usize>()) };
+    unsafe { core::mem::transmute_copy(&(main + off as usize)) }
+}
+
 /// Called in place of the event argument setter, with its arguments
 /// and the opening node.
 ///
@@ -295,7 +307,7 @@ pub unsafe extern "C" fn content_name(
     let main = main();
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        let setter: Setter = core::mem::transmute(main + OFFSETS.setter as usize);
+        let setter: Setter = func(main, OFFSETS.setter);
         let Some((_, table)) = table else {
             return setter(request, key, value);
         };
@@ -332,7 +344,7 @@ pub unsafe extern "C" fn drop_actor(
         {
             rewrite(main, &table, value);
         }
-        let reader: Reader = core::mem::transmute(main() + OFFSETS.reader as usize);
+        let reader: Reader = func(main(), OFFSETS.reader);
         reader(out, placement, a2, a3)
     }
 }
@@ -368,7 +380,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         {
             return seeds;
         }
-        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        let child: Childhood = func(main(), OFFSETS.childhood);
         child(link)
     }
 }

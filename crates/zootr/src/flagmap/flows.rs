@@ -8,9 +8,10 @@ use std::collections::BTreeMap;
 use ounce_formats::{EventKind, Flowchart, Params, Value};
 
 use super::{Graph, Kind, Link, quests};
+use crate::cutscenes::played_flag;
 use crate::events::{FOLLOW, Flows};
 use crate::gamedata::GameData;
-use crate::known::{field, flag, flow};
+use crate::known::{field, flow};
 use crate::{flows, rsdb};
 
 /// Actions that change the value they name. Every other action or query
@@ -27,19 +28,23 @@ pub(super) fn add(g: &mut Graph, flows: &Flows, gd: &GameData) {
     let setting = rsdb::path(rsdb::EVENTS);
     for (row, (flow, entry)) in flows.rows() {
         let ev = g.node(Kind::Event, row, || None);
-        let played = g.state(gd, &format!("{}.{row}", flag::HAVE_PLAYED_EVENT));
+        let played = g.state(gd, &played_flag(row));
         g.edge(ev, played, Link::Writes, "played".into(), &setting, None);
-        let eps = flows.0.get(flow).into_iter().flat_map(|c| &c.entry_points);
+        let eps = flows
+            .charts
+            .get(flow)
+            .into_iter()
+            .flat_map(|c| &c.entry_points);
         for ep in eps.filter(|e| entry.as_ref().is_none_or(|n| *n == e.name)) {
             let to = g.event(flow, &ep.name);
             g.edge(ev, to, Link::Runs, "plays".into(), &setting, None);
         }
     }
-    let mut names: Vec<&String> = flows.0.keys().collect();
+    let mut names: Vec<&String> = flows.charts.keys().collect();
     names.sort();
     let calls = calls(flows);
     for name in names {
-        let chart = &flows.0[name];
+        let chart = &flows.charts[name];
         for ep in &chart.entry_points {
             let ev = g.event(name, &ep.name);
             let args = calls.get(&(name.clone(), ep.name.clone()));
@@ -63,7 +68,7 @@ pub(super) fn add(g: &mut Graph, flows: &Flows, gd: &GameData) {
 /// Every call's params, by the entry point it calls.
 fn calls(flows: &Flows) -> Calls {
     let mut calls = Calls::new();
-    for (name, chart) in &flows.0 {
+    for (name, chart) in &flows.charts {
         for e in &chart.events {
             if let EventKind::SubFlow {
                 params,
@@ -157,7 +162,7 @@ fn step(
             if query == flow::EVENT_QUERY_HAVE_PLAYED_EVENT
                 && let Some(event) = flows::param(params, flow::EVENT_NAME)
             {
-                names.push(format!("{}.{event}", flag::HAVE_PLAYED_EVENT));
+                names.push(played_flag(event));
             }
             for name in names {
                 let st = g.state(gd, &name);
@@ -191,7 +196,7 @@ fn step(
 fn entries(flows: &Flows, flow: &str, entry: Option<&str>) -> Vec<String> {
     match entry {
         Some(e) => vec![e.to_owned()],
-        None => (flows.0.get(flow).into_iter())
+        None => (flows.charts.get(flow).into_iter())
             .flat_map(|c| c.entry_points.iter().map(|e| e.name.clone()))
             .collect(),
     }
@@ -284,7 +289,7 @@ mod tests {
     use ounce_formats::Value;
 
     use super::super::Graph;
-    use super::named;
+    use super::{named, played_flag};
     use crate::known::{field, flag, flow, map, scene};
 
     #[test]
@@ -292,11 +297,7 @@ mod tests {
         let Some(g) = Graph::dev() else {
             return;
         };
-        let played = format!(
-            "state:{}.{}",
-            flag::HAVE_PLAYED_EVENT,
-            &**scene::TIME_TEMPLE_0040
-        );
+        let played = format!("state:{}", played_flag(scene::TIME_TEMPLE_0040));
         let played = g.find(&played).unwrap();
         let draw = format!(
             "event:{}/{}",

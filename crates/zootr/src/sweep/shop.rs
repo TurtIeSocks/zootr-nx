@@ -8,8 +8,8 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 
 use super::judge::Judge;
-use super::spot::{ALONE, BEAT, RUPEES, Sweeper};
-use super::verdict::{Swept, Verdict};
+use super::spot::{ALONE, BEAT, RUPEES, Step, Sweeper};
+use super::verdict::Evidence;
 use crate::known::{Name, flag};
 use crate::live;
 use crate::play::Input;
@@ -38,25 +38,25 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
     /// onto the goods, A through the price line and the get window, then B
     /// out, which backs out of browsing, says goodbye and ends the talk.
     /// The judge bought Hob's Token but left Link browsing, where A buys
-    /// again, a stall (2026-11-14). `None` for the judge to go on when
+    /// again, a stall (2026-11-14). Unresolved for the judge to go on when
     /// browsing never starts.
     pub(super) fn buy(
         &mut self,
         item: &str,
         landed: &impl Fn(&Self) -> Result<bool>,
-        swept: &mut Swept,
-    ) -> Result<Option<Verdict>> {
+        evidence: &mut Evidence,
+    ) -> Result<Step> {
         let (game, global) = (self.dev.game(), self.dev.global());
         live::set(game, global, live::hash(CURSOR)?, "-1")?;
         let start = Instant::now();
         while self.cursor()? < 0 {
             if start.elapsed() > ALONE {
-                return Ok(None);
+                return Ok(Step::Unresolved);
             }
             self.input.press("A")?;
             sleep(BEAT);
         }
-        if self.shelve(item, &mut swept.judge)? {
+        if self.shelve(item, &mut evidence.judge)? {
             // Exactly the price: a buy that leaves more than the wallet
             // holds is refused as a full bag, rupees the most often (Mac,
             // 2026-11-14).
@@ -75,10 +75,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
                 }
             }
         }
-        Ok(Some(match self.finish("B", None)? {
-            true => Verdict::Stall,
-            false => Verdict::Nothing,
-        }))
+        Ok(Step::stalled(self.finish("B", None)?))
     }
 
     /// Move the shop cursor onto goods that shelve as `item`, trying each

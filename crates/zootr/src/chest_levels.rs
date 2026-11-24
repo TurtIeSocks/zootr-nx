@@ -209,7 +209,7 @@ struct Models {
 /// The small chest flow's GameData Bool setter (Mido's Navi flag).
 pub(crate) fn setter(romfs: &Romfs) -> Result<Model> {
     let small = flow::SY_TREASUREBOX_SMALL;
-    let f = flows::load(romfs, small)?.with_context(|| format!("{small} is a timeline"))?;
+    let f = flows::timeline(romfs, small)?;
     let at = (flows::running(&f, flows::SET_BOOL).first().copied())
         .with_context(|| format!("{small} sets no Bool"))?;
     flows::model(&f, flows::SET_BOOL, at)

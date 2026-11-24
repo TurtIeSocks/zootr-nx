@@ -5,7 +5,8 @@ use core::arch::asm;
 use core::sync::atomic::Ordering;
 
 use super::rt::{memcpy, memset};
-use super::{at, level_for, name, owned, shared};
+use super::{at, func, level_for, name, owned, shared};
+use crate::traps::COMPONENTS;
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
@@ -16,9 +17,9 @@ type MakeArg = unsafe extern "C" fn(usize);
 type Request = unsafe extern "C" fn(usize, usize) -> u64;
 type SetLink = unsafe extern "C" fn(usize, usize, usize);
 type Release = unsafe extern "C" fn(usize);
-type GetBool = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
+/// A GameData getter, Bool and U64 alike: (gamedata, out, hash) -> found.
+type Get = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetBool = unsafe extern "C" fn(usize, u32, u32);
-type GetU64 = unsafe extern "C" fn(usize, *mut u64, u32) -> u32;
 type SetTime = unsafe extern "C" fn(usize, u32);
 type MoveTo = unsafe extern "C" fn(usize, *const f32);
 
@@ -38,23 +39,29 @@ const TEXT: u32 = 1;
 const BOOL: u32 = 4;
 /// Where the block keeps its event name, its arguments, and the
 /// two actor links.
-const EVENT_NAME: usize = 6800;
+const EVENT_NAME: usize = 0x1a90;
 const ARGS: usize = 8;
-const ARG_COUNT: usize = 16;
-const ARG_SIZE: usize = 200;
-const ARG_VALUE: usize = 152;
+const ARG_COUNT: usize = 0x10;
+const ARG_SIZE: usize = 0xc8;
+const ARG_VALUE: usize = 0x98;
 const STARTER: usize = 0x1950;
 const LINKS: [usize; 2] = [0x1968, 0x1950];
 /// The event manager's playing event.
-const PLAYING: usize = 104;
+const PLAYING: usize = 0x68;
 /// The world's clock.
 const CLOCK: usize = 0x510;
-/// Link's components, and the steps from them to his character
-/// controller.
-const COMPONENTS: usize = 624;
+/// The steps from Link's components to his character controller.
+const CONTROLLER: [usize; 4] = [0x50, 0x20, 0x10, 0x8];
+/// Where Link's components keep his movement component; where that sits
+/// in the player object that owns it, and keeps its actor; and where the
+/// owner keeps its resource, and the resource its name.
+const MOVEMENT: usize = 0x320;
+const MOVEMENT_IN_OWNER: usize = 0x1d50;
+const MOVEMENT_ACTOR: usize = 0x18;
+const RESOURCE: usize = 0x10;
+const RESOURCE_NAME: usize = 0x58;
 /// An actor's position, Link's and a pickup's alike.
-pub(super) const POSITION: usize = 796;
-const CONTROLLER: [usize; 4] = [80, 32, 16, 8];
+pub(super) const POSITION: usize = 0x31c;
 
 /// Run the request the app left in the mailbox. Far code: only a dev
 /// seed calls it, and most calls find no request.
@@ -104,12 +111,12 @@ pub(super) unsafe fn player(main: usize, o: &Offsets, actor: usize) -> Option<us
         if !vtable(actor, o.player_vtable) {
             return None;
         }
-        let movement = at(at(actor, 624)?, 800)?;
-        let owner = movement - 0x1d50;
-        let resource = at(owner, 16)?;
-        let ok = at(movement, 24)? == actor
+        let movement = at(at(actor, COMPONENTS)?, MOVEMENT)?;
+        let owner = movement - MOVEMENT_IN_OWNER;
+        let resource = at(owner, RESOURCE)?;
+        let ok = at(movement, MOVEMENT_ACTOR)? == actor
             && vtable(owner, o.move_vtable)
-            && name((resource + 88) as *const u8) == Some(&b"Player"[..]);
+            && name((resource + RESOURCE_NAME) as *const u8) == Some(&b"Player"[..]);
         ok.then_some(owner)
     }
 }
@@ -120,13 +127,13 @@ pub(super) unsafe fn single(main: usize, slot: u32) -> Option<usize> {
 }
 
 pub(super) unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<bool> {
-    let get: GetBool = unsafe { core::mem::transmute(main + o.get_bool as usize) };
+    let get: Get = unsafe { func(main, o.get_bool) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)
 }
 
 unsafe fn get_u64(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<u64> {
-    let get: GetU64 = unsafe { core::mem::transmute(main + o.get_u64 as usize) };
+    let get: Get = unsafe { func(main, o.get_u64) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out)
 }
@@ -138,7 +145,7 @@ pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option
 }
 
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
-    let set: SetBool = unsafe { core::mem::transmute(main + o.set_bool as usize) };
+    let set: SetBool = unsafe { func(main, o.set_bool) };
     unsafe { set(gd, value as u32, hash) }
 }
 
@@ -175,7 +182,7 @@ unsafe fn add(block: usize, key: &[u8], kind: u32, value: usize) -> bool {
             return false;
         };
         let e = args + n as usize * ARG_SIZE;
-        if !put(*((e + 8) as *const usize), *((e + 16) as *const u32), key) {
+        if !put(*((e + 8) as *const usize), *((e + 0x10) as *const u32), key) {
             return false;
         }
         match kind {
@@ -222,10 +229,11 @@ pub(super) unsafe fn idle(main: usize, o: &Offsets) -> Result<usize, Outcome> {
 
 /// Ask the event manager for `event`, NUL ended, with `args` and
 /// Link as its starter, refusing while an event plays or a map
-/// loads. The game reads the block and its strings after the
+/// loads. Every dev event starts here, not only the teleport's map
+/// change. The game reads the block and its strings after the
 /// request returns, so both go in one allocation that's never
 /// freed.
-unsafe fn request_map_change(
+unsafe fn request_event(
     main: usize,
     o: &Offsets,
     actor: usize,
@@ -237,13 +245,12 @@ unsafe fn request_map_change(
         Ok(events) => events,
         Err(busy) => return busy,
     };
-    let call = |f: u32| main + f as usize;
     unsafe {
-        let malloc: Malloc = core::mem::transmute(call(o.malloc));
-        let make: MakeArg = core::mem::transmute(call(o.make_arg));
-        let request: Request = core::mem::transmute(call(o.request));
-        let set_link: SetLink = core::mem::transmute(call(o.set_link));
-        let release: Release = core::mem::transmute(call(o.release_link));
+        let malloc: Malloc = func(main, o.malloc);
+        let make: MakeArg = func(main, o.make_arg);
+        let request: Request = func(main, o.request);
+        let set_link: SetLink = func(main, o.set_link);
+        let release: Release = func(main, o.release_link);
         let block = malloc(BLOCK + texts.len() * NAME);
         if block == 0 {
             return Outcome::NotBuilt;
@@ -273,7 +280,7 @@ unsafe fn request_map_change(
             answer = request(events, block);
         }
         for link in LINKS {
-            *((block + link) as *mut usize) = call(o.link_empty);
+            *((block + link) as *mut usize) = main + o.link_empty as usize;
             release(block + link);
         }
         if !built {
@@ -307,7 +314,7 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
         Arg::Bool(ARG_GIVE, false),
         Arg::Bool(ARG_STEP, false),
     ];
-    let outcome = unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if matches!(outcome, Outcome::Done | Outcome::Unanswered) {
         mail.last.store(now, Ordering::Relaxed);
         if let Some(gd) = unsafe { single(main, o.gamedata) } {
@@ -331,7 +338,7 @@ unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
         Arg::Text(ARG_CHALLENGE, 0),
         Arg::Text(ARG_STEP_NAME, 1),
     ];
-    unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
 }
 
 /// An item: the same event with `ZootrGive` set, which a dev seed's
@@ -355,7 +362,7 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     ];
     // Copied first: `item` may be `arrive` itself.
     let given = *item;
-    let outcome = unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if level {
         unsafe { *mail.arrive.get() = given };
     }
@@ -381,7 +388,7 @@ unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outc
         Arg::Bool(ARG_SUMMARY, kind != Notice::Item),
         Arg::Bool(ARG_MIXED, kind == Notice::Mixed),
     ];
-    unsafe { request_map_change(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
 }
 
 /// What a [`Ask::GiveLevel`] gives: `arrive` when `spot` names what fires
@@ -440,7 +447,7 @@ unsafe fn warp(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
     let [x, y, z] = mail.at;
     let point = [x, y, z, 0.0];
     unsafe {
-        let move_to: MoveTo = core::mem::transmute(main + o.move_to as usize);
+        let move_to: MoveTo = func(main, o.move_to);
         move_to(controller, point.as_ptr());
     }
     Outcome::Done
@@ -463,7 +470,7 @@ unsafe fn play(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
 
 /// Start `event`, NUL ended, with no arguments, as a trigger would.
 pub(super) unsafe fn start(main: usize, o: &Offsets, actor: usize, event: &[u8]) -> Outcome {
-    unsafe { request_map_change(main, o, actor, event, &[], &[]) }
+    unsafe { request_event(main, o, actor, event, &[], &[]) }
 }
 
 /// Flip the age and teleport. The flag goes back if the teleport
@@ -492,7 +499,7 @@ unsafe fn time(main: usize, o: &Offsets, hour: u32) -> Outcome {
         return Outcome::NoClock;
     };
     unsafe {
-        let set: SetTime = core::mem::transmute(main + o.set_time as usize);
+        let set: SetTime = func(main, o.set_time);
         set(world, hour * 3600);
     }
     Outcome::Done

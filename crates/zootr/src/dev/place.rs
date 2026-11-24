@@ -8,8 +8,9 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::{ADULT, CHILD, distance};
+use super::distance;
 use crate::known::flag;
+use crate::warp::{ADULT, CHILD};
 use crate::{warp, world};
 
 /// A map and an arrival point in it, written `MAP/SPOT`.

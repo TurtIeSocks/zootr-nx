@@ -15,6 +15,7 @@ use ounce_formats::{Byml, BymlDoc, EventKind, Flowchart, ModBuilder, Romfs};
 use roead::sarc::Sarc;
 
 use crate::checks::swap_strings;
+use crate::cutscenes::played_flag;
 use crate::flows::{self, GAME_DATA, Rewrites, param, set, string};
 use crate::gamedata::{GameData, Op};
 use crate::graphs::logic;
@@ -58,11 +59,7 @@ const BRIDGE_READS: usize = 2;
 
 /// The clear event's played flag.
 pub fn played() -> String {
-    format!(
-        "{}.{}",
-        flag::HAVE_PLAYED_EVENT,
-        flow::MEET_FOUR_CARPENTER_CLEAR_EVENT
-    )
+    played_flag(flow::MEET_FOUR_CARPENTER_CLEAR_EVENT)
 }
 
 /// [`FREED`]'s program.

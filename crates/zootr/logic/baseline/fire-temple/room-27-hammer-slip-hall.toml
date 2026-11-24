@@ -6,5 +6,5 @@ name = "Hammer Slip Hall"
 to = 14
 needs = "hammer"
 via = "jump"
-why = "level gap 0.7 m: within a running jump (2.7 m); Fire Temple Hammer Slip Pillar A 01 95065336675622363: hammer; Fire Temple Hammer Slip Pillar A 02 9185805985358835848: hammer"
+why = "level gap 1.0 m: within a running jump (2.7 m); Fire Temple Hammer Slip Pillar A 01 95065336675622363: hammer; Fire Temple Hammer Slip Pillar A 02 9185805985358835848: hammer"
 guess = true

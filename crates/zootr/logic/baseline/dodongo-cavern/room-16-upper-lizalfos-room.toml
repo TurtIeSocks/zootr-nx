@@ -3,34 +3,30 @@ room = 16
 name = "Upper Lizalfos Room"
 
 [[link]]
+to = 13
+needs = "always"
+via = "jump"
+why = "gap 3.5 m, falling up to 4.6 m: within a running jump off the edge (4.4 m for that fall); on terrain floor no live run has walked"
+guess = true
+
+[[link]]
 to = 15
 needs = "flag:#ccf631b5"
 via = "walk"
-why = "walk, 5 edges; Dodongo Cave Switch Shutter A 01 955735929808822097 shut until flag #ccf631b5; Switch Shutter A 06 13016966668776787607 shut until flag #ccf631b5"
-
-[[link]]
-to = 15
-needs = "always"
-via = "jump"
-why = "level gap 1.8 m: within a running jump (2.7 m)"
+why = "walk, 3 edges; Dodongo Cave Switch Shutter A 01 955735929808822097 shut until flag #ccf631b5; Switch Shutter A 06 1075778850919982549 shut until flag #ccf631b5; Dodongo Cave Switch Shutter A 01 2644993904249439673 shut until flag #ccf631b5; Switch Shutter A 06 13016966668776787607 shut until flag #ccf631b5"
 
 [[link]]
 to = 17
 needs = "always"
 via = "walk"
-why = "walk, 18 edges"
+why = "walk, 5 edges"
 
 [[link]]
 to = 17
 needs = "always"
-via = "drop"
-why = "drop 0.7 m"
-
-[[link]]
-to = 17
-needs = "always"
-via = "step"
-why = "step up 0.6 m"
+via = "jump"
+why = "level gap 0.8 m: within a running jump (2.7 m); on terrain floor no live run has walked"
+guess = true
 
 [[check]]
 hash = 850464708089653824

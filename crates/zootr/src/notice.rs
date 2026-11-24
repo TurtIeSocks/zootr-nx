@@ -15,7 +15,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{EventKind, Flowchart, Romfs, Value};
 use zootr_hook::{ARG_ACTOR, ARG_MIXED, ARG_SUMMARY, Notice};
 
-use crate::copies::{MADE, POUCH_TEXT, TEXT_PARTS};
+use crate::copies::{MADE, POUCH_TEXT, label};
 use crate::flows::{self, Model, running, set};
 use crate::foreign::clean;
 use crate::keys::SMALL;
@@ -168,8 +168,8 @@ pub(crate) fn senders(players: &BTreeMap<u32, String>) -> Copies<'static> {
         .into_iter()
         .chain(players.iter().map(|(s, n)| (s, n.as_str())));
     let new = all.map(|(&slot, name)| CopyLine {
-        label: format!("{}{}", sender(slot), TEXT_PARTS[0]),
-        sources: vec![format!("{}{}", SMALL.get(), TEXT_PARTS[0])],
+        label: label(&sender(slot)),
+        sources: vec![label(SMALL)],
         says: Says::Text(clean(name)),
     });
     Copies {
@@ -197,8 +197,7 @@ pub(crate) struct Shows {
 impl Shows {
     pub(crate) fn load(romfs: &Romfs) -> Result<Self> {
         let first = |name: &Name, call: (&Name, &Name)| -> Result<Model> {
-            let flow =
-                flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))?;
+            let flow = flows::timeline(romfs, name)?;
             let at = *running(&flow, call)
                 .first()
                 .with_context(|| format!("{name} never runs {call:?}"))?;
@@ -283,8 +282,8 @@ mod tests {
                 _ => panic!("a name is plain text"),
             })
             .collect();
-        let label = |slot| format!("{}{}", sender(slot), TEXT_PARTS[0]);
-        let want = [(0, "Archipelago"), (1, "Link"), (2, "Saria")].map(|(s, n)| (label(s), n));
+        let named = |slot| label(&sender(slot));
+        let want = [(0, "Archipelago"), (1, "Link"), (2, "Saria")].map(|(s, n)| (named(s), n));
         let said: Vec<_> = said.into_iter().map(|(l, n)| (l.to_owned(), n)).collect();
         assert_eq!(said, want);
         assert!(senders(&BTreeMap::new()).new.is_empty());

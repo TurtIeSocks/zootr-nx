@@ -56,9 +56,9 @@ const STICKS: Ammo = Ammo {
 /// The components a get plays: its scene, the animation set it runs and
 /// the model's own animation. The Medium bags have all three, the Small
 /// ones none, and a get missing them can hold a chest open.
-const GET_REFS: [&str; 3] = ["ASInfoRef", "ASRef", "AnimationRef"];
-const SCENE: &str = GET_REFS[0];
-const ANIMATION: &str = GET_REFS[2];
+const GET_REFS: [&Name; 3] = [field::AS_INFO_REF, field::AS_REF, field::ANIMATION_REF];
+const SCENE: &Name = GET_REFS[0];
+const ANIMATION: &Name = GET_REFS[2];
 
 /// The pouch param `name` in its packs.
 fn pouch_param(name: &str) -> String {
