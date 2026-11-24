@@ -249,6 +249,21 @@ test("a setting the AP world leaves out is marked, saying why on focus", async (
   );
 });
 
+test("a setting the AP world forces on is marked forced, not left out", async () => {
+  show({
+    defs: [
+      toggle("fake-chests", "Fake chests", {
+        archipelago: { ap: "on-until", why: "check kinds" },
+      }),
+    ],
+  });
+  expect(screen.queryByText("Not in AP")).toBeNull();
+  fireEvent.focus(screen.getByText("Forced in AP"));
+  expect((await screen.findByRole("tooltip")).textContent).toBe(
+    "Always on in Archipelago for now (check kinds)",
+  );
+});
+
 test("a choice's picks the AP world leaves out are listed under it", () => {
   const keys = choice("fake-keys", "Fake keys", [
     "Vanilla",
