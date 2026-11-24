@@ -8,6 +8,7 @@
 //! downstream is what it unlocks.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use anyhow::{Result, bail};
 use ounce_formats::{Romfs, murmur3};
@@ -106,6 +107,9 @@ pub struct Graph {
     unread: Vec<String>,
     /// The scene graphs, to print a cited node.
     scene: HashMap<String, ounce_formats::ainb::Graph>,
+    /// [`Graph::step_reads`], built on first use: the quest gate audit
+    /// asks for every check.
+    step_reads: OnceLock<HashMap<usize, Vec<quest_gates::Cmp>>>,
 }
 
 impl Kind {
@@ -121,13 +125,29 @@ impl Kind {
     }
 }
 
+impl Link {
+    /// The word stats count it under.
+    fn word(self) -> &'static str {
+        match self {
+            Link::Writes => "writes",
+            Link::Reads => "reads",
+            Link::Runs => "runs",
+            Link::Drives => "drives",
+            Link::Places => "places",
+            Link::Has => "has",
+            Link::Uses => "uses",
+            Link::Plays => "plays",
+        }
+    }
+}
+
 impl Graph {
     /// The dev dump's graph, built once for every test: a build holds
     /// close to a gigabyte, so each test building its own ran the test
     /// runner out of memory.
     #[cfg(test)]
     pub(crate) fn dev() -> Option<&'static Self> {
-        static GRAPH: std::sync::OnceLock<Option<Graph>> = std::sync::OnceLock::new();
+        static GRAPH: OnceLock<Option<Graph>> = OnceLock::new();
         GRAPH
             .get_or_init(|| crate::game::dev_dump().map(|romfs| Self::build(&romfs).unwrap()))
             .as_ref()
@@ -246,9 +266,14 @@ impl Graph {
         if let [i] = exact[..] {
             return Ok(i);
         }
+        // A state's name hashes to its GameData hash, and one known only
+        // by hash is named `#hash`: either way live::hash reads it back.
         if let Some(hex) = text.strip_prefix('#').or_else(|| text.strip_prefix("0x"))
             && let Ok(h) = u32::from_str_radix(hex, 16)
-            && let Some(&i) = self.ids.get(&format!("state:#{h:08x}"))
+            && let Some(i) = (0..self.nodes.len()).find(|&i| {
+                self.nodes[i].kind == Kind::State
+                    && crate::live::hash(&self.nodes[i].name).is_ok_and(|n| n == h)
+            })
         {
             return Ok(i);
         }
@@ -347,7 +372,7 @@ fn detail(gd: &GameData, hash: u32) -> Option<String> {
 mod tests {
     use ounce_formats::murmur3;
 
-    use super::{Graph, live};
+    use super::{Graph, Kind, live};
     use crate::known::{actor, flag};
 
     /// The Deku Tree's room B opens once its scrub is beaten: no graph
@@ -366,6 +391,17 @@ mod tests {
             by[0]
         ));
         assert!(scrub.is_ok());
+    }
+
+    #[test]
+    fn find_takes_the_hash_of_a_named_state() {
+        let mut g = Graph::default();
+        let named = g.node(Kind::State, "FakeDoor_Opened", || None);
+        let unnamed = g.node(Kind::State, "#0000beef", || None);
+        let h = murmur3(b"FakeDoor_Opened");
+        assert_eq!(g.find(&format!("#{h:08x}")).unwrap(), named);
+        assert_eq!(g.find(&format!("0x{h:08x}")).unwrap(), named);
+        assert_eq!(g.find("0xbeef").unwrap(), unnamed);
     }
 
     #[test]

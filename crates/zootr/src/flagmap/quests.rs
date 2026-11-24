@@ -139,7 +139,7 @@ impl Graph {
                     step.moved_by.push(Mover { by, edge: e });
                 }
             }
-            for (step, check) in self.checks(&reads, name) {
+            for (step, check) in self.checks(reads, name) {
                 if let Some(step) = named(&mut steps, &step) {
                     step.checks.push(check);
                 }

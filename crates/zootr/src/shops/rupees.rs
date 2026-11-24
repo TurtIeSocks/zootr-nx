@@ -8,7 +8,7 @@
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{BymlDoc, EventKind, Flowchart, Romfs};
 
-use crate::flows::{self, GAME_DATA, Rewrites, VALUE, events, param, params_mut, string};
+use crate::flows::{self, GAME_DATA, Rewrites, events, param, params_mut, string};
 use crate::known::{Name, field, flag, flow};
 use crate::standins::{POUCH_ACTOR_INFO, row_id};
 
@@ -68,7 +68,7 @@ fn skip(flow: &mut Flowchart, rupees: &[String]) -> Result<()> {
         let mut head = ask;
         for rupee in rupees.iter().rev() {
             let mut compare = flow.events[template as usize].kind.clone();
-            flows::set(params_mut(&mut compare), VALUE, string(rupee))?;
+            flows::set(params_mut(&mut compare), field::VALUE, string(rupee))?;
             if let EventKind::Switch { cases, .. } = &mut compare {
                 *cases = vec![(0, fits), (1, head)];
             }
@@ -109,7 +109,7 @@ mod tests {
                 let EventKind::Switch { params, cases, .. } = &flow.events[e as usize].kind else {
                     break;
                 };
-                let Some(rupee) = param(params, VALUE) else {
+                let Some(rupee) = param(params, field::VALUE) else {
                     break;
                 };
                 assert_eq!(cases[0].1, fits, "{rupee}");

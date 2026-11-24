@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Result, bail, ensure};
-use ounce_formats::{BymlDoc, ModBuilder, Romfs, par_map, threads};
+use ounce_formats::{BymlDoc, ModBuilder, Romfs, pack_file, par_map, threads};
 
 use super::Written;
 use crate::bombchu_bags;
@@ -23,11 +23,11 @@ use crate::starter_bags;
 use crate::world::Era;
 use crate::{
     adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters,
-    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags,
-    foreign, fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood,
-    jabu_mouth, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
-    presets, rsdb, scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker,
-    trade_chain, twins,
+    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, foreign,
+    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
+    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
+    scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -167,7 +167,7 @@ pub fn write_mod(
                 && !foreign::is_copy(i)
                 && !crate::known::is_ours(i)
                 && ammo::copied(i).is_none()
-                && !romfs.root().join(flags::actor_pack(i)).is_file()
+                && !romfs.root().join(pack_file(i)).is_file()
         })
     {
         bail!("{item} isn't an actor");

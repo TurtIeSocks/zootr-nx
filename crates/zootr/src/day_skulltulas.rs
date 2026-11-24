@@ -15,10 +15,9 @@
 
 use anyhow::{Context, Result};
 use ounce_formats::ainb::{File, Graph, Value};
-use ounce_formats::{ModBuilder, Romfs};
+use ounce_formats::{ModBuilder, Romfs, pack_file};
 use roead::sarc::{Sarc, SarcWriter};
 
-use crate::flags::actor_pack;
 use crate::graphs::logic;
 use crate::known::{actor, field, map};
 
@@ -30,7 +29,7 @@ fn graph() -> String {
 /// Writes the Gold Skulltula's pack with its day check and emit timer cut
 /// (its size table entry resized), and the night module with no delete.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let path = actor_pack(actor::ENEMY_SKULLTULA_GOLD.get());
+    let path = pack_file(actor::ENEMY_SKULLTULA_GOLD.get());
     let data = romfs.read(&path)?;
     let pack = Sarc::new(&data)?;
     let file = graph();
@@ -126,7 +125,7 @@ mod tests {
             return;
         };
         let data = romfs
-            .read(&actor_pack(actor::ENEMY_SKULLTULA_GOLD.get()))
+            .read(&pack_file(actor::ENEMY_SKULLTULA_GOLD.get()))
             .unwrap();
         let pack = Sarc::new(&data).unwrap();
         let vanilla = pack.get_data(&graph()).unwrap();

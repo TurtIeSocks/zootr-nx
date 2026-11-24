@@ -403,7 +403,7 @@ mod tests {
                 assert_eq!(flows::param(params, flows::GAME_DATA), Some(name.as_str()));
                 let set = params
                     .iter()
-                    .find(|(k, _)| k == flows::VALUE)
+                    .find(|(k, _)| k == field::VALUE)
                     .map(|(_, v)| v);
                 assert_eq!(set, Some(&value), "{key}");
             }

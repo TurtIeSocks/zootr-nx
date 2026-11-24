@@ -93,7 +93,7 @@ fn step_over(
         let (actor, query) = flow.query(&models.is_string.actor, models.is_string.name);
         let mut params = models.is_string.params.clone();
         set(&mut params, flows::GAME_DATA, string(NAMED))?;
-        set(&mut params, flows::VALUE, string(trap))?;
+        set(&mut params, field::VALUE, string(trap))?;
         head = flow.push(EventKind::Switch {
             actor,
             query,
@@ -159,7 +159,7 @@ mod tests {
                     *next
                 }
                 EventKind::Switch { params, cases, .. } => {
-                    let case = u32::from(param(params, flows::VALUE) != Some(item));
+                    let case = u32::from(param(params, field::VALUE) != Some(item));
                     cases.iter().find(|(c, _)| *c == case).map(|(_, to)| *to)
                 }
                 other => panic!("unexpected event {other:?}"),

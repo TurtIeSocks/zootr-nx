@@ -235,7 +235,7 @@ fn asks_helped(flow: &Flowchart, value: i32) -> Option<u16> {
         let EventKind::Switch { params, .. } = &flow.events[e as usize].kind else {
             return false;
         };
-        let at = params.iter().find(|(k, _)| k == flows::VALUE);
+        let at = params.iter().find(|(k, _)| k == field::VALUE);
         flows::param(params, flows::GAME_DATA) == Some(HELPED.get())
             && at.is_some_and(|(_, v)| *v == Value::Int(vec![value]))
     })
@@ -324,7 +324,7 @@ pub fn clear_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
         let clear = cases[i].1;
         let mut four = flow.events[past as usize].kind.clone();
         if let EventKind::Switch { params, cases, .. } = &mut four {
-            set(params, flows::VALUE, Value::Int(vec![4]))?;
+            set(params, field::VALUE, Value::Int(vec![4]))?;
             *cases = vec![(AT, clear)];
         }
         let four = flow.push(four);
