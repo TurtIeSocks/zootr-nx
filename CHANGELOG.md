@@ -3,6 +3,18 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.13.0] - 2026-11-24
+
+### Added
+
+- Rooms that lock until cleared, rising chests, the Boss Key chest
+
+### Fixed
+
+- The hook freezes any trap by name, so traps stop filling the table
+- A line left with one level isn't climbed
+- A failed install takes its half-written mod off, and the app shows why
+
 ## [0.12.0] - 2026-11-23
 
 ### Added
