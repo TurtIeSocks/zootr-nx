@@ -67,7 +67,7 @@ pub(super) fn census(romfs: &Romfs) -> Result<()> {
             c.hash,
             c.item,
             c.get_event.as_deref().unwrap_or("-"),
-            c.presence.as_ref().map_or("-".into(), |p| p.to_string())
+            crate::world::shown(c.presence.as_ref())
         );
     }
     let unique: HashSet<u64> = checks.iter().map(|c| c.hash).collect();

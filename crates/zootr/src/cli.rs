@@ -88,7 +88,12 @@ pub fn run() -> Result<()> {
             for e in world::exits(&romfs()?)? {
                 println!(
                     "{:<28} {} {:<28} {:<44} {:<36} {}",
-                    e.from, e.era, e.to, e.to_start, e.name, e.presence
+                    e.from,
+                    e.era,
+                    e.to,
+                    e.to_start,
+                    e.name.as_deref().unwrap_or("-"),
+                    world::shown(e.presence.as_ref())
                 );
             }
             Ok(())

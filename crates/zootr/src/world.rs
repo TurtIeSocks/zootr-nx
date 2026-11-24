@@ -64,7 +64,7 @@ pub fn node_of(file: &str) -> (String, Vec<Era>) {
 
 /// A flag gate on an actor: it exists only while `flag` is set, or only
 /// while it is unset when `negated`.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Presence {
     pub flag: String,
     pub negated: bool,
@@ -75,6 +75,11 @@ impl fmt::Display for Presence {
         let bang = if self.negated { "!" } else { "" };
         write!(f, "{bang}{}", self.flag)
     }
+}
+
+/// `presence` as shown in a listing: its flag, or `-` for none.
+pub fn shown(presence: Option<&Presence>) -> String {
+    presence.map_or("-".into(), ToString::to_string)
 }
 
 pub fn presence_of(actor: &Byml) -> Option<Presence> {
@@ -90,6 +95,11 @@ pub fn presence_of(actor: &Byml) -> Option<Presence> {
     })
 }
 
+/// The `to_start` of an exit that names no start position: it lands at the
+/// map's default one. Part of the exit's spot key, so every exit to the
+/// same default start shares it.
+pub const NO_START_POS: &str = "-";
+
 /// A scene transition: walking into it in `from` as `era` lands at
 /// `to_start` in `to`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -97,11 +107,12 @@ pub struct Exit {
     pub from: String,
     pub era: Era,
     pub to: String,
+    /// Its start position's name, else [`NO_START_POS`].
     pub to_start: String,
     /// The gate's own placement name, when it has one.
-    pub name: String,
-    /// Shown as `!flag` when the gate exists only while the flag is unset.
-    pub presence: String,
+    pub name: Option<String>,
+    /// The flag the gate needs to exist at all, if any.
+    pub presence: Option<Presence>,
 }
 
 /// Every distinct exit. The same gate is often placed several times (wide
@@ -124,7 +135,7 @@ fn find_exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
             let Some(dynamic) = actor.as_map()?.get(crate::checks::DYNAMIC) else {
                 continue;
             };
-            let presence = presence_of(actor).map(|p| p.to_string());
+            let presence = presence_of(actor);
             for &era in &eras {
                 let Some(to) = str_field(dynamic, era.next_banc_key()) else {
                     continue;
@@ -134,10 +145,10 @@ fn find_exits(romfs: &Romfs) -> Result<BTreeSet<Exit>> {
                     era,
                     to: to.to_owned(),
                     to_start: str_field(dynamic, field::NEXT_START_POS_NAME)
-                        .unwrap_or("-")
+                        .unwrap_or(NO_START_POS)
                         .to_owned(),
-                    name: str_field(actor, "Name").unwrap_or("-").to_owned(),
-                    presence: presence.clone().unwrap_or_else(|| "-".into()),
+                    name: str_field(actor, "Name").map(str::to_owned),
+                    presence: presence.clone(),
                 });
             }
         }
