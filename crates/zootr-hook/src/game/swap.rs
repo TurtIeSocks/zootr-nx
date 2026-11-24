@@ -5,8 +5,9 @@
 //! create, wait for the new Link, keep the camera on him, wake him, all
 //! under the area load's `SceneTransition` pause (the camera stays put
 //! only under it). One step a frame, from the UI's update, since Link's
-//! own update stops with him. Spec: age swap in place (private notes). Found by OoT Character
-//! Select's field swap, `docs/research/character-select.md`.
+//! own update stops with him. Spec:
+//! `docs/superpowers/specs/2026-11-23-age-swap-in-place-design.md`. Found
+//! by OoT Character Select's field swap, `docs/research/character-select.md`.
 
 use core::sync::atomic::Ordering;
 
