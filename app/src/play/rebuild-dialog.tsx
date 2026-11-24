@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { WhyButton } from "@/components/why-button";
 import { errorParts } from "@/lib/api";
+import { useKept } from "@/play/use-kept";
 import { useTargetRunning } from "@/stores/seeds";
 
 /** Props for {@link RebuildDialog}. */
@@ -32,6 +33,8 @@ export function RebuildDialog({
   onPlay,
 }: RebuildDialogProps) {
   const running = useTargetRunning(name);
+  // The title keeps the name while the dialog fades out.
+  const shown = useKept(name);
   const then = (f: () => void) => () => {
     onClose();
     f();
@@ -40,9 +43,9 @@ export function RebuildDialog({
     <Dialog open={name !== undefined} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rebuild {name} first?</DialogTitle>
+          <DialogTitle>Rebuild {shown} first?</DialogTitle>
           <DialogDescription>
-            {build?.text && errorParts(build.text).said}.{" "}
+            {build?.text && <>{errorParts(build.text).said}. </>}
             {build?.command
               ? "Until it's rebuilt, some of the randomizer's changes may not work."
               : "Until it's rebuilt by hand, some of the randomizer's changes may not work."}

@@ -4,15 +4,19 @@
 //! per family of commands.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use anyhow::{Result, bail};
 use clap::Parser;
+use ounce_formats::Romfs;
 
 use crate::config::Config;
 use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
-use play::{boot_command, drill, drill_report, look, photo, play, sweep, sweep_report};
+use play::{
+    Shoot, Sweep, boot_command, drill, drill_report, look, photo, play, sweep, sweep_report,
+};
 use research::{census, chest_events, cutscenes, flags, flow, items, logic, logic_set};
 use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
@@ -41,65 +45,47 @@ pub use seed::shuffle_command;
 pub fn run() -> Result<()> {
     crate::logging::to_stderr();
     let cli = Cli::parse();
-    if let Command::Turn {
-        to,
-        note,
-        session,
-        force,
-        urgent,
-        both,
-        on,
-    } = cli.command
-    {
-        return turn(to, note, session, force, urgent, both, on);
-    }
-    if let Command::Target(cmd) = cli.command {
-        return target_command(cmd);
-    }
-    let path = match cli.game {
-        Some(p) => p,
-        None => Config::load()?
-            .game
-            .unwrap_or_else(|| "dump/oot.nup".into()),
+    let path = || -> Result<PathBuf> {
+        Ok(match cli.game.clone() {
+            Some(p) => p,
+            None => Config::load()?
+                .game
+                .unwrap_or_else(|| "dump/oot.nup".into()),
+        })
     };
-    if let Command::Extract = cli.command {
-        println!("{}", game::folder(&path, &Run::silent())?.display());
-        return Ok(());
-    }
-    // Its run reads the dump as its first step.
+    // The dump's files, and the dump, for the commands that read them.
+    let dump = || -> Result<(Romfs, PathBuf)> {
+        let path = path()?;
+        Ok((game::prepare(&path, &Run::silent())?, path))
+    };
+    let romfs = || Ok::<_, anyhow::Error>(dump()?.0);
     match cli.command {
-        Command::Shuffle(args) => return shuffle(&path, args),
-        Command::Ap(ApCommand::Open { file, install }) => {
-            return seed::ap_open(&path, &file, install);
+        Command::Turn(args) => turn(args),
+        Command::Target(cmd) => target_command(cmd),
+        Command::Extract => {
+            println!("{}", game::folder(&path()?, &Run::silent())?.display());
+            Ok(())
         }
-        Command::Ap(ApCommand::Room { cmd }) => return ap::room_command(&path, cmd),
-        Command::Ap(ApCommand::Bench(args)) => return ap::bench_command(&path, args),
-        _ => {}
-    }
-    let romfs = game::prepare(&path, &Run::silent())?;
-    match cli.command {
-        Command::Extract
-        | Command::Target(_)
-        | Command::Turn { .. }
-        | Command::Shuffle(_)
-        | Command::Ap(ApCommand::Open { .. } | ApCommand::Room { .. } | ApCommand::Bench(_)) => {
-            unreachable!("handled above")
-        }
-        Command::Census => census(&romfs),
+        // Its run reads the dump as its first step.
+        Command::Shuffle(args) => shuffle(&path()?, args),
+        Command::Ap(ApCommand::Open { file, install }) => seed::ap_open(&path()?, &file, install),
+        Command::Ap(ApCommand::Room { cmd }) => ap::room_command(&path()?, cmd),
+        Command::Ap(ApCommand::Bench(args)) => ap::bench_command(&path()?, args),
+        Command::Census => census(&romfs()?),
         Command::Ap(ApCommand::Connect {
             server,
             slot,
             password,
             timings,
-        }) => ap_connect(&romfs, server, slot, password, timings),
+        }) => ap_connect(&romfs()?, server, slot, password, timings),
         Command::Ap(ApCommand::Export { out }) => {
             let dir = out.unwrap_or_else(crate::ap::data_dir);
-            crate::ap::write(&romfs, &dir)?;
+            crate::ap::write(&romfs()?, &dir)?;
             println!("{}", dir.display());
             Ok(())
         }
         Command::Exits => {
-            for e in world::exits(&romfs)? {
+            for e in world::exits(&romfs()?)? {
                 println!(
                     "{:<28} {} {:<28} {:<44} {:<36} {}",
                     e.from, e.era, e.to, e.to_start, e.name, e.presence
@@ -108,28 +94,31 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Command::Spawns => {
-            for d in spawn::destinations(&romfs)? {
+            for d in spawn::destinations(&romfs()?)? {
                 println!("{d}");
             }
             Ok(())
         }
-        Command::ChestEvents => chest_events(&romfs),
+        Command::ChestEvents => chest_events(&romfs()?),
         Command::Effects { event } => {
-            let flows = events::Flows::load(&romfs)?;
+            let flows = events::Flows::load(&romfs()?)?;
             let Some(effects) = flows.effects(&event) else {
                 bail!("no flow defines {event}")
             };
             effects.iter().for_each(|e| println!("{e}"));
             Ok(())
         }
-        Command::Cutscenes => cutscenes(&romfs),
-        Command::Items => items(&romfs),
+        Command::Cutscenes => cutscenes(&romfs()?),
+        Command::Items => items(&romfs()?),
         Command::Logic {
             edit: Some(edit), ..
-        } => logic_set(&romfs, &path, edit),
-        Command::Logic { new_game, .. } => logic(&romfs, &new_game),
+        } => {
+            let (romfs, path) = dump()?;
+            logic_set(&romfs, &path, edit)
+        }
+        Command::Logic { new_game, .. } => logic(&romfs()?, &new_game),
         Command::Flags => {
-            let survey = flags(&romfs)?;
+            let survey = flags(&romfs()?)?;
             for (flag, u) in &survey.presence {
                 println!(
                     "{flag} +{} -{} in {}",
@@ -142,19 +131,22 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Command::Flag { name } => {
-            println!("{}", flags(&romfs)?.describe(&name)?);
+            println!("{}", flags(&romfs()?)?.describe(&name)?);
             Ok(())
         }
-        Command::Flagmap { json, query } => flagmap::flagmap(&romfs, query, json),
-        Command::Flow { name, mod_dir } => match flow(&romfs, &name, mod_dir.as_deref())? {
+        Command::Flagmap { json, query } => flagmap::flagmap(&romfs()?, query, json),
+        Command::Flow { name, mod_dir } => match flow(&romfs()?, &name, mod_dir.as_deref())? {
             Some(flow) => {
                 print!("{}", flows::render(&flow));
                 Ok(())
             }
             None => bail!("{name} only holds a timeline"),
         },
-        Command::Probe(probe) => crate::probe::run(&romfs, &path, probe),
-        Command::Selftest => selftest(&romfs),
+        Command::Probe(probe) => {
+            let (romfs, path) = dump()?;
+            crate::probe::run(&romfs, &path, probe)
+        }
+        Command::Selftest => selftest(&romfs()?),
         Command::SetDrop {
             hash,
             item,
@@ -162,19 +154,22 @@ pub fn run() -> Result<()> {
             out,
         } => {
             let (drops, new_game) = (HashMap::from([(hash, item.into())]), new_game.resolve()?);
-            let run = Run::silent();
+            let (romfs, run) = (romfs()?, Run::silent());
             let (written, _) = out.write(&run, |d| {
                 generate::write_mod(&romfs, d, &drops, &new_game, &[], &run)
             })?;
             print_written(&written);
             Ok(())
         }
-        Command::Save(cmd) => save_command(&romfs, cmd),
+        Command::Save(cmd) => save_command(&romfs()?, cmd),
         Command::Boot { start, limit } => boot_command(start, limit),
-        Command::Live { grep, all, named } => live(&romfs, grep, all, named),
-        Command::Give { actor, count } => give(&romfs, &actor, count),
-        Command::Set { name, value } => set(&romfs, &name, &value),
-        Command::Dev(cmd) => dev(&romfs, &path, cmd),
+        Command::Live { grep, all, named } => live(&romfs()?, grep, all, named),
+        Command::Give { actor, count } => give(&romfs()?, &actor, count),
+        Command::Set { name, value } => set(&romfs()?, &name, &value),
+        Command::Dev(cmd) => {
+            let (romfs, path) = dump()?;
+            dev(&romfs, &path, cmd)
+        }
         Command::Mem(cmd) => mem(cmd),
         Command::Look {
             questions,
@@ -201,25 +196,29 @@ pub fn run() -> Result<()> {
             day_skulltulas,
             vision,
         } => {
-            use crate::sweep::photo::Mode;
-            let (area, out) = (area.as_deref(), out.as_deref().filter(|_| !list));
-            let swing = crate::sweep::photo::Swing { orbit, raise };
+            use crate::sweep::photo::{Mode, Swing};
             let mode = match (go, here) {
                 (true, _) => Mode::Go(side.map(|s| (s, step))),
                 (_, true) => Mode::Here,
                 _ => Mode::Pass,
             };
-            let look = (swing, day_skulltulas);
-            photo(&romfs, &path, (area, &hash), (out, mode), look, || {
-                vision.vision()
-            })
+            let shoot = Shoot {
+                area: area.as_deref(),
+                hashes: &hash,
+                out: out.as_deref().filter(|_| !list),
+                mode,
+                swing: Swing { orbit, raise },
+                day_skulltulas,
+            };
+            let (romfs, path) = dump()?;
+            photo(&romfs, &path, shoot, || vision.vision())
         }
         Command::Play {
             script,
             attach,
             stall,
             start,
-        } => play(&romfs, &script, attach, stall, start),
+        } => play(&romfs()?, &script, attach, stall, start),
         Command::Sweep {
             report:
                 Some(SweepReport::Report {
@@ -241,15 +240,19 @@ pub fn run() -> Result<()> {
             sides,
             judge,
             ..
-        } => sweep(
-            &romfs,
-            &path,
-            judge,
-            out,
-            (rounds, limit, mix, only, seed),
-            yield_to,
-            sides,
-        ),
+        } => {
+            let (romfs, path) = dump()?;
+            let night = Sweep {
+                rounds,
+                limit,
+                mix,
+                only,
+                seed,
+                yield_to,
+                sides,
+            };
+            sweep(&romfs, &path, judge, out, night)
+        }
         Command::Drill {
             report: Some(DrillReport::Report { out }),
             ..
@@ -261,7 +264,10 @@ pub fn run() -> Result<()> {
             repeat,
             judge,
             ..
-        } => drill(&romfs, &path, judge, out, (skill, name, repeat)),
+        } => {
+            let (romfs, path) = dump()?;
+            drill(&romfs, &path, judge, out, skill, name.as_deref(), repeat)
+        }
         Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
     }
 }

@@ -124,7 +124,8 @@ word_enum! {
         Done = 1,
         /// The event manager took the request but answered 0.
         Unanswered = 2,
-        /// Within [`GUARD`] seconds of the last teleport.
+        /// Within [`GUARD`] seconds of the last teleport, or a swap is
+        /// already under way.
         Soon = 3,
         /// The event manager or GameData isn't up yet.
         NoGame = 4,

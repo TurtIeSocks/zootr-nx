@@ -213,11 +213,6 @@ pub fn build(packages: &[Package]) -> Vec<u8> {
     out
 }
 
-/// Where package `i`'s record starts, for tests that edit it.
-pub fn package_record(i: usize) -> usize {
-    HEADER + TOC_HEAD + i * PACKAGE
-}
-
 /// Where file `i`'s record starts, for tests that edit it.
 pub fn file_record(nup: &[u8], i: usize) -> usize {
     let toc = &nup[HEADER..];

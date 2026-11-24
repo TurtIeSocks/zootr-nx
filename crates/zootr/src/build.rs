@@ -207,8 +207,12 @@ pub fn rebuild(target: &Target, game: Option<&Path>, run: &Run) -> Result<Status
 /// How often a rebuild looks for a stop and its own end.
 const TICK: Duration = Duration::from_millis(100);
 
-/// Each line `child` prints a detail of `run`, until it exits. A stop
-/// asked of `run` kills it and everything it started, and gives `None`.
+/// How long a stopped rebuild has to end before it's killed outright.
+const GRACE: Duration = Duration::from_secs(3);
+
+/// Each line `child` prints a detail of `run`, until it exits, text that
+/// isn't UTF-8 made readable. A stop asked of `run` kills it and everything
+/// it started, outright after [`GRACE`], and gives `None`.
 fn watch(mut child: Child, run: &Run) -> Result<Option<ExitStatus>> {
     let (tx, rx) = mpsc::channel();
     let pipes: [Option<Box<dyn Read + Send>>; 2] = [
@@ -220,28 +224,40 @@ fn watch(mut child: Child, run: &Run) -> Result<Option<ExitStatus>> {
     for pipe in pipes.into_iter().flatten() {
         let tx = tx.clone();
         std::thread::spawn(move || {
-            for line in BufReader::new(pipe).lines().map_while(Result::ok) {
-                if tx.send(line).is_err() {
+            // Not `lines()`, which ends at the first line that isn't UTF-8
+            // and leaves the command writing to a closed pipe.
+            for line in BufReader::new(pipe).split(b'\n').map_while(Result::ok) {
+                let line = String::from_utf8_lossy(&line);
+                let line = line.strip_suffix('\r').unwrap_or(&line);
+                if tx.send(line.to_owned()).is_err() {
                     break;
                 }
             }
         });
     }
     drop(tx);
-    let mut stopped = false;
+    // When it was last asked to end.
+    let mut stopped: Option<Instant> = None;
     loop {
         match rx.recv_timeout(TICK) {
             Ok(line) => run.detail(line),
             Err(RecvTimeoutError::Disconnected) => std::thread::sleep(TICK),
             Err(RecvTimeoutError::Timeout) => {}
         }
-        if !stopped && run.check().is_err() {
-            kill_tree(&mut child);
-            stopped = true;
+        match stopped {
+            None if run.check().is_err() => {
+                kill_tree(&mut child, false);
+                stopped = Some(Instant::now());
+            }
+            Some(at) if at.elapsed() >= GRACE => {
+                kill_tree(&mut child, true);
+                stopped = Some(Instant::now());
+            }
+            _ => {}
         }
         if let Some(exit) = child.try_wait()? {
             drain(&rx, run);
-            return Ok((!stopped).then_some(exit));
+            return Ok(stopped.is_none().then_some(exit));
         }
     }
 }
@@ -263,18 +279,23 @@ fn drain(rx: &mpsc::Receiver<String>, run: &Run) {
     }
 }
 
-/// Kill `child` and every process it started.
-fn kill_tree(child: &mut Child) {
+/// Kill `child` and every process it started: asked to end, or `hard`,
+/// outright for one that won't.
+fn kill_tree(child: &mut Child, hard: bool) {
     let pid = child.id().to_string();
     #[cfg(unix)]
     let killed = crate::platform::command("kill")
-        .args(["-TERM", "--", &format!("-{pid}")])
+        .args([
+            if hard { "-KILL" } else { "-TERM" },
+            "--",
+            &format!("-{pid}"),
+        ])
         .status();
     #[cfg(windows)]
     let killed = crate::platform::command("taskkill")
         .args(["/T", "/F", "/PID", &pid])
         .status();
-    if !killed.is_ok_and(|s| s.success()) {
+    if hard || !killed.is_ok_and(|s| s.success()) {
         let _ = child.kill();
     }
 }
@@ -289,9 +310,42 @@ pub fn echo(event: &StepEvent) {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
+    #[cfg(unix)]
+    use std::sync::Arc;
 
     use super::*;
     use crate::config::Rebuild;
+    #[cfg(unix)]
+    use crate::progress::Stopper;
+
+    /// A run that records every event it reports.
+    #[cfg(unix)]
+    fn recorded() -> (Arc<Mutex<Vec<StepEvent>>>, Run) {
+        let heard = Arc::new(Mutex::new(Vec::new()));
+        let sink = heard.clone();
+        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        (heard, run)
+    }
+
+    /// Stop through `stop` once `heard` has the detail `text`. Without it
+    /// in 10 s, stops anyway and fails, so a run that never prints it can't
+    /// hang the test.
+    #[cfg(unix)]
+    fn stop_once_heard(heard: &Mutex<Vec<StepEvent>>, stop: &Stopper, text: &str) {
+        let until = Instant::now() + Duration::from_secs(10);
+        let said = || {
+            (heard.lock().unwrap().iter())
+                .any(|e| matches!(e, StepEvent::Detail { text: t } if t == text))
+        };
+        while !said() {
+            if Instant::now() > until {
+                stop.stop();
+                panic!("never heard {text:?}");
+            }
+            std::thread::sleep(TICK);
+        }
+        stop.stop();
+    }
 
     #[test]
     fn fnv1a_matches_the_reference_values() {
@@ -458,9 +512,7 @@ mod tests {
         );
         let t = rebuilt_by(&t, line);
         assert_eq!(status(&t), Some(Status::Unrecorded));
-        let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
-        let sink = heard.clone();
-        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        let (heard, run) = recorded();
         assert_eq!(rebuild(&t, None, &run).unwrap(), Status::Current);
         let heard = heard.lock().unwrap();
         assert_eq!(
@@ -514,9 +566,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn lines_printed_after_the_rebuild_exits_are_heard_but_not_waited_on() {
-        let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
-        let sink = heard.clone();
-        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        let (heard, run) = recorded();
         let child = crate::platform::command("sh")
             .args(["-c", "(sleep 0.3; echo late) & (sleep 5) & echo early"])
             .stdout(Stdio::piped())
@@ -542,23 +592,11 @@ mod tests {
             pid.display()
         );
         let t = rebuilt_by(&t, line);
-        let heard = std::sync::Arc::new(Mutex::new(Vec::new()));
-        let sink = heard.clone();
-        let run = Run::silent().with(move |e| sink.lock().unwrap().push(e.clone()));
+        let (heard, run) = recorded();
         let stop = run.stopper();
-        let begun = std::time::Instant::now();
+        let begun = Instant::now();
         std::thread::scope(|s| {
-            s.spawn(|| {
-                while !heard
-                    .lock()
-                    .unwrap()
-                    .iter()
-                    .any(|e| matches!(e, StepEvent::Detail { text } if text == "started"))
-                {
-                    std::thread::sleep(TICK);
-                }
-                stop.stop();
-            });
+            s.spawn(|| stop_once_heard(&heard, &stop, "started"));
             let err = rebuild(&t, None, &run).unwrap_err();
             assert!(crate::progress::stopped(&err).is_some(), "{err:#}");
             assert!(
@@ -576,7 +614,7 @@ mod tests {
                 .unwrap()
                 .success()
         };
-        let gone = std::time::Instant::now();
+        let gone = Instant::now();
         while alive() && gone.elapsed() < Duration::from_secs(5) {
             std::thread::sleep(TICK);
         }
@@ -589,6 +627,45 @@ mod tests {
                 .any(|e| { matches!(e, StepEvent::Detail { text } if text == "never") })
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_stop_kills_a_rebuild_that_ignores_it() {
+        let (heard, run) = recorded();
+        let stop = run.stopper();
+        let mut command = crate::platform::command("sh");
+        std::os::unix::process::CommandExt::process_group(&mut command, 0);
+        let child = (command.args(["-c", "trap '' TERM; echo started; sleep 30"]))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let begun = Instant::now();
+        std::thread::scope(|s| {
+            s.spawn(|| stop_once_heard(&heard, &stop, "started"));
+            assert!(watch(child, &run).unwrap().is_none());
+        });
+        let took = begun.elapsed();
+        assert!(took < GRACE + Duration::from_secs(5), "{took:?}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_line_that_isnt_utf8_is_heard_and_so_are_the_rest() {
+        let (heard, run) = recorded();
+        let child = crate::platform::command("sh")
+            .args(["-c", r"printf 'bad \377\nafter\r\n'; echo last"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        assert!(watch(child, &run).unwrap().is_some_and(|e| e.success()));
+        let heard = heard.lock().unwrap();
+        for text in ["bad \u{fffd}", "after", "last"] {
+            let detail = StepEvent::Detail { text: text.into() };
+            assert!(heard.contains(&detail), "{text:?} in {heard:?}");
+        }
     }
 
     #[test]

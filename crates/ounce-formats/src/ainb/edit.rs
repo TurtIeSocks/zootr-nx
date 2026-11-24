@@ -7,11 +7,13 @@
 //! by the input and pointing at the source. A pointer output carries one
 //! plug on its source, named by the output and pointing at one of its
 //! readers. Int and vec3 links follow no one rule, so they aren't made here.
+//!
+//! An edit that fails can leave the file half-edited: drop it then.
 
 use anyhow::{Context, Result, bail, ensure};
 
-use super::file::{File, Node, PARAMS};
-use super::{Graph, MULTI, ParamType, TYPES, Value};
+use super::file::{File, Node, PARAMS, set_word, word};
+use super::{Graph, MULTI, NODE_LEN, NodeKind, ParamType, TYPES, Value};
 use crate::murmur3;
 
 /// An input flag: the input reads its own value, not a link.
@@ -24,6 +26,8 @@ pub(super) const READ: u32 = 0x8000_0000;
 const OUTPUT_FLAGS: u32 = 0xc000_0000;
 /// Where a copied child plug points until it's set.
 pub(super) const UNSET: i32 = -1;
+/// What an input's source node reads when nothing is linked.
+pub(super) const UNLINKED: i16 = -1;
 
 // Plug kinds.
 pub(super) const GENERIC: usize = 0;
@@ -38,8 +42,6 @@ const SIMULTANEOUS: u16 = 3;
 const STRING_SELECTOR: u16 = 5;
 const BOOL_SELECTOR: u16 = 7;
 const EXPRESSION: u16 = 20;
-/// Module inputs and outputs, 100 to 299.
-const MODULE_IO: std::ops::RangeInclusive<u16> = 100..=299;
 
 // Node entry fields.
 const INDEX: usize = 0x02;
@@ -90,11 +92,18 @@ impl Table {
         }
     }
 
+    /// The flag bits sharing an entry's string word at `at`.
+    fn string_flags(self, at: usize) -> u32 {
+        match (self, at) {
+            (Table::Output, 0) => OUTPUT_FLAGS,
+            _ => 0,
+        }
+    }
+
     fn flags(self, ty: ParamType) -> Option<usize> {
-        let ptr = if ty == ParamType::Pointer { 4 } else { 0 };
         match self {
-            Table::Property => Some(4 + ptr),
-            Table::Input => Some(8 + ptr),
+            Table::Property => Some(ty.property_value() - 4),
+            Table::Input => Some(ty.input_fields().1),
             Table::Output => None,
         }
     }
@@ -109,19 +118,46 @@ impl Table {
     }
 }
 
-pub(super) fn word(bytes: &[u8], at: usize) -> u32 {
-    u32::from_le_bytes(bytes[at..at + 4].try_into().unwrap())
+/// A type `ty` input entry's source node and output.
+fn source(e: &[u8], ty: ParamType) -> (i16, i16) {
+    let (at, _, _) = ty.input_fields();
+    (
+        i16::from_le_bytes([e[at], e[at + 1]]),
+        i16::from_le_bytes([e[at + 2], e[at + 3]]),
+    )
 }
 
-pub(super) fn set_word(bytes: &mut [u8], at: usize, v: u32) {
-    bytes[at..at + 4].copy_from_slice(&v.to_le_bytes());
+fn set_source(e: &mut [u8], ty: ParamType, node: i16, output: i16) {
+    let (at, _, _) = ty.input_fields();
+    e[at..at + 2].copy_from_slice(&node.to_le_bytes());
+    e[at + 2..at + 4].copy_from_slice(&output.to_le_bytes());
 }
 
-/// An input entry's source node and output, flags and value.
-pub(super) fn input_fields(ty: ParamType) -> (usize, usize, usize) {
-    let ptr = if ty == ParamType::Pointer { 4 } else { 0 };
-    (4 + ptr, 8 + ptr, 12 + ptr)
+/// Cuts a type `ty` input entry's link, so it reads its own value.
+fn unlink_entry(e: &mut [u8], ty: ParamType) {
+    set_source(e, ty, UNLINKED, 0);
+    let (_, flags, _) = ty.input_fields();
+    set_word(e, flags, word(e, flags) | USES_DEFAULT);
 }
+
+/// A node read out of a graph, with every string it needs, for `insert`.
+struct Copied {
+    entry: [u8; NODE_LEN],
+    name: String,
+    /// Per type, its property, input and output entries.
+    tables: Vec<Vec<Entry>>,
+    /// Each child plug's record and name.
+    children: Vec<(Vec<u8>, String)>,
+}
+
+/// A table entry, and the string each of its string words names.
+struct Entry {
+    bytes: Vec<u8>,
+    strings: Vec<(usize, String)>,
+}
+
+/// The tables a node's entries are copied from, in copy order.
+const TABLES: [Table; 3] = [Table::Property, Table::Input, Table::Output];
 
 /// Checks the writer against one of the game's graphs, and gives how many
 /// links it checked: the graph comes back byte for byte, and every link the
@@ -180,12 +216,25 @@ impl File {
     /// index. The copy reads no links and no queries, and its child plugs
     /// point nowhere until `set_child` points them, or `to_bytes` refuses.
     pub fn copy_node(&mut self, from: &File, node: usize) -> Result<usize> {
-        let src = from
-            .nodes
-            .get(node)
-            .with_context(|| format!("no node {node}"))?;
+        let copied = from.copied(node)?;
+        self.insert(copied)
+    }
+
+    /// [`Self::copy_node`] from this same graph.
+    pub(super) fn copy_own(&mut self, node: usize) -> Result<usize> {
+        let copied = self.copied(node)?;
+        self.insert(copied)
+    }
+
+    /// Node `node` read out for a copy, refusing what a copy can't carry.
+    fn copied(&self, node: usize) -> Result<Copied> {
+        let src = self.node(node)?;
         let kind = src.kind();
-        let plain = !matches!(kind, STRING_SELECTOR | EXPRESSION) && !MODULE_IO.contains(&kind);
+        let io = matches!(
+            NodeKind::from(kind),
+            NodeKind::ModuleInput | NodeKind::ModuleOutput
+        );
+        let plain = !matches!(kind, STRING_SELECTOR | EXPRESSION) && !io;
         ensure!(plain, "can't copy node {node} of kind {kind}");
         let extras = [ATTACHMENTS, EXPRESSIONS, EXPRESSIONS + 2];
         let extra = extras.iter().any(|&at| src.u16_at(at) != 0);
@@ -194,83 +243,96 @@ impl File {
             let links = matches!(k, GENERIC | CHILD | STRINGS | INTS);
             ensure!(links || plugs.is_empty(), "node {node} has kind {k} plugs");
         }
+        let mut tables = Vec::new();
+        for t in 0..TYPES.len() {
+            for table in TABLES {
+                let range = match table {
+                    Table::Property => src.properties(t),
+                    Table::Input => src.inputs(t),
+                    Table::Output => src.outputs(t),
+                };
+                let entries = range.map(|i| self.entry(table, t, i));
+                tables.push(entries.collect::<Result<_>>()?);
+            }
+        }
+        let children = src.plugs[CHILD]
+            .iter()
+            .map(|r| Ok((r.clone(), self.str(word(r, 4))?.to_owned())));
+        Ok(Copied {
+            entry: src.entry,
+            name: self.str(src.u32_at(NAME))?.to_owned(),
+            tables,
+            children: children.collect::<Result<_>>()?,
+        })
+    }
 
+    /// Entry `i` of a type `t` table, with its strings.
+    fn entry(&self, table: Table, t: usize, i: usize) -> Result<Entry> {
+        let ty = TYPES[t];
+        let len = table.len(ty);
+        let bytes = (self.table(table, t).get(i * len..(i + 1) * len))
+            .context("an entry past its table")?
+            .to_vec();
+        let strings = table.strings(ty).iter().map(|&at| {
+            let w = word(&bytes, at) & !table.string_flags(at);
+            Ok((at, self.str(w)?.to_owned()))
+        });
+        let strings = strings.collect::<Result<_>>()?;
+        if let Some(at) = table.flags(ty) {
+            ensure!(
+                word(&bytes, at) & BOUND == 0,
+                "a param bound to its graph's blackboard"
+            );
+        }
+        Ok(Entry { bytes, strings })
+    }
+
+    /// Puts `c` on the end of the graph, its strings moved to this pool,
+    /// and gives its index.
+    fn insert(&mut self, c: Copied) -> Result<usize> {
         let n = self.nodes.len();
         let mut copy = Node {
-            entry: src.entry,
+            entry: c.entry,
             params: [0; PARAMS],
             plugs: Default::default(),
         };
         copy.set_u16(INDEX, u16::try_from(n)?);
-        copy.set_u32(NAME, self.intern(from.str(src.u32_at(NAME))?));
+        copy.set_u32(NAME, self.intern(&c.name));
         copy.set_u32(ATTACHMENT_BASE, 0);
         copy.set_u32(QUERY_BASE, 0);
         copy.set_u16(MULTI_COUNT, 0);
         copy.entry[GUID..GUID + 16].copy_from_slice(&self.guid(n)?);
-        for t in 0..TYPES.len() {
-            for (table, range) in [
-                (Table::Property, src.properties(t)),
-                (Table::Input, src.inputs(t)),
-                (Table::Output, src.outputs(t)),
-            ] {
-                let base = self.copy_entries(from, table, t, range.clone())?;
-                copy.params[table.param(t)] = base;
-                copy.params[table.param(t) + 1] = range.len() as u32;
+        let tables = (0..TYPES.len()).flat_map(|t| TABLES.map(|table| (t, table)));
+        for ((t, table), entries) in tables.zip(c.tables) {
+            copy.params[table.param(t)] = (self.table(table, t).len() / table.len(TYPES[t])) as u32;
+            copy.params[table.param(t) + 1] = entries.len() as u32;
+            for e in entries {
+                self.paste(table, t, e);
             }
         }
-        for record in &src.plugs[CHILD] {
-            let mut record = record.clone();
+        for (mut record, name) in c.children {
             set_word(&mut record, 0, UNSET as u32);
-            let name = self.intern(from.str(word(&record, 4))?);
-            set_word(&mut record, 4, name);
+            set_word(&mut record, 4, self.intern(&name));
             copy.plugs[CHILD].push(record);
         }
         self.nodes.push(copy);
         Ok(n)
     }
 
-    /// Appends `from`'s entries `range` of a table to this graph's, with
-    /// their strings moved to this pool, and gives the first one's index.
-    fn copy_entries(
-        &mut self,
-        from: &File,
-        table: Table,
-        t: usize,
-        range: std::ops::Range<usize>,
-    ) -> Result<u32> {
-        let ty = TYPES[t];
-        let len = table.len(ty);
-        let base = self.table(table, t).len() / len;
-        for i in range {
-            let src = from.table(table, t);
-            let mut e = src
-                .get(i * len..(i + 1) * len)
-                .context("an entry past its table")?
-                .to_vec();
-            for &at in table.strings(ty) {
-                let flags = match (table, at) {
-                    (Table::Output, 0) => OUTPUT_FLAGS,
-                    _ => 0,
-                };
-                let w = word(&e, at);
-                let s = self.intern(from.str(w & !flags)?);
-                set_word(&mut e, at, s | (w & flags & !READ));
-            }
-            if let Some(at) = table.flags(ty) {
-                ensure!(
-                    word(&e, at) & BOUND == 0,
-                    "a param bound to its graph's blackboard"
-                );
-            }
-            if table == Table::Input {
-                let (source, flags, _) = input_fields(ty);
-                e[source..source + 4].copy_from_slice(&[0xff, 0xff, 0, 0]);
-                let unlinked = word(&e, flags) | USES_DEFAULT;
-                set_word(&mut e, flags, unlinked);
-            }
-            self.table_mut(table, t).extend(e);
+    /// Appends `e` to a type `t` table, its strings moved to this pool and
+    /// an input unlinked.
+    fn paste(&mut self, table: Table, t: usize, e: Entry) {
+        let mut bytes = e.bytes;
+        for (at, s) in e.strings {
+            let flags = table.string_flags(at);
+            let w = word(&bytes, at);
+            let s = self.intern(&s);
+            set_word(&mut bytes, at, s | (w & flags & !READ));
         }
-        Ok(base as u32)
+        if table == Table::Input {
+            unlink_entry(&mut bytes, TYPES[t]);
+        }
+        self.table_mut(table, t).extend(bytes);
     }
 
     fn table(&self, table: Table, t: usize) -> &Vec<u8> {
@@ -301,6 +363,46 @@ impl File {
 
     fn node(&self, n: usize) -> Result<&Node> {
         self.nodes.get(n).with_context(|| format!("no node {n}"))
+    }
+
+    fn input_entry(&self, t: usize, i: usize) -> &[u8] {
+        let len = TYPES[t].input_len();
+        &self.inputs[t][i * len..(i + 1) * len]
+    }
+
+    fn input_entry_mut(&mut self, t: usize, i: usize) -> &mut [u8] {
+        let len = TYPES[t].input_len();
+        &mut self.inputs[t][i * len..(i + 1) * len]
+    }
+
+    /// Type `t` input `i`'s source node and output (or, for several
+    /// sources, the encoded first entry and the count).
+    pub(super) fn source_of(&self, t: usize, i: usize) -> (i16, i16) {
+        source(self.input_entry(t, i), TYPES[t])
+    }
+
+    pub(super) fn set_source_of(&mut self, t: usize, i: usize, node: i16, output: i16) {
+        set_source(self.input_entry_mut(t, i), TYPES[t], node, output);
+    }
+
+    /// `source`'s type `t` `output`, marked read by `reader`: its place
+    /// among the node's outputs of that type.
+    pub(super) fn mark_read(
+        &mut self,
+        reader: usize,
+        t: usize,
+        source: usize,
+        output: &str,
+    ) -> Result<i16> {
+        let (k, o) = self.output(source, t, output)?;
+        let k = i16::try_from(k)?;
+        let at = o * TYPES[t].output_len();
+        let read = word(&self.outputs[t], at) | READ;
+        set_word(&mut self.outputs[t], at, read);
+        if self.nodes[source].is_query() {
+            self.add_query(reader, source)?;
+        }
+        Ok(k)
     }
 
     /// `node`'s input `name`: its type and its index in that type's table.
@@ -382,36 +484,26 @@ impl File {
     pub fn link(&mut self, reader: usize, input: &str, source: usize, output: &str) -> Result<()> {
         let (t, i) = self.input(reader, input)?;
         let ty = TYPES[t];
-        let (k, o) = self.output(source, t, output)?;
+        self.output(source, t, output)?;
         let plug = self.link_plug(reader, ty, input, source, output)?;
-        let (at, flags, _) = input_fields(ty);
-        let len = ty.input_len();
-        let e = &mut self.inputs[t][i * len..(i + 1) * len];
         ensure!(
-            i16::from_le_bytes([e[at], e[at + 1]]) > MULTI,
+            self.source_of(t, i).0 > MULTI,
             "{input} has several sources"
         );
-        e[at..at + 2].copy_from_slice(&i16::try_from(source)?.to_le_bytes());
-        e[at + 2..at + 4].copy_from_slice(&i16::try_from(k)?.to_le_bytes());
-        let linked = word(e, flags) & !USES_DEFAULT;
-        set_word(e, flags, linked);
-        let at = o * ty.output_len();
-        let read = word(&self.outputs[t], at) | READ;
-        set_word(&mut self.outputs[t], at, read);
-        if self.nodes[source].is_query() {
-            self.add_query(reader, source)?;
-        }
+        let from = i16::try_from(source)?;
+        let k = self.mark_read(reader, t, source, output)?;
+        self.set_source_of(t, i, from, k);
+        let (_, flags, _) = ty.input_fields();
+        let e = self.input_entry_mut(t, i);
+        set_word(e, flags, word(e, flags) & !USES_DEFAULT);
         self.add_plug(plug)
     }
 
     /// Points `parent`'s child plug on `from` at `to` instead.
     pub fn repoint_child(&mut self, parent: usize, from: usize, to: usize) -> Result<()> {
-        ensure!(to < self.nodes.len(), "no node {to}");
-        let node = self
-            .nodes
-            .get_mut(parent)
-            .with_context(|| format!("no node {parent}"))?;
-        let plugs = &mut node.plugs[CHILD];
+        self.node(to)?;
+        self.node(parent)?;
+        let plugs = &mut self.nodes[parent].plugs[CHILD];
         let plug = (plugs.iter_mut()).find(|r| word(r, 0) == from as u32);
         set_word(
             plug.with_context(|| format!("#{parent} has no child #{from}"))?,
@@ -428,11 +520,7 @@ impl File {
         let (t, i) = self.input(reader, input)?;
         let ty = TYPES[t];
         let raw = self.raw(ty, input, value)?;
-        let (at, flags, value_at) = input_fields(ty);
-        let len = ty.input_len();
-        let e = &self.inputs[t][i * len..(i + 1) * len];
-        let source = i16::from_le_bytes([e[at], e[at + 1]]);
-        let k = i16::from_le_bytes([e[at + 2], e[at + 3]]);
+        let (source, k) = self.source_of(t, i);
         ensure!(source >= 0, "{input} has no single source");
         let (source, k) = (source as usize, usize::try_from(k)?);
         let o = (self.node(source)?.outputs(t).nth(k)).context("no such output")?;
@@ -444,10 +532,9 @@ impl File {
         let held = records.len();
         records.retain(|r| !(word(r, 4) == name && word(r, 0) == plug.target as u32));
         ensure!(records.len() < held, "{input} carries no plug");
-        let e = &mut self.inputs[t][i * len..(i + 1) * len];
-        e[at..at + 4].copy_from_slice(&[0xff, 0xff, 0, 0]);
-        let unlinked = word(e, flags) | USES_DEFAULT;
-        set_word(e, flags, unlinked);
+        let (_, _, value_at) = ty.input_fields();
+        let e = self.input_entry_mut(t, i);
+        unlink_entry(e, ty);
         set_word(e, value_at, raw);
         Ok(())
     }
@@ -502,8 +589,11 @@ impl File {
 
     /// Points `parent`'s child plug `name` at `child`.
     pub fn set_child(&mut self, parent: usize, name: &str, child: usize) -> Result<()> {
+        self.node(child)?;
+        self.node(parent)?;
+        // Interned first: the plug's name word is compared against it.
         let name = self.intern(name);
-        let plugs = &mut self.nodes.get_mut(parent).context("no parent")?.plugs[CHILD];
+        let plugs = &mut self.nodes[parent].plugs[CHILD];
         let mut named = plugs.iter_mut().filter(|r| word(r, 4) == name);
         let (Some(plug), None) = (named.next(), named.next()) else {
             bail!("node {parent} hasn't exactly one such child plug");
@@ -519,7 +609,7 @@ impl File {
             matches!(kind, USER | SEQUENCE | SIMULTANEOUS),
             "a child under kind {kind}"
         );
-        ensure!(child < self.nodes.len(), "no node {child}");
+        self.node(child)?;
         let name = self.intern(name);
         let plugs = &mut self.nodes[parent].plugs[CHILD];
         ensure!(
@@ -553,8 +643,7 @@ impl File {
                     continue;
                 }
                 let raw = self.raw(ty, name, value)?;
-                let at = Table::Property.flags(ty).context("no flags")? + 4;
-                set_word(&mut self.properties[t][i * len..], at, raw);
+                set_word(&mut self.properties[t][i * len..], ty.property_value(), raw);
                 return Ok(());
             }
         }
@@ -566,9 +655,8 @@ impl File {
         let (t, i) = self.input(node, input)?;
         let ty = TYPES[t];
         let raw = self.raw(ty, input, value)?;
-        let (_, flags, at) = input_fields(ty);
-        let len = ty.input_len();
-        let e = &mut self.inputs[t][i * len..(i + 1) * len];
+        let (_, flags, at) = ty.input_fields();
+        let e = self.input_entry_mut(t, i);
         ensure!(word(e, flags) & USES_DEFAULT != 0, "{input} reads a link");
         set_word(e, at, raw);
         Ok(())
@@ -617,7 +705,7 @@ impl File {
             .collect())
     }
 
-    /// Every child plug still pointing nowhere, by node and plug name.
+    /// The first child plug still pointing nowhere, by node and plug name.
     pub(super) fn unset(&self) -> Option<(usize, String)> {
         let nodes = self.nodes.iter().enumerate();
         nodes
@@ -847,6 +935,11 @@ mod tests {
             "a selector's children are its cases"
         );
         assert!(f.set_child(0, "Nope", 3).is_err());
+        assert!(
+            f.set_child(4, "True", 99).is_err(),
+            "a child past the nodes"
+        );
+        assert!(f.set_child(99, "True", 3).is_err());
         let mut odd = fake(vec![Fake {
             kind: STRING_SELECTOR,
             ..Default::default()

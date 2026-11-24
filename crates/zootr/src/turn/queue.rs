@@ -144,11 +144,11 @@ impl Queue {
         let fit = |(j, g): &(usize, &Game)| {
             !claimed[*j] && self.room(machine(&g.name), claimed) && fits(g)
         };
-        let mut open = self.games.iter().enumerate().filter(fit);
-        let first = open.clone().next().map(|(j, _)| j);
-        open.find(|(_, g)| g.sweep.is_none())
+        // The first of the least: ties keep the games' order.
+        (self.games.iter().enumerate())
+            .filter(fit)
+            .min_by_key(|(_, g)| g.sweep.is_some())
             .map(|(j, _)| j)
-            .or(first)
     }
 
     /// How many of `m`'s games are played or `claimed` this tick: by a
@@ -279,9 +279,7 @@ impl Queue {
         if let Some(h) = g.holder.take() {
             g.bumped = Some(h.session);
         }
-        if let Some(s) = g.sweep.as_mut() {
-            s.yielding.get_or_insert(now);
-        }
+        g.ask_aside(now);
         Ok(())
     }
 
@@ -302,7 +300,9 @@ impl Queue {
     /// maintainer isn't playing, and no one waits who could have a game
     /// now, and the machine plays one game at most besides ([`room`]). A
     /// `both` waiter counts only once every machine is open to it, an `on`
-    /// waiter only for a game it [`suits`].
+    /// waiter only for a game it [`suits`]. Another sweep on the game keeps
+    /// it; the same sweep asking again starts afresh, since nothing still
+    /// wants it to step aside.
     pub fn sweep_start(&mut self, game: &str, name: &str) -> Result<bool> {
         let idle = (self.waiting.iter()).all(|w| {
             (w.both && !self.all_open_to(&w.session))
@@ -311,7 +311,8 @@ impl Queue {
         let unclaimed = vec![false; self.games.len()];
         let crowded = self.taken(machine(game), &unclaimed) > 1;
         let g = self.game(game)?;
-        if g.holder.is_some() || g.maintainer || !idle || crowded {
+        let other = g.sweep.as_ref().is_some_and(|s| s.name != name);
+        if g.holder.is_some() || g.maintainer || !idle || crowded || other {
             return Ok(false);
         }
         g.sweep = Some(Sweep {
@@ -379,10 +380,7 @@ impl Queue {
                 let mut swept = false;
                 for &j in &chosen {
                     claimed[j] = true;
-                    if let Some(s) = self.games[j].sweep.as_mut() {
-                        s.yielding.get_or_insert(now);
-                        swept = true;
-                    }
+                    swept |= self.games[j].ask_aside(now);
                 }
                 if swept {
                     i += 1;
@@ -414,8 +412,7 @@ impl Queue {
             };
             claimed[j] = true;
             let g = &mut self.games[j];
-            if let Some(s) = g.sweep.as_mut() {
-                s.yielding.get_or_insert(now);
+            if g.ask_aside(now) {
                 i += 1;
                 continue;
             }
@@ -448,6 +445,18 @@ pub fn suits(on: &str, game: &str) -> bool {
 impl Game {
     fn held_by(&self, session: &str) -> bool {
         self.holder.as_ref().is_some_and(|h| h.session == session)
+    }
+
+    /// Ask its sweep to step aside from `now`, unless asked already.
+    /// Whether it has one.
+    fn ask_aside(&mut self, now: i64) -> bool {
+        match self.sweep.as_mut() {
+            Some(s) => {
+                s.yielding.get_or_insert(now);
+                true
+            }
+            None => false,
+        }
     }
 }
 
@@ -639,6 +648,18 @@ mod tests {
         assert!(!q.sweep_start("far", "night").unwrap(), "held");
         q.free("a");
         assert!(q.sweep_start("far", "night").unwrap());
+    }
+
+    #[test]
+    fn a_second_sweep_waits_for_the_first_and_leaves_its_step_aside_be() {
+        let mut q = Queue::new(&["far".into()]);
+        assert!(q.sweep_start("far", "night").unwrap());
+        q.take("far", 3).unwrap();
+        q.leave("far").unwrap();
+        assert!(!q.sweep_start("far", "day").unwrap());
+        assert!(q.sweep_yields("far", "night"), "still asked to step aside");
+        q.sweep_done("far", "night").unwrap();
+        assert!(q.sweep_start("far", "day").unwrap());
     }
 
     #[test]

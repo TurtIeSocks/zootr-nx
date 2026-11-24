@@ -66,6 +66,24 @@ impl ParamType {
             _ => 4,
         }
     }
+
+    /// How far a pointer's class name, after the entry's own name, pushes
+    /// the fields behind it.
+    fn class(self) -> usize {
+        match self {
+            ParamType::Pointer => 4,
+            _ => 0,
+        }
+    }
+    /// A property entry's value: after its name and flags.
+    fn property_value(self) -> usize {
+        8 + self.class()
+    }
+    /// An input entry's source (node then output), flags and value.
+    fn input_fields(self) -> (usize, usize, usize) {
+        let c = self.class();
+        (4 + c, 8 + c, 12 + c)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -143,14 +161,18 @@ pub struct Node {
 }
 
 impl Node {
+    /// Each property, then each unlinked input: its name, its value and
+    /// where the value sits in the file.
+    fn values(&self) -> impl Iterator<Item = (&str, &Value, usize)> {
+        let props = (self.properties.iter().zip(&self.properties_at))
+            .map(|((n, v), &at)| (n.as_str(), v, at));
+        let inputs = self.inputs.iter().filter(|i| i.sources.is_empty());
+        props.chain(inputs.map(|i| (i.name.as_str(), &i.value, i.value_at)))
+    }
+
     /// A property's or an unlinked input's value.
     pub fn value(&self, name: &str) -> Option<&Value> {
-        let props = self.properties.iter().map(|(n, v)| (n, v));
-        let inputs = self.inputs.iter().filter(|i| i.sources.is_empty());
-        props
-            .chain(inputs.map(|i| (&i.name, &i.value)))
-            .find(|(n, _)| *n == name)
-            .map(|(_, v)| v)
+        self.values().find(|&(n, ..)| n == name).map(|(_, v, _)| v)
     }
 
     pub fn str(&self, name: &str) -> Option<&str> {
@@ -176,75 +198,61 @@ struct Source {
     output: i16,
 }
 
+/// A property as its type's table holds it.
+struct RawProperty {
+    name: String,
+    value: Value,
+    at: usize,
+}
+
+/// An input as its type's table holds it, its sources not yet resolved.
+struct RawInput {
+    name: String,
+    value: Value,
+    value_at: usize,
+    /// Each source's node, output, and where it sits in the file.
+    sources: Vec<(usize, usize, usize)>,
+}
+
+/// Checks the magic and that the version is one this reads.
+fn check_header(r: &Reader) -> Result<()> {
+    ensure!(r.bytes(0, 4)? == MAGIC, "not an AINB file");
+    let version = r.u32(4)?;
+    ensure!(
+        version >= MIN_VERSION,
+        "unsupported AINB version {version:#x}"
+    );
+    Ok(())
+}
+
 impl Graph {
     pub fn parse(data: &[u8]) -> Result<Self> {
         let r = Reader(data);
-        ensure!(r.bytes(0, 4)? == MAGIC, "not an AINB file");
-        let version = r.u32(4)?;
-        ensure!(
-            version >= MIN_VERSION,
-            "unsupported AINB version {version:#x}"
-        );
+        check_header(&r)?;
         let pool = r.u32(0x24)? as usize;
         let s = |at: usize| -> Result<String> { string(&r, pool + r.u32(at)? as usize) };
-        let (props_at, io_at, multi_at, trans_at) =
-            (r.u32(0x2c)?, r.u32(0x34)?, r.u32(0x38)?, r.u32(0x30)?);
+        let (props_at, io_at) = (r.u32(0x2c)? as usize, r.u32(0x34)? as usize);
+        let (multi_at, trans_at) = (r.u32(0x38)? as usize, r.u32(0x30)? as usize);
 
-        let properties = property_ranges(&r, props_at as usize, io_at as usize)?
-            .into_iter()
-            .zip(TYPES)
-            .map(|((start, end), t)| {
-                (start..end)
-                    .step_by(t.property_len())
-                    .map(|at| {
-                        let flags = if t == ParamType::Pointer { 8 } else { 4 };
-                        let value_at = at + flags + 4;
-                        Ok((s(at)?, value(&r, t, value_at, &s)?, value_at))
-                    })
-                    .collect::<Result<Vec<_>>>()
-            })
-            .collect::<Result<Vec<_>>>()?;
-
+        let properties = raw_properties(&r, &s, props_at, io_at)?;
         let multi = (multi_at..trans_at)
             .step_by(8)
-            .map(|at| Ok((source(&r, at as usize)?, at as usize)))
+            .map(|at| Ok((source(&r, at)?, at)))
             .collect::<Result<Vec<_>>>()?;
         let mut inputs = Vec::new();
         let mut outputs = Vec::new();
         for (i, &t) in TYPES.iter().enumerate() {
-            let at = io_at as usize + i * 8;
+            let at = io_at + i * 8;
             let (in_at, out_at) = (r.u32(at)? as usize, r.u32(at + 4)? as usize);
             let out_end = match TYPES.get(i + 1) {
                 Some(_) => r.u32(at + 8)? as usize,
-                None => multi_at as usize,
+                None => multi_at,
             };
-            let ins = (in_at..out_at)
-                .step_by(t.input_len())
-                .map(|at| {
-                    let ptr = if t == ParamType::Pointer { 4 } else { 0 };
-                    let single = (source(&r, at + 4 + ptr)?, at + 4 + ptr);
-                    let sources = match single.0.node {
-                        n if n <= MULTI => {
-                            let from = (MULTI - n) as usize;
-                            let to = from + single.0.output as usize;
-                            multi.get(from..to).unwrap_or_default().iter().collect()
-                        }
-                        _ => vec![&single],
-                    };
-                    let sources = sources
-                        .into_iter()
-                        .filter(|(s, _)| s.node >= 0 && s.output >= 0)
-                        .map(|(s, at)| (s.node as usize, s.output as usize, *at))
-                        .collect::<Vec<_>>();
-                    let value_at = at + 12 + ptr;
-                    Ok((s(at)?, value(&r, t, value_at, &s)?, value_at, sources))
-                })
-                .collect::<Result<Vec<_>>>()?;
+            inputs.push(raw_inputs(&r, &s, t, in_at..out_at, &multi)?);
             let outs = (out_at..out_end)
                 .step_by(t.output_len())
                 .map(|at| string(&r, pool + (r.u32(at)? & 0x3fff_ffff) as usize))
                 .collect::<Result<Vec<_>>>()?;
-            inputs.push(ins);
             outputs.push(outs);
         }
 
@@ -270,22 +278,21 @@ impl Graph {
             let mut links = Vec::new();
             for (i, &ty) in TYPES.iter().enumerate() {
                 let range = slice(params + i * 8)?;
-                for (name, value, at) in pick(&properties[i], range)? {
-                    node.properties.push((name.clone(), value.clone()));
-                    node.properties_at.push(*at);
+                for p in pick(&properties[i], range)? {
+                    node.properties.push((p.name.clone(), p.value.clone()));
+                    node.properties_at.push(p.at);
                 }
                 let io = params + 0x30 + i * 16;
-                for (name, value, value_at, sources) in pick(&inputs[i], slice(io)?)? {
-                    let links_at = sources.iter().map(|&(.., at)| at).collect();
-                    let sources: Vec<_> = sources.iter().map(|&(n, o, _)| (n, o)).collect();
+                for input in pick(&inputs[i], slice(io)?)? {
+                    let sources = input.sources.iter().map(|&(n, o, _)| (n, o)).collect();
                     links.push((node.inputs.len(), ty, sources));
                     node.inputs.push(Input {
-                        name: name.clone(),
+                        name: input.name.clone(),
                         ty,
-                        value: value.clone(),
+                        value: input.value.clone(),
                         sources: Vec::new(),
-                        value_at: *value_at,
-                        sources_at: links_at,
+                        value_at: input.value_at,
+                        sources_at: input.sources.iter().map(|&(.., at)| at).collect(),
                     });
                 }
                 for name in pick(&outputs[i], slice(io + 8)?)? {
@@ -298,22 +305,95 @@ impl Graph {
             nodes.push(node);
             raw_links.push(links);
         }
-
-        for (n, links) in raw_links.into_iter().enumerate() {
-            for (input, ty, sources) in links {
-                let resolved = sources
-                    .into_iter()
-                    .map(|(node, output)| {
-                        let src = nodes.get(node).context("link to a missing node")?;
-                        let output = linked_output(src, ty, output);
-                        Ok(Link { node, output })
-                    })
-                    .collect::<Result<Vec<_>>>()?;
-                nodes[n].inputs[input].sources = resolved;
-            }
-        }
+        resolve(&mut nodes, raw_links)?;
         Ok(Self { nodes })
     }
+}
+
+/// Each type's property entries.
+fn raw_properties(
+    r: &Reader,
+    s: &impl Fn(usize) -> Result<String>,
+    props_at: usize,
+    io_at: usize,
+) -> Result<Vec<Vec<RawProperty>>> {
+    property_ranges(r, props_at, io_at)?
+        .into_iter()
+        .zip(TYPES)
+        .map(|((start, end), t)| {
+            (start..end)
+                .step_by(t.property_len())
+                .map(|at| {
+                    let value_at = at + t.property_value();
+                    Ok(RawProperty {
+                        name: s(at)?,
+                        value: value(r, t, value_at, s)?,
+                        at: value_at,
+                    })
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// Type `t`'s input entries in `range`, with the multi-source table's
+/// entries, each with where it sits, for an input fed by several.
+fn raw_inputs(
+    r: &Reader,
+    s: &impl Fn(usize) -> Result<String>,
+    t: ParamType,
+    range: std::ops::Range<usize>,
+    multi: &[(Source, usize)],
+) -> Result<Vec<RawInput>> {
+    let (source_at, _, value_at) = t.input_fields();
+    range
+        .step_by(t.input_len())
+        .map(|at| {
+            let single = (source(r, at + source_at)?, at + source_at);
+            let sources = match single.0.node {
+                n if n <= MULTI => {
+                    let from = (MULTI - n) as usize;
+                    let run = usize::try_from(single.0.output)
+                        .ok()
+                        .and_then(|count| multi.get(from..from + count));
+                    run.unwrap_or_default().iter().collect()
+                }
+                _ => vec![&single],
+            };
+            let sources = sources
+                .into_iter()
+                .filter(|(s, _)| s.node >= 0 && s.output >= 0)
+                .map(|(s, at)| (s.node as usize, s.output as usize, *at))
+                .collect();
+            Ok(RawInput {
+                name: s(at)?,
+                value: value(r, t, at + value_at, s)?,
+                value_at: at + value_at,
+                sources,
+            })
+        })
+        .collect()
+}
+
+/// Per node, each input's place, type and raw `(node, output)` sources.
+type RawLinks = Vec<Vec<(usize, ParamType, Vec<(usize, usize)>)>>;
+
+/// Names the output each input's raw sources reach.
+fn resolve(nodes: &mut [Node], raw_links: RawLinks) -> Result<()> {
+    for (n, links) in raw_links.into_iter().enumerate() {
+        for (input, ty, sources) in links {
+            let resolved = sources
+                .into_iter()
+                .map(|(node, output)| {
+                    let src = nodes.get(node).context("link to a missing node")?;
+                    let output = linked_output(src, ty, output);
+                    Ok(Link { node, output })
+                })
+                .collect::<Result<Vec<_>>>()?;
+            nodes[n].inputs[input].sources = resolved;
+        }
+    }
+    Ok(())
 }
 
 /// The output a link from `src` reaches: its `output`th output of the
@@ -379,8 +459,9 @@ impl Patch {
             .filter(|o| o.ty == input.ty)
             .position(|o| o.name == output);
         let index = found.ok_or_else(|| anyhow::anyhow!("node {from} has no output {output}"))?;
-        self.data[at..at + 2].copy_from_slice(&(from as i16).to_le_bytes());
-        self.data[at + 2..at + 4].copy_from_slice(&(index as i16).to_le_bytes());
+        let (from, index) = (i16::try_from(from)?, i16::try_from(index)?);
+        self.data[at..at + 2].copy_from_slice(&from.to_le_bytes());
+        self.data[at + 2..at + 4].copy_from_slice(&index.to_le_bytes());
         self.reparse()
     }
 
@@ -413,13 +494,9 @@ impl Patch {
             .nodes
             .get(node)
             .ok_or_else(|| anyhow::anyhow!("no node {node}"))?;
-        let mut prop = n.properties.iter().zip(&n.properties_at);
-        let prop = prop
-            .find(|((k, v), _)| k == name && is(v))
-            .map(|(_, at)| *at);
-        let mut input = n.inputs.iter().filter(|i| i.sources.is_empty());
-        let input = input.find(|i| i.name == name && is(&i.value));
-        prop.or(input.map(|i| i.value_at))
+        n.values()
+            .find(|&(k, v, _)| k == name && is(v))
+            .map(|(.., at)| at)
             .ok_or_else(|| anyhow::anyhow!("node {node} has no {kind} {name}"))
     }
 
@@ -438,11 +515,11 @@ impl Patch {
 /// `data`, added to its end if it isn't there.
 fn intern(data: &mut Vec<u8>, pool: usize, s: &str) -> u32 {
     let mut at = pool;
-    while let Some(len) = data[at..].iter().position(|&b| b == 0) {
-        if &data[at..at + len] == s.as_bytes() {
+    while let Some(held) = data.get(at..).and_then(until_nul) {
+        if held == s.as_bytes() {
             return (at - pool) as u32;
         }
-        at += len + 1;
+        at += held.len() + 1;
     }
     let offset = (data.len() - pool) as u32;
     data.extend(s.as_bytes());
@@ -495,15 +572,22 @@ fn value(
     })
 }
 
+/// The bytes `rest` starts with, up to its first NUL; `None` without one.
+fn until_nul(rest: &[u8]) -> Option<&[u8]> {
+    rest.iter().position(|&b| b == 0).map(|len| &rest[..len])
+}
+
+/// The string at `at`, running to the end of the file without a NUL: the
+/// reader takes what it can, where `File` refuses.
 fn string(r: &Reader, at: usize) -> Result<String> {
     let rest = r.0.get(at..).unwrap_or_default();
-    let len = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
-    Ok(std::str::from_utf8(&rest[..len])?.to_owned())
+    Ok(std::str::from_utf8(until_nul(rest).unwrap_or(rest))?.to_owned())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ainb::file::tests::le;
 
     /// A node with one output per `(name, type)`.
     fn outputs(outs: &[(&str, ParamType)]) -> Node {
@@ -566,10 +650,6 @@ mod tests {
             self.0.push(0);
             at
         }
-    }
-
-    fn le(words: &[u32]) -> Vec<u8> {
-        words.iter().flat_map(|w| w.to_le_bytes()).collect()
     }
 
     /// Lays out header, nodes, node param blocks, the property table, the

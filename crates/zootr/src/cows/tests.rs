@@ -242,7 +242,7 @@ fn after_the_right_melody_the_milk_asks_the_bool_its_caller_passes() {
         assert_eq!(runs(&flow, unset), flows::said(SET_BOOL));
         let (grant, params) = next(unset);
         assert_eq!(value(&params, GAME_DATA), Some(&argument(ARG_FLAG)));
-        assert!(params.contains(&("Value".into(), Value::Bool(vec![true]))));
+        assert!(params.contains(&(flows::VALUE.into(), Value::Bool(vec![true]))));
         let grant = grant.unwrap();
         assert_eq!(runs(&flow, grant), flows::said(flows::GRANT));
         let (mut line, params) = next(grant);

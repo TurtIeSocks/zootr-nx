@@ -176,15 +176,22 @@ impl Read for Range<'_> {
     }
 }
 
-/// Hashes and counts what passes through to `inner`.
+/// Hashes and counts what passes through to `inner`, refusing anything
+/// past `limit` bytes.
 struct Hashing<W> {
     inner: W,
     hash: Sha256,
     len: u64,
+    limit: u64,
+    over: bool,
 }
 
 impl<W: Write> Write for Hashing<W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if self.len + buf.len() as u64 > self.limit {
+            self.over = true;
+            return Err(io::Error::other("more bytes than the recorded size"));
+        }
         let n = self.inner.write(buf)?;
         self.hash.update(&buf[..n]);
         self.len += n as u64;
@@ -274,7 +281,10 @@ impl Nup {
         let file_count = u64_at(toc, 0x10);
         let pool_off = size(u64_at(toc, 0x18))?;
         let pool_size = size(u64_at(toc, 0x20))?;
-        if dir_count + file_count > u64::from(u32::MAX) {
+        if dir_count
+            .checked_add(file_count)
+            .is_none_or(|n| n > u64::from(u32::MAX))
+        {
             return Err(corrupt("too many nodes for 32-bit node ids"));
         }
 
@@ -388,10 +398,18 @@ impl Nup {
                 return Err(corrupt("child range out of bounds"));
             }
         }
-        let nodes = self.dirs.len() + self.files.len();
+        // Each node is listed once at most and a root never, so the tree is
+        // a tree: no node is reached twice and MAX_DEPTH only caps depth.
+        let mut listed = vec![false; self.dirs.len() + self.files.len()];
+        for p in &self.packages {
+            listed[p.root.0 as usize] = true;
+        }
         for &id in &self.children {
-            if id as usize >= nodes {
+            let Some(seen) = listed.get_mut(id as usize) else {
                 return Err(corrupt("child id out of range"));
+            };
+            if std::mem::replace(seen, true) {
+                return Err(corrupt("node listed twice, or a root listed"));
             }
             let name = self.name(self.node(id));
             if !safe(name) {
@@ -461,7 +479,8 @@ impl Nup {
     }
 
     /// Decode a file into `out`, then check its size and SHA-256. On a
-    /// mismatch `out` has already received the bad bytes.
+    /// mismatch `out` has already received the bad bytes, never more than
+    /// the recorded size.
     pub fn copy(&self, file: File, out: impl Write) -> Result<()> {
         let f = &self.files[file.0 as usize];
         let range = Range {
@@ -473,14 +492,19 @@ impl Nup {
             inner: out,
             hash: Sha256::new(),
             len: 0,
+            limit: f.size,
+            over: false,
         };
-        if f.zstd {
-            zstd::stream::copy_decode(range, &mut out)?;
+        let done = if f.zstd {
+            zstd::stream::copy_decode(range, &mut out)
         } else {
-            io::copy(&mut BufReader::with_capacity(1 << 16, range), &mut out)?;
+            io::copy(&mut BufReader::with_capacity(1 << 16, range), &mut out).map(drop)
+        };
+        if !out.over {
+            done?;
+            out.flush()?;
         }
-        out.flush()?;
-        if out.len != f.size || out.hash.finalize()[..] != f.sha256 {
+        if out.over || out.len != f.size || out.hash.finalize()[..] != f.sha256 {
             return Err(Error::Hash(self.name(Node::File(file)).into()));
         }
         Ok(())

@@ -177,7 +177,7 @@ impl<'a, I: Input> Pass<'a, I> {
         (build, seed): (Option<String>, Option<String>),
     ) -> Result<Self> {
         let shot = (done(out).into_values())
-            .filter(|l| l.verdict != "no spot")
+            .filter(|l| l.verdict != Shot::NoSpot)
             .filter_map(|l| Some((l.subject()?, l)))
             .collect();
         Ok(Self {
@@ -223,7 +223,7 @@ impl<'a, I: Input> Pass<'a, I> {
             }
             match self.shoot(s) {
                 Ok(line) => {
-                    eprintln!("[{}/{}] {}: {}", i + 1, left.len(), s.hash, line.verdict);
+                    eprintln!("[{}/{}] {}: {:?}", i + 1, left.len(), s.hash, line.verdict);
                     self.append(&line)?;
                 }
                 Err(e) if gone(&e) => return Err(e),
@@ -242,12 +242,12 @@ impl<'a, I: Input> Pass<'a, I> {
         Ok(())
     }
 
-    fn line(&self, s: &Subject, verdict: &str) -> Line {
+    fn line(&self, s: &Subject, verdict: Shot) -> Line {
         Line {
             hash: s.hash.to_string(),
             map: s.at.as_ref().map(|(m, _)| m.clone()),
             age: s.child.map(|c| if c { "child" } else { "adult" }.into()),
-            verdict: verdict.into(),
+            verdict,
             at: jiff::Timestamp::now().to_string(),
             build: self.build.clone(),
             seed: self.seed.clone(),
@@ -306,7 +306,7 @@ impl<'a, I: Input> Pass<'a, I> {
             giver: (holder.hash != Some(s.hash))
                 .then(|| holder.hash.map(|h| h.to_string()))
                 .flatten(),
-            ..self.line(s, "best effort")
+            ..self.line(s, Shot::BestEffort)
         };
         let hour = if night { NIGHT } else { NOON };
         Ok(Some(Setup {
@@ -328,14 +328,14 @@ impl<'a, I: Input> Pass<'a, I> {
             line,
         }) = self.setup(s)?
         else {
-            return Ok(self.line(s, "no spot"));
+            return Ok(self.line(s, Shot::NoSpot));
         };
         if let Some(earlier) = holder.hash.and_then(|h| self.shot.get(&h)) {
             std::fs::copy(self.frame(earlier.hash.parse()?), self.frame(s.hash))?;
             return Ok(Line {
                 side: earlier.side,
                 step: earlier.step,
-                verdict: earlier.verdict.clone(),
+                verdict: earlier.verdict,
                 ..line
             });
         }
@@ -379,11 +379,11 @@ impl<'a, I: Input> Pass<'a, I> {
     }
 
     /// Take the game's picture now as `s`'s photo, shot by hand: its line
-    /// says [`BY_HAND`] and no side. Link isn't moved.
+    /// says [`Shot::ByHand`] and no side. Link isn't moved.
     pub fn here(&mut self, s: &Subject) -> Result<Line> {
         let line = by_hand(match self.setup(s)? {
             Some(setup) => setup.line,
-            None => self.line(s, BY_HAND),
+            None => self.line(s, Shot::ByHand),
         });
         let frame = self.frame(s.hash);
         self.input.shot(&frame)?;
@@ -425,10 +425,16 @@ impl<'a, I: Input> Pass<'a, I> {
             if step > 0 && best.is_some_and(|p| p > 0) {
                 break;
             }
-            if self.stand(at, holder.pose.at).is_err() {
+            let side_name = format!("{side:?}").to_lowercase();
+            // A vanished game ends the check with no line, so the next run
+            // tries it again: "no spot" would keep it out for good.
+            if let Err(e) = self.stand(at, holder.pose.at) {
+                if gone(&e) {
+                    return Err(e);
+                }
+                eprintln!("  {side_name} {step}: {e:#}");
                 continue;
             }
-            let side_name = format!("{side:?}").to_lowercase();
             let trying = tried.join(format!("{}-{side_name}-{step}.png", s.hash));
             self.watch()?;
             self.input.shot(&trying)?;
@@ -450,11 +456,10 @@ impl<'a, I: Input> Pass<'a, I> {
             }
         }
         line.verdict = match best {
-            None => "no spot",
-            Some(0) => "best effort",
-            Some(_) => "framed",
-        }
-        .into();
+            None => Shot::NoSpot,
+            Some(0) => Shot::BestEffort,
+            Some(_) => Shot::Framed,
+        };
         Ok(line)
     }
 

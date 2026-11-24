@@ -74,10 +74,10 @@ pub fn parse(line: &str) -> Result<(String, String)> {
 
 /// Whether `challenge` is a quest in the game and `step` one of its steps.
 pub fn check(gd: &GameData, challenge: &str, step: &str) -> Result<()> {
-    let saved = format!("{SAVED}{challenge}");
+    let name = saved(challenge);
     let steps = gd
-        .enum_values(&saved)
-        .with_context(|| format!("{challenge} isn't a quest: the game has no {saved}"))?;
+        .enum_values(&name)
+        .with_context(|| format!("{challenge} isn't a quest: the game has no {name}"))?;
     ensure!(
         steps.iter().any(|s| s == step),
         "{step} isn't a step of {challenge}. Its steps are {}",
@@ -95,7 +95,7 @@ pub fn quests(gd: &GameData) -> BTreeMap<String, Vec<String>> {
 }
 
 /// Quest `challenge`'s saved step, by name.
-pub fn saved(challenge: &Name) -> String {
+pub fn saved(challenge: impl std::fmt::Display) -> String {
     format!("{SAVED}{challenge}")
 }
 
@@ -108,7 +108,7 @@ pub fn at(challenge: &Name, step: impl std::fmt::Display) -> String {
 /// a hash: a BoolExp on one then reads as the saved step and its value.
 pub fn learn(romfs: &Romfs, gd: &mut GameData) -> Result<()> {
     for challenge in starts(romfs)?.keys() {
-        gd.learn(&format!("{SAVED}{challenge}"));
+        gd.learn(&saved(challenge));
     }
     Ok(())
 }
@@ -119,14 +119,19 @@ pub fn starts(romfs: &Romfs) -> Result<BTreeMap<String, Option<String>>> {
     let table = BymlDoc::parse(&romfs.read(&rsdb::path(CHALLENGES))?)?;
     let mut out = BTreeMap::new();
     for row in table.root.as_array()? {
-        let id = str_field(row, rsdb::ROW_ID).unwrap_or_default();
-        let name = id.rsplit('/').next().and_then(|f| f.split('.').next());
-        if let Some(challenge) = name {
-            let start = str_field(row, field::DEPEND_FLAG_NAME).filter(|f| !f.is_empty());
-            out.insert(challenge.to_owned(), start.map(str::to_owned));
-        }
+        let Some(challenge) = str_field(row, rsdb::ROW_ID).and_then(challenge_of) else {
+            continue;
+        };
+        let start = str_field(row, field::DEPEND_FLAG_NAME).filter(|f| !f.is_empty());
+        out.insert(challenge.to_owned(), start.map(str::to_owned));
     }
     Ok(out)
+}
+
+/// The quest a quest table row's id names: its file name, none when empty.
+fn challenge_of(id: &str) -> Option<&str> {
+    let name = id.rsplit('/').next()?.split('.').next()?;
+    (!name.is_empty()).then_some(name)
 }
 
 /// The table of quests, a row each, its id the quest's file name under `Work/Challenge`.
@@ -213,7 +218,7 @@ pub fn hold(
     }
     let gd = GameData::load(romfs)?;
     for (challenge, step) in progress {
-        let steps = (gd.enum_values(&format!("{SAVED}{challenge}")))
+        let steps = (gd.enum_values(&saved(challenge)))
             .with_context(|| format!("{challenge} isn't a quest"))?;
         let at = (steps.iter().position(|s| s == step))
             .with_context(|| format!("{step} isn't a step of {challenge}"))?;
@@ -307,6 +312,16 @@ mod tests {
         (flow.entry_points.iter())
             .flat_map(|e| flows::reachable_from(flow, e.main))
             .collect()
+    }
+
+    #[test]
+    fn a_quest_row_names_its_file_and_an_empty_id_none() {
+        assert_eq!(
+            challenge_of("Work/Challenge/FakeQuest.row"),
+            Some("FakeQuest")
+        );
+        assert_eq!(challenge_of(""), None);
+        assert_eq!(challenge_of("Work/Challenge/"), None);
     }
 
     #[test]

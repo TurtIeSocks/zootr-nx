@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ounce_formats::murmur3;
 
 use super::all_of;
+use crate::derive::ALWAYS;
 use crate::gates::{Atom, Expr as GateExpr};
 use crate::rules::kinds::Kind;
 
@@ -72,17 +73,17 @@ pub(super) fn locks_in(expr: &GateExpr, out: &mut BTreeMap<String, BTreeSet<u64>
 }
 
 /// A flag's needs, why and whether it's a guess, from what sets it.
-pub(super) fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
+pub(super) fn flag_rule(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
     if lock.setters.is_empty() {
         let why = "set by clearing the room: what clears it isn't traced yet".to_owned();
-        return ("always".into(), why, true);
+        return (ALWAYS.into(), why, true);
     }
     if kinds.is_empty() {
         let why = format!(
             "clearing its room sets it ({}): what that takes isn't traced yet",
             lock.named.join(", ")
         );
-        return ("always".into(), why, true);
+        return (ALWAYS.into(), why, true);
     }
     let uses: Vec<&str> = kinds.iter().map(|k| k.uses.as_str()).collect();
     let mut seen = BTreeSet::new();
@@ -91,7 +92,7 @@ pub(super) fn flag(lock: &Lock, kinds: &[&Kind]) -> (String, String, bool) {
         .map(|k| format!("{} sets it ({}): {}", k.name, lock.setters.len(), k.uses))
         .collect::<Vec<_>>()
         .join("; ");
-    let guess = kinds.is_empty() || kinds.iter().any(|k| k.guess);
+    let guess = kinds.iter().any(|k| k.guess);
     (all_of(&uses), why, guess)
 }
 

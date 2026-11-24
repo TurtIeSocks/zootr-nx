@@ -56,6 +56,8 @@ const SWITCHES: dev::Switches = dev::Switches {
 /// Spots in a row the harness may fail to set up before the game restarts:
 /// a menu left open refuses every request after it.
 const FAILS: usize = 2;
+/// Each night folder's rows, one JSON line a spot.
+pub(super) const RESULTS: &str = "results.jsonl";
 
 /// What every round's seed has: the test seed rules, and no enemies in
 /// the harness's way.
@@ -244,10 +246,14 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 Err(e) => {
                     Resume::clear(&self.dir);
                     eprintln!("round {round} ended early: {e:#}");
-                    self.note(round, &format!("{e:#}"))?;
+                    // Logged, not raised: the queue still hears the sweep stopped.
+                    if let Err(e) = self.note(round, &format!("{e:#}")) {
+                        eprintln!("noting round {round}'s error: {e:#}");
+                    }
                 }
             }
         }
+        // Two checks: `stop` borrows the night mutably.
         if self.yielding.is_some() {
             self.stop();
         }
@@ -286,8 +292,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
         order(&mut planned, &known, seed);
-        planned.truncate(self.limit.unwrap_or(usize::MAX));
-        resume.skip(&mut planned, name);
+        left(&mut planned, &resume, self.limit, name);
         let shots = self.dir.join(format!("round-{round:03}-{seed}"));
         std::fs::create_dir_all(&shots)?;
         if self.step_aside(&resume)? {
@@ -308,8 +313,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 return Ok(Ended::Yielded);
             }
             let first = at_known(p, &known);
-            self.attempt(&mut live, &at, p, &first, name(p), &json!({}))?;
-            resume.done.push(name(p));
+            let named = name(p);
+            self.attempt(&mut live, &at, p, &first, &named, &json!({}))?;
+            resume.done.push(named);
         }
         Ok(Ended::Swept)
     }
@@ -337,16 +343,19 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         at: &Round,
         p: &Planned,
         first: &Planned,
-        name: String,
+        name: &str,
         tag: &serde_json::Value,
     ) -> Result<()> {
-        let mut verdict = self.spot(&live.dev, at, first, name.clone(), tag)?;
+        let mut verdict = self.spot(&live.dev, at, first, name, tag)?;
         if stuck(&verdict) {
             *live = self.start()?;
             let again = format!("{name} (after a restart)");
-            verdict = self.spot(&live.dev, at, first, again, tag)?;
+            verdict = self.spot(&live.dev, at, first, &again, tag)?;
         }
-        if let Some(again) = other_age(p, &verdict, live.dev.state()?.child) {
+        // The age is read only for a second try: after a crash the game is
+        // gone, and the restart below must still run.
+        let child = || live.dev.state().ok().map(|s| s.child);
+        if let Some(again) = other_age(p, &verdict, child) {
             let again = Planned {
                 side: first.side,
                 ..again
@@ -357,7 +366,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 "adult"
             };
             let named = format!("{name} (as {age})");
-            verdict = self.spot(&live.dev, at, &again, named, tag)?;
+            verdict = self.spot(&live.dev, at, &again, &named, tag)?;
         }
         live.fails = match verdict {
             Verdict::SetupFailed(_) => live.fails + 1,
@@ -375,7 +384,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         dev: &Dev,
         at: &Round,
         p: &Planned,
-        name: String,
+        name: &str,
         tag: &serde_json::Value,
     ) -> Result<Verdict> {
         let started = Instant::now();
@@ -389,7 +398,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             places: at.places,
             dir: at.shots,
         }
-        .sweep(p, &name);
+        .sweep(p, name);
         let mut row = json!({
             "round": at.round, "seed": at.seed, "mix": at.mix, "name": name,
             "spot": p.spot, "trigger": kind(&p.trigger), "child": p.child,
@@ -468,7 +477,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     fn results(&self) -> PathBuf {
-        self.dir.join("results.jsonl")
+        self.dir.join(RESULTS)
     }
 
     /// What the rows of every night beside this one, oldest first, tell of
@@ -479,7 +488,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             .into_iter()
             .flatten()
             .flatten()
-            .map(|night| night.path().join("results.jsonl"))
+            .map(|night| night.path().join(RESULTS))
             .collect();
         nights.sort();
         let mut known = Known::default();
@@ -547,16 +556,34 @@ pub(super) struct Round<'a> {
 
 /// The spot again as the other age, when it came to nothing in a map that
 /// names no age. Logic lists most dungeon checks for both ages, so only a
-/// try tells which one a room needs. `child` is Link's age when it ended.
-fn other_age(p: &Planned, verdict: &Verdict, child: bool) -> Option<Planned> {
+/// try tells which one a room needs. `child` reads Link's age when it
+/// ended, only when a second try is due: none when the game can't say.
+fn other_age(
+    p: &Planned,
+    verdict: &Verdict,
+    child: impl FnOnce() -> Option<bool>,
+) -> Option<Planned> {
     let tried = matches!(verdict, Verdict::Nothing | Verdict::SetupFailed(_)) && !stuck(verdict);
     let m = map(p);
-    (tried && p.child.is_none() && !m.is_empty() && crate::warp::era(&m).is_none()).then(|| {
-        Planned {
-            child: Some(!child),
-            ..p.clone()
-        }
+    if !(tried && p.child.is_none() && !m.is_empty() && crate::warp::era(&m).is_none()) {
+        return None;
+    }
+    Some(Planned {
+        child: Some(!child()?),
+        ..p.clone()
     })
+}
+
+/// Keep the round's spots `resume` didn't sweep yet, within `limit` spots
+/// all told, its done ones counted.
+fn left<T>(
+    planned: &mut Vec<T>,
+    resume: &Resume,
+    limit: Option<usize>,
+    name: impl Fn(&T) -> String,
+) {
+    resume.skip(planned, name);
+    planned.truncate(limit.map_or(usize::MAX, |l| l.saturating_sub(resume.done.len())));
 }
 
 /// Skip the spots in a map with no arrival point, which a warp can't reach,
@@ -693,14 +720,19 @@ mod tests {
     #[test]
     fn a_dungeon_spot_that_came_to_nothing_goes_again_as_the_other_age() {
         needs_names!();
-        let again = other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, true);
+        let child = || Some(true);
+        let again = other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, child);
         assert_eq!(again.map(|p| p.child), Some(Some(false)));
         let failed = Verdict::SetupFailed("x".into());
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &failed, false).is_some());
-        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Pass, true).is_none());
+        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &failed, || Some(false)).is_some());
+        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Pass, child).is_none());
         assert!(
-            other_age(&open(map::KOKIRI_FOREST_CHILD), &Verdict::Nothing, true).is_none(),
+            other_age(&open(map::KOKIRI_FOREST_CHILD), &Verdict::Nothing, child).is_none(),
             "its map names its age"
+        );
+        assert!(
+            other_age(&open(flag::SPIRIT_TEMPLE), &Verdict::Nothing, || None).is_none(),
+            "the game can't say Link's age"
         );
         let tried = Planned {
             child: Some(false),
@@ -708,7 +740,7 @@ mod tests {
             ..open(flag::SPIRIT_TEMPLE)
         };
         assert!(
-            other_age(&tried, &Verdict::Nothing, false).is_none(),
+            other_age(&tried, &Verdict::Nothing, || Some(false)).is_none(),
             "once"
         );
     }
@@ -720,26 +752,31 @@ mod tests {
         let ignored = format!("{} to {}/Start", dev::NOT_TAKEN, map::GERUDO_FORTRESS_ADULT);
         assert!(stuck(&Verdict::SetupFailed(ignored)));
         assert!(!stuck(&Verdict::SetupFailed("no arrival point".into())));
-        let open = Planned {
-            spot: Default::default(),
-            trigger: Trigger::Open {
-                map: flag::SPIRIT_TEMPLE.to_string(),
-                at: Default::default(),
-                face: Default::default(),
-                ready: vec![],
-                steps: vec![],
-                first: None,
-                broken: false,
-                near: vec![],
-                wield: None,
-                sides: vec![],
-                foes: vec![],
-                latch: vec![],
-            },
-            child: None,
-            side: Side::Front,
+        let unread = || -> Option<bool> { panic!("no second try, so no age read") };
+        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &never, unread).is_none());
+    }
+
+    #[test]
+    fn a_crash_restarts_the_game_without_reading_its_age() {
+        needs_names!();
+        let crash = Verdict::Crash("the game closed the bridge".into());
+        let unread = || -> Option<bool> { panic!("the game is gone") };
+        assert!(other_age(&open(flag::SPIRIT_TEMPLE), &crash, unread).is_none());
+        assert!(crash.broke());
+    }
+
+    #[test]
+    fn a_resumed_round_sweeps_its_limit_all_told() {
+        let resume = Resume {
+            done: vec!["c".into(), "a".into()],
+            ..Resume::default()
         };
-        assert!(other_age(&open, &never, true).is_none());
+        let mut planned = vec!["a", "b", "c", "d", "e"];
+        left(&mut planned, &resume, Some(3), |p| p.to_string());
+        assert_eq!(planned, ["b"]);
+        let mut planned = vec!["a", "b", "c", "d"];
+        left(&mut planned, &resume, None, |p| p.to_string());
+        assert_eq!(planned, ["b", "d"]);
     }
 
     #[test]

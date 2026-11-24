@@ -6,6 +6,7 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  Polled, so off the main thread: it probes processes and user paths. */
 	status: () => typedError<Status, string>(__TAURI_INVOKE("status")),
 	schema: () => __TAURI_INVOKE<SettingDef[]>("schema"),
 	config: () => typedError<Config, string>(__TAURI_INVOKE("config")),
@@ -53,7 +54,7 @@ export const commands = {
 	spoiler: (id: number) => typedError<Spoiler, string>(__TAURI_INVOKE("spoiler", { id })),
 	play: (target: string) => typedError<null, string>(__TAURI_INVOKE("play", { target })),
 	/**  A shared preset as a new target, named so no saved target has its name. */
-	importTarget: (text: string) => typedError<Target, string>(__TAURI_INVOKE("import_target", { text })),
+	importTarget: (preset: string) => typedError<Target, string>(__TAURI_INVOKE("import_target", { preset })),
 	/**  A saved target's preset JSON, to share. */
 	exportTarget: (name: string) => typedError<string, string>(__TAURI_INVOKE("export_target", { name })),
 	/**  A saved target's preset JSON, written to `file` to share. */

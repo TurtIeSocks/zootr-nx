@@ -4,25 +4,28 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, Byml, Romfs};
+use ounce_formats::{ActorPack, Byml, BymlDoc, Romfs};
 use roead::sarc::Sarc;
 
 use crate::items::scalar;
 
 pub(super) fn byml(romfs: &Romfs, game: &Path, pattern: &str, file: bool) -> Result<()> {
-    let show = |path: &str, data: &[u8]| {
-        if let Ok(doc) = ounce_formats::BymlDoc::parse(data) {
-            println!("{path}");
-            print!("{}", tree(&doc.root, 1));
-        }
+    let show = |path: &str, doc: &BymlDoc| {
+        println!("{path}");
+        print!("{}", tree(&doc.root, 1));
     };
     if file {
         let data = std::fs::read(pattern).with_context(|| format!("reading {pattern}"))?;
-        show(pattern, &romfs.dicts().decompress(pattern, &data)?);
+        let doc = BymlDoc::parse(&romfs.dicts().decompress(pattern, &data)?)
+            .with_context(|| format!("{pattern} isn't BYML"))?;
+        show(pattern, &doc);
         return Ok(());
     }
+    // Most files a pattern matches aren't BYML: those are skipped.
     unpacked(romfs, game, pattern, |path, data, _| {
-        show(path, data);
+        if let Ok(doc) = BymlDoc::parse(data) {
+            show(path, &doc);
+        }
         Ok(())
     })
 }
@@ -179,10 +182,8 @@ fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
 /// name.
 pub(super) fn pool(romfs: &Romfs, seed: u64, untracked: bool) -> Result<()> {
     use crate::sweep::night::{self, MIXES, mix};
-    let dir = std::env::temp_dir().join("zootr-probe-pool");
     let (_, settings) = mix(MIXES.len() - 1);
-    let places = crate::dev::places(romfs)?;
-    let pool = night::pool(romfs, &dir, seed, &settings, &places)?;
+    let pool = super::plan::round(romfs, seed, &settings)?;
     if untracked {
         let spots: Vec<_> = pool.iter().map(|p| p.spot.clone()).collect();
         let gd = crate::gamedata::GameData::load(romfs)?;

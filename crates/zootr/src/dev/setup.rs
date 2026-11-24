@@ -11,20 +11,24 @@ use crate::live::{self, Game, Memory};
 use crate::{inventory, starting, steps};
 
 impl<M: Memory> Dev<M> {
-    /// Apply a saved test setup: its values, its items, its quest steps,
-    /// its hour, then one teleport, so the new map reads the rest, landed
-    /// before the warp to `near`, the spot beside its `near` actor. Says what it did, and which goals
-    /// already held before it changed anything. A line that can't be run
-    /// refuses the whole setup first.
+    /// Apply a saved test setup: its values, its items, its quest steps
+    /// and its hour, then one teleport, so the new map reads the rest.
+    /// After landing, it warps to `near`, the spot beside the setup's
+    /// `near` actor. Says what it did, and which goals already held before
+    /// it changed anything. A line that can't be run refuses the whole
+    /// setup first.
     pub fn apply(
         &self,
         gd: &GameData,
         setup: &TestSetup,
         near: Option<[f32; 3]>,
     ) -> Result<Applied> {
-        let jobs = plan(setup, near, |challenge, step| {
-            steps::check(gd, challenge, step)
-        })?;
+        let jobs = plan(
+            setup,
+            near,
+            |challenge, step| steps::check(gd, challenge, step),
+            |actor| plan_give(gd, actor, 1),
+        )?;
         let held = (self.goals(gd, setup).into_iter())
             .filter(|g| g.met)
             .map(|g| g.name)
@@ -36,8 +40,8 @@ impl<M: Memory> Dev<M> {
                     live::set(&self.game, self.global, hash, &value)?;
                     done.push(format!("set {line}"));
                 }
-                Job::Give(actor) => {
-                    self.give(gd, &actor, 1)?;
+                Job::Give(actor, given) => {
+                    self.grant(given, false)?;
                     done.push(format!("gave {actor}"));
                 }
                 Job::Step(challenge, step) => {
@@ -91,7 +95,7 @@ pub(super) fn plan_give(gd: &GameData, actor: &str, count: i32) -> Result<Vec<Gr
             || inventory::has_flag(gd, actor)
             || starting::WORDS
                 .iter()
-                .any(|(_, a)| starting::drop(a).get() == actor),
+                .any(|(_, a)| starting::chest_item(a).get() == actor),
         "{actor} isn't an item Link can be given. `zootr items` lists them"
     );
     let mut jobs = grants(actor);
@@ -119,7 +123,8 @@ pub(super) enum Job {
         /// The `NAME=VALUE` line, for the report.
         line: String,
     },
-    Give(String),
+    /// An item, and what giving one of it does.
+    Give(String, Vec<Grant>),
     Step(String, String),
     Hour(u32),
     Go(Place),
@@ -127,12 +132,14 @@ pub(super) enum Job {
 }
 
 /// Everything Apply does for `setup`, in order: values, items, quest steps,
-/// the hour, the teleport, then the warp. Each line is read here, and each quest step
-/// asked of `known`, so a bad one refuses the setup before anything runs.
+/// the hour, the teleport, then the warp. Each line is read here, each quest
+/// step asked of `known` and each item planned by `give`, so a bad one
+/// refuses the setup before anything runs.
 pub(super) fn plan(
     setup: &TestSetup,
     near: Option<[f32; 3]>,
     known: impl Fn(&str, &str) -> Result<()>,
+    give: impl Fn(&str) -> Result<Vec<Grant>>,
 ) -> Result<Vec<Job>> {
     let mut jobs = Vec::new();
     for line in &setup.defaults {
@@ -143,7 +150,9 @@ pub(super) fn plan(
             line: line.clone(),
         });
     }
-    jobs.extend(setup.give.iter().cloned().map(Job::Give));
+    for actor in &setup.give {
+        jobs.push(Job::Give(actor.clone(), give(actor)?));
+    }
     for line in &setup.progress {
         let (challenge, step) = steps::parse(line)?;
         known(&challenge, &step).with_context(|| format!("quest step {line}"))?;
@@ -192,12 +201,13 @@ pub struct Value {
 /// the hook.
 pub fn value(gd: &GameData, name: &str, game: Option<&Game>) -> Result<Value> {
     let info = gd.info(name)?;
-    let live = game.and_then(|g| g.get(gd, live::hash(name).ok()?).ok());
+    let hash = live::hash(name)?;
+    let live = game.and_then(|g| g.get(gd, hash).ok());
     Ok(Value {
         info,
         game: game.is_some(),
         live,
-        expr: gd.expr_of(live::hash(name)?)?,
+        expr: gd.expr_of(hash)?,
     })
 }
 
@@ -332,14 +342,19 @@ mod tests {
 
     const SPOT: [f32; 3] = [1.0, 2.0, 3.0];
 
+    /// A `give` for [`plan`] that takes every item and grants nothing.
+    fn any(_: &str) -> Result<Vec<Grant>> {
+        Ok(Vec::new())
+    }
+
     #[test]
     fn apply_runs_values_items_steps_the_hour_then_the_teleport() {
-        let jobs = plan(&full(), Some(SPOT), |_, _| Ok(())).unwrap();
+        let jobs = plan(&full(), Some(SPOT), |_, _| Ok(()), any).unwrap();
         let kinds: Vec<_> = jobs
             .iter()
             .map(|j| match j {
                 Job::Set { .. } => "set",
-                Job::Give(_) => "give",
+                Job::Give(..) => "give",
                 Job::Step(..) => "step",
                 Job::Hour(_) => "hour",
                 Job::Go(_) => "go",
@@ -359,7 +374,7 @@ mod tests {
         );
         assert_eq!(jobs[7], Job::Near("Npc_G".into(), SPOT));
         assert!(
-            plan(&TestSetup::default(), None, |_, _| Ok(()))
+            plan(&TestSetup::default(), None, |_, _| Ok(()), any)
                 .unwrap()
                 .is_empty()
         );
@@ -369,7 +384,7 @@ mod tests {
     fn a_bad_line_refuses_the_setup_before_anything_runs() {
         needs_names!();
         let bad = |setup: TestSetup| {
-            let err = plan(&setup, Some(SPOT), |_, _| Ok(())).unwrap_err();
+            let err = plan(&setup, Some(SPOT), |_, _| Ok(()), any).unwrap_err();
             err.to_string()
         };
         let progress = |line: &str| TestSetup {
@@ -377,10 +392,15 @@ mod tests {
             ..full()
         };
         assert!(bad(progress(flow::SAGE_OF_SPIRIT)).contains("CHALLENGE=STEP"));
-        let unknown = plan(&full(), Some(SPOT), |c, _| {
-            ensure!(c != flow::GOTO_HYRULE_CASTLE, "no such quest");
-            Ok(())
-        });
+        let unknown = plan(
+            &full(),
+            Some(SPOT),
+            |c, _| {
+                ensure!(c != flow::GOTO_HYRULE_CASTLE, "no such quest");
+                Ok(())
+            },
+            any,
+        );
         let err = format!("{:#}", unknown.unwrap_err());
         assert!(
             err.contains(&format!("{}=Step02", flow::GOTO_HYRULE_CASTLE))
@@ -397,7 +417,20 @@ mod tests {
             ..full()
         };
         assert!(bad(hour).contains("0 to 23"));
-        let lost = plan(&full(), None, |_, _| Ok(())).unwrap_err().to_string();
+        let lost = (plan(&full(), None, |_, _| Ok(()), any))
+            .unwrap_err()
+            .to_string();
         assert!(lost.contains("no spot beside Npc_G"), "{lost}");
+        let ungiven = plan(
+            &full(),
+            Some(SPOT),
+            |_, _| Ok(()),
+            |actor| {
+                ensure!(actor != item::TOKEN_GERUDO, "{actor} isn't an item");
+                Ok(Vec::new())
+            },
+        );
+        let err = ungiven.unwrap_err().to_string();
+        assert!(err.contains("isn't an item"), "{err}");
     }
 }

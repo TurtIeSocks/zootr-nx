@@ -218,7 +218,7 @@ impl Shows {
         flow: &mut Flowchart,
         mut when: impl FnMut(&mut Flowchart, &[u8], u16, u16) -> Result<u16>,
     ) -> Result<u16> {
-        let item = self.banner(flow, Notice::Item, None)?;
+        let item = self.banner(flow, Notice::Item)?;
         let (actor, action) = flow.action(&self.popup.actor, self.popup.name);
         let mut params = self.popup.params.clone();
         set(
@@ -232,14 +232,14 @@ impl Shows {
             action,
             params,
         });
-        let summary = self.banner(flow, Notice::Summary, None)?;
-        let mixed = self.banner(flow, Notice::Mixed, None)?;
+        let summary = self.banner(flow, Notice::Summary)?;
+        let mixed = self.banner(flow, Notice::Mixed)?;
         let summary = when(flow, ARG_MIXED, mixed, summary)?;
         when(flow, ARG_SUMMARY, summary, popup)
     }
 
-    /// `notice`'s banner, then `next`.
-    fn banner(&self, flow: &mut Flowchart, notice: Notice, next: Option<u16>) -> Result<u16> {
+    /// `notice`'s banner, which ends the notice.
+    fn banner(&self, flow: &mut Flowchart, notice: Notice) -> Result<u16> {
         let (actor, action) = flow.action(&self.banner.actor, self.banner.name);
         let mut params = self.banner.params.clone();
         set(
@@ -248,7 +248,7 @@ impl Shows {
             Value::Int(vec![banner(notice).kind]),
         )?;
         Ok(flow.push(EventKind::Action {
-            next,
+            next: None,
             actor,
             action,
             params,

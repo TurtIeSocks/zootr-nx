@@ -5,6 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::Romfs;
 
+use super::xyz;
 use crate::nav::Level;
 
 /// Prints each climb in `map`: its actor and placement, how high it rises
@@ -13,7 +14,6 @@ use crate::nav::Level;
 pub fn climbs(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
     let level = Level::of(romfs, game, map)?;
     let graph = level.graph();
-    let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
     let mut linked = 0;
     for c in &level.climbs {
         let hash = c.hash.map_or("-".into(), |h| h.to_string());

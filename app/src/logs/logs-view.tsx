@@ -1,7 +1,7 @@
 import type { Level } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
-import { useLogKeys } from "@/components/log-view/keys";
+import { HiddenMenu } from "@/components/log-view/hidden-menu";
 import { type LineProps, PICKED } from "@/components/log-view/line";
 import {
   CopyButton,
@@ -9,20 +9,12 @@ import {
   OpenLogButton,
 } from "@/components/log-view/log-tools";
 import { Tail } from "@/components/log-view/tail";
+import { useLogCopy } from "@/components/log-view/use-log-copy";
 import { useSelection } from "@/components/log-view/use-selection";
 import { CutText, Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { useCopied } from "@/lib/use-copied";
 import { cn } from "@/lib/utils";
 import { type AppLog, LEVELS, textOf, visible } from "@/logs/lines";
 import { Page } from "@/shell/page-header";
@@ -58,31 +50,16 @@ function LevelsMenu() {
   const [hidden, setHidden] = useUi.usePath("logs.hidden");
   const levels = useDevTools() ? LEVELS : LEVELS.filter((l) => l !== "debug");
   const off = levels.filter((l) => hidden.includes(l)).length;
-  const show = (level: Level, on: boolean) =>
-    setHidden(on ? hidden.filter((l) => l !== level) : [...hidden, level]);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost">
-          Levels
-          {off > 0 && <span className="text-ink-faint">· {off} hidden</span>}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Show These Levels</DropdownMenuLabel>
-        {levels.map((level) => (
-          <DropdownMenuCheckboxItem
-            key={level}
-            checked={!hidden.includes(level)}
-            onCheckedChange={(on) => show(level, on)}
-            onSelect={(e) => e.preventDefault()}
-            className="capitalize"
-          >
-            {level}
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <HiddenMenu
+      label="Levels"
+      heading="Show These Levels"
+      options={levels}
+      hidden={hidden}
+      onHiddenChange={setHidden}
+      off={off}
+      itemClassName="capitalize"
+    />
   );
 }
 
@@ -146,16 +123,7 @@ function LogRow({ line, selected, pointer }: LogRowProps) {
 export function LogsView() {
   const shown = useShown();
   const selection = useSelection();
-  const { copied, flash } = useCopied();
-  const selecting = selection.ids.size > 0;
-  const lines = selecting
-    ? shown.filter((l) => selection.ids.has(l.id))
-    : shown;
-  const copy = async () => {
-    await navigator.clipboard.writeText(textOf(lines));
-    flash("lines");
-  };
-  useLogKeys(shown, selection, copy);
+  const copyButton = useLogCopy(shown, selection, textOf);
 
   return (
     <Page wide className="min-h-0 flex-1">
@@ -166,12 +134,7 @@ export function LogsView() {
             <div className="ml-auto flex items-center gap-2">
               <LogsGrep />
               <LevelsMenu />
-              <CopyButton
-                count={lines.length}
-                selecting={selecting}
-                copied={copied !== undefined}
-                onCopy={copy}
-              />
+              <CopyButton {...copyButton} />
               <LogsFileButton />
             </div>
           </div>

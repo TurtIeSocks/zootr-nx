@@ -7,15 +7,15 @@ from itertools import product
 
 from BaseClasses import LocationProgressType
 from .. import dealt, traded, trapped
-from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP
+from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP, WORLD
 from ..options import attr
-from . import ZnxTestBase
+from . import ZnxTestBase, ap_value
 
 
 def other_values(entry: dict) -> list:
     if entry["kind"] == "toggle":
         return [not entry["default"]]
-    return [option["id"].replace("-", "_") for option in entry["options"] if option["id"] != entry["default"]]
+    return [ap_value(entry["id"], option["id"]) for option in entry["options"] if option["id"] != entry["default"]]
 
 
 for entry in OPTIONS:
@@ -28,7 +28,7 @@ for entry in OPTIONS:
 # Freed the membership card's, Cows lose their milk to the bottle cap.
 JOINT = ["met-zelda", "gerudo-fortress", "cows"]
 JOINT_ENTRIES = [next(entry for entry in OPTIONS if entry["id"] == id_) for id_ in JOINT]
-for combo in product(*([attr(str(e["default"])) if e["kind"] != "toggle" else e["default"], *other_values(e)] for e in JOINT_ENTRIES)):
+for combo in product(*([ap_value(e["id"], e["default"]), *other_values(e)] for e in JOINT_ENTRIES)):
     options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
     name = "Test_npc_gifts_" + "_".join(str(value) for value in combo)
     globals()[name] = type(name, (ZnxTestBase,), {"options": options})
@@ -49,6 +49,22 @@ class TestDeadTreeWithAdultDekuTree(ZnxTestBase):
     def test_a_way_in_a_region(self) -> None:
         names = {region.name for region in self.multiworld.get_regions(self.player)}
         self.assertIn("deku-tree-adult", names)
+
+
+class TestEventWithNoWayInIsNotFree(ZnxTestBase):
+    """An event whose every spot these options close is never reached,
+    rather than given at the start."""
+
+    EVENT = {"name": "Beat FakeBoss", "at": [{"place": WORLD["start"], "rule": False}]}
+
+    def setUp(self) -> None:
+        WORLD["events"].append(self.EVENT)
+        self.addCleanup(WORLD["events"].remove, self.EVENT)
+        super().setUp()
+
+    def test_not_placed(self) -> None:
+        names = {location.name for location in self.multiworld.get_locations(self.player)}
+        self.assertNotIn(self.EVENT["name"], names)
 
 
 RACE = "Gerudo Valley Running Man's Race"
@@ -77,7 +93,8 @@ class TestAddedItemsTakeTheCheapestRupees(ZnxTestBase):
     """What the mask and Bombchu Bag options add takes the place of the
     cheapest rupees, as in the app's deal."""
 
-    options = {"shuffle_masks": True, "bombchus": "bag"}
+    # Off, so the pool names each item as its rows do.
+    options = {"shuffle_masks": True, "bombchus": "bag", "progressive_items": False}
 
     def test_each_takes_a_rupee(self) -> None:
         world = self.multiworld.worlds[self.player]
@@ -136,11 +153,32 @@ class TestTradeOrder(unittest.TestCase):
         self.assertEqual(traded(rows), Counter({"Fake Bag": 1}))
 
 
+class TestProgressiveItemsOffDealsEachLevel(ZnxTestBase):
+    """Off, each line's copies go by its levels' own names, lowest first."""
+
+    options = {"progressive_items": False, "npc_gifts": True}
+
+    def test_each_level_once(self) -> None:
+        pool = self.multiworld.worlds[self.player].pool()
+        self.assertNotIn("Progressive Hookshot", pool)
+        self.assertEqual((pool["Hookshot"], pool["Longshot"]), (1, 1))
+        self.assertEqual((pool["Adult's Wallet"], pool["Giant's Wallet"]), (1, 1))
+
+
+class TestProgressiveItemsOnDealsTheLine(ZnxTestBase):
+    options = {"progressive_items": True}
+
+    def test_the_line_s_name(self) -> None:
+        pool = self.multiworld.worlds[self.player].pool()
+        self.assertEqual(pool["Progressive Hookshot"], 2)
+        self.assertNotIn("Longshot", pool)
+
+
 class TestIceTrapsTakeTheirShare(ZnxTestBase):
     """Mayhem: every item a trap may take, after the trade, is a trap,
     and no other item goes."""
 
-    options = {"ice_traps": "mayhem", "shuffle_masks": True}
+    options = {"ice_traps": "mayhem", "shuffle_masks": True, "progressive_items": False}
 
     def test_every_trappable_item(self) -> None:
         world = self.multiworld.worlds[self.player]

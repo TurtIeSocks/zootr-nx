@@ -10,9 +10,9 @@ use crate::{Res, text};
 /// A shared preset as a new target, named so no saved target has its name.
 #[tauri::command]
 #[specta::specta]
-pub(crate) fn import_target(text: String) -> Res<Target> {
-    let mut target = Target::import(&text).map_err(crate::text)?;
-    target.name = target.unique_name(&Config::load().map_err(crate::text)?.targets);
+pub(crate) fn import_target(preset: String) -> Res<Target> {
+    let mut target = Target::import(&preset).map_err(text)?;
+    target.name = target.unique_name(&Config::load().map_err(text)?.targets);
     Ok(target)
 }
 
@@ -21,10 +21,9 @@ pub(crate) fn import_target(text: String) -> Res<Target> {
 #[specta::specta]
 pub(crate) fn export_target(name: String) -> Res<String> {
     let config = Config::load().map_err(text)?;
-    match config.targets.iter().find(|t| t.name == name) {
-        Some(t) => Ok(t.export()),
-        None => Err(format!("No target named {name}")),
-    }
+    (config.targets.iter().find(|t| t.name == name))
+        .map(Target::export)
+        .ok_or_else(|| format!("No target named {name}"))
 }
 
 /// A saved target's preset JSON, written to `file` to share.

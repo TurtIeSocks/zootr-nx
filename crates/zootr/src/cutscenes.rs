@@ -107,13 +107,9 @@ const OWL_FLAGS: [&Name; 1] = [flag::NPC_LAKE_HRL_0010_JUST_BEFORE_TALK];
 const GREAT_DEKU: [&Name; 2] = [scene::KOKIRI_0070, scene::KOKIRI_0075];
 fn great_deku_flags() -> [String; 6] {
     [
-        format!(
-            "{}.{}=true",
-            flag::HAVE_PLAYED_EVENT,
-            field::KOKIRI_FOREST_MEET_DEKU_TREE_MEET_DEKU_TREE_01
-        ),
-        format!("{}.{}=true", flag::HAVE_PLAYED_EVENT, scene::KOKIRI_0070),
-        format!("{}.{}=true", flag::HAVE_PLAYED_EVENT, scene::KOKIRI_0075),
+        played_set(field::KOKIRI_FOREST_MEET_DEKU_TREE_MEET_DEKU_TREE_01),
+        played_set(scene::KOKIRI_0070),
+        played_set(scene::KOKIRI_0075),
         format!(
             "{}=true",
             field::KOKIRI_FOREST_MEET_DEKU_TREE_OPEN_DEKU_TREE_MOUTH
@@ -131,16 +127,17 @@ const POSED: [&Name; 1] = [scene::TIME_TEMPLE_0000];
 const INTRO_GUARDS: [&Name; 2] = [arrivals::ENTRANCE, map::LOCATION_AREA];
 
 /// Skipped cutscenes whose played flag gates a map trigger that starts a flow
-/// doing more than play them: `scene::HRL_FIELD_0010` is the end of the field's
-/// the flow that goes to the castle, which clears the field's first-visit sky,
-/// and `scene::TIME_TEMPLE_0020` the end of the Door of Time's discovery flow, which
-/// finds the Master Sword. A new game that sets their flag stops the trigger,
-/// and that whole flow with it. So each transition to one sets the flag
-/// instead, where the cutscene would have ended. `scene::TIME_TEMPLE_0040`,
-/// the first pull, is the same in a flow: set at the start, its flag sent
-/// every pull of a closed door's sword to the plain swap, past Rauru and the
-/// sword's grant. `scene::TIME_TEMPLE_0010`, the door opening, too: the
-/// song's flow ends before opening it once its flag is set.
+/// doing more than play them: `scene::HRL_FIELD_0010` is the end of the
+/// field's flow that goes to the castle, which clears the field's first-visit
+/// sky, and `scene::TIME_TEMPLE_0020` the end of the Door of Time's discovery
+/// flow, which finds the Master Sword. A new game that sets their flag stops
+/// the trigger, and that whole flow with it. So each transition to one sets
+/// the flag instead, where the cutscene would have ended.
+/// `scene::TIME_TEMPLE_0040`, the first pull, is the same in a flow: set at
+/// the start, its flag sent every pull of a closed door's sword to the plain
+/// swap, past Rauru and the sword's grant. `scene::TIME_TEMPLE_0010`, the
+/// door opening, too: the song's flow ends before opening it once its flag
+/// is set.
 const FLAG_AT_END: [&Name; 4] = [
     scene::HRL_FIELD_0010,
     scene::TIME_TEMPLE_0010,
@@ -186,9 +183,21 @@ const WORLD: (&Name, &Name) = (
     flow::EVENT_TRIGGER_SET_TIME,
 );
 
-const TRANSITION: &Name = flow::EVENT_TRANSITION;
+pub(crate) const TRANSITION: &Name = flow::EVENT_TRANSITION;
+/// How Link's warps' action names start.
+pub(crate) const PLAYER_WARP: &str = "EventPlayerWarp";
 const SKIPPED: &Name = flow::EVENT_QUERY_IS_EVENT_SKIPED_MOST_RECENT;
 pub(crate) const PLAYED: &Name = flag::HAVE_PLAYED_EVENT;
+
+/// `name`'s played flag.
+pub(crate) fn played_flag(name: &str) -> String {
+    format!("{PLAYED}.{name}")
+}
+
+/// `name`'s played flag, set, as a new-game flag.
+pub(crate) fn played_set(name: &str) -> String {
+    format!("{}=true", played_flag(name))
+}
 
 /// Actors whose `EventTrigger*` and `EventGet*` actions change the save.
 const STATE_ACTORS: [&Name; 3] = [
@@ -199,7 +208,7 @@ const STATE_ACTORS: [&Name; 3] = [
 /// Actions that move Link or change the world, by part of their name. NPCs,
 /// Navi and the camera warp too, but only into place for the shot.
 const MOVES: [&str; 5] = [
-    "EventPlayerWarp",
+    PLAYER_WARP,
     "BancChange",
     "Horse",
     "EventGet",
@@ -235,7 +244,7 @@ pub(crate) fn changes(actor: &str, action: &str) -> bool {
 /// What `changes` counts, less Link's warps, which only pose him for a
 /// shot when whatever runs next places him anyway.
 pub(crate) fn lasting(actor: &str, action: &str) -> bool {
-    changes(actor, action) && !action.starts_with("EventPlayerWarp")
+    changes(actor, action) && !action.starts_with(PLAYER_WARP)
 }
 
 /// The area setting id for a cutscene name.
@@ -358,11 +367,11 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
             flows::edit(romfs, &mut out, flow, |f| {
                 if c.name == FIELD_ARRIVAL {
                     let [hour, min] = FIELD_ARRIVAL_TIME;
-                    let params = vec![
+                    let params = [
                         (field::TIME_HOUR.to_string(), Value::Int(vec![hour])),
                         (field::TIME_MIN.to_string(), Value::Int(vec![min])),
                     ];
-                    arrivals::replace(f, &c.name, WORLD, params)
+                    arrivals::replace(f, &c.name, WORLD, &params)
                 } else {
                     cut::swap(f, &c.name, &[])?;
                     if c.name == IMPA_SCENE {
@@ -384,12 +393,12 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
     let mut flags: Vec<String> = picked
         .iter()
         .filter(|c| c.flag && !at_end(&c.name))
-        .map(|c| format!("{PLAYED}.{}=true", c.name))
+        .map(|c| played_set(&c.name))
         .collect();
     flags.extend(
         cuts.iter()
             .filter(|(c, _)| c.flows.is_empty())
-            .map(|(c, _)| format!("{PLAYED}.{}=true", c.name)),
+            .map(|(c, _)| played_set(&c.name)),
     );
     if skips.owl {
         flags.extend(OWL_FLAGS.iter().map(|f| format!("{f}=true")));
@@ -432,7 +441,7 @@ fn banc_after(flow: &mut Flowchart) -> Result<()> {
 /// played, and her gift opens straight onto the grant. Its played flag is
 /// still left to the game, so the gift counts as found only on the bridge.
 fn bridge(romfs: &Romfs, out: &mut Rewrites) -> Result<()> {
-    let played = format!("{PLAYED}.{SARIA_WAVE}");
+    let played = played_flag(SARIA_WAVE);
     flows::edit(romfs, out, BRIDGE, |f| {
         arrivals::swap(f, SARIA_WAVE, &played)
     })?;
@@ -561,9 +570,9 @@ mod tests {
         };
         let (_, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &skips).unwrap();
         for f in [
-            &format!("{}.{}=true", flag::HAVE_PLAYED_EVENT, scene::LAKE_HRL_0010),
+            &played_set(scene::LAKE_HRL_0010),
             &format!("{}=true", flag::NPC_LAKE_HRL_0010_JUST_BEFORE_TALK),
-            &format!("{}.{}=true", flag::HAVE_PLAYED_EVENT, scene::KOKIRI_0045),
+            &played_set(scene::KOKIRI_0045),
             &format!("{}=true", scene::KOKIRI_0050_AFTER_NEAR_END),
             &format!(
                 "{}=true",
@@ -656,7 +665,7 @@ mod tests {
             )));
         }
         // Everything else skipped still sets its flag.
-        assert!(flags.contains(&format!("{PLAYED}.{}=true", scene::HRL_FIELD_0000)));
+        assert!(flags.contains(&played_set(scene::HRL_FIELD_0000)));
     }
 
     /// What event `e` of `flow` runs when it is the copy `c`, and the event
@@ -715,7 +724,7 @@ mod tests {
         assert!(cuts.len() > 60, "{}", cuts.len());
         let mut copied = 0;
         for (c, plan) in &cuts {
-            let flag = format!("{PLAYED}.{}", c.name);
+            let flag = played_flag(&c.name);
             // A scene nothing plays has its flag from the new game.
             assert_eq!(
                 flags.contains(&format!("{flag}=true")),

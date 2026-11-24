@@ -113,6 +113,7 @@ pub enum Probe {
     /// Files whose path contains `--path` and whose bytes contain this,
     /// decompressed and looking inside SARC archives, with a hit count.
     Grep {
+        #[arg(value_parser = clap::builder::NonEmptyStringValueParser::new())]
         needle: String,
         #[arg(long, default_value = "")]
         path: String,
@@ -125,14 +126,14 @@ pub enum Probe {
     /// contains this, and the scale, rotation (radians) and translation it
     /// gives each bone at its first frame.
     Poses { path: String },
+    /// How far below its origin each pool item's model reaches on a
+    /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
+    Floors,
     /// Each shape in the models whose path contains this: the lowest and
     /// highest corner of its vertices as stored, before any pose, and each
     /// level of detail's vertex and triangle counts, and its attributes
     /// (`same` when every vertex holds the same bytes). A texture's size and
     /// format, and whether `redraw` can write it.
-    /// How far below its origin each pool item's model reaches on a
-    /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
-    Floors,
     Bounds {
         path: String,
         /// Euler X, Y, Z in radians, a scale and a lift, as `probe poses`
@@ -242,7 +243,7 @@ pub enum Probe {
     /// seed's tries would all fail. Doors shuffle `on` unless a
     /// `--setting` says otherwise.
     Doors {
-        #[arg(long, default_value_t = 200)]
+        #[arg(long, default_value_t = 200, value_parser = clap::value_parser!(u32).range(1..))]
         rolls: u32,
         /// A setting by id, as `shuffle` takes it. Repeatable.
         #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
@@ -333,7 +334,7 @@ pub enum Probe {
         /// all.
         #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "to")]
         from: Option<[f32; 3]>,
-        #[arg(long, value_parser = point, allow_hyphen_values = true)]
+        #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "from")]
         to: Option<[f32; 3]>,
     },
     /// The sweep's plan for one round: each holder kind by how it'd be
@@ -619,10 +620,47 @@ fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
         for (gyaml, (n, unique)) in by {
             println!("{n:>5} {:>5} {gyaml}", unique.len());
         }
+    } else {
+        print_hits(&hits, f)?;
     }
-    for h in hits.iter().filter(|_| !f.count) {
-        let [x, y, z] = h.pos;
-        let mut line = format!("{} {} {} {x:.1},{y:.1},{z:.1}", h.file, h.gyaml, h.hash);
+    eprintln!("{} placements", hits.len());
+    Ok(())
+}
+
+/// A point as `x,y,z`, to a tenth.
+fn xyz(p: [f32; 3]) -> String {
+    format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
+}
+
+/// Counts one more `key` in `by`, making its value with `make` the first
+/// time it's seen.
+fn tally<'a, T>(
+    by: &mut BTreeMap<&'a str, (usize, T)>,
+    key: &'a str,
+    make: impl FnOnce() -> Result<T>,
+) -> Result<()> {
+    match by.entry(key) {
+        std::collections::btree_map::Entry::Occupied(e) => e.into_mut().0 += 1,
+        std::collections::btree_map::Entry::Vacant(e) => {
+            e.insert((1, make()?));
+        }
+    }
+    Ok(())
+}
+
+/// The root of `i`'s set in a union-find forest, halving the path there.
+fn root(of: &mut [usize], mut i: usize) -> usize {
+    while of[i] != i {
+        of[i] = of[of[i]];
+        i = of[i];
+    }
+    i
+}
+
+/// One line per placement, for `print_actors` when it isn't counting.
+fn print_hits(hits: &[Hit], f: &Filter) -> Result<()> {
+    for h in hits {
+        let mut line = format!("{} {} {} {}", h.file, h.gyaml, h.hash, xyz(h.pos));
         if let Some(p) = f.near {
             line += &format!(" d={:.1}", flat(p, h.pos));
         }
@@ -642,7 +680,6 @@ fn print_actors(romfs: &Romfs, f: &Filter) -> Result<()> {
         }
         println!("{line}");
     }
-    eprintln!("{} placements", hits.len());
     Ok(())
 }
 
@@ -794,7 +831,6 @@ fn nav(
         return print_types(&bytes);
     }
     let mesh = NavMesh::parse(&bytes)?;
-    let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
     println!(
         "{} faces, {} edges ({} on the border), {} vertices, from {} to {}, kept {:.2} from walls",
         mesh.faces.len(),
@@ -924,6 +960,33 @@ mod tests {
     use super::*;
     use crate::known::{actor, map};
 
+    /// Arguments `run` can't use are refused when parsed: an empty grep
+    /// needle (no window of 0 bytes), `--to` without `--from`, and 0 rolls
+    /// (odds of 0 out of 0).
+    #[test]
+    fn unusable_arguments_are_refused() {
+        #[derive(clap::Parser)]
+        struct Args {
+            #[command(subcommand)]
+            probe: Probe,
+        }
+        let parse = |line: &[&str]| {
+            <Args as clap::Parser>::try_parse_from(
+                std::iter::once("zootr").chain(line.iter().copied()),
+            )
+            .map(|a| a.probe)
+        };
+        assert!(parse(&["grep", ""]).is_err());
+        assert!(parse(&["grep", "Fake"]).is_ok());
+        assert!(parse(&["water", "FakeMap", "--to", "1,2,3"]).is_err());
+        assert!(parse(&["water", "FakeMap", "--from", "1,2,3", "--to", "4,5,6"]).is_ok());
+        assert!(parse(&["doors", "--rolls", "0"]).is_err());
+        assert!(matches!(
+            parse(&["doors", "--rolls", "1"]),
+            Ok(Probe::Doors { rolls: 1, .. })
+        ));
+    }
+
     #[test]
     fn points_parse_with_negatives() {
         assert_eq!(point("1,-2.5, 3").unwrap(), [1.0, -2.5, 3.0]);
@@ -938,7 +1001,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let game = Path::new("../../dump/oot.nup");
+        let game = Path::new(crate::game::DEV_DUMP);
         let mesh = NavMesh::parse(
             &navmesh_file(&romfs, game, map::KOKIRI_FOREST_CHILD)
                 .unwrap()

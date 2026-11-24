@@ -179,8 +179,8 @@ pub(super) fn tools(romfs: &Romfs, filter: &Filter) -> Result<()> {
     Ok(())
 }
 
-/// Each dealt check with what logic says it needs, one line per era, or
-/// with `never` only those no age can get.
+/// Rolls `rolls` dungeon door layouts and prints how many logic can beat,
+/// and how often a seed's tries would all fail.
 pub(super) fn doors(
     romfs: &Romfs,
     rolls: u32,
@@ -226,6 +226,8 @@ pub(super) fn doors(
     Ok(())
 }
 
+/// Each dealt check with what logic says it needs, one line per era, or
+/// with `never` only those no age can get.
 pub(super) fn checks(
     romfs: &Romfs,
     area: Option<&str>,

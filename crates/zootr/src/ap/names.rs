@@ -10,7 +10,7 @@ use ounce_formats::Romfs;
 use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
-use crate::progressive::Lines;
+use crate::progressive::{Level, Lines};
 use crate::{cows, gifts, goron_pot, ice_traps, pickups, places, scrubs, shops};
 
 /// Each area by its folder.
@@ -252,7 +252,8 @@ pub fn named() -> impl Iterator<Item = &'static str> {
     tables.chain(COPIES.keys().map(String::as_str)).chain(trap)
 }
 
-/// The item's name: its line's with progressive items on, else its own.
+/// The item's name: with progressive items on, its line's at any level,
+/// else its own.
 pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
     let actor = same(actor);
     if let Some(name) = COPIES.get(actor) {
@@ -262,23 +263,55 @@ pub fn item(actor: &str, progressive: bool) -> Result<&'static str> {
         // Not a [`Name`]: no dump holds it.
         return Ok(ice_traps::NAME);
     }
-    // The game's lines, and the Bombchu Bags', whose first level is the
-    // same with or without them. A shuffled starter bag keeps its own name:
-    // the line's first level is another bag without it, and one name can't
-    // stand for two items.
-    let lines = Lines {
-        bombchu_bags: true,
-        ..Lines::default()
-    };
-    // A line of one level (Double Magic, without the meter) climbs nowhere.
-    let line = progressive
-        .then(|| lines.all().find(|l| l.len() > 1 && l[0].0.get() == actor))
-        .flatten();
-    let name = match line {
-        Some(_) => find(PROGRESSIVE, actor),
+    let name = match progressive.then(|| first(actor)).flatten() {
+        // A line without a name of its own goes by its first level's.
+        Some(first) => find(PROGRESSIVE, first).or_else(|| find(ITEMS, first)),
         None => find(ITEMS, actor),
     };
     name.with_context(|| format!("no Archipelago name for item {actor}"))
+}
+
+/// The first level of the line `actor` is any level of, if it climbs.
+fn first(actor: &str) -> Option<&'static str> {
+    let line = lines().find(|l| l.iter().any(|level| level.0.get() == actor));
+    line.map(|l| l[0].0.get())
+}
+
+/// The upgrade lines AP names: the game's, the Bombchu Bags', whose first
+/// level is the same with or without them, and the Magic Meter's, which
+/// Magic Comes with the First Magic Item (left out, so off) pools. A
+/// shuffled starter bag keeps its own name: the line's first level is
+/// another bag without it, and one name can't stand for two items.
+fn lines() -> impl Iterator<Item = &'static [Level]> {
+    let lines = Lines {
+        bombchu_bags: true,
+        magic_meter: true,
+        ..Lines::default()
+    };
+    lines.all().filter(|l| l.len() > 1)
+}
+
+/// A line's name and its levels, lowest first: each level's actor and own
+/// name.
+pub type Levels = (&'static str, Vec<(&'static str, &'static str)>);
+
+/// Each line's [`Levels`].
+pub fn levels() -> Result<Vec<Levels>> {
+    let named = |l: &[Level]| -> Result<_> {
+        let steps = l
+            .iter()
+            .map(|level| Ok((level.0.get(), item(level.0.get(), false)?)));
+        Ok((item(l[0].0.get(), true)?, steps.collect::<Result<_>>()?))
+    };
+    lines().map(named).collect()
+}
+
+/// The name and first level of the line `actor` is any level of, if it
+/// climbs: with progressive items on, the world gives the line's name to
+/// each check's own item, which the pool names.
+pub fn line(actor: &str) -> Result<Option<(&'static str, &'static str)>> {
+    let first = first(same(actor));
+    first.map(|f| Ok((item(f, true)?, f))).transpose()
 }
 
 /// Each check's location name, by hash: the area, then where (from

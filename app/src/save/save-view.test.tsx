@@ -152,13 +152,21 @@ const ORIGINAL: Record<number, string> = {
 };
 /** Keeps the edits that change the save, one change each, as the backend
  * does for values no cell shares. */
-const saveStage = vi.fn((_slot: number, { edits }: Pending) => {
-  const kept = edits.filter((e) => ORIGINAL[e.hash] !== e.value);
-  return ok({ edits: kept, count: kept.length });
-});
+const saveStage = vi.fn(
+  (_slot: number, { edits }: Pending): Promise<unknown> => {
+    const kept = edits.filter((e) => ORIGINAL[e.hash] !== e.value);
+    return ok({ edits: kept, count: kept.length });
+  },
+);
+/** Writes the slot, which moves its stamp on as the file's time would. */
 const saveWrite = vi.fn(
-  (_slot: number, { edits }: Pending, _stamp: number): Promise<unknown> =>
-    ok({ log: edits.map((e) => `#${e.hash}: ${e.value}`), backup: "b.bak" }),
+  (slot: number, { edits }: Pending, _stamp: number): Promise<unknown> => {
+    stamps.set(slot, (stamps.get(slot) ?? 0) + 500);
+    return ok({
+      log: edits.map((e) => `#${e.hash}: ${e.value}`),
+      backup: "b.bak",
+    });
+  },
 );
 
 vi.mock("@/bindings", () => ({
@@ -179,6 +187,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   stamps.set(2, 2_000);
+  stamps.set(0, 1_000);
 });
 
 const tile = (label: string) =>
@@ -285,6 +294,19 @@ test("a flag row stages its value, and Save writes what's pending", async () => 
   expect(useUi.getPath("save.edits")).toEqual([]);
 });
 
+test("a reset the save refuses says why", async () => {
+  await open();
+  fireEvent.click(screen.getByRole("button", { name: "Flags" }));
+  fireEvent.click(await screen.findByRole("button", { name: /FakeHill/ }));
+  saveStage.mockImplementationOnce(() =>
+    Promise.resolve({ status: "error" as const, error: "Fake refusal" }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Reset FakeHill_Door" }),
+  );
+  expect(await screen.findByText(/Fake refusal/)).toBeTruthy();
+});
+
 test("the Flags tab says types in plain words and filters by them", async () => {
   await open();
   fireEvent.click(screen.getByRole("button", { name: "Flags" }));
@@ -310,7 +332,6 @@ test("Save waits while the game runs", async () => {
   expect(save.getAttribute("aria-disabled")).toBe("true");
   fireEvent.click(save);
   expect(saveWrite).not.toHaveBeenCalled();
-  useSeeds.setPath("running", false);
 });
 
 test("Discard drops what's pending", async () => {
@@ -335,6 +356,69 @@ test("a save the game wrote since asks to reload instead of writing", async () =
   fireEvent.click(screen.getByRole("button", { name: "Reload" }));
   expect(useUi.getPath("save.stamp")).toBe(3_000);
   expect(useUi.getPath("save.edits")).toHaveLength(1);
+});
+
+test("a second save of the same slot writes over the first, with no warning", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.getByText(/Backup at b.bak/)).toBeTruthy());
+  await waitFor(() => expect(useUi.getPath("save.stamp")).toBe(2_500));
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(saveWrite).toHaveBeenCalledTimes(2));
+  expect(saveWrite.mock.calls[1]?.[2]).toBe(2_500);
+  expect(
+    screen.queryByText(/The game wrote slot 2 since it was read/),
+  ).toBeNull();
+});
+
+test("Discard drops the reload warning with the edits", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  stamps.set(2, 3_000);
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await screen.findByText(/The game wrote slot 2 since it was read/);
+  fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+  fireEvent.click(screen.getByRole("button", { name: "Really discard?" }));
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  expect(
+    screen.queryByText(/The game wrote slot 2 since it was read/),
+  ).toBeNull();
+});
+
+test("two quick clicks on a tile go up two tiers", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() =>
+    expect(useUi.getPath("save.edits")).toEqual([
+      { hash: HOOK, index: 0, value: "2" },
+    ]),
+  );
+});
+
+test("an edit still in flight when the slot changes stays off the new slot", async () => {
+  await open();
+  let answer = () => {};
+  saveStage.mockImplementationOnce((_slot, { edits }: Pending) => {
+    const held = new Promise<void>((r) => {
+      answer = r;
+    });
+    return held.then(() => ok({ edits, count: edits.length }));
+  });
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(saveStage).toHaveBeenCalled());
+  useUi.setPath("save.slot", 0);
+  answer();
+  await waitFor(() =>
+    expect(saveItems).toHaveBeenCalledWith(0, expect.anything()),
+  );
+  expect(useUi.getPath("save.edits")).toEqual([]);
 });
 
 test("switching slots with edits pending asks first", async () => {

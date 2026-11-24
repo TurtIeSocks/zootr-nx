@@ -45,8 +45,9 @@ import {
 } from "@/lib/plando";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
+import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
-import { saveConfig, useConfig, useDevTools } from "@/stores/config";
+import { useConfig, useDevTools } from "@/stores/config";
 
 /** The plando draft the next seed gets, and the saved plandos to load into
  * it or keep it as. */
@@ -65,13 +66,6 @@ export function PlandoPane() {
   );
 }
 
-/** Saves a config change through the page's request. */
-function useStore() {
-  const { run } = useRequest();
-  return (change: Parameters<typeof saveConfig>[0]) =>
-    run(() => saveConfig(change));
-}
-
 /** The label of the setting `id`, from the schema. */
 const useSettingLabel = () => {
   const schema = useConfig((s) => s.schema);
@@ -87,7 +81,7 @@ interface TurnOnProps {
 /** Turns a setting on, so the checks it deals can be pinned. */
 function TurnOn({ setting }: TurnOnProps) {
   const label = useSettingLabel();
-  const store = useStore();
+  const store = useSaveConfig();
   const { busy } = useRequest();
   return (
     <Button
@@ -113,7 +107,7 @@ function Saved() {
   const shown = useConfig((s) => savedAs(s.config));
   const replacing = useConfig((s) => unsaved(s.config));
   const { busy } = useRequest();
-  const store = useStore();
+  const store = useSaveConfig();
   /** The name Save keeps the draft as, and Delete drops. */
   const [name, setName] = useState(() => shown ?? "");
   /** The saved plando waiting on the replace dialog. */
@@ -264,9 +258,8 @@ function useOptions(plando: Plando) {
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reads again whenever the draft, the settings or the dump change
   useEffect(() => {
-    // Read again whenever the draft, the settings or the dump change.
-    void [plando, settings, game];
     let live = true;
     setLoading(true);
     call(commands.plandoOptions())
@@ -311,7 +304,7 @@ interface AddRowProps {
 /** Pick a check and an item, then Pin. Pinning a check already pinned
  * replaces its item. */
 function AddRow({ options, loading }: AddRowProps) {
-  const store = useStore();
+  const store = useSaveConfig();
   const { busy } = useRequest();
   const label = useSettingLabel();
   const [check, setCheck] = useState("");
@@ -395,7 +388,7 @@ interface PlacementsProps {
  * deal says so. */
 function Placements({ plando, options }: PlacementsProps) {
   const devTools = useDevTools();
-  const store = useStore();
+  const store = useSaveConfig();
   const { busy } = useRequest();
   const setting = useSettingLabel();
   const checks = new Map(options?.checks.map((c) => [c.hash, c]));

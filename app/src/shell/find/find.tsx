@@ -92,7 +92,7 @@ function useHits(): Hit[] {
         stale: stale(build),
         theme,
         generate: (install) =>
-          generateTyped(install, install ? blocked : unbuildable, false),
+          generateTyped(install, install ? blocked : unbuildable),
         stop: () => void stopGenerate(),
         play: () => playTarget(picked),
         nextTheme,

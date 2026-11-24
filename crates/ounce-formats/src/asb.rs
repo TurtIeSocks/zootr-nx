@@ -21,6 +21,15 @@ const INT_SELECTOR_FLAGS: u32 = 0xa000_0000;
 const CLIP: u16 = 3;
 const INT_SELECTOR: u16 = 8;
 const BOOL_SELECTOR: u16 = 21;
+/// Where an int selector's plug keeps the value its case matches.
+const CASE_VALUE: usize = 4;
+
+/// Where a node type's plug table sits in its params, and where each plug
+/// keeps its child.
+struct Plugs {
+    table: usize,
+    child: usize,
+}
 
 /// A blackboard entry's kind, in the order the blackboard lists them.
 #[derive(Clone, Copy)]
@@ -92,7 +101,7 @@ impl<'a> Asb<'a> {
         for j in 0..count {
             let named = self
                 .r
-                .u32(self.blackboard + 0x38 + (base + j) as usize * 4)?;
+                .u32(self.blackboard + 0x38 + (base as usize + j as usize) * 4)?;
             if self.string(named & 0xff_ffff)? == name {
                 return Ok(Some(j));
             }
@@ -112,28 +121,29 @@ impl<'a> Asb<'a> {
         Ok((flags & FROM_BLACKBOARD != 0 && flags & 0x0300_0000 == 0).then_some(flags as u16))
     }
 
-    /// Where node type `kind`'s plug table sits in its params, and where
-    /// each plug keeps its child.
-    fn plugs(kind: u16) -> Option<(usize, usize)> {
-        Some(match kind {
+    /// Node type `kind`'s plug layout. A type left out has no children
+    /// this module follows.
+    fn plugs(kind: u16) -> Option<Plugs> {
+        let (table, child) = match kind {
             4 => (0, 0),
             9 | 10 => (0x8, 0),
             6 => (0xc, 0x10),
             1 => (0x14, 0x10),
-            2 | 8 => (0x14, 0x8),
-            21 => (0x14, 0),
+            2 | INT_SELECTOR => (0x14, 0x8),
+            BOOL_SELECTOR => (0x14, 0),
             7 => (0x18, 0),
             20 => (0x1c, 0),
-            3 => (0x20, 0),
+            CLIP => (0x20, 0),
             16 => (0x4, 0x4),
             _ => return None,
-        })
+        };
+        Some(Plugs { table, child })
     }
 
     /// Each plug of node `i`: where it sits, and its child.
     fn children(&self, i: usize) -> Result<Vec<(usize, u32)>> {
         let (kind, params) = self.header(i)?;
-        let Some((table, child)) = Self::plugs(kind) else {
+        let Some(Plugs { table, child }) = Self::plugs(kind) else {
             return Ok(vec![]);
         };
         let table = params + table;
@@ -160,7 +170,7 @@ impl<'a> Asb<'a> {
             INT_SELECTOR => Node::Int {
                 entry: self.reads(params)?,
                 children: (children.into_iter())
-                    .map(|(plug, c)| Ok((self.r.i32(plug + 4)?, c)))
+                    .map(|(plug, c)| Ok((self.r.i32(plug + CASE_VALUE)?, c)))
                     .collect::<Result<_>>()?,
             },
             _ => Node::Other(children.into_iter().map(|(_, c)| c).collect()),
@@ -195,28 +205,68 @@ pub fn select_int(
     otherwise: u32,
 ) -> Result<()> {
     let asb = Asb::parse(bytes)?;
+    // Only checks that node `i` is there.
     asb.header(i)?;
     let node = asb.nodes + i * NODE_SIZE;
+    let layout = Asb::plugs(INT_SELECTOR).expect("an int selector has plugs");
     let Ok(count) = u8::try_from(cases.len() + 1) else {
         bail!("{} cases", cases.len())
     };
     bytes.resize(bytes.len().next_multiple_of(8), 0);
     let params = bytes.len();
-    let table = params + 0x14;
+    let table = params + layout.table;
     let plugs = table + 0xc + 4 * count as usize;
-    let put = |b: &mut Vec<u8>, words: &[u32]| words.iter().for_each(|w| b.extend(w.to_le_bytes()));
+    let put = |b: &mut Vec<u8>, words: &[u32]| {
+        for w in words {
+            b.extend(w.to_le_bytes());
+        }
+    };
     // The selector, then 1: the last plug is the default.
     put(bytes, &[INT_SELECTOR_FLAGS | entry as u32, 0, 0, 1, 0]);
+    debug_assert_eq!(bytes.len(), table);
     // The plug table: its count and first index, then its pointer counts.
     let header = u32::from_le_bytes([count, 0, 0, count]);
     let totals = u32::from_le_bytes([count, 0, count, 0]);
     put(bytes, &[0, header, totals]);
     let plug = |k: usize| (plugs + 12 * k) as u32;
     put(bytes, &(0..count as usize).map(plug).collect::<Vec<_>>());
+    // Each plug: a word, the case's value, then its child.
+    debug_assert_eq!((CASE_VALUE, layout.child), (4, 8));
     for &(value, child) in cases.iter().chain([&(0, otherwise)]) {
         put(bytes, &[0, value as u32, child]);
     }
     bytes[node..node + 2].copy_from_slice(&INT_SELECTOR.to_le_bytes());
     bytes[node + 8..node + 12].copy_from_slice(&(params as u32).to_le_bytes());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A graph of `n` blank nodes, right after a 0x40-byte header.
+    fn graph(n: usize) -> Vec<u8> {
+        let mut bytes = vec![0; 0x40 + n * NODE_SIZE];
+        bytes[..4].copy_from_slice(MAGIC);
+        bytes[4..8].copy_from_slice(&VERSION.to_le_bytes());
+        bytes[0x14..0x18].copy_from_slice(&(n as u32).to_le_bytes());
+        bytes[0x18..0x1c].copy_from_slice(&0x40u32.to_le_bytes());
+        bytes
+    }
+
+    #[test]
+    fn a_node_made_an_int_selector_reads_back_its_cases_and_default() {
+        let mut bytes = graph(2);
+        select_int(&mut bytes, 1, 2, &[(5, 7), (-1, 8)], 3).unwrap();
+        let asb = Asb::parse(&bytes).unwrap();
+        assert_eq!(
+            asb.node(1).unwrap(),
+            Node::Int {
+                entry: Some(2),
+                children: vec![(5, 7), (-1, 8), (0, 3)],
+            }
+        );
+        assert_eq!(asb.node(0).unwrap(), Node::Other(vec![]));
+        assert!(select_int(&mut bytes, 2, 2, &[], 3).is_err());
+    }
 }

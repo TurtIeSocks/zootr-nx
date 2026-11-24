@@ -17,6 +17,8 @@ from .exported import (
     HASHES,
     ITEM_NAME_TO_ID,
     JUNK,
+    LEVELS,
+    LINES,
     LOCATION_NAME_TO_ID,
     OPTIONS,
     POOL,
@@ -29,6 +31,7 @@ from .output import GAME, ZnxContainer, placement
 
 VICTORY = WORLD["goal"]
 ICE_TRAPS = "ice-traps"
+PROGRESSIVE = "progressive-items"
 
 
 
@@ -81,6 +84,14 @@ def trapped(counts: Counter, trappable: Counter, share: list[int], random) -> Co
     return +out
 
 
+def lined(counts: Counter) -> Counter:
+    """`counts` with each line's levels named by the line."""
+    out = Counter()
+    for item, count in counts.items():
+        out[LINES.get(item, item)] += count
+    return out
+
+
 class ZnxItem(Item):
     game = GAME
 
@@ -129,6 +140,8 @@ class ZnxWorld(World):
         }
         share = SHARES[self.setting_values.get(ICE_TRAPS, "off")]
         self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
+        if self.setting_values[PROGRESSIVE]:
+            self.dealt = lined(self.dealt)
 
     def holds(self, row: dict) -> bool:
         """Whether these options hold `row`: a check, event or pool row an
@@ -137,6 +150,8 @@ class ZnxWorld(World):
 
     def rule(self, tree) -> rules.Rule | None:
         tree = rules.fold(tree, self.setting_values)
+        if self.setting_values[PROGRESSIVE]:
+            tree = rules.lined(tree, LEVELS)
         return None if tree is True else rules.closure(tree, self.player)
 
     def live_places(self, exits: list) -> set[str]:
@@ -177,7 +192,11 @@ class ZnxWorld(World):
                     item.player != self.player or item.name not in forbid
                 )
         for event in filter(self.holds, WORLD["events"]):
-            location = self.place(event["name"], None, self.spots(event["at"], regions), regions, origin)
+            at = self.spots(event["at"], regions)
+            if event["at"] and not at:
+                # No way in with these options: never reached, not free.
+                continue
+            location = self.place(event["name"], None, at, regions, origin)
             location.place_locked_item(ZnxItem(event["name"], ItemClassification.progression, None, self.player))
 
     def spots(self, at: list, regions: dict) -> list:

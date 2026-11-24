@@ -192,7 +192,7 @@ impl Doors {
     /// holding its dungeon and the rest rolled.
     pub fn roll(mode: DungeonEntrances, pins: &[String], rng: &mut Rng) -> Result<Self> {
         let pool: Vec<usize> = pool(mode).collect();
-        let (mut doors, mut dungeons) = (pool.clone(), pool.clone());
+        let (mut doors, mut dungeons) = (pool.clone(), pool);
         let mut out = Self::default();
         for pin in pins {
             let (door, dungeon) = pin

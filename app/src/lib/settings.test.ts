@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { SettingDef } from "@/bindings";
+import type { Choice, SettingDef } from "@/bindings";
 import type { Settings } from "@/lib/config";
 import {
   affects,
@@ -21,21 +21,53 @@ import {
   withForced,
 } from "@/lib/settings";
 
+/** A toggle `id`, off unless `over` says otherwise, labelled in capitals. */
+const def = (id: string, over: Partial<SettingDef> = {}): SettingDef => ({
+  id,
+  group: "g",
+  label: id.toUpperCase(),
+  description: "",
+  kind: { type: "toggle", default: false },
+  parent: null,
+  requires: null,
+  section: "Fake section",
+  section_about: "Fake about",
+  list: false,
+  gives: [],
+  archipelago: { ap: "offered" },
+  ...over,
+});
+
+/** A choice's option, forcing and starting nothing unless `over` says. */
+const opt = (
+  id: string,
+  label: string,
+  over: Partial<Choice> = {},
+): Choice => ({
+  id,
+  label,
+  forces: [],
+  starts: [],
+  archipelago: { ap: "offered" },
+  ...over,
+});
+
+/** A choice `id` of `options`, the first its default. */
+const choice = (
+  id: string,
+  options: Choice[],
+  over: Partial<SettingDef> = {},
+): SettingDef =>
+  def(id, {
+    kind: { type: "choice", default: options[0]?.id ?? "", options },
+    ...over,
+  });
+
+/** `n` toggles, s0 up, all on by default. */
 const toggles = (n: number): SettingDef[] =>
-  Array.from({ length: n }, (_, i) => ({
-    id: `s${i}`,
-    group: "g",
-    label: `S${i}`,
-    description: "",
-    kind: { type: "toggle", default: true },
-    parent: null,
-    requires: null,
-    section: "Fake section",
-    section_about: "Fake about",
-    list: false,
-    gives: [],
-    archipelago: { ap: "offered" },
-  }));
+  Array.from({ length: n }, (_, i) =>
+    def(`s${i}`, { kind: { type: "toggle", default: true } }),
+  );
 
 test("lists a few settings and counts many", () => {
   expect(summary([], {})).toBe("Nothing extra");
@@ -51,56 +83,38 @@ test("a summary splits into one part per setting for badges", () => {
 });
 
 test("a parent turns its children on and stands in for them", () => {
-  const off = (id: string, parent: string | null): SettingDef => ({
-    id,
-    group: "g",
-    label: id.toUpperCase(),
-    description: "",
-    kind: { type: "toggle", default: false },
-    parent,
-    requires: null,
-    section: "Fake section",
-    section_about: "Fake about",
-    list: false,
-    gives: [],
-    archipelago: { ap: "offered" },
-  });
-  const child = off("s1", "s0");
-  const schema = [off("s0", null), child, off("s2", "s0")];
+  const child = def("s1", { parent: "s0" });
+  const schema = [def("s0"), child, def("s2", { parent: "s0" })];
   expect(isOn(child, { s1: false }, schema)).toBe(false);
   expect(isOn(child, { s0: true, s1: false }, schema)).toBe(true);
   expect(summary(schema, { s0: true })).toBe("S0");
   expect(summary(schema, { s2: true })).toBe("S2");
 });
 
+/** A toggle `door`, and the choice `age` whose Adult forces it on and starts
+ * with a sword. */
+const door = def("door", { label: "Door" });
+const age = choice(
+  "age",
+  [
+    opt("child", "Child"),
+    opt("adult", "Adult", { forces: ["door"], starts: ["sword"] }),
+  ],
+  { label: "Age" },
+);
+
+/** The choice `gate`, open by default, and an `age` whose Adult forces it
+ * open. */
+const gate = choice("gate", [opt("open", "Open"), opt("shut", "Shut")], {
+  label: "Gate",
+});
+const opens = choice(
+  "age",
+  [opt("child", "Child"), opt("adult", "Adult", { forces: ["gate=open"] })],
+  { label: "Age" },
+);
+
 test("a choice's pick forces toggles on and gives start words", () => {
-  const [base] = toggles(1) as [SettingDef];
-  const door: SettingDef = { ...base, id: "door", label: "Door" };
-  const age: SettingDef = {
-    ...base,
-    id: "age",
-    label: "Age",
-    kind: {
-      type: "choice",
-      default: "child",
-      options: [
-        {
-          id: "child",
-          label: "Child",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "adult",
-          label: "Adult",
-          forces: ["door"],
-          starts: ["sword"],
-          archipelago: { ap: "offered" },
-        },
-      ],
-    },
-  };
   const schema = [age, door];
   expect(forcer(door, { door: false }, schema)).toBeUndefined();
   expect(isOn(door, { door: false }, schema)).toBe(false);
@@ -110,65 +124,26 @@ test("a choice's pick forces toggles on and gives start words", () => {
   expect(summary(schema, adult)).toBe("Age: Adult");
   expect(startForcers(schema, adult)).toEqual([{ def: age, words: ["sword"] }]);
   expect(startForcers(schema, {})).toEqual([]);
-  const gate: SettingDef = {
-    ...base,
-    id: "gate",
-    label: "Gate",
-    kind: {
-      type: "choice",
-      default: "open",
-      options: [
-        {
-          id: "shut",
-          label: "Shut",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "open",
-          label: "Open",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-      ],
-    },
-  };
-  const opens: SettingDef = {
-    ...age,
-    kind: {
-      type: "choice",
-      default: "child",
-      options: [
-        {
-          id: "child",
-          label: "Child",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "adult",
-          label: "Adult",
-          forces: ["gate=open"],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-      ],
-    },
-  };
+});
+
+test("a choice's pick forces another choice's pick", () => {
   const gated = [opens, gate];
   const shut = { age: "adult", gate: "shut" };
   expect(forcer(gate, shut, gated)).toBe(opens);
   expect(forcedPick(gate, shut, gated)?.id).toBe("open");
   expect(forcedPick(gate, { gate: "shut" }, gated)).toBeUndefined();
   expect(summary(gated, shut)).toBe("Age: Adult");
-  // Whatever its pick, a choice affects what any pick forces.
+});
+
+test("whatever its pick, a choice affects what any pick forces", () => {
+  const gated = [opens, gate];
   expect(affects(opens, [door, ...gated])).toEqual([gate]);
   expect(affects(age, [door, ...gated])).toEqual([door]);
   expect(affects(gate, gated)).toEqual([]);
   expect(affects(door, [age, door])).toEqual([]);
+});
+
+test("forced start words join an inventory once each", () => {
   expect(withForced({ sword: 2, bow: 1 }, ["sword", "hook"])).toEqual({
     sword: 2,
     bow: 1,
@@ -177,9 +152,12 @@ test("a choice's pick forces toggles on and gives start words", () => {
 });
 
 test("a setting is left out while the toggle it needs is off", () => {
-  const [s0, s1] = toggles(2) as [SettingDef, SettingDef];
-  const gifts: SettingDef = { ...s0, kind: { type: "toggle", default: false } };
-  const reward: SettingDef = { ...s1, requires: gifts.id };
+  const gifts = def("s0", { label: "S0" });
+  const reward = def("s1", {
+    label: "S1",
+    kind: { type: "toggle", default: true },
+    requires: gifts.id,
+  });
   const schema = [gifts, reward];
   expect(unmet(reward, {}, schema)?.id).toBe(gifts.id);
   expect(summary(schema, {})).toBe("Nothing extra");
@@ -188,39 +166,9 @@ test("a setting is left out while the toggle it needs is off", () => {
 });
 
 test("a choice is summed up only off its default", () => {
-  const size: SettingDef = {
-    id: "size",
-    group: "g",
+  const size = choice("size", [opt("big", "Big"), opt("small", "Small")], {
     label: "Size",
-    description: "",
-    kind: {
-      type: "choice",
-      default: "big",
-      options: [
-        {
-          id: "big",
-          label: "Big",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "small",
-          label: "Small",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-      ],
-    },
-    parent: null,
-    requires: null,
-    section: "Fake section",
-    section_about: "Fake about",
-    list: false,
-    gives: [],
-    archipelago: { ap: "offered" },
-  };
+  });
   expect(summary([size], {})).toBe("Nothing extra");
   expect(summary([size], { size: "small" })).toBe("Size: Small");
   expect(chosen(size, { size: "gone" })?.id).toBe("big");
@@ -230,69 +178,29 @@ test("a choice is summed up only off its default", () => {
 });
 
 test("a toggle is changed only when its own value leaves the default", () => {
-  const [on] = toggles(1) as [SettingDef];
+  const on = def("s0", { kind: { type: "toggle", default: true } });
   expect(isChanged(on, {})).toBe(false);
   expect(isChanged(on, { s0: true })).toBe(false);
   expect(isChanged(on, { s0: false })).toBe(true);
 });
 
 test("a patch sets values and puts undefined ones back to default", () => {
-  const [on] = toggles(1) as [SettingDef];
   const settings = { s0: false, other: true };
   expect(patched(settings, { s1: true, other: undefined })).toEqual({
     s0: false,
     s1: true,
   });
-  expect(patched(settings, defaults([on]))).toEqual({ other: true });
+  expect(patched(settings, defaults(toggles(1)))).toEqual({ other: true });
 });
 
 /** Toggles `all` (with its child `one`) and `x`, and the choice `size`. */
 function diffSchema(): SettingDef[] {
-  const def = (id: string, parent: string | null = null): SettingDef => ({
-    id,
-    group: "g",
-    label: id.toUpperCase(),
-    description: "",
-    kind: { type: "toggle", default: false },
-    parent,
-    requires: null,
-    section: "Fake section",
-    section_about: "Fake about",
-    list: false,
-    gives: [],
-    archipelago: { ap: "offered" },
-  });
-  const size: SettingDef = {
-    ...def("size"),
-    kind: {
-      type: "choice",
-      default: "a",
-      options: [
-        {
-          id: "a",
-          label: "Big",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "b",
-          label: "Small",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "c",
-          label: "Tiny",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-      ],
-    },
-  };
-  return [def("all"), def("one", "all"), def("x"), size];
+  const size = choice("size", [
+    opt("a", "Big"),
+    opt("b", "Small"),
+    opt("c", "Tiny"),
+  ]);
+  return [def("all"), def("one", { parent: "all" }), def("x"), size];
 }
 
 test("a diff lists effective changes, with a parent standing in", () => {
@@ -332,77 +240,54 @@ test("chips are marked new or gone against a base", () => {
 });
 
 test("a starting inventory is changed while it differs from its default", () => {
-  const def: SettingDef = {
-    ...toggles(1)[0],
+  const start = def("s0", {
     label: "Start",
     kind: { type: "inventory", default: {} },
-  } as SettingDef;
-  expect(isChanged(def, {})).toBe(false);
-  expect(isChanged(def, { s0: {} })).toBe(false);
+  });
+  expect(isChanged(start, {})).toBe(false);
+  expect(isChanged(start, { s0: {} })).toBe(false);
   const two = { s0: { hookshot: 1, bombs: 20 } };
-  expect(isChanged(def, two)).toBe(true);
-  expect(isOn(def, two, [def])).toBe(false);
-  expect(summary([def], two)).toBe("Start: 2 items");
-  expect(settingsChanges([def], {}, two)).toMatchObject([
+  expect(isChanged(start, two)).toBe(true);
+  expect(isOn(start, two, [start])).toBe(false);
+  expect(summary([start], two)).toBe("Start: 2 items");
+  expect(settingsChanges([start], {}, two)).toMatchObject([
     { before: "nothing", after: "hookshot, bombs ×20" },
   ]);
   // A swap that holds as many things is still new, and says what it was.
   const swapped = { s0: { bow: 1, bombs: 20 } };
-  expect(markedChips([def], [def], swapped, two)).toEqual([
+  expect(markedChips([start], [start], swapped, two)).toEqual([
     { id: "s0", label: "Start", value: "2 items", mark: "new", was: "2 items" },
   ]);
-  expect(markedChips([def], [def], two, two)).toEqual([
+  expect(markedChips([start], [start], two, two)).toEqual([
     { id: "s0", label: "Start", value: "2 items" },
   ]);
 });
 
 test("an unset starting inventory holds its default, and emptied it's changed", () => {
-  const def: SettingDef = {
-    ...toggles(1)[0],
+  const start = def("s0", {
     label: "Start",
     kind: { type: "inventory", default: { "master-sword": 1 } },
-  } as SettingDef;
-  expect(startOf(def, {})).toEqual({ "master-sword": 1 });
-  expect(isChanged(def, {})).toBe(false);
-  expect(isChanged(def, { s0: { "master-sword": 1 } })).toBe(false);
-  expect(isChanged(def, { s0: {} })).toBe(true);
-  expect(summary([def], {})).toBe("Start: 1 item");
+  });
+  expect(startOf(start, {})).toEqual({ "master-sword": 1 });
+  expect(isChanged(start, {})).toBe(false);
+  expect(isChanged(start, { s0: { "master-sword": 1 } })).toBe(false);
+  expect(isChanged(start, { s0: {} })).toBe(true);
+  expect(summary([start], {})).toBe("Start: 1 item");
 });
 
 test("a setting's value names what it gives the grid", () => {
-  const met = {
-    ...toggles(1)[0],
-    kind: { type: "toggle", default: false },
-    id: "fake-met",
+  const met = def("fake-met", {
     label: "Met Fake",
     gives: [["on", ["zeldas-letter"]]],
-  } as SettingDef;
-  const fort = {
-    ...met,
-    id: "fake-fort",
-    label: "Fake Fort",
-    kind: {
-      type: "choice",
-      default: "normal",
-      options: [
-        {
-          id: "normal",
-          label: "Normal",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-        {
-          id: "freed",
-          label: "Freed",
-          forces: [],
-          starts: [],
-          archipelago: { ap: "offered" },
-        },
-      ],
+  });
+  const fort = choice(
+    "fake-fort",
+    [opt("normal", "Normal"), opt("freed", "Freed")],
+    {
+      label: "Fake Fort",
+      gives: [["freed", ["gerudo-card"]]],
     },
-    gives: [["freed", ["gerudo-card"]]],
-  } as SettingDef;
+  );
   const schema = [met, fort];
   expect(startGivers(schema, {})).toEqual([]);
   const given = startGivers(schema, { "fake-met": true, "fake-fort": "freed" });
