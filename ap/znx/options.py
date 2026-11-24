@@ -20,6 +20,16 @@ def attr(setting: str) -> str:
     return setting.replace("-", "_")
 
 
+def choice_values(entry: dict) -> list[int]:
+    """A choice's AP value for each option. Numbered options take their own
+    number, so YAML's `shop_slots: 4` means 4 and not the fifth option:
+    AP reads an int that's a value as that value."""
+    ids = [option["id"] for option in entry["options"]]
+    if all(id_.isdigit() for id_ in ids):
+        return [int(id_) for id_ in ids]
+    return list(range(len(ids)))
+
+
 def option_class(entry: dict) -> type:
     body = {"__doc__": entry["description"], "display_name": entry["label"], "__module__": __name__}
     if entry["kind"] == "toggle":
@@ -32,8 +42,9 @@ def option_class(entry: dict) -> type:
     else:
         base = Choice
         ids = [option["id"] for option in entry["options"]]
-        body.update({f"option_{attr(id_)}": n for n, id_ in enumerate(ids)})
-        body["default"] = ids.index(entry["default"])
+        values = choice_values(entry)
+        body.update({f"option_{attr(id_)}": n for id_, n in zip(ids, values)})
+        body["default"] = values[ids.index(entry["default"])]
     name = "".join(part.title() for part in entry["id"].split("-"))
     cls = types.new_class(name, (base,), exec_body=lambda ns: ns.update(body))
     globals()[name] = cls
@@ -47,7 +58,8 @@ def setting_values(entry: dict, option) -> dict[str, bool | str]:
         return {entry["id"]: bool(option.value)}
     if entry["kind"] == "set":
         return {o["id"]: o["label"] in option.value for o in entry["options"]}
-    return {entry["id"]: entry["options"][option.value]["id"]}
+    at = choice_values(entry).index(option.value)
+    return {entry["id"]: entry["options"][at]["id"]}
 
 
 ZnxOptions = make_dataclass(
