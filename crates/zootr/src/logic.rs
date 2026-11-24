@@ -358,7 +358,10 @@ impl World {
                 true => Some(shops::price(ctx.seed, check.hash)),
                 false => shops::offering(check.hash),
             };
-            let cost = rupees.map_or(Need::Always, |r| shops::wallet(r, ctx.progressive));
+            let cost = match rupees {
+                Some(r) => ctx.progressive(|p| Ok(shops::wallet(r, p)))?,
+                None => Need::Always,
+            };
             for place in where_ {
                 let need = match rule {
                     Some(r) => book.need(&r.needs, ctx)?,
