@@ -557,6 +557,7 @@ mod tests {
 
     #[test]
     fn a_wide_string_write_leaves_the_next_slot_alone() {
+        needs_names!();
         let next = [0xee; 0xa8 - 0x74];
         let mem = game(&[(26, vec![entry(26, &[(0x74, &next)])])], &[]);
         set(&mem, 0x1000, hash(26, 0), "Hi").unwrap();
