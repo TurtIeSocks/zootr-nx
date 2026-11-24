@@ -35,47 +35,50 @@ pub(super) fn clear_landing(pose: &Pose, others: &[[f32; 3]]) -> [f32; 3] {
         .unwrap_or_else(|| swung(0.0))
 }
 
-/// The breakables within [`NEIGHBOURS`] of the one at `own`, other than
-/// `hash` itself: each one's item and where it stands. `items` holds every
-/// breakable spot's item by placement hash, `poses` the map's placements.
+/// How near a spot may be and still be taken for the one it's measured
+/// from, in m.
+const ITSELF: f32 = 0.01;
+
+/// The items of the breakables within [`NEIGHBOURS`] of the one at `own`,
+/// other than `hash` itself, nearest first. `items` holds every breakable
+/// spot's item by placement hash, `poses` the map's placements.
 pub(super) fn neighbours(
     hash: u64,
     own: [f32; 3],
     poses: &HashMap<u64, Pose>,
     items: &BTreeMap<u64, String>,
-) -> Vec<(String, [f32; 3])> {
+) -> Vec<String> {
     let mut found: Vec<_> = (items.iter())
         .filter(|&(&h, _)| h != hash)
-        .filter_map(|(h, item)| Some((item, poses.get(h)?.at)))
-        .filter(|&(_, at)| flat(at, own) <= NEIGHBOURS)
-        .map(|(item, at)| (item.clone(), at))
+        .filter_map(|(h, item)| Some((item, flat(poses.get(h)?.at, own))))
+        .filter(|&(_, off)| off <= NEIGHBOURS)
         .collect();
-    found.sort_by(|a, b| flat(a.1, own).total_cmp(&flat(b.1, own)));
-    found
+    found.sort_by(|a, b| a.1.total_cmp(&b.1));
+    found.into_iter().map(|(item, _)| item.clone()).collect()
 }
 
 /// The spots of `spots` within [`NEIGHBOURS`] of `own`, but `own` itself.
 pub(super) fn around(own: [f32; 3], spots: &[[f32; 3]]) -> Vec<[f32; 3]> {
-    let near = |at: &&[f32; 3]| (0.01..=NEIGHBOURS).contains(&flat(**at, own));
+    let near = |at: &&[f32; 3]| (ITSELF..=NEIGHBOURS).contains(&flat(**at, own));
     spots.iter().filter(near).copied().collect()
 }
 
 /// The distance between two points, measured flat.
-fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
+pub(super) fn flat(a: [f32; 3], b: [f32; 3]) -> f32 {
     (a[0] - b[0]).hypot(a[2] - b[2])
 }
 
-/// The side of the holder at `pose` to land on, so that Link faces away
-/// from `near`: the one whose landing lies most toward the nearest of them
-/// it can, the sword then swinging at the holder with them behind him.
-/// The front when nothing stands near.
+/// The sides of the holder at `pose` to land on, best first, so that Link
+/// faces away from `near`: the best one's landing lies most toward the
+/// nearest of them it can, the sword then swinging at the holder with them
+/// behind him. The front first when nothing stands near.
 pub(super) fn away_from(pose: &Pose, near: &[[f32; 3]]) -> Vec<Side> {
     rank(pose, near, |cos| cos)
 }
 
-/// The side of the holder at `pose` to roll at it from, so that `near`
-/// lies off the roll's line: its run-up starts 1.4 m out, so a neighbour
-/// behind Link is in its path as much as one past the holder. The crater
+/// The sides of the holder at `pose` to roll at it from, best first, so
+/// that `near` lies off the roll's line: its run-up starts 1.4 m out, so a
+/// neighbour behind Link is in its path as much as one past the holder. The crater
 /// box's front put the Gold Skulltula box 1.9 m off it right behind him,
 /// and the roll broke that one (other machine, 2026-11-17).
 pub(super) fn off_line(pose: &Pose, near: &[[f32; 3]]) -> Vec<Side> {
@@ -175,8 +178,7 @@ mod tests {
             [(1, at(0.0)), (2, at(1.6)), (3, at(2.4)), (4, at(9.0))].into();
         let items = (1..=5).map(|h| (h, format!("item {h}"))).collect();
         let found = neighbours(1, [0.0; 3], &poses, &items);
-        let names: Vec<_> = found.iter().map(|(i, _)| i.as_str()).collect();
         // Nearest first. Hash 4 is too far, and 5 has no placement here.
-        assert_eq!(names, ["item 2", "item 3"]);
+        assert_eq!(found, ["item 2", "item 3"]);
     }
 }

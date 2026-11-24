@@ -475,7 +475,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-text-copy-{}", std::process::id()));
         let forest = crate::keys::DUNGEONS
             .iter()
-            .position(|d| d.0 == crate::known::flag::FOREST_TEMPLE)
+            .position(|d| d.name == crate::known::flag::FOREST_TEMPLE)
             .unwrap();
         let copy = crate::key_tints::boss(forest + 1);
         let drops = HashMap::from([(SCRUBS[0].hash(), Drop::from(copy.clone()))]);

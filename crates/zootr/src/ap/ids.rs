@@ -26,29 +26,50 @@ impl Ids {
     }
 
     pub fn item(&mut self, actor: &str) -> u64 {
-        take(&mut self.items, item_key(actor))
+        self.item_as(actor, false)
+    }
+
+    /// `actor`'s id, or with `plain` its second: a line's first level goes
+    /// by its line's name with progressive items on and its own with them
+    /// off (`names::levels`), and a name keeps one id.
+    pub fn item_as(&mut self, actor: &str, plain: bool) -> u64 {
+        take(&mut self.items, item_key(actor, plain))
     }
 
     pub fn location_id(&self, hash: u64) -> Option<u64> {
         self.locations.get(&hash.to_string()).copied()
     }
 
+    #[cfg(test)]
     pub fn item_id(&self, actor: &str) -> Option<u64> {
-        self.items.get(&item_key(actor)).copied()
+        self.id_as(actor, false)
     }
 
-    /// Each of `actors` the table has an id for, by that id.
+    fn id_as(&self, actor: &str, plain: bool) -> Option<u64> {
+        self.items.get(&item_key(actor, plain)).copied()
+    }
+
+    /// Each of `actors` the table has an id for, by that id, both ids of
+    /// one with two.
     pub fn actors<'a>(&self, actors: impl IntoIterator<Item = &'a str>) -> HashMap<u64, &'a str> {
-        let id = |a| self.item_id(a);
+        let ids = |a| {
+            [false, true]
+                .into_iter()
+                .filter_map(move |p| self.id_as(a, p))
+        };
         actors
             .into_iter()
-            .filter_map(|a| Some((id(a)?, a)))
+            .flat_map(|a| ids(a).map(move |id| (id, a)))
             .collect()
     }
 }
 
-fn item_key(actor: &str) -> String {
-    format!("{:016x}", crate::known::hash(actor))
+fn item_key(actor: &str, plain: bool) -> String {
+    let key = crate::known::hash(actor);
+    match plain {
+        false => format!("{key:016x}"),
+        true => format!("{key:016x}-plain"),
+    }
 }
 
 /// `key`'s id, or the next one after every id the table has given.
@@ -68,6 +89,21 @@ mod tests {
         assert_eq!(ids.location(30), 1);
         let mut again: Ids = serde_json::from_str(&serde_json::to_string(&ids).unwrap()).unwrap();
         assert_eq!((again.location(10), again.location(20)), (2, 3));
+    }
+
+    #[test]
+    fn an_item_s_plain_id_is_its_second_and_both_find_it() {
+        let mut ids = Ids::default();
+        let (id, plain) = (
+            ids.item("Item_FakeLine"),
+            ids.item_as("Item_FakeLine", true),
+        );
+        assert_ne!(id, plain);
+        let actors = ids.actors(["Item_FakeLine"]);
+        assert_eq!(
+            (actors[&id], actors[&plain]),
+            ("Item_FakeLine", "Item_FakeLine")
+        );
     }
 
     #[test]

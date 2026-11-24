@@ -6,7 +6,8 @@ use std::sync::LazyLock;
 
 use anyhow::Result;
 
-use super::{Halt, NPC, Planner, Ready, Trigger, anchor, steps};
+use super::landing::flat;
+use super::{Halt, NPC, Planner, Ready, Trigger, anchor, lazy, steps};
 use crate::cutscenes::Catalogue;
 use crate::gifts::{self, Gift, How};
 use crate::known::{Name, actor, field, flag, flow, item, scene};
@@ -103,12 +104,6 @@ static SOLD: LazyLock<[Sold; 2]> = LazyLock::new(|| {
     ]
 });
 
-/// Givers the sweep stops first, as `(flow, halt, values, link, giver)`:
-/// the values that let him be stopped again and give again, and the `Name`s
-/// of the anchors his gift stands Link and him at. Link warps near the
-/// first and walks into reach of the second: once stopped, the rolling
-/// Goron stands up there (Mac, 2026-11-15: talked to from 1.5 m, his bomb
-/// bag given).
 /// A halted giver: flow, halt, values, link spot, his spot.
 type Halted = (
     &'static Name,
@@ -117,6 +112,12 @@ type Halted = (
     &'static Name,
     &'static Name,
 );
+/// Givers the sweep stops first, as `(flow, halt, values, link, giver)`:
+/// the values that let him be stopped again and give again, and the `Name`s
+/// of the anchors his gift stands Link and him at. Link warps near the
+/// first and walks into reach of the second: once stopped, the rolling
+/// Goron stands up there (Mac, 2026-11-15: talked to from 1.5 m, his bomb
+/// bag given).
 static HALTED: LazyLock<[Halted; 1]> = LazyLock::new(|| {
     [(
         actor::NPC_GORON_006_CHILD,
@@ -148,7 +149,7 @@ impl Planner<'_> {
         if gift.item.starts_with("Item_Melody_") || gift.giver.contains("Great Fairy") {
             return self.play(gift);
         }
-        let kind = (gift.setting() == Some(DUNGEON_REWARDS))
+        let kind = (gift.setting == Some(DUNGEON_REWARDS))
             .then_some("boss reward")
             .or_else(|| {
                 let of = OUT_OF_SCOPE.iter().find(|(p, _)| gift.flow.starts_with(p));
@@ -306,12 +307,10 @@ impl Planner<'_> {
         let Some((Some(hash), request)) = warp::requested(self.romfs, event)?.remove(map) else {
             return Ok(None);
         };
-        if self.sensors.is_none() {
-            self.sensors = Some(gates::sensors(self.romfs)?);
-        }
-        let areas = (self.sensors.as_ref().unwrap().get(&hash).cloned()).unwrap_or_default();
+        let sensors = lazy(&mut self.sensors, || gates::sensors(self.romfs))?;
+        let areas = sensors.get(&hash).cloned().unwrap_or_default();
         let poses = &self.maps(area)?[map];
-        let off = |at: &[f32; 3]| (at[0] - request.at[0]).hypot(at[2] - request.at[2]);
+        let off = |at: &[f32; 3]| flat(*at, request.at);
         let near = areas.iter().filter_map(|h| Some(poses.get(h)?.at));
         Ok(near.min_by(|a, b| off(a).total_cmp(&off(b))))
     }
@@ -327,10 +326,7 @@ impl Planner<'_> {
         if let Some(event) = self.skipped_in(gift)? {
             return Ok(Some(event));
         }
-        if self.catalogue.is_none() {
-            self.catalogue = Some(Catalogue::load(self.romfs)?);
-        }
-        let all = &self.catalogue.as_ref().unwrap().0;
+        let all = &lazy(&mut self.catalogue, || Catalogue::load(self.romfs))?.0;
         let scene = all.iter().find(|c| c.name == gift.flow);
         let alone = |f: &&String| all.iter().filter(|c| c.flows.contains(*f)).count() == 1;
         let mut callers = scene.iter().flat_map(|c| &c.flows).filter(alone);
@@ -373,10 +369,7 @@ impl Planner<'_> {
     /// Every event the game can start by name, with its flow file and entry
     /// point.
     pub(super) fn events(&mut self) -> Result<&BTreeMap<String, rsdb::Runs>> {
-        if self.events.is_none() {
-            self.events = Some(rsdb::events(self.romfs)?);
-        }
-        Ok(self.events.as_ref().unwrap())
+        lazy(&mut self.events, || rsdb::events(self.romfs))
     }
 }
 

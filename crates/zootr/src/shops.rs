@@ -18,6 +18,7 @@ use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE, actors, bancs, hash_of, s
 use crate::gifts;
 use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
+use crate::nav::graph::dist;
 use crate::per_dump::PerDump;
 use crate::rng::Rng;
 use crate::rules::Need;
@@ -122,11 +123,6 @@ fn source_of(goods: &str) -> Option<&'static str> {
         .map(|(_, item)| item.get())
 }
 
-fn dist(a: [f32; 3], b: [f32; 3]) -> f32 {
-    let d: f32 = (0..3).map(|i| (a[i] - b[i]).powi(2)).sum();
-    d.sqrt()
-}
-
 /// The shop selling `goods` in `area`.
 fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
     let (_, town) = TOWNS
@@ -134,13 +130,14 @@ fn shop_name(area: &str, goods: &[&str]) -> Result<&'static str> {
         .find(|(a, _)| *a == area)
         .with_context(|| format!("a shop in {area}, which has none"))?;
     let all = |prefix: &str| goods.iter().all(|g| g.starts_with(prefix));
-    let name = match () {
-        _ if all(actor::SHOP_BOMBCHU_BUNDLE_01.stem()) => "Bombchu Shop".to_owned(),
-        _ if all("Shop_Bottle_") => format!("{town} Potion Shop"),
-        _ if goods.iter().any(|g| *g == actor::SHOP_WEAPON_SHIELD_HYLIAN) => {
-            format!("{town} Bazaar")
-        }
-        _ => format!("{town} Shop"),
+    let name = if all(actor::SHOP_BOMBCHU_BUNDLE_01.stem()) {
+        "Bombchu Shop".to_owned()
+    } else if all("Shop_Bottle_") {
+        format!("{town} Potion Shop")
+    } else if goods.iter().any(|g| *g == actor::SHOP_WEAPON_SHIELD_HYLIAN) {
+        format!("{town} Bazaar")
+    } else {
+        format!("{town} Shop")
     };
     SHOPS
         .into_iter()
@@ -155,80 +152,51 @@ pub fn slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     KEPT.get(romfs, || find_slots(romfs))
 }
 
+/// A shelf placement in one map file, before copies of its spot merge.
+struct Found {
+    /// False on child maps, so they sort first.
+    adult: bool,
+    area: String,
+    goods: String,
+    hash: u64,
+    pos: [f32; 3],
+    goods_index: i32,
+    presence: Option<Presence>,
+    sign: Option<u64>,
+}
+
 fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut found = Vec::new();
     let mut npcs = Vec::new();
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
+        let area = file.split('/').nth(1).unwrap_or("?");
+        let adult = !file.contains("_Child_");
         for actor in actors(&doc.root)? {
             let goods = str_field(actor, GYAML).unwrap_or_default();
-            let area = file.split('/').nth(1).unwrap_or("?").to_owned();
             if goods.starts_with(KEEPER) {
                 if let Some(pos) = vec3(actor, "Translate") {
-                    npcs.push((area, goods.to_owned(), pos));
+                    npcs.push((area.to_owned(), goods.to_owned(), pos));
                 }
                 continue;
             }
             if !goods.starts_with(GOODS) || NOT_GOODS.iter().any(|n| goods.starts_with(n)) {
                 continue;
             }
-            let hash = hash_of(actor).context("a shelf actor without Hash")?;
-            let pos = vec3(actor, "Translate").context("a shelf actor without Translate")?;
-            let index = goods_index(actor);
-            found.push((
-                !file.contains("_Child_"),
-                area,
-                goods.to_owned(),
-                hash,
-                pos,
-                index,
-                presence_of(actor),
-                signs::sign_of(actor),
-            ));
+            found.push(Found {
+                adult,
+                area: area.to_owned(),
+                goods: goods.to_owned(),
+                hash: hash_of(actor).context("a shelf actor without Hash")?,
+                pos: vec3(actor, "Translate").context("a shelf actor without Translate")?,
+                goods_index: goods_index(actor),
+                presence: presence_of(actor),
+                sign: signs::sign_of(actor),
+            });
         }
-    }
-    found.sort_by_key(|f| f.0);
-    let mut slots: Vec<Slot> = Vec::new();
-    for (_, area, goods, hash, pos, goods_index, presence, sign) in found {
-        let same =
-            |s: &&mut Slot| s.area == area && s.goods == goods && dist(s.pos, pos) < SAME_SLOT;
-        let presence: HashMap<u64, Presence> = presence.map(|p| (hash, p)).into_iter().collect();
-        let signs: HashMap<u64, u64> = sign.map(|s| (hash, s)).into_iter().collect();
-        match slots.iter_mut().find(same) {
-            Some(slot) => {
-                slot.placements.push(hash);
-                slot.presence.extend(presence);
-                slot.signs.extend(signs);
-            }
-            None => slots.push(Slot {
-                area,
-                shop: "",
-                number: 0,
-                goods,
-                placements: vec![hash],
-                presence,
-                signs,
-                pos,
-                index: 0,
-                goods_index,
-                keepers: Vec::new(),
-            }),
-        }
-    }
-    let mut groups: Vec<Vec<Slot>> = Vec::new();
-    for slot in slots {
-        let near = |g: &Vec<Slot>| {
-            g.iter()
-                .any(|s| s.area == slot.area && dist(s.pos, slot.pos) < SAME_SHOP)
-        };
-        let (mut joined, rest): (Vec<_>, Vec<_>) = groups.into_iter().partition(near);
-        let mut group: Vec<Slot> = joined.drain(..).flatten().collect();
-        group.push(slot);
-        groups = rest;
-        groups.push(group);
     }
     let mut out = Vec::new();
-    for mut group in groups {
+    for mut group in by_shop(merge(found)) {
         let goods: Vec<&str> = group.iter().map(|s| s.goods.as_str()).collect();
         let shop = shop_name(&group[0].area, &goods)?;
         let mut keepers: Vec<String> = (npcs.iter())
@@ -263,6 +231,59 @@ fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     Ok(out)
 }
 
+/// One slot per shelf spot, child maps' placements first. Its shop,
+/// number and index are left for `find_slots` to fill.
+fn merge(mut found: Vec<Found>) -> Vec<Slot> {
+    found.sort_by_key(|f| f.adult);
+    let mut slots: Vec<Slot> = Vec::new();
+    for f in found {
+        let same = |s: &&mut Slot| {
+            s.area == f.area && s.goods == f.goods && dist(s.pos, f.pos) < SAME_SLOT
+        };
+        let presence: HashMap<u64, Presence> =
+            f.presence.map(|p| (f.hash, p)).into_iter().collect();
+        let signs: HashMap<u64, u64> = f.sign.map(|s| (f.hash, s)).into_iter().collect();
+        match slots.iter_mut().find(same) {
+            Some(slot) => {
+                slot.placements.push(f.hash);
+                slot.presence.extend(presence);
+                slot.signs.extend(signs);
+            }
+            None => slots.push(Slot {
+                area: f.area,
+                shop: "",
+                number: 0,
+                goods: f.goods,
+                placements: vec![f.hash],
+                presence,
+                signs,
+                pos: f.pos,
+                index: 0,
+                goods_index: f.goods_index,
+                keepers: Vec::new(),
+            }),
+        }
+    }
+    slots
+}
+
+/// `slots` by shop: each sits near another of its group.
+fn by_shop(slots: Vec<Slot>) -> Vec<Vec<Slot>> {
+    let mut groups: Vec<Vec<Slot>> = Vec::new();
+    for slot in slots {
+        let near = |g: &Vec<Slot>| {
+            g.iter()
+                .any(|s| s.area == slot.area && dist(s.pos, slot.pos) < SAME_SHOP)
+        };
+        let (joined, rest): (Vec<_>, Vec<_>) = groups.into_iter().partition(near);
+        let mut group: Vec<Slot> = joined.into_iter().flatten().collect();
+        group.push(slot);
+        groups = rest;
+        groups.push(group);
+    }
+    groups
+}
+
 /// A shelf placement's entry in its keeper's goods list. The first
 /// entry's placements leave it out.
 fn goods_index(actor: &Byml) -> i32 {
@@ -276,9 +297,7 @@ fn goods_index(actor: &Byml) -> i32 {
 
 /// The first `count` slots of each shop, as checks.
 pub fn checks(slots: &[Slot], count: usize) -> Vec<ItemCheck> {
-    slots
-        .iter()
-        .filter(|s| s.number <= count)
+    sold::checks(slots, count)
         .map(|s| gifts::check(FILE.into(), &s.area, s.hash(), s.holder(), s.vanilla()))
         .collect()
 }
@@ -338,8 +357,6 @@ pub fn wallet(price: i32, progressive: bool) -> Need {
     }
 }
 
-/// Build each check slot's actor and its RSDB rows, and return the
-/// placement fields, as `HASH.PATH=VALUE`, that shelve it.
 /// The shop text under an item's name, which only the game's own goods
 /// have: `<stem>_ShopCaption`, beside the `<stem>_Name` naming the item.
 const CAPTION: &str = "_ShopCaption";
@@ -378,6 +395,8 @@ pub fn captions(romfs: &Romfs, shelves: &Shelves) -> Result<Copies<'static>> {
     })
 }
 
+/// Build each check slot's actor and its RSDB rows, and return the
+/// placement fields, as `HASH.PATH=VALUE`, that shelve it.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
@@ -399,7 +418,7 @@ pub fn write(
             .with_context(|| format!("{} selling {item}", slot.holder()))?;
         let plank = planks::plank(slot.shop, slot.number)
             .with_context(|| format!("no plank measured for {}", slot.holder()))?;
-        let rise = standins::rise(tables, plank, item)?;
+        let rise = rise(tables, plank, item)?;
         for h in &stand.placements {
             fields.push(format!("{h}.{GYAML}={name}"));
             if rise != 0.0 {
@@ -410,6 +429,18 @@ pub fn write(
         fields.extend(stand.signs.iter().map(|h| format!("{h}.{GYAML}={sign}")));
     }
     Ok(fields)
+}
+
+/// How far a placed stand-in rises to rest on a shelf `plank` metres
+/// above its placement: the plank, less how far above its origin the
+/// item's model starts in the pose it plays there (`floor`, else its
+/// `ActorInfo` row).
+fn rise(tables: &Tables, plank: f32, item: &str) -> Result<f32> {
+    let bottom = match floor(item) {
+        Some(bottom) => bottom,
+        None => standins::table_floor(&tables.actor, item)?,
+    };
+    Ok(plank - bottom)
 }
 
 /// Give each of `slots` a stock of one in its keepers' goods lists, so the
@@ -473,8 +504,10 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::gamedata::GameData;
-    use crate::known::{actor, field, flag, item, scene};
     use crate::settings::DungeonKeys;
+    use crate::standins::*;
+    use ounce_formats::{BymlMap, pack_path};
+    use roead::sarc::Sarc;
 
     #[test]
     fn a_shield_stands_up_on_a_shelf_and_the_rupee_lies_as_its_vertices_say() {
@@ -487,10 +520,6 @@ mod tests {
         assert!((at(actor::T_BOX_RUPEE_RED) + 0.191).abs() < 0.001);
         assert_eq!(floor("FakeItem_Nothing"), None);
     }
-    use crate::standins::*;
-    use ounce_formats::{Byml, BymlDoc, BymlMap, pack_path};
-    use roead::sarc::Sarc;
-
     #[test]
     fn sixty_four_slots_in_eight_shops() {
         let Some(romfs) = dev_dump() else { return };

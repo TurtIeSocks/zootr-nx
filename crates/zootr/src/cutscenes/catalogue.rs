@@ -105,12 +105,11 @@ impl Catalogue {
         }
         let gd = GameData::load(romfs)?;
         let exps = gd.read_by_exps();
-        let flag = |name: &str| format!("{PLAYED}.{name}");
         let mut out = Vec::new();
-        let flagged = files.iter().filter(|n| gd.table(&flag(n)).is_some());
+        let flagged = files.iter().filter(|n| gd.table(&played_flag(n)).is_some());
         let names: BTreeSet<&String> = callers.keys().chain(&map).chain(flagged).collect();
         for name in names.into_iter().filter(|n| n.starts_with("Dm_")) {
-            let has_flag = gd.table(&flag(name)).is_some();
+            let has_flag = gd.table(&played_flag(name)).is_some();
             // A flow that starts a cutscene reading its flag is the "only
             // once" guard, and an NPC reading it picks a line. Anything else
             // would change the world early.
@@ -124,7 +123,7 @@ impl Catalogue {
                 .collect();
             let tier = if let Some(r) = readers.first() {
                 Tier::Effects(format!("its played flag is read by {r}"))
-            } else if has_flag && exps.contains(&murmur3(flag(name).as_bytes())) {
+            } else if has_flag && exps.contains(&murmur3(played_flag(name).as_bytes())) {
                 Tier::Effects(format!("a {} reads its played flag", flag::BOOL_EXP))
             } else {
                 match all.effects_where(name, changes) {
@@ -225,7 +224,6 @@ mod tests {
     use crate::cutscenes::tests::every;
     use crate::known::scene;
 
-    /// Needs the dev dump, so it passes vacuously without one.
     fn names_of<'a>(picked: &[&'a Cutscene]) -> BTreeSet<&'a str> {
         picked.iter().map(|c| c.name.as_str()).collect()
     }
@@ -271,10 +269,12 @@ mod tests {
             let after = Flowchart::parse(&after).unwrap().unwrap();
             for (i, e) in (0u16..).zip(&after.events) {
                 if transition(&after, &e.kind).is_some_and(|t| names.contains(t)) {
-                    let reached = after
-                        .links_to(i)
-                        .into_iter()
-                        .any(|l| !matches!(l, Link::Next(n) if names.contains(transition(&after, &after.events[n as usize].kind).unwrap_or(""))));
+                    let relinked = |n: u16| {
+                        let kind = &after.events[n as usize].kind;
+                        names.contains(transition(&after, kind).unwrap_or(""))
+                    };
+                    let reached = (after.links_to(i).into_iter())
+                        .any(|l| !matches!(l, Link::Next(n) if relinked(n)));
                     assert!(!reached, "{flow} still runs {}", e.name);
                 }
             }

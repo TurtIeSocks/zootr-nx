@@ -83,13 +83,13 @@ pub(super) fn rewards_into_a_full_wallet(flow: &mut Flowchart) -> Result<()> {
             _ => None,
         })
         .collect();
-    let rewarded = |flow: &mut Flowchart, ask: u16| {
-        (cases_mut(flow, ask).iter())
+    let rewarded = |flow: &Flowchart, ask: u16| {
+        (cases(flow, ask).iter())
             .map(|c| c.1)
             .find(|to| before.contains(to))
     };
     let asks: Vec<(u16, u16)> = (running(flow, WALLET_TAKES).into_iter())
-        .filter_map(|ask| rewarded(flow, ask).map(|to| (ask, to)))
+        .filter_map(|ask| rewarded(&*flow, ask).map(|to| (ask, to)))
         .collect();
     let [(ask, reward)] = asks[..] else {
         bail!(
@@ -121,16 +121,21 @@ fn pouch_question(flow: &Flowchart, Call(_, entry): Call) -> Result<u16> {
 }
 
 /// Where the switch at `at` goes on `case`.
-fn answer(flow: &mut Flowchart, at: u16, case: u32) -> Result<u16> {
-    let found = cases_mut(flow, at)
-        .iter()
-        .find(|c| c.0 == case)
-        .map(|c| c.1);
-    found.with_context(|| format!("{} event {at} has no case {case}", flow.name))
+fn answer(flow: &Flowchart, at: u16, case: u32) -> Result<u16> {
+    goes_on(cases(flow, at), case)
+        .with_context(|| format!("{} event {at} has no case {case}", flow.name))
 }
 
 /// The cases of the switch at `at`.
-fn cases_mut(flow: &mut Flowchart, at: u16) -> &mut Vec<(u32, u16)> {
+fn cases(flow: &Flowchart, at: u16) -> &[(u32, u16)] {
+    let EventKind::Switch { cases, .. } = &flow.events[at as usize].kind else {
+        unreachable!("the question was found as a switch");
+    };
+    cases
+}
+
+/// The cases of the switch at `at`, to edit.
+fn cases_mut(flow: &mut Flowchart, at: u16) -> &mut [(u32, u16)] {
     let EventKind::Switch { cases, .. } = &mut flow.events[at as usize].kind else {
         unreachable!("the question was found as a switch");
     };
@@ -272,7 +277,7 @@ mod tests {
     fn the_sales_are_dealt_by_merchants_alone() {
         let sales: Vec<_> = GIFTS.iter().filter(|g| g.is_sale()).collect();
         assert_eq!(sales.len(), 3);
-        assert!(sales.iter().all(|g| g.setting() == Some(MERCHANTS)));
+        assert!(sales.iter().all(|g| g.setting == Some(MERCHANTS)));
         let on = |s: &[&str]| s.iter().map(|s| s.to_string()).collect::<BTreeSet<_>>();
         assert!(sales.iter().all(|g| g.dealt(&on(&[MERCHANTS]))));
         assert!(sales.iter().all(|g| !g.dealt(&on(&[NPC_GIFTS]))));

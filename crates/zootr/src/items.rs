@@ -32,7 +32,7 @@ pub struct Item {
 }
 
 impl Item {
-    /// A field as text, `-` when missing.
+    /// The name of the pouch's `Category`, `sword` when it has none.
     pub fn category(&self) -> &'static str {
         let hash = self.field("Category");
         CATEGORIES
@@ -41,6 +41,7 @@ impl Item {
             .map_or(if hash == "-" { "sword" } else { "?" }, |c| c.1)
     }
 
+    /// A field as text, `-` when missing.
     pub fn field(&self, key: &str) -> String {
         self.pouch.get(key).map_or("-".into(), scalar)
     }

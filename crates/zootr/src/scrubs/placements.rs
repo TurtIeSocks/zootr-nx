@@ -14,15 +14,10 @@ use crate::known::actor;
 use crate::rsdb::Events;
 use crate::text::Lines;
 
-/// The entry point `s` runs when talked to, while it sells `item`.
+/// The entry point `s` runs when talked to, while it sells `item`, and the
+/// event of the same name that runs it.
 pub(super) fn sells(s: &Scrub, item: &str) -> String {
     format!("{ACTOR}_Sells_{}_{item}", s.hash())
-}
-
-/// The event `s` runs when talked to while it sells `item`, which runs the
-/// entry of the same name. `None` keeps its vanilla talk.
-fn talk(s: &Scrub, item: &str) -> Option<String> {
-    (s.branch != Branch::Secret).then(|| sells(s, item))
 }
 
 /// The edited spots whose talk is their own entry: all but the riddle one,
@@ -132,15 +127,13 @@ pub fn sold_out(drops: &HashMap<u64, Drop>) -> Vec<Lines<'_>> {
 pub fn fields(drops: &HashMap<u64, Drop>) -> Vec<String> {
     let mut out = Vec::new();
     for (s, item) in own(drops) {
-        let entry = talk(s, item);
+        let entry = sells(s, item);
         let stock = if plain(item) { s.item } else { item };
         for h in s.placements {
             out.push(format!("{h}.Dynamic.{ITEM}={stock}"));
-            if let Some(entry) = &entry {
-                out.push(format!("{h}.Dynamic.{TALK}={entry}"));
-                if s.attacked {
-                    out.push(format!("{h}.Dynamic.{ATTACKED}={entry}"));
-                }
+            out.push(format!("{h}.Dynamic.{TALK}={entry}"));
+            if s.attacked {
+                out.push(format!("{h}.Dynamic.{ATTACKED}={entry}"));
             }
         }
     }
@@ -150,6 +143,6 @@ pub fn fields(drops: &HashMap<u64, Drop>) -> Vec<String> {
 /// Event rows for every talk the edited scrubs run, without which the game
 /// starts nothing when one is talked to.
 pub fn events(drops: &HashMap<u64, Drop>, events: &mut Events) -> Result<()> {
-    let talks: BTreeSet<String> = edits(drops).filter_map(|(s, i)| talk(s, i)).collect();
+    let talks: BTreeSet<String> = own(drops).map(|(s, i)| sells(s, i)).collect();
     talks.iter().try_for_each(|t| events.copy(t, LIKE))
 }

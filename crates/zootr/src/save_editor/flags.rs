@@ -86,18 +86,18 @@ fn group_of(name: &str) -> &str {
 /// The tab for `save`, with `staged` the values pending edits change.
 pub fn flags(gd: &GameData, save: &Save, staged: &HashSet<u32>, q: &FlagQuery) -> FlagsView {
     let search = q.search.trim().to_lowercase();
+    let hex = (search.strip_prefix('#'))
+        .or_else(|| search.strip_prefix("0x"))
+        .unwrap_or(&search);
     let hits = |e: &SaveEntry, name: &str, label: Option<&str>| {
         search.is_empty()
             || name.to_lowercase().contains(&search)
-            || format!("{:08x}", e.hash).contains(search.trim_start_matches(['#', '0', 'x']))
+            || (!hex.is_empty() && format!("{:08x}", e.hash).contains(hex))
             || label.is_some_and(|l| l.to_lowercase().contains(&search))
     };
     let mut kinds: Vec<String> = Vec::new();
     let mut groups: BTreeMap<String, (FlagGroup, Vec<(String, SaveEntry)>)> = BTreeMap::new();
     for &e in save.entries() {
-        if e.hash == 0 {
-            continue;
-        }
         if !kinds.iter().any(|k| k == e.kind) {
             kinds.push(e.kind.into());
         }
@@ -256,6 +256,14 @@ mod tests {
             ..query()
         };
         assert_eq!(ask(paged), [11, 12, 21]);
+        // A bare prefix is no hash at all, not one that matches every row.
+        for prefix in ["x", "0x"] {
+            let q = FlagQuery {
+                search: prefix.into(),
+                ..query()
+            };
+            assert_eq!(ask(q), [0u32; 0], "{prefix}");
+        }
     }
 
     #[test]

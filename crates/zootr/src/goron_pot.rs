@@ -13,12 +13,14 @@
 //! An item shown a step at a time shows its first step: the slot names one
 //! actor, and no map file can name another.
 
+use std::collections::HashMap;
+
 use anyhow::{Context, Result};
 use ounce_formats::{
     ActorPack, BymlDoc, EventKind, Flowchart, ModBuilder, Romfs, Value, pack_file,
 };
 
-use crate::checks::ItemCheck;
+use crate::checks::{Drop, ItemCheck};
 use crate::flows::{self, Rewrites};
 use crate::known::{Name, actor, field, flag, map, scene};
 use crate::progressive::Lines;
@@ -88,7 +90,7 @@ pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
-    drops: &std::collections::HashMap<u64, crate::checks::Drop>,
+    drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<()> {
     let item = gifts::item_at(drops, HASH, PIECE);
@@ -109,11 +111,7 @@ pub fn write(
 
 /// Name the stand-in in the drop scene, when the seed deals the pot
 /// something else.
-pub fn rename(
-    romfs: &Romfs,
-    rewrites: &mut Rewrites,
-    drops: &std::collections::HashMap<u64, crate::checks::Drop>,
-) -> Result<()> {
+pub fn rename(romfs: &Romfs, rewrites: &mut Rewrites, drops: &HashMap<u64, Drop>) -> Result<()> {
     if *gifts::item_at(drops, HASH, PIECE) == **PIECE {
         return Ok(());
     }
@@ -254,8 +252,8 @@ mod tests {
     fn a_line_shows_its_first_step() {
         needs_names!();
         let lines = Lines::widest(true);
-        let first = shows::steps(item::HOOKSHOT, lines).map(|s| s[0].0);
-        assert_eq!(Some(shown(item::HOOKSHOT, lines)), first);
+        assert_eq!(shown(item::LONGSHOT, lines), item::HOOKSHOT.get());
+        assert_eq!(shown(item::HOOKSHOT, lines), item::HOOKSHOT.get());
         assert_eq!(shown(item::BOOMERANG, lines), item::BOOMERANG.get());
     }
 }

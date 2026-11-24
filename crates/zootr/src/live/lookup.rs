@@ -8,7 +8,10 @@ use anyhow::{Result, bail};
 use ounce_formats::murmur3;
 
 use super::Shape::Inline;
-use super::{Memory, Row, TYPES, items, manager, quad, show, sized, table, word};
+use super::{
+    COUNT, MAP, MAP_CAP, Memory, Row, TYPES, entries_pointer, items, manager, quad, show, sized,
+    table, word,
+};
 use crate::gamedata::GameData;
 use crate::value;
 
@@ -85,14 +88,15 @@ fn entries(mem: &impl Memory, places: &Places, manager: u64, row: &Row) -> Resul
     if let Some(&at) = places.under(manager).entries.get(&row.0) {
         return Ok((at, false));
     }
-    let at = mem.u64(table(manager, row) + 0x10)?;
+    let at = mem.u64(entries_pointer(manager, row))?;
     places.under(manager).entries.insert(row.0, at);
     Ok((at, true))
 }
 
 /// Where each hash's entry is, as far as `places` knows, and the kept
 /// pointers it was found through: the words to read, and what each should
-/// hold. None when every pointer was read just now.
+/// hold. `check` and `expect` are empty when every pointer was read just
+/// now.
 struct Spots {
     at: Vec<Option<(&'static Row, u64)>>,
     check: Vec<(u64, usize)>,
@@ -111,7 +115,7 @@ fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Res
             Some((row, i)) => {
                 let (list, read) = entries(mem, places, manager, row)?;
                 fresh &= read;
-                let pointer = table(manager, row) + 0x10;
+                let pointer = entries_pointer(manager, row);
                 if !s.check.contains(&(pointer, 8)) {
                     s.check.push((pointer, 8));
                     s.expect.push(list);
@@ -196,7 +200,7 @@ fn find(mem: &impl Memory, global: u64, hash: u32) -> Result<Option<(&'static Ro
     let Some((row, i)) = place(mem, manager, hash)? else {
         return Ok(None);
     };
-    let entries = mem.u64(table(manager, row) + 0x10)?;
+    let entries = mem.u64(entries_pointer(manager, row))?;
     Ok(Some((row, entries + u64::from(i) * row.2 as u64)))
 }
 
@@ -235,20 +239,19 @@ fn places_of(mem: &impl Memory, manager: u64, hashes: &[u32]) -> Result<Vec<Plac
 /// one read, then every map in another, however many hashes there are.
 /// A hash goes by the first table whose map lists it.
 fn scan(mem: &impl Memory, manager: u64, hashes: &[u32]) -> Result<HashMap<u32, Place>> {
-    // From +8: the count, the map at +0x10, its capacity at +0x1c.
     let heads: Vec<_> = TYPES
         .iter()
-        .map(|row| (table(manager, row) + 8, 0x20))
+        .map(|row| (table(manager, row), MAP_CAP + 4))
         .collect();
     let heads = mem.read_many(&heads)?;
     let mut maps = Vec::new();
     for (row, head) in TYPES.iter().zip(&heads) {
-        let cap = word(head, 0x1c) as usize;
+        let cap = word(head, MAP_CAP) as usize;
         if cap > 0 {
             maps.push((
                 row,
-                word(head, 0),
-                (quad(head, 0x10), sized(row.1, cap * 8)?),
+                word(head, COUNT),
+                (quad(head, MAP), sized(row.1, cap * 8)?),
             ));
         }
     }
@@ -275,9 +278,8 @@ fn scan(mem: &impl Memory, manager: u64, hashes: &[u32]) -> Result<HashMap<u32, 
 /// are known: one request over a bridge. A hash the game doesn't hold as a
 /// Bool reads false.
 pub fn bools(mem: &impl Memory, global: u64, hashes: &[u32]) -> Result<Vec<bool>> {
-    let bool_row = &TYPES[0];
     let flag = |row: &'static Row, entry| match row.3 {
-        Inline(at, _) if std::ptr::eq(row, bool_row) => Some((entry + at as u64, 1)),
+        Inline(at, _) if row.1 == "Bool" => Some((entry + at as u64, 1)),
         _ => None,
     };
     let (got, _) = read_checked(mem, global, hashes, flag, &[])?;
@@ -290,8 +292,8 @@ pub fn bools(mem: &impl Memory, global: u64, hashes: &[u32]) -> Result<Vec<bool>
 }
 
 /// Where a value held inline keeps its current value: its type, address
-/// and width. A scalar's saved copy sits right after. See [`encode`] for
-/// what's writable.
+/// and width. A scalar's saved copy sits right after. See
+/// [`value::encode`] for what's writable.
 pub fn locate(mem: &impl Memory, global: u64, hash: u32) -> Result<(&'static str, u64, usize)> {
     if let Some(((_, kind, _, Inline(off, len)), entry)) = find(mem, global, hash)? {
         return Ok((kind, entry + *off as u64, *len));
@@ -338,7 +340,9 @@ pub fn read(mem: &impl Memory, gd: &GameData, global: u64, hash: u32) -> Result<
 }
 
 /// Writes the current value, and for a scalar the copy after it, which
-/// is the one the game saves from. Data pages only.
+/// is the one the game saves from. Text has no copy: the next slot
+/// follows it. Data pages only.
+///
 /// Its address is checked first (see [`read_checked`]): a write never
 /// goes through a stale one.
 pub fn set(mem: &impl Memory, global: u64, hash: u32, value: &str) -> Result<()> {
@@ -347,7 +351,11 @@ pub fn set(mem: &impl Memory, global: u64, hash: u32, value: &str) -> Result<()>
         bail!("{hash:#010x} isn't a value the game holds inline")
     };
     let bytes = value::encode(kind, value, *width)?;
-    let copies = if kind.starts_with("String") { 1 } else { 2 };
+    let copies = if value::input(kind) == value::Input::Text {
+        1
+    } else {
+        2
+    };
     mem.write(entry + *off as u64, &bytes.repeat(copies))
 }
 
@@ -484,7 +492,7 @@ mod tests {
     /// where the old entries were.
     fn move_manager(mem: &Kept) -> u64 {
         let (fake, row) = (&mem.0, TYPES.iter().find(|t| t.0 == 2).unwrap());
-        let pointer = table(0, row) as usize + 0x10;
+        let pointer = entries_pointer(0, row) as usize;
         let mut manager = fake.read(0x3000, super::super::KEYS + 0x10).unwrap();
         let old = quad(&manager, pointer);
         fake.write(ENTRIES, &fake.read(old, 2 * row.2).unwrap())
@@ -545,6 +553,19 @@ mod tests {
         assert_eq!((kind, at, len), ("Int", 0x10000 + 0x28 + 0x1c, 4));
         assert_eq!(mem.u32(at).unwrap(), 7);
         assert!(locate(&mem, 0x1000, 0xdead).is_err());
+    }
+
+    #[test]
+    fn a_wide_string_write_leaves_the_next_slot_alone() {
+        needs_names!();
+        let next = [0xee; 0xa8 - 0x74];
+        let mem = game(&[(26, vec![entry(26, &[(0x74, &next)])])], &[]);
+        set(&mem, 0x1000, hash(26, 0), "Hi").unwrap();
+        let (_, at, len) = locate(&mem, 0x1000, hash(26, 0)).unwrap();
+        let mut want = vec![b'H', 0, b'i', 0];
+        want.resize(len, 0);
+        assert_eq!(mem.read(at, len).unwrap(), want);
+        assert_eq!(mem.read(at + len as u64, next.len()).unwrap(), next);
     }
 
     #[test]

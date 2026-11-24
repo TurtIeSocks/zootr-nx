@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
-use crate::settings::Archipelago::{self, Later, Never, Offered};
-use crate::settings::SettingDef;
+use crate::settings::Archipelago::{self, AlwaysOn, Later, Never, Offered, OnUntil};
+use crate::settings::{Kind, SettingDef};
 
 pub mod bench;
 pub mod bench_live;
@@ -81,6 +81,7 @@ pub const OPTIONS: &[&str] = &[
     "hives",
     "shuffle-masks",
     "ice-traps",
+    "progressive-items",
 ];
 
 /// Every setting the world doesn't offer, and why: each one coming in a
@@ -98,7 +99,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("shuffle-nut-bag", Later(CHECK_KINDS)),
     ("shuffle-stick-bag", Later(CHECK_KINDS)),
     ("magic-with-first-item", Later(COMFORT)),
-    ("progressive-items", Later(ITEM_POOL)),
     ("logic", Later(RULES)),
     ("starting-age", Later(RULES)),
     ("rainbow-bridge", Later(RULES)),
@@ -128,22 +128,35 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
 
 /// The queue's stages, as the app names them.
 const CHECK_KINDS: &str = "check kinds";
-const ITEM_POOL: &str = "the item pool";
 const RULES: &str = "goal and rules";
 const KEYS: &str = "keys";
 const COMFORT: &str = "comfort";
 
 /// Whether the world offers `def`. A single cutscene skip under one the
 /// world offers waits for the comfort stage: the world offers them only
-/// all at once.
+/// all at once. A toggle left out but on in every Archipelago seed (its
+/// default, or pinned like Chests) says so.
 pub fn archipelago(def: &SettingDef) -> Option<Archipelago> {
     if OPTIONS.contains(&def.id.as_str()) {
         return Some(Offered);
     }
     if let Some((_, left)) = LEFT_OUT.iter().find(|(id, _)| *id == def.id) {
-        return Some(*left);
+        return Some(match (*left, on_in_ap(def)) {
+            (Later(why), true) => OnUntil(why),
+            (Never(why), true) => AlwaysOn(why),
+            (left, _) => left,
+        });
     }
     (def.parent.is_some_and(|p| OPTIONS.contains(&p))).then_some(Later(COMFORT))
+}
+
+/// Whether every Archipelago seed holds toggle `def` on: the world's base
+/// pins it on, or leaves it at a default of on.
+fn on_in_ap(def: &SettingDef) -> bool {
+    match seed::pinned().get(&def.id) {
+        Some(value) => value == &serde_json::Value::Bool(true),
+        None => matches!(def.kind, Kind::Toggle { default: true }),
+    }
 }
 
 /// Whether the world offers `option` of choice `id`, as the app marks it:
@@ -259,6 +272,17 @@ mod tests {
             let twice = super::LEFT_OUT.iter().filter(|(other, _)| other == id);
             assert_eq!(twice.count(), 1, "{id} is left out twice");
         }
+    }
+
+    #[test]
+    fn a_toggle_left_out_but_on_in_every_seed_is_forced() {
+        let defs = crate::settings::schema();
+        use super::{AlwaysOn, CHECK_KINDS, Later, Never, OnUntil};
+        let ap = |id: &str| defs.iter().find(|d| d.id == id).unwrap().archipelago;
+        assert_eq!(ap(crate::settings::CHESTS), OnUntil(CHECK_KINDS));
+        assert!(matches!(ap("shuffle-items"), AlwaysOn(_)));
+        assert!(matches!(ap("start-inventory"), Never(_)));
+        assert!(matches!(ap("shuffle-nut-bag"), Later(_)));
     }
 
     #[test]

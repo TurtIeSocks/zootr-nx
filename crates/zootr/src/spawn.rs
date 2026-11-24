@@ -125,7 +125,7 @@ fn adult_gear(romfs: &Romfs, rewrites: &mut Rewrites, owned: &[&str]) -> Result<
     let first = |names: &[&'static Name]| {
         let held = names
             .iter()
-            .find(|&&n| owned.contains(&starting::drop(n).get()));
+            .find(|&&n| owned.contains(&starting::chest_item(n).get()));
         held.map_or("", |n| n.get())
     };
     let slots = [
@@ -171,7 +171,7 @@ fn sequence(name: &Name, kind: &str) -> String {
     format!("Sequence/{name}.{kind}.ainb")
 }
 
-/// The first node in `graph` named `name`.
+/// The first node in `patch`'s graph named `name`.
 fn named(patch: &Patch, name: &Name) -> Result<usize> {
     (patch.graph().nodes.iter())
         .position(|n| n.name == name.get())
@@ -256,7 +256,7 @@ mod tests {
         (rewrites, flags)
     }
 
-    /// The patched node `name` of sequence graph `rel`.
+    /// The node `name` of patched sequence graph `graph`.
     fn node<'a>(graph: &'a Graph, name: &Name) -> &'a ounce_formats::ainb::Node {
         graph.nodes.iter().find(|n| n.name == name.get()).unwrap()
     }
@@ -310,7 +310,10 @@ mod tests {
             return;
         };
         let opening = |owned: &[&'static Name]| {
-            let owned: Vec<_> = owned.iter().map(|&n| starting::drop(n).get()).collect();
+            let owned: Vec<_> = owned
+                .iter()
+                .map(|&n| starting::chest_item(n).get())
+                .collect();
             let (rewrites, flags) = booted(&romfs, &adult_start(), &owned);
             let entered = format!("{}.{}", flag::HAVE_PLAYED_EVENT, scene::TIME_TEMPLE_0000);
             let edits = [

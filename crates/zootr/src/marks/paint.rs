@@ -35,6 +35,11 @@ impl Canvas {
         y * self.texture.width + x
     }
 
+    /// Whether texel (`x`, `y`) changed.
+    pub(super) fn is_painted(&self, x: usize, y: usize) -> bool {
+        self.painted[self.at(x, y)]
+    }
+
     /// Texel (`x`, `y`) a `share` of the way (0 to 1) toward `colour`.
     fn blend(&mut self, x: usize, y: usize, colour: [f32; 3], share: f32) {
         if share <= 0.0 {
@@ -48,10 +53,15 @@ impl Canvas {
         self.painted[at] = true;
     }
 
+    /// Texel (`x`, `y`)'s brightness, 0 to 255.
+    fn luma(&self, x: usize, y: usize) -> u32 {
+        let at = self.at(x, y);
+        luma(&self.texture.rgba[4 * at..4 * at + 4])
+    }
+
     /// Texel (`x`, `y`)'s brightened gold.
     fn gold(&self, x: usize, y: usize) -> [f32; 3] {
-        let at = self.at(x, y);
-        brightened(luma(&self.texture.rgba[4 * at..4 * at + 4]))
+        brightened(self.luma(x, y))
     }
 
     /// The rows between `top` and `bottom` (as fractions of the height) in
@@ -117,8 +127,11 @@ impl Canvas {
                     Upright::Flipped => 1.0 - down,
                 };
                 let share = mark.sample((x as f32 + 0.5 - left) / wide, down);
+                if share <= 0.0 {
+                    continue;
+                }
                 // The stone's grain shows through the gold, a little.
-                let grain = 0.8 + 0.2 * self.gold(x, y)[0] / 255.0;
+                let grain = 0.8 + 0.2 * lit(self.luma(x, y));
                 self.blend(x, y, GOLD.map(|c| c as f32 * grain), share);
             }
         }
@@ -133,10 +146,15 @@ pub(super) enum Upright {
     Flipped,
 }
 
+/// How lit a texel of brightness `luma` (0 to 255) is, 0 to 1, once
+/// lifted and squeezed.
+fn lit(luma: u32) -> f32 {
+    (LIFT.0 + LIFT.1 * luma as f32 / 255.0).min(1.0)
+}
+
 /// The gold a texel of brightness `luma` (0 to 255) becomes.
 fn brightened(luma: u32) -> [f32; 3] {
-    let lit = (LIFT.0 + LIFT.1 * luma as f32 / 255.0).min(1.0);
-    GOLD.map(|c| c as f32 * lit)
+    GOLD.map(|c| c as f32 * lit(luma))
 }
 
 /// A shape to stamp: how much of each texel it covers, 0 to 1, apex up.
@@ -151,7 +169,7 @@ impl Mark {
     /// points right, and turned apex up.
     pub(super) fn triforce(romfs: &Romfs) -> Result<Self> {
         let name = texture::TRI_FORCE_MARK_GRAVEYARD_ASSETS_A_ALB;
-        let source = top_level(&romfs.read(&super::texture_path(name))?)?;
+        let source = top_level(&romfs.read(&super::texture_file(name))?)?;
         Self::cut(&source)
     }
 

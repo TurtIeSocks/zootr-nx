@@ -4,7 +4,7 @@ use anyhow::{Context, Result, bail};
 use ounce_formats::{EventKind, Flowchart};
 
 use super::{FLOW, SELECTED, SET_STRING};
-use crate::flows::{self, GAME_DATA, events, param, params_mut, string};
+use crate::flows::{self, GAME_DATA, VALUE, events, param, params_mut, string};
 
 /// The events running `what` whose `key` param is `value`.
 pub(super) fn with(
@@ -91,7 +91,7 @@ pub(super) fn set_string(
         .kind
         .clone();
     flows::set(params_mut(&mut set), GAME_DATA, string(name))?;
-    flows::set(params_mut(&mut set), "Value", string(value))?;
+    flows::set(params_mut(&mut set), VALUE, string(value))?;
     if let EventKind::Action { next: n, .. } = &mut set {
         *n = next;
     }

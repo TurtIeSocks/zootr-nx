@@ -311,21 +311,10 @@ pub(crate) fn no_names() -> bool {
 /// Every actor pack holding `file`, sorted by name.
 #[cfg(test)]
 pub(crate) fn packs_holding(romfs: &Romfs, file: &str) -> Vec<String> {
-    let dir = romfs.root().join("Pack/Actor");
-    let mut found: Vec<String> = ounce_formats::files_with_suffix(&dir, ".pack.zs")
-        .unwrap()
-        .iter()
-        .filter_map(|p| {
-            p.file_name()?
-                .to_str()?
-                .strip_suffix(".pack.zs")
-                .map(String::from)
-        })
-        .filter(|pack| {
-            ounce_formats::ActorPack::load(romfs, pack).is_ok_and(|p| p.raw(file).is_some())
-        })
-        .collect();
-    found.sort();
+    let mut found = crate::flags::pack_actors(romfs).unwrap();
+    found.retain(|pack| {
+        ounce_formats::ActorPack::load(romfs, pack).is_ok_and(|p| p.raw(file).is_some())
+    });
     found
 }
 

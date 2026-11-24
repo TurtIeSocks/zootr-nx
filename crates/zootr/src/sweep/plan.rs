@@ -8,36 +8,52 @@ use ounce_formats::Romfs;
 use super::wield::{self, Wield};
 use crate::cows::{self, Cow};
 use crate::cutscenes::Catalogue;
-use crate::events::{Effect, Flows};
+use crate::events::Flows;
 use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::gifts::GIFTS;
-use crate::known::{Name, actor, field, flow};
+use crate::known::{Name, actor};
 use crate::nav::kinds::{self, Act};
 use crate::warp::{self, Pose, Side};
-use crate::{flags, gates, pickups, rsdb, scrubs, shops, steps};
+use crate::{pickups, rsdb, scrubs, shops, steps};
 use landing::{around, away_from, clear_landing, neighbours, off_line};
 use quest::{quests, step_of, steps};
 use room::{drain, noted, water};
 
 mod events;
+mod gated;
 mod landing;
 mod quest;
 mod room;
 mod shop;
 
+/// What `slot` holds, `load`ed into it the first time it's asked for.
+fn lazy<T>(slot: &mut Option<T>, load: impl FnOnce() -> Result<T>) -> Result<&T> {
+    let held: &T = match slot {
+        Some(held) => held,
+        None => slot.insert(load()?),
+    };
+    Ok(held)
+}
+
+/// A map's name, its poses, the pose of the placement looked for, and the
+/// map's age.
+type PlacedIn<'a> = (&'a String, &'a HashMap<u64, Pose>, &'a Pose, Option<bool>);
+
+/// Where in `maps` the placement `hash` is: in a map of age `first`, else
+/// of the other age, else of none.
+fn placed_in(maps: &Maps, hash: u64, first: bool) -> Option<PlacedIn<'_>> {
+    [Some(first), Some(!first), None]
+        .into_iter()
+        .find_map(|era| {
+            let mut of_era = maps.iter().filter(|(map, _)| warp::era(map) == era);
+            of_era.find_map(|(map, poses)| Some((map, poses, poses.get(&hash)?, era)))
+        })
+}
+
 /// What `by` holds for `map` of `area`.
 fn in_map<'a, T>(by: &'a HashMap<String, Maps<Vec<T>>>, area: &str, map: &str) -> &'a [T] {
     (by.get(area).and_then(|m| m.get(map))).map_or(&[], Vec::as_slice)
-}
-
-/// The actors `expr` reads, by name: a switch, an enemy beaten.
-fn drivers(expr: &gates::Expr) -> Vec<Name> {
-    let actor = |a: &gates::Atom| match a {
-        gates::Atom::Actor { name, .. } => Some(Name(crate::known::hash(name))),
-        _ => None,
-    };
-    expr.atoms().into_iter().filter_map(actor).collect()
 }
 
 /// `(challenge, step)` quest steps, written as their save copies before
@@ -217,10 +233,12 @@ struct Planner<'a> {
     /// placement hash.
     appear: Option<HashMap<u64, Raise>>,
     /// The actors each gated chest's graph reads, by placement hash: a
-    /// switch a pillar may pin down.
+    /// switch a pillar may pin down. Filled with `appear` by
+    /// [`Planner::appear`], which [`Planner::wield`] needs run first.
     drivers: HashMap<u64, Vec<Name>>,
     /// The enemy placements each gated chest waits on, when beating them
-    /// is all it waits on, by placement hash.
+    /// is all it waits on, by placement hash. Filled with `appear` by
+    /// [`Planner::appear`].
     foes: HashMap<u64, Vec<u64>>,
     cows: Option<Vec<Cow>>,
     /// The sensor areas that start each request actor's event.
@@ -267,24 +285,23 @@ impl<'a> Planner<'a> {
 impl Planner<'_> {
     fn spot(&mut self, spot: &Spot) -> Result<Planned> {
         let gift = GIFTS.iter().find(|g| g.hash() == spot.hash);
-        let mut side = Side::Front;
-        let (trigger, child) = match gift {
-            Some(gift) => self.gift(gift)?,
-            None if cows::is_holder(&spot.holder) => self.cow(spot)?,
+        // Only a placed holder lands on a side of its own.
+        let front = |(trigger, child): (Trigger, Option<bool>)| (trigger, child, Side::Front);
+        let (trigger, child, side) = match gift {
+            Some(gift) => front(self.gift(gift)?),
+            None if cows::is_holder(&spot.holder) => front(self.cow(spot)?),
             None if spot.holder.starts_with(chest())
                 || spot.holder.starts_with(scrubs::HOLDER)
                 || pickups::within_reach(&spot.holder)
                 // Ruto's bottle on the lake bed: a dive onto it takes it.
                 || spot.holder == **actor::OBJ_BOTTLE_LETTER =>
             {
-                let (trigger, child, landing) = self.placed(spot)?;
-                side = landing;
-                (trigger, child)
+                self.placed(spot)?
             }
-            None if shops::is_holder(&spot.holder) => self.shop(spot)?,
+            None if shops::is_holder(&spot.holder) => front(self.shop(spot)?),
             None => {
                 let why = format!("out of scope: {}", spot.holder);
-                (Trigger::Skip(why), None)
+                (Trigger::Skip(why), None, Side::Front)
             }
         };
         Ok(Planned {
@@ -310,79 +327,6 @@ impl Planner<'_> {
         Ok(&self.areas[area])
     }
 
-    /// The GameData values and quest steps that raise the chest or boss
-    /// heart container with placement hash `hash`, and the age it rises
-    /// for when only one can open it.
-    fn appear(&mut self, hash: u64) -> Result<Raise> {
-        if self.appear.is_none() {
-            let gated = [gates::trace(self.romfs)?, gates::hearts(self.romfs)?].concat();
-            self.drivers = (gated.iter())
-                .map(|g| (g.hash, drivers(&g.expr)))
-                .filter(|(_, d)| !d.is_empty())
-                .collect();
-            self.foes = (gated.iter())
-                .map(|g| (g.hash, g.expr.foes()))
-                .filter(|(_, f)| !f.is_empty())
-                .collect();
-            let gd = self.gamedata()?;
-            let raise = |g: gates::Gate| {
-                let steps = quests(gd, &g.expr);
-                (g.hash, (g.expr.opening(), steps, g.expr.age()))
-            };
-            self.appear = Some(gated.into_iter().map(raise).collect());
-        }
-        Ok((self.appear.as_ref())
-            .and_then(|a| a.get(&hash).cloned())
-            .unwrap_or_default())
-    }
-
-    /// What Link wields before he uses the holder of `spot` at `face` in
-    /// `map`: a pour on red ice it's frozen in, else a pound on a pillar
-    /// pinning down a switch its gate reads.
-    fn wield(&self, spot: &Spot, map: &str, face: [f32; 3]) -> Result<Option<Wield>> {
-        let of = |by| in_map(by, &spot.area, map);
-        if let Some(melt) = wield::melt(of(&self.ice), face) {
-            return Ok(Some(melt));
-        }
-        let Some(drivers) = self.drivers.get(&spot.hash) else {
-            return Ok(None);
-        };
-        let drivers: Vec<&Name> = drivers.iter().collect();
-        let switches = warp::spots_in(self.romfs, &spot.area, &drivers)?;
-        let switches = switches.get(map).map_or(&[][..], Vec::as_slice);
-        Ok(wield::pound(of(&self.pillars), switches))
-    }
-
-    /// The actor delete flags play sets along with `ready`'s, through the
-    /// flows of the NPCs that set them. A jailed Fire Temple Goron's talk
-    /// sets his delete flag, which unlocks the chest behind him, and
-    /// his rescue sets another. Without that one
-    /// he still sits in front of the chest after a load.
-    fn leaving(&mut self, ready: &[String]) -> Result<Ready> {
-        if ready.is_empty() {
-            return Ok(vec![]);
-        }
-        if self.flows.is_none() {
-            self.flows = Some(Flows::load(self.romfs)?);
-        }
-        let flows = self.flows.as_ref().unwrap();
-        let mut out: Ready = vec![];
-        for flag in ready {
-            let setters = (flows.0.iter()).filter(|(name, chart)| {
-                name.starts_with(NPC) && flags::set_in(chart).any(|f| f == flag)
-            });
-            for (setter, _) in setters {
-                let deletes = flows.effects(setter).unwrap_or_default();
-                for gone in deletes.iter().filter_map(deleted) {
-                    if !out.contains(&gone) && !ready.contains(&gone) {
-                        out.push(gone);
-                    }
-                }
-            }
-        }
-        Ok(out)
-    }
-
     /// A chest, a scrub, a pot or a pickup lying out: beside the actor with
     /// the spot's hash, in the child map before the adult one, or the map of
     /// the only age its gate opens for. And the side to land on: a broken
@@ -391,19 +335,14 @@ impl Planner<'_> {
         let (raise, steps, age) = self.appear(spot.hash)?;
         let raise = [self.leaving(&raise)?, raise].concat();
         let foes = self.foes.get(&spot.hash).cloned().unwrap_or_default();
-        let (raise, latch) = match foes.is_empty() {
-            true => (raise, vec![]),
-            false => (vec![], raise),
+        let (raise, latch) = if foes.is_empty() {
+            (raise, vec![])
+        } else {
+            (vec![], raise)
         };
+        // Not `maps`' own return: it would hold `self` across `wield`.
         self.maps(&spot.area)?;
-        let maps = &self.areas[&spot.area];
-        let first = age.unwrap_or(true);
-        let found = [Some(first), Some(!first), None]
-            .into_iter()
-            .find_map(|era| {
-                let mut of_era = maps.iter().filter(|(map, _)| warp::era(map) == era);
-                of_era.find_map(|(map, poses)| Some((map, poses, poses.get(&spot.hash)?, era)))
-            });
+        let found = placed_in(&self.areas[&spot.area], spot.hash, age.unwrap_or(true));
         let scrub = spot.holder.starts_with(scrubs::HOLDER);
         Ok(match found {
             None => {
@@ -421,9 +360,10 @@ impl Planner<'_> {
                 let face = pose.at;
                 let wield = self.wield(spot, &map, face)?;
                 let broken = pickups::broken(&spot.holder);
-                let found = match broken {
-                    true => neighbours(spot.hash, face, poses, &self.breakables),
-                    false => vec![],
+                let near = if broken {
+                    neighbours(spot.hash, face, poses, &self.breakables)
+                } else {
+                    vec![]
                 };
                 // Every breakable near, not only this seed's: the crater
                 // box's roll broke the Gold Skulltula box beside it, its
@@ -437,9 +377,20 @@ impl Planner<'_> {
                     _ => vec![],
                 };
                 let side = sides.first().copied().unwrap_or_default();
-                let near = found.into_iter().map(|n| n.0).collect();
-                let trigger = match scrub {
-                    false => Trigger::Open {
+                let trigger = if scrub {
+                    Trigger::Talk {
+                        ready: self.sellers(&map, spot.hash)?,
+                        map,
+                        at,
+                        face,
+                        steps: vec![],
+                        then: None,
+                        give: None,
+                        counter: false,
+                        halt: None,
+                    }
+                } else {
+                    Trigger::Open {
                         ready: [raise, noted(&spot.holder), water(&map)].concat(),
                         steps,
                         first: drain(&map),
@@ -452,18 +403,7 @@ impl Planner<'_> {
                         sides,
                         foes,
                         latch,
-                    },
-                    true => Trigger::Talk {
-                        ready: self.sellers(&map, spot.hash)?,
-                        map,
-                        at,
-                        face,
-                        steps: vec![],
-                        then: None,
-                        give: None,
-                        counter: false,
-                        halt: None,
-                    },
+                    }
                 };
                 (trigger, era, side)
             }
@@ -472,21 +412,17 @@ impl Planner<'_> {
 
     /// GameData, with every quest's saved step named.
     fn gamedata(&mut self) -> Result<&GameData> {
-        if self.gamedata.is_none() {
+        lazy(&mut self.gamedata, || {
             let mut gamedata = GameData::load(self.romfs)?;
             steps::learn(self.romfs, &mut gamedata)?;
-            self.gamedata = Some(gamedata);
-        }
-        Ok(self.gamedata.as_ref().unwrap())
+            Ok(gamedata)
+        })
     }
 
     /// A cow: the event Epona's Song runs at it, in the map of the
     /// placement its check is keyed by.
     fn cow(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
-        if self.cows.is_none() {
-            self.cows = Some(cows::find(self.romfs)?);
-        }
-        let all = self.cows.as_ref().unwrap();
+        let all = lazy(&mut self.cows, || cows::find(self.romfs))?;
         let Some(cow) = all.iter().find(|c| c.hash() == spot.hash) else {
             return Ok((Trigger::Skip(format!("no cow {}", spot.hash)), None));
         };
@@ -503,18 +439,6 @@ impl Planner<'_> {
         };
         Ok((trigger, child))
     }
-}
-
-/// The actor delete flag `effect` sets, if it sets one: a name ending
-/// `_Delete`, set true.
-fn deleted(effect: &Effect) -> Option<String> {
-    let set = effect.action == flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL
-        && effect.params.contains("Value=true");
-    let (_, rest) = effect
-        .params
-        .split_once(&format!("{}=\"", field::GAME_DATA_NAME))?;
-    let (name, _) = rest.split_once('"')?;
-    (set && name.ends_with("_Delete")).then(|| name.to_owned())
 }
 
 #[cfg(test)]
@@ -600,33 +524,6 @@ mod tests {
     }
 
     #[test]
-    fn a_chest_that_rises_is_planned_with_the_flag_that_raises_it() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        // Dodongo's Cavern's Red Rupee chest, risen once the Lizalfos fall:
-        // they're beaten for real, and the flag is held back for a kill
-        // that doesn't take.
-        let dodongo = planned.iter().find(|p| p.spot.hash == 7764016096998075927);
-        let Some(Trigger::Open {
-            ready, foes, latch, ..
-        }) = dodongo.map(|p| &p.trigger)
-        else {
-            panic!("{dodongo:?}");
-        };
-        assert_eq!(latch, &[flag::GIMMICK_DEFEAT_ENEMY_OPEN_DODONGO_CAVE_01]);
-        assert!(ready.is_empty() && !foes.is_empty(), "{foes:?}");
-        let plain = planned.iter().filter_map(|p| match &p.trigger {
-            Trigger::Open { ready, .. } => Some(ready.is_empty()),
-            _ => None,
-        });
-        assert!(
-            plain.filter(|&p| p).count() > 50,
-            "most chests just sit there"
-        );
-    }
-
-    #[test]
     fn the_mirror_shield_chest_is_opened_by_an_adult_on_its_latch() {
         let Some((_, _, planned)) = seed() else {
             return;
@@ -638,57 +535,6 @@ mod tests {
         assert_eq!(ready, &[flag::DESERT_COLOSSUS_TBOX_ON]);
         assert!(map.ends_with("_Adult"), "{map}");
         assert_eq!(chest.unwrap().child, Some(false));
-    }
-
-    #[test]
-    fn the_fire_temple_boss_key_waits_for_its_goron_to_leave() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        // The boss key chest's gate holds his talk's flag. His rescue takes
-        // him out of the way.
-        let mut planner = Planner::new(&romfs, BTreeSet::new());
-        let gate = [flag::NPC_GORON_010_DELETE.to_string()];
-        let leaving = planner.leaving(&gate).unwrap();
-        assert_eq!(leaving, [flag::NPC_GORON_010_ADULT_FIRE_TEMPLE_DELETE]);
-    }
-
-    #[test]
-    fn a_boss_heart_container_waits_for_its_quest_past_the_boss() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let mut planner = Planner::new(&romfs, BTreeSet::new());
-        let mut raised = |hash| planner.appear(hash).unwrap();
-        // Read live from the quest system: past Step07_2 is Step08.
-        let water = raised(14426685265732353862);
-        assert_eq!(
-            water.1,
-            [(flow::SAGE_OF_WATER.to_string(), "Step08".to_owned())]
-        );
-        // Through a BoolExp, the Spirit sage's "after step 9" one.
-        let spirit = raised(4720088048159616469);
-        assert_eq!(
-            spirit.1,
-            [(flow::SAGE_OF_SPIRIT.to_string(), "Step10".to_owned())]
-        );
-        // A plain flag.
-        let fire = raised(9478330070473364248);
-        assert_eq!(
-            (fire.0, fire.1),
-            (
-                vec![flag::FIRE_TEMPLE_BOSS_GROUND_CHANGE.to_string()],
-                vec![]
-            )
-        );
-        for g in gates::hearts(&romfs).unwrap() {
-            let (ready, steps, _) = raised(g.hash);
-            assert!(
-                !ready.is_empty() || !steps.is_empty(),
-                "{} raises on nothing",
-                g.area
-            );
-        }
     }
 
     #[test]
@@ -824,52 +670,6 @@ mod tests {
             planned[0].trigger,
             Trigger::Skip(format!("chest not found in {}", flag::KOKIRI_FOREST))
         );
-    }
-
-    #[test]
-    fn holders_frozen_in_red_ice_melt_it_first() {
-        let Some((_, _, planned)) = seed() else {
-            return;
-        };
-        let frozen: BTreeSet<u64> = (planned.iter())
-            .filter(|p| matches!(&p.trigger, Trigger::Open { wield: Some(w), .. } if w.item == actor::ITEM_BOTTLE_BLUE_FIRE))
-            .map(|p| p.spot.hash)
-            .collect();
-        // The Ice Cavern's two pots and its map chest.
-        let cavern = [
-            3105481948394149361,
-            13545259034644162992,
-            11498802739257120175,
-        ];
-        assert!(cavern.iter().all(|h| frozen.contains(h)), "{frozen:?}");
-        assert!(frozen.len() < 10, "{frozen:?}");
-    }
-
-    #[test]
-    fn a_chest_whose_switch_a_pillar_pins_has_the_hammer_pound_it_first() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let chest = |hash| Spot {
-            hash,
-            area: crate::known::map::GERUDO_TRAINING_GROUND.to_string(),
-            holder: actor::OBJ_T_BOX_A_01.to_string(),
-            ..Default::default()
-        };
-        // The Spirit Trial's chest ringed by flames, and one an eye
-        // switch opens.
-        let planned = plan(
-            &romfs,
-            &[chest(4372363658229299619), chest(2436665354602612279)],
-        );
-        let wields: Vec<_> = (planned.unwrap().into_iter())
-            .map(|p| match p.trigger {
-                Trigger::Open { wield, .. } => wield.map(|w| (w.item, w.on.map(f32::round))),
-                other => panic!("{other:?}"),
-            })
-            .collect();
-        let pillar = [52.0, 98.0, -86.0];
-        assert_eq!(wields, [Some((crate::known::item::HAMMER, pillar)), None]);
     }
 
     #[test]

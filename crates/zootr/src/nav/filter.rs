@@ -94,7 +94,8 @@ fn bit(list: &[String], name: &str) -> u64 {
     list.iter().position(|n| n == name).map_or(0, |i| 1 << i)
 }
 
-/// A mask by its name, all ones for none or an empty name.
+/// A mask by its name: `None` for no name or an empty one, all ones for
+/// a name the config doesn't list.
 fn named(masks: &HashMap<String, u64>, name: Option<&str>) -> Option<u64> {
     name.filter(|n| !n.is_empty())
         .map(|n| masks.get(n).copied().unwrap_or(u64::MAX))

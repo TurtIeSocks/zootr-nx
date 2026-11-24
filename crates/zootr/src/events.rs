@@ -91,7 +91,8 @@ impl Flows {
     /// - a whole flow (`scene::KOKIRI_0063`), meaning every entry point;
     /// - an entry point with the full name in any flow
     ///   (the Shadow sage's hover boots entry, in the Shadow sage's flow);
-    /// - flow plus entry (a flow's name, `::`, then an entry point).
+    /// - flow plus entry (a flow's name, `_`, then an entry point, split at
+    ///   the last underscore that fits).
     ///
     /// The rest cover names without a row, like a cutscene a flow calls
     /// by entry.
@@ -151,24 +152,14 @@ impl Flows {
     /// Whether event `index` of `chart` changes the save itself, through
     /// its own action or a call into another flow, ignoring what runs after.
     pub fn changes_save(&self, chart: &Flowchart, index: u16) -> bool {
-        let mut walk = Walk {
-            flows: self,
-            is: saves,
-            seen: BTreeSet::new(),
-            out: BTreeSet::new(),
-        };
+        let mut walk = Walk::new(self, saves);
         walk.step(&chart.name, chart, index, &Bindings::new());
         !walk.out.is_empty()
     }
 
     /// Every action the call `flow::entry` reaches that `is` picks out.
     pub fn effects_of_call(&self, flow: &str, entry: &str, is: IsEffect) -> BTreeSet<Effect> {
-        let mut walk = Walk {
-            flows: self,
-            is,
-            seen: BTreeSet::new(),
-            out: BTreeSet::new(),
-        };
+        let mut walk = Walk::new(self, is);
         walk.entry(flow, Some(entry), &Bindings::new());
         walk.out
     }
@@ -179,12 +170,7 @@ impl Flows {
         if targets.is_empty() {
             return None;
         }
-        let mut walk = Walk {
-            flows: self,
-            is,
-            seen: BTreeSet::new(),
-            out: BTreeSet::new(),
-        };
+        let mut walk = Walk::new(self, is);
         for (flow, entry) in targets {
             walk.entry(flow, entry, &Bindings::new());
         }
@@ -197,6 +183,17 @@ struct Walk<'a> {
     is: IsEffect,
     seen: BTreeSet<(String, u16, Bindings)>,
     out: BTreeSet<Effect>,
+}
+
+impl<'a> Walk<'a> {
+    fn new(flows: &'a Flows, is: IsEffect) -> Self {
+        Walk {
+            flows,
+            is,
+            seen: BTreeSet::new(),
+            out: BTreeSet::new(),
+        }
+    }
 }
 
 /// A param's value as text, with `$argument`s looked up in `args`.
@@ -261,9 +258,8 @@ impl Walk<'_> {
                     .map(|(k, v)| format!("{k}={}", text(v, args)))
                     .collect();
                 // UI_ flags only track tutorial popups.
-                let ui = p
-                    .iter()
-                    .any(|p| p.starts_with(&format!("{}=\"UI_", field::GAME_DATA_NAME)));
+                let ui_flag = format!("{}=\"UI_", field::GAME_DATA_NAME);
+                let ui = p.iter().any(|p| p.starts_with(&ui_flag));
                 if (self.is)(&actor.name, action) && !ui {
                     self.out.insert(Effect {
                         action: action.clone(),

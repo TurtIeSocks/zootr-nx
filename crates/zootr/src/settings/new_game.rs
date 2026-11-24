@@ -163,34 +163,21 @@ impl NewGame {
                 start.add(word, 1)?;
             }
         }
-        let edits = [
-            keys::defaults(
-                keys == DungeonKeys::Start,
-                fortress_keys == FortressKeys::Start,
+        let defaults = [
+            choice_edits(
+                keys,
+                fortress_keys,
+                &start,
+                bridge,
+                trials,
+                gerudo_fortress,
+                on(MET_ZELDA),
             ),
-            start.defaults(),
-            match bridge {
-                Bridge::Open => crate::bridge::open(),
-                Bridge::Vanilla | Bridge::SixMedallions => vec![],
-            },
-            match trials {
-                Trials::Done => crate::bridge::trials_done(),
-                Trials::AllSix => vec![],
-            },
-            match gerudo_fortress {
-                GerudoFortress::Normal => vec![],
-                GerudoFortress::Fast => crate::gerudo::fast(),
-                GerudoFortress::Freed => crate::gerudo::freed(),
-            },
-            match on(MET_ZELDA) {
-                true => presets::met_zelda(),
-                false => vec![],
-            },
             edits.to_vec(),
         ]
         .concat();
         Ok(Self {
-            defaults: presets::expand(&picked, &edits)?,
+            defaults: presets::expand(&picked, &defaults)?,
             skips: Skips {
                 intro: on(SKIP_INTRO),
                 saria: on(SKIP_SARIA),
@@ -228,9 +215,10 @@ impl NewGame {
             adult_jabu: chosen::<AdultJabu>(settings, ADULT_JABU),
             door_pins: vec![],
             doors: Doors::default(),
-            shop_slots: match on(SHOPS) {
-                true => chosen::<ShopSlots>(settings, SHOP_SLOTS).count(),
-                false => 0,
+            shop_slots: if on(SHOPS) {
+                chosen::<ShopSlots>(settings, SHOP_SLOTS).count()
+            } else {
+                0
             },
             seed: 0,
             age: match chosen::<StartingAge>(settings, STARTING_AGE) {
@@ -267,6 +255,45 @@ impl NewGame {
             players: Default::default(),
         })
     }
+}
+
+/// The default edits the chosen keys, starting inventory, bridge, trials,
+/// fortress and Met Zelda make, before any edits of the player's own.
+fn choice_edits(
+    keys: DungeonKeys,
+    fortress_keys: FortressKeys,
+    start: &starting::Start,
+    bridge: Bridge,
+    trials: Trials,
+    gerudo_fortress: GerudoFortress,
+    met_zelda: bool,
+) -> Vec<String> {
+    [
+        keys::defaults(
+            keys == DungeonKeys::Start,
+            fortress_keys == FortressKeys::Start,
+        ),
+        start.defaults(),
+        match bridge {
+            Bridge::Open => crate::bridge::open(),
+            Bridge::Vanilla | Bridge::SixMedallions => vec![],
+        },
+        match trials {
+            Trials::Done => crate::bridge::trials_done(),
+            Trials::AllSix => vec![],
+        },
+        match gerudo_fortress {
+            GerudoFortress::Normal => vec![],
+            GerudoFortress::Fast => crate::gerudo::fast(),
+            GerudoFortress::Freed => crate::gerudo::freed(),
+        },
+        if met_zelda {
+            presets::met_zelda()
+        } else {
+            vec![]
+        },
+    ]
+    .concat()
 }
 
 /// Every toggle that's on, by id, counting parents, and each setting's

@@ -50,14 +50,20 @@ fn strip_cells(b: &[u8], mut gone: impl FnMut([f32; 3]) -> bool) -> Result<(Vec<
         b.len(),
         data + CELL_RECORD * total
     );
+    // Each cell's first record, then the total: in order, so none is past it.
+    let offsets: Vec<usize> = (0..=n).map(|i| word(b, starts + 4 * i) as usize).collect();
+    ensure!(
+        offsets.is_sorted(),
+        "foliage cells: record offsets out of order"
+    );
     let (mut keys, mut firsts, mut records) = (Vec::new(), vec![0u32], Vec::new());
     let mut stripped = 0;
     for i in 0..n {
         let key = word(b, HEAD + 4 * i);
         let cell = [key & 0xff, (key >> 8) & 0xff, (key >> 16) & 0xff];
         let before = records.len();
-        for j in word(b, starts + 4 * i)..word(b, starts + 4 * (i + 1)) {
-            let r = &b[data + CELL_RECORD * j as usize..][..CELL_RECORD];
+        for j in offsets[i]..offsets[i + 1] {
+            let r = &b[data + CELL_RECORD * j..][..CELL_RECORD];
             let at =
                 std::array::from_fn(|a| (cell[a] as f32 - 128.0 + f32::from(r[a]) / 256.0) * CELL);
             if gone(at) {
@@ -188,5 +194,13 @@ mod tests {
         let mut short = cells();
         short.pop();
         assert!(strip(&short, |_| true).is_err());
+    }
+
+    #[test]
+    fn a_cell_offset_past_the_records_fails_rather_than_panics() {
+        let mut bad = cells();
+        let second = HEAD + 4 * 2 + 4;
+        bad[second..second + 4].copy_from_slice(&5u32.to_le_bytes());
+        assert!(strip(&bad, |_| false).is_err());
     }
 }

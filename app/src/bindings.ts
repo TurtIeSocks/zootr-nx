@@ -244,7 +244,11 @@ export type Archipelago = { ap: "offered" } |
 /**  Coming, in this stage of the queue. */
 { ap: "later"; why: string } | 
 /**  Not a setting a multiworld can use, and why. */
-{ ap: "never"; why: string };
+{ ap: "never"; why: string } | 
+/**  [`Later`](Self::Later), and on in every Archipelago seed until then. */
+{ ap: "on-until"; why: string } | 
+/**  [`Never`](Self::Never), and on in every Archipelago seed. */
+{ ap: "always-on"; why: string };
 
 export type Build = {
 	status: BuildStatus,

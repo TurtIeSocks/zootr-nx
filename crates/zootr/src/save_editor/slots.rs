@@ -133,16 +133,22 @@ mod tests {
     #[test]
     fn rows_put_the_newest_first_and_mark_it_as_continue() {
         let dir = std::env::temp_dir().join(format!("zootr-slot-rows-{}", std::process::id()));
-        for (slot, life) in [(0u8, 12u32), (2, 28)] {
+        // Each slot written a minute after the last, so the order doesn't
+        // hang on the filesystem's clock.
+        let start = std::time::SystemTime::now() - std::time::Duration::from_secs(600);
+        let saves = [
+            (0u8, Save::fixture(&[(0, 2), (MAX_LIFE, 12), (RUPEES, 99)])),
+            (2, Save::fixture(&[(0, 2), (MAX_LIFE, 28), (RUPEES, 99)])),
+            (5, b"nope".to_vec()),
+        ];
+        for (minute, (slot, bytes)) in saves.into_iter().enumerate() {
             let path = savefile::slot_file(&dir, slot);
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            let save = Save::fixture(&[(0, 2), (MAX_LIFE, life), (RUPEES, 99)]);
-            std::fs::write(&path, save).unwrap();
-            std::thread::sleep(std::time::Duration::from_millis(20));
+            std::fs::write(&path, bytes).unwrap();
+            let at = start + std::time::Duration::from_secs(60 * minute as u64);
+            let file = std::fs::File::options().write(true).open(&path).unwrap();
+            file.set_modified(at).unwrap();
         }
-        let broken = savefile::slot_file(&dir, 5);
-        std::fs::create_dir_all(broken.parent().unwrap()).unwrap();
-        std::fs::write(&broken, b"nope").unwrap();
 
         let rows = slots(&Inventory::default(), &dir).unwrap();
         let order: Vec<u8> = rows.iter().map(|r| r.slot).collect();

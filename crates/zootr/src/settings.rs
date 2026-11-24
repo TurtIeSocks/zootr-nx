@@ -63,13 +63,17 @@ pub struct SettingDef {
 /// options: the app marks the rest. See [`crate::ap::LEFT_OUT`].
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
-#[serde(tag = "ap", content = "why", rename_all = "lowercase")]
+#[serde(tag = "ap", content = "why", rename_all = "kebab-case")]
 pub enum Archipelago {
     Offered,
     /// Coming, in this stage of the queue.
     Later(&'static str),
     /// Not a setting a multiworld can use, and why.
     Never(&'static str),
+    /// [`Later`](Self::Later), and on in every Archipelago seed until then.
+    OnUntil(&'static str),
+    /// [`Never`](Self::Never), and on in every Archipelago seed.
+    AlwaysOn(&'static str),
 }
 
 impl Archipelago {
@@ -77,7 +81,10 @@ impl Archipelago {
     pub fn why(self) -> &'static str {
         match self {
             Archipelago::Offered => "",
-            Archipelago::Later(why) | Archipelago::Never(why) => why,
+            Archipelago::Later(why)
+            | Archipelago::Never(why)
+            | Archipelago::OnUntil(why)
+            | Archipelago::AlwaysOn(why) => why,
         }
     }
 }

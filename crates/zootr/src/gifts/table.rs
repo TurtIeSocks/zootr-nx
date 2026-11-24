@@ -27,6 +27,24 @@ const fn npc(
     }
 }
 
+/// An NPC's gift the game marks with nothing of its own.
+const fn unmarked(
+    flow: &'static Name,
+    area: &'static Name,
+    giver: &'static str,
+    item: &'static Name,
+    call: &'static [Call],
+) -> Gift {
+    Gift {
+        flow,
+        area,
+        giver,
+        item,
+        how: How::Calls { call, found: None },
+        setting: Some(NPC_GIFTS),
+    }
+}
+
 /// A step of the adult trade chain, given for the item shown.
 const fn trade(
     flow: &'static Name,
@@ -47,7 +65,7 @@ const fn trade(
 
 /// A song, taught in a scene the gift cuts down to its grant, so there's
 /// no lesson.
-pub(super) const fn song(
+const fn song(
     flow: &'static Name,
     area: &'static Name,
     giver: &'static str,
@@ -65,7 +83,7 @@ pub(super) const fn song(
 
 /// A boss's reward, granted in the scene after its blue warp. `found` is
 /// that scene's played flag.
-pub(super) const fn reward(
+const fn reward(
     flow: &'static Name,
     area: &'static Name,
     giver: &'static str,
@@ -170,32 +188,24 @@ pub const GIFTS: [Gift; 87] = [
         &[HAND_OVER],
         flag::SUB_EVENT_FIND_RICHARD_GET_HEART_PIECE,
     ),
-    Gift {
-        flow: actor::NPC_HYLIA_048_BOTTLE_SHOP,
-        area: flag::MARKET,
-        giver: "Poe collector",
-        item: item::BOTTLE,
-        how: How::Calls {
-            call: &[get(flow::GET_IN_EVENT_POESHOP)],
-            found: None,
-        },
-        setting: Some(NPC_GIFTS),
-    },
+    unmarked(
+        actor::NPC_HYLIA_048_BOTTLE_SHOP,
+        flag::MARKET,
+        "Poe collector",
+        item::BOTTLE,
+        &[get(flow::GET_IN_EVENT_POESHOP)],
+    ),
     // The Gold Rupee is paid by its own call, so each gift renames only the
     // call naming its item. Every sale adds 100 points and the game places
     // exactly 10 Big Poes, each with its own cleared flag, so 1000 is reached
     // once and this call runs once.
-    Gift {
-        flow: actor::NPC_HYLIA_048_BOTTLE_SHOP,
-        area: flag::MARKET,
-        giver: "Poe collector: 1000 points",
-        item: actor::OBJ_RUPEE_GOLD,
-        how: How::Calls {
-            call: &[get(flow::GET_IN_EVENT_POESHOP)],
-            found: None,
-        },
-        setting: Some(NPC_GIFTS),
-    },
+    unmarked(
+        actor::NPC_HYLIA_048_BOTTLE_SHOP,
+        flag::MARKET,
+        "Poe collector: 1000 points",
+        actor::OBJ_RUPEE_GOLD,
+        &[get(flow::GET_IN_EVENT_POESHOP)],
+    ),
     // A Kokiri kid pays a Blue Rupee once Link has broken the ring of
     // rocks around him, then sets his paid Bool.
     npc(
@@ -341,17 +351,13 @@ pub const GIFTS: [Gift; 87] = [
         flag::SAGE_OF_FIRE_STEP02_DARUNIA_JR_FIRST_TALKED,
     ),
     // King Zora, thawed. The grant is in the melt, which happens once.
-    Gift {
-        flow: flow::SAGE_OF_WATER,
-        area: flag::ZORA_DOMAIN,
-        giver: "King Zora",
-        item: actor::OBJ_ARMOR_ZORA,
-        how: How::Calls {
-            call: &[get(flow::GET_IN_EVENT_NOT_TURN_POS_CAMERA)],
-            found: None,
-        },
-        setting: Some(NPC_GIFTS),
-    },
+    unmarked(
+        flow::SAGE_OF_WATER,
+        flag::ZORA_DOMAIN,
+        "King Zora",
+        actor::OBJ_ARMOR_ZORA,
+        &[get(flow::GET_IN_EVENT_NOT_TURN_POS_CAMERA)],
+    ),
     // The rolling Goron as a child. He picks the bag by the one Link
     // holds, so a moved gift first goes straight to its call.
     npc(
@@ -496,17 +502,13 @@ pub const GIFTS: [Gift; 87] = [
         },
         setting: Some(NPC_GIFTS),
     },
-    Gift {
-        flow: flow::GOTO_HYRULE_CASTLE,
-        area: flag::HYRULE_CASTLE,
-        giver: "Weird Egg",
-        item: item::WEIRD_EGG,
-        how: How::Calls {
-            call: &[get(flow::GET_IN_EVENT_NOT_TURN)],
-            found: None,
-        },
-        setting: Some(NPC_GIFTS),
-    },
+    unmarked(
+        flow::GOTO_HYRULE_CASTLE,
+        flag::HYRULE_CASTLE,
+        "Weird Egg",
+        item::WEIRD_EGG,
+        &[get(flow::GET_IN_EVENT_NOT_TURN)],
+    ),
     npc(
         scene::TIME_TEMPLE_0130,
         flag::MARKET,
@@ -663,17 +665,13 @@ pub const GIFTS: [Gift; 87] = [
         item::CLAIM_CHECK,
         &[get(flow::GET_IN_EVENT_NOT_LOOKAT_OBJECT_TURN_OFF)],
     ),
-    Gift {
-        flow: BIGGORON,
-        area: flag::DEATH_MOUNTAIN_TRAIL,
-        giver: "Biggoron",
-        item: item::SWORD_BIGGORON,
-        how: How::Calls {
-            call: &[get(flow::GET_IN_EVENT_ITEM_SWORD_BIGGORON)],
-            found: None,
-        },
-        setting: Some(NPC_GIFTS),
-    },
+    unmarked(
+        BIGGORON,
+        flag::DEATH_MOUNTAIN_TRAIL,
+        "Biggoron",
+        item::SWORD_BIGGORON,
+        &[get(flow::GET_IN_EVENT_ITEM_SWORD_BIGGORON)],
+    ),
     Gift {
         flow: MEDIGORON,
         area: flag::GORON_CITY,

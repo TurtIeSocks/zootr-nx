@@ -2,7 +2,6 @@
 //! linked both ways. A door, a climb, a drop and a step up add links the
 //! mesh alone doesn't have, and a route keeps each as a waypoint.
 
-use std::collections::HashMap;
 use std::fmt;
 
 use ounce_formats::{Footing, NavMesh, closest};
@@ -10,6 +9,7 @@ use serde::Serialize;
 
 use super::climb::Climb;
 use super::crawl::Crawl;
+use super::floors::Grid;
 use super::kinds;
 use super::limits::limits;
 use super::mesh::{Wall, Walls};
@@ -29,6 +29,9 @@ pub(super) const DROP_MIN: f32 = 0.5;
 pub(super) const STEP_MIN: f32 = 0.5;
 /// How far past a border to look for the mesh across it.
 pub(super) const LOOK: f32 = 0.5;
+/// How far apart the spots a jump's landing is looked for past a border
+/// are.
+const STEP: f32 = LOOK / 2.0;
 /// How far on each side of a door the nearest face may be.
 const DOOR_REACH: f32 = 2.5;
 /// How far from a climb's foot or top the floor there may be. The mesh
@@ -64,13 +67,32 @@ const HEAD: f32 = 0.3;
 /// point sits on land, past its edge.
 const SHORE_OFF: f32 = 1.0;
 
-/// Whether a path over the floor through `path` meets one of `walls` at
-/// any of `heights`.
-fn body_hits(walls: &[Wall], path: &[[f32; 3]], heights: &[f32]) -> bool {
+/// Whether a path over the floor through `path` meets a wall at any of
+/// `heights`, by `hits` from one end of a leg to the other.
+pub(super) fn body_hits(
+    path: &[[f32; 3]],
+    heights: &[f32],
+    hits: impl Fn([f32; 3], [f32; 3]) -> bool,
+) -> bool {
     heights.iter().any(|&h| {
         let up = |p: [f32; 3]| [p[0], p[1] + h, p[2]];
-        (path.windows(2)).any(|leg| walls.iter().any(|w| w.crosses(up(leg[0]), up(leg[1]))))
+        (path.windows(2)).any(|leg| hits(up(leg[0]), up(leg[1])))
     })
+}
+
+/// [`body_hits`] against `walls`.
+fn walls_hit(walls: &[Wall], path: &[[f32; 3]], heights: &[f32]) -> bool {
+    body_hits(path, heights, |a, b| walls.iter().any(|w| w.crosses(a, b)))
+}
+
+/// A jump or fall between faces the mesh doesn't link: off face `from` at
+/// `leave` on its border, onto face `to` at `land`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Hop {
+    pub from: usize,
+    pub to: usize,
+    pub leave: [f32; 3],
+    pub land: [f32; 3],
 }
 
 /// How a waypoint is reached from the one before it.
@@ -89,6 +111,13 @@ pub enum Via {
     Crawl(Option<u64>),
     /// Across the water placed with this hash.
     Swim(Option<u64>),
+}
+
+impl Via {
+    /// Whether it goes up or down a climb.
+    pub fn is_climb(&self) -> bool {
+        matches!(self, Via::Climb(_))
+    }
 }
 
 impl fmt::Display for Via {
@@ -139,6 +168,29 @@ pub(super) struct Border {
     pub out: [f32; 2],
 }
 
+impl Border {
+    /// The spot `d` m out from the edge's middle, at its height.
+    pub fn at(&self, d: f32) -> [f32; 3] {
+        let (mid, out) = (self.mid, self.out);
+        [mid[0] + out[0] * d, mid[1], mid[2] + out[1] * d]
+    }
+}
+
+/// Why a climb has no link: the end the mesh has no floor at, or no rise
+/// between them.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum NoClimb {
+    Foot,
+    Top,
+    NoRise,
+}
+
+said!(NoClimb {
+    Foot => "no floor at its foot",
+    Top => "no floor at its top",
+    NoRise => "its top is no higher than its foot",
+});
+
 /// A spot on a face: where a point off the mesh was put.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Snap {
@@ -161,16 +213,14 @@ pub struct Graph<'a> {
     pub shores: Vec<Shore>,
     /// How deep water is before Link floats in it, at his age.
     pub float: f32,
-    /// The faces whose corners' bounds touch each cell, by x and z.
-    cells: HashMap<(i32, i32), Vec<usize>>,
+    /// The highest ledge it steps up, or jumps a gap onto, in m.
+    step_up: f32,
+    /// The faces, by the cells their corners' bounds touch.
+    cells: Grid,
 }
 
 pub fn dist(a: [f32; 3], b: [f32; 3]) -> f32 {
     (a[0] - b[0]).hypot(a[2] - b[2]).hypot(a[1] - b[1])
-}
-
-fn cell(v: f32) -> i32 {
-    (v / CELL).floor() as i32
 }
 
 impl<'a> Graph<'a> {
@@ -196,11 +246,12 @@ impl<'a> Graph<'a> {
             waters: vec![],
             shores: vec![],
             float: super::water::float(false),
-            cells: Self::cells(mesh),
+            step_up,
+            cells: Grid::faces(mesh, CELL),
             centers,
         };
         graph.edge_arcs();
-        graph.border_arcs(step_up);
+        graph.border_arcs();
         graph.door_arcs(placed);
         graph
     }
@@ -235,18 +286,17 @@ impl<'a> Graph<'a> {
     /// The floor at the foot of `c` and at its top, or why there's no
     /// climb: the mesh nearest each, within [`CLIMB_REACH`], below its
     /// middle for the foot and above it for the top.
-    pub fn climb_ends(&self, c: &Climb) -> std::result::Result<(Snap, Snap), &'static str> {
+    pub fn climb_ends(&self, c: &Climb) -> Result<(Snap, Snap), NoClimb> {
         let middle = (c.foot[1] + c.top[1]) / 2.0;
         // Floor under the sheet Link swims on is the pool's bed, not where he
         // grabs on, unless the mesh has no sheet there.
         let low = |q: [f32; 3]| q[1] <= middle;
         let foot = (self.nearest(c.foot, CLIMB_REACH, |_, q| low(q) && !self.sunk(q)))
             .or_else(|| self.nearest(c.foot, CLIMB_REACH, |_, q| low(q)))
-            .ok_or("no floor at its foot")?;
-        let top = (self.nearest(c.top, CLIMB_REACH, |_, q| q[1] >= middle))
-            .ok_or("no floor at its top")?;
+            .ok_or(NoClimb::Foot)?;
+        let top = (self.nearest(c.top, CLIMB_REACH, |_, q| q[1] >= middle)).ok_or(NoClimb::Top)?;
         if top.face == foot.face || top.at[1] - foot.at[1] < STEP_MIN {
-            return Err("its top is no higher than its foot");
+            return Err(NoClimb::NoRise);
         }
         Ok((foot, top))
     }
@@ -258,7 +308,6 @@ impl<'a> Graph<'a> {
     pub fn with_walls(mut self, walls: &'a Walls) -> Self {
         (self.walls, self.solid) = (&walls.air, &walls.solid);
         for f in 0..self.arcs.len() {
-            let from = self.centers[f];
             let mut arcs = std::mem::take(&mut self.arcs[f]);
             arcs.retain(|arc| {
                 let path = match arc.cross {
@@ -270,25 +319,41 @@ impl<'a> Graph<'a> {
                         from,
                         to,
                     } => return !self.swim_walled(h, from, to),
-                    Cross::Edge([a, b]) => {
-                        vec![
-                            from,
-                            std::array::from_fn(|i| (a[i] + b[i]) / 2.0),
-                            self.centers[arc.to],
-                        ]
-                    }
                     Cross::Link {
-                        via: Via::Drop | Via::Step | Via::Walk,
+                        via: Via::Drop,
                         from,
                         to,
                     } => vec![from, to],
-                    Cross::Link { .. } => return true,
+                    _ => match self.walk_path(f, arc) {
+                        Some(path) => path,
+                        None => return true,
+                    },
                 };
                 !(path.windows(2)).any(|leg| self.walled(leg[0], leg[1]))
             });
             self.arcs[f] = arcs;
         }
         self
+    }
+
+    /// The path a walk or a step along `arc` from face `f` takes: from
+    /// the face's middle over the middle of the edge it crosses to the
+    /// next face's, or from where its link leaves to where it arrives.
+    /// `None` for any other link.
+    pub(super) fn walk_path(&self, f: usize, arc: &Arc) -> Option<Vec<[f32; 3]>> {
+        match arc.cross {
+            Cross::Edge([a, b]) => Some(vec![
+                self.centers[f],
+                std::array::from_fn(|i| (a[i] + b[i]) / 2.0),
+                self.centers[arc.to],
+            ]),
+            Cross::Link {
+                via: Via::Step | Via::Walk,
+                from,
+                to,
+            } => Some(vec![from, to]),
+            Cross::Link { .. } => None,
+        }
     }
 
     /// Whether a wall stands over the water `hash` between shores `a` and
@@ -301,7 +366,7 @@ impl<'a> Graph<'a> {
         else {
             return false;
         };
-        let len = dist([a[0], 0.0, a[2]], [b[0], 0.0, b[2]]);
+        let len = crate::checks::flat(a, b);
         if len <= 2.0 * SHORE_OFF {
             return false;
         }
@@ -319,7 +384,7 @@ impl<'a> Graph<'a> {
     /// Whether an invisible wall stands on the way from floor `a` to floor
     /// `b`, at Link's waist or head.
     pub fn walled(&self, a: [f32; 3], b: [f32; 3]) -> bool {
-        body_hits(self.walls, &[a, b], &BODY)
+        walls_hit(self.walls, &[a, b], &BODY)
     }
 
     /// Whether a jump or a fall from floor `a` to floor `b` hits a wall,
@@ -328,15 +393,17 @@ impl<'a> Graph<'a> {
     /// whichever is further, then straight down: whatever it meets on the
     /// way, Link lands on instead.
     pub fn leap_walled(&self, a: [f32; 3], b: [f32; 3]) -> bool {
-        let path = match b[1] < a[1] - DROP_MIN {
-            false if b[1] > a[1] => vec![a, [a[0], b[1], a[2]], b],
-            false => vec![a, [b[0], a[1], b[2]], b],
-            true => match self.ledge(a, b) {
-                Some(p) => vec![a, [p[0], a[1], p[2]], [p[0], b[1], p[2]]],
-                None => return true,
-            },
+        let path = if b[1] < a[1] - DROP_MIN {
+            let Some(p) = self.ledge(a, b) else {
+                return true;
+            };
+            vec![a, [p[0], a[1], p[2]], [p[0], b[1], p[2]]]
+        } else if b[1] > a[1] {
+            vec![a, [a[0], b[1], a[2]], b]
+        } else {
+            vec![a, [b[0], a[1], b[2]], b]
         };
-        body_hits(self.walls, &path, &BODY) || body_hits(self.solid, &path, &OVER)
+        walls_hit(self.walls, &path, &BODY) || walls_hit(self.solid, &path, &OVER)
     }
 
     /// Where Link starts down from floor `a` heading for `b` below: over
@@ -347,14 +414,17 @@ impl<'a> Graph<'a> {
         let (dx, dz) = (b[0] - a[0], b[2] - a[2]);
         let len = dx.hypot(dz).max(1e-6);
         let at = |d: f32| [a[0] + dx / len * d, a[1], a[2] + dz / len * d];
-        let under = |p: [f32; 3]| {
-            let (top, foot) = ([p[0], p[1] + LIP, p[2]], [p[0], p[1] - LIP, p[2]]);
-            self.solid.iter().any(|w| w.crosses(top, foot))
-        };
         let clear = (0..=(LEDGE_MAX / LEDGE_STEP) as usize)
             .map(|i| i as f32 * LEDGE_STEP)
-            .find(|&d| !under(at(d)))?;
+            .find(|&d| !self.solid_under(at(d)))?;
         Some(at((clear + RADIUS).max(len)))
+    }
+
+    /// Whether a solid stands under Link's feet at `p`, within [`LIP`]
+    /// over or under it.
+    fn solid_under(&self, p: [f32; 3]) -> bool {
+        let (top, foot) = ([p[0], p[1] + LIP, p[2]], [p[0], p[1] - LIP, p[2]]);
+        self.solid.iter().any(|w| w.crosses(top, foot))
     }
 
     /// The graph with `solids` for its routes to go round.
@@ -362,36 +432,9 @@ impl<'a> Graph<'a> {
         Self { solids, ..self }
     }
 
-    fn cells(mesh: &NavMesh) -> HashMap<(i32, i32), Vec<usize>> {
-        let mut cells: HashMap<_, Vec<usize>> = HashMap::new();
-        for f in 0..mesh.faces.len() {
-            let corners = mesh.ring(f).iter().map(|e| mesh.vertices[e.a]);
-            let (lo, hi) = corners.fold(([f32::MAX; 2], [f32::MIN; 2]), |(lo, hi), v| {
-                (
-                    [lo[0].min(v[0]), lo[1].min(v[2])],
-                    [hi[0].max(v[0]), hi[1].max(v[2])],
-                )
-            });
-            for cx in cell(lo[0])..=cell(hi[0]) {
-                for cz in cell(lo[1])..=cell(hi[1]) {
-                    cells.entry((cx, cz)).or_default().push(f);
-                }
-            }
-        }
-        cells
-    }
-
     /// The faces that may lie within `r` of (x, z).
     fn faces_near(&self, x: f32, z: f32, r: f32) -> Vec<usize> {
-        let mut found: Vec<usize> = (cell(x - r)..=cell(x + r))
-            .flat_map(|cx| (cell(z - r)..=cell(z + r)).map(move |cz| (cx, cz)))
-            .filter_map(|c| self.cells.get(&c))
-            .flatten()
-            .copied()
-            .collect();
-        found.sort_unstable();
-        found.dedup();
-        found
+        self.cells.near(x, z, r)
     }
 
     /// The corners of the mesh's border (where a wall or a drop begins)
@@ -532,11 +575,11 @@ impl<'a> Graph<'a> {
     }
 
     /// A drop from each border with mesh 0.5 m to the drop limit below past
-    /// it, a step up from each with mesh 0.5 m to `step_up` above.
-    fn border_arcs(&mut self, step_up: f32) {
-        let drop = limits().drop();
-        for Border { face, mid, out } in self.borders() {
-            let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
+    /// it, a step up from each with mesh 0.5 m to its step up above.
+    fn border_arcs(&mut self) {
+        let (drop, step_up) = (limits().drop(), self.step_up);
+        for b in self.borders() {
+            let (face, mid, past) = (b.face, b.mid, b.at(LOOK));
             let Some(g) = self.floor(past, FLOOR.max(step_up).max(drop)) else {
                 continue;
             };
@@ -556,26 +599,31 @@ impl<'a> Graph<'a> {
 
     /// Each gap across which another face sits within `reach` of a border
     /// edge and no more than a step above or below it: the floor a jump
-    /// lands on. The face the edge is on, the face across, and the two
-    /// spots.
-    pub fn gaps(&self, reach: f32) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
-        let rise = step_up();
+    /// lands on.
+    pub fn gaps(&self, reach: f32) -> Vec<Hop> {
+        let rise = self.step_up;
         let mut found = vec![];
-        for Border { face, mid, out } in self.borders() {
+        for b in self.borders() {
+            let (face, mid) = (b.face, b.mid);
             let mut d = LOOK;
             while d <= reach {
-                let past = [mid[0] + out[0] * d, mid[1], mid[2] + out[1] * d];
+                let past = b.at(d);
                 let level = self
                     .floor(past, rise)
                     .filter(|g| (g.height - mid[1]).abs() <= rise);
                 if let Some(g) = level {
-                    let to = [past[0], g.height, past[2]];
-                    if g.face != face && d > LOOK && !self.leap_walled(mid, to) {
-                        found.push((face, g.face, mid, to));
+                    let land = [past[0], g.height, past[2]];
+                    if g.face != face && d > LOOK && !self.leap_walled(mid, land) {
+                        found.push(Hop {
+                            from: face,
+                            to: g.face,
+                            leave: mid,
+                            land,
+                        });
                     }
                     break;
                 }
-                d += LOOK / 2.0;
+                d += STEP;
             }
         }
         found
@@ -586,11 +634,10 @@ impl<'a> Graph<'a> {
     /// within a drop's fall, no further out than a running jump carries
     /// him for that fall ([`super::limits::Limits::leap`]). Both ends stand
     /// on the level's collision: floor with none under it (terrain, not read
-    /// yet) has no walls to stop a leap either. The face the edge is on, the
-    /// face landed on, and the two spots.
-    pub fn leaps(&self) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
+    /// yet) has no walls to stop a leap either.
+    pub fn leaps(&self) -> Vec<Hop> {
         let l = limits();
-        let (rise, fall) = (step_up(), l.drop());
+        let (rise, fall) = (self.step_up, l.drop());
         let far = l.leap(fall);
         // The highest floor under `p`, from a step over it to a fall under.
         let under = |p: [f32; 3]| {
@@ -599,43 +646,45 @@ impl<'a> Graph<'a> {
                 .filter(|&(_, h)| h <= p[1] + rise && h >= p[1] - fall)
                 .max_by(|a, b| a.1.total_cmp(&b.1))
         };
-        let solid = |p: [f32; 3]| {
-            let (top, foot) = ([p[0], p[1] + LIP, p[2]], [p[0], p[1] - LIP, p[2]]);
-            self.solid.iter().any(|w| w.crosses(top, foot))
-        };
         let mut found = vec![];
-        for Border { face, mid, out } in self.borders() {
-            let at = |d: f32| [mid[0] + out[0] * d, mid[1], mid[2] + out[1] * d];
+        for b in self.borders() {
+            let (face, mid) = (b.face, b.mid);
             // Floor just past the edge: he walks on or drops, no leap.
-            if under(at(LOOK)).is_some() {
+            if under(b.at(LOOK)).is_some() {
                 continue;
             }
-            let mut d = LOOK + LOOK / 2.0;
+            let mut d = LOOK + STEP;
             while d <= far {
-                if let Some((floor, h)) = under(at(d)) {
-                    let to = [at(d)[0], h, at(d)[2]];
+                let past = b.at(d);
+                if let Some((floor, h)) = under(past) {
+                    let land = [past[0], h, past[2]];
                     let low = mid[1] - h >= DROP_MIN;
                     let far_enough = d <= l.leap(mid[1] - h);
-                    let known = solid(mid) && solid(to);
-                    if low && floor != face && far_enough && known && !self.leap_walled(mid, to) {
-                        found.push((face, floor, mid, to));
+                    let known = self.solid_under(mid) && self.solid_under(land);
+                    if low && floor != face && far_enough && known && !self.leap_walled(mid, land) {
+                        found.push(Hop {
+                            from: face,
+                            to: floor,
+                            leave: mid,
+                            land,
+                        });
                     }
                     break;
                 }
-                d += LOOK / 2.0;
+                d += STEP;
             }
         }
         found
     }
 
     /// Each edge off which Link falls further than a drop, into water deep
-    /// enough to float in, which breaks the fall: the face the edge is on,
-    /// the floor under the water, and the two spots.
-    pub fn plunges(&self) -> Vec<(usize, usize, [f32; 3], [f32; 3])> {
+    /// enough to float in, which breaks the fall: it lands on the floor
+    /// under the water.
+    pub fn plunges(&self) -> Vec<Hop> {
         let drop = limits().drop();
         let mut found = vec![];
-        for Border { face, mid, out } in self.borders() {
-            let past = [mid[0] + out[0] * LOOK, mid[1], mid[2] + out[1] * LOOK];
+        for b in self.borders() {
+            let (face, mid, past) = (b.face, b.mid, b.at(LOOK));
             // Floor level past the edge: he walks on, no fall.
             if self.floor(past, DROP_MIN).is_some() {
                 continue;
@@ -651,9 +700,14 @@ impl<'a> Graph<'a> {
             let wet = (self.waters.iter()).any(|w| {
                 w.covers(past[0], past[2]) && w.surface < mid[1] && w.surface - h >= self.float
             });
-            let to = [past[0], h, past[2]];
-            if wet && floor != face && !self.leap_walled(mid, to) {
-                found.push((face, floor, mid, to));
+            let land = [past[0], h, past[2]];
+            if wet && floor != face && !self.leap_walled(mid, land) {
+                found.push(Hop {
+                    from: face,
+                    to: floor,
+                    leave: mid,
+                    land,
+                });
             }
         }
         found
@@ -689,10 +743,7 @@ impl<'a> Graph<'a> {
     /// centered on the door, so the faces are the nearest anywhere on a
     /// side, not the first along a line through its center.
     fn door_arcs(&mut self, placed: &[Placement]) {
-        for door in placed
-            .iter()
-            .filter(|p| kinds::word(&p.name) == Some("door"))
-        {
+        for door in placed.iter().filter(|p| kinds::is_door(&p.name)) {
             let [x, y, z] = door.pose.at;
             let [ahead_x, _, ahead_z] = warp::landing_at(&door.pose, Side::Front, 1.0);
             let facing = [ahead_x - x, ahead_z - z];
@@ -717,21 +768,10 @@ impl<'a> Graph<'a> {
 mod tests {
     use super::*;
     use crate::known::actor;
-    use crate::nav::fixture::{mesh, quad};
-    use crate::warp::Pose;
+    use crate::nav::fixture::{mesh, placed, quad};
 
     fn door(at: [f32; 3]) -> Placement {
-        Placement {
-            name: actor::OBJ_KOKIRI_DOOR_A_02.to_string(),
-            hash: Some(7),
-            label: None,
-            pose: Pose {
-                at,
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        }
+        placed(actor::OBJ_KOKIRI_DOOR_A_02, Some(7), at)
     }
 
     fn links(graph: &Graph, from: usize) -> Vec<(usize, Via)> {
@@ -772,7 +812,7 @@ mod tests {
     fn a_level_gap_within_reach_is_a_gap() {
         let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(3.5, 0.0, 5.5, 2.0, 0.0)]);
         let g = Graph::build(&m, &[], step_up());
-        let gaps: Vec<(usize, usize)> = g.gaps(2.0).iter().map(|&(a, b, ..)| (a, b)).collect();
+        let gaps: Vec<(usize, usize)> = g.gaps(2.0).iter().map(|h| (h.from, h.to)).collect();
         assert!(gaps.contains(&(0, 1)) && gaps.contains(&(1, 0)), "{gaps:?}");
         let far = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 0.0), quad(5.0, 0.0, 7.0, 2.0, 0.0)]);
         assert!(Graph::build(&far, &[], step_up()).gaps(2.0).is_empty());
@@ -781,10 +821,7 @@ mod tests {
     /// A wall standing in the yz plane at `x`, `h` m tall.
     fn wall_at(x: f32, h: f32) -> Walls {
         let (p, q, r, t) = ([x, -1.0, -1.0], [x, h, -1.0], [x, h, 3.0], [x, -1.0, 3.0]);
-        Walls {
-            air: vec![],
-            solid: vec![Wall::new("FakeWall", vec![[p, q, r], [p, r, t]])],
-        }
+        Walls::solid_only(vec![Wall::new("FakeWall", vec![[p, q, r], [p, r, t]])])
     }
 
     /// A solid wall across a level gap cuts it; one lower than a body's
@@ -799,17 +836,18 @@ mod tests {
         assert!(!g.gaps(2.0).is_empty());
     }
 
+    /// A floor from `x0` to `x1` at height `y`, 4 m deep.
+    fn slab(x0: f32, x1: f32, y: f32) -> Wall {
+        let (p, q, r, t) = ([x0, y, -1.0], [x1, y, -1.0], [x1, y, 3.0], [x0, y, 3.0]);
+        Wall::new("FakeFloor", vec![[p, q, r], [p, r, t]])
+    }
+
     /// A ledge 2 m over a floor 1.5 m out is a leap; the same floor with no
     /// collision under either end (terrain) or past a leap's reach isn't.
     #[test]
     fn a_leap_lands_on_collision_floor_within_its_reach() {
-        let slab = |x0: f32, x1: f32, y: f32| {
-            let (p, q, r, t) = ([x0, y, -1.0], [x1, y, -1.0], [x1, y, 3.0], [x0, y, 3.0]);
-            Wall::new("FakeFloor", vec![[p, q, r], [p, r, t]])
-        };
-        let floors = |far: f32| Walls {
-            air: vec![],
-            solid: vec![slab(-1.0, 2.2, 2.0), slab(far - 0.2, far + 2.2, 0.0)],
+        let floors = |far: f32| {
+            Walls::solid_only(vec![slab(-1.0, 2.2, 2.0), slab(far - 0.2, far + 2.2, 0.0)])
         };
         let leaps = |far: f32, walls: Option<Walls>| {
             let m = mesh(&[
@@ -821,10 +859,7 @@ mod tests {
                 Some(w) => g.with_walls(w),
                 None => g,
             };
-            g.leaps()
-                .iter()
-                .map(|&(a, b, ..)| (a, b))
-                .collect::<Vec<_>>()
+            g.leaps().iter().map(|h| (h.from, h.to)).collect::<Vec<_>>()
         };
         assert_eq!(leaps(3.5, Some(floors(3.5))), [(0, 1)]);
         assert!(leaps(3.5, None).is_empty());
@@ -835,22 +870,12 @@ mod tests {
     /// and meets whatever floor lies under it on the way down.
     #[test]
     fn a_fall_clears_the_ledge_and_hits_a_floor_on_the_way_down() {
-        let slab = |x1: f32, y: f32| {
-            let (p, q, r, t) = ([-1.0, y, -1.0], [x1, y, -1.0], [x1, y, 3.0], [-1.0, y, 3.0]);
-            Wall::new("FakeFloor", vec![[p, q, r], [p, r, t]])
-        };
         let m = mesh(&[quad(0.0, 0.0, 2.0, 2.0, 5.0)]);
         let (from, to) = ([2.0, 5.0, 1.0], [2.5, 0.0, 1.0]);
-        let ledge = Walls {
-            air: vec![],
-            solid: vec![slab(2.4, 5.0)],
-        };
+        let ledge = Walls::solid_only(vec![slab(-1.0, 2.4, 5.0)]);
         let g = Graph::build(&m, &[], step_up()).with_walls(&ledge);
         assert!(!g.leap_walled(from, to));
-        let under = Walls {
-            air: vec![],
-            solid: vec![slab(2.4, 5.0), slab(4.0, 2.0)],
-        };
+        let under = Walls::solid_only(vec![slab(-1.0, 2.4, 5.0), slab(-1.0, 4.0, 2.0)]);
         let g = Graph::build(&m, &[], step_up()).with_walls(&under);
         assert!(g.leap_walled(from, to));
     }
@@ -889,7 +914,7 @@ mod tests {
             quad(0.0, 0.6, 2.0, 4.0, 9.0),
         ]);
         let g = Graph::build(&m, &[], step_up());
-        assert_eq!(g.climb_ends(&ladder()), Err("no floor at its top"));
+        assert_eq!(g.climb_ends(&ladder()), Err(NoClimb::Top));
         assert!(links(&g.with_climbs(&[ladder()]), 0).is_empty());
     }
 
@@ -905,7 +930,7 @@ mod tests {
 
     /// A floor and a second one `rise` above it, 0.3 m past its east edge,
     /// so the mesh keeps its gap from the ledge.
-    fn ledge(rise: f32, step_up: f32) -> [Vec<(usize, Via)>; 2] {
+    fn ledge_links(rise: f32, step_up: f32) -> [Vec<(usize, Via)>; 2] {
         let m = mesh(&[
             quad(0.0, 0.0, 2.0, 2.0, 0.0),
             quad(2.3, 0.0, 5.0, 2.0, rise),
@@ -916,28 +941,30 @@ mod tests {
 
     #[test]
     fn a_drop_goes_down_one_way() {
-        let [up, down] = ledge(-2.0, step_up());
+        let [up, down] = ledge_links(-2.0, step_up());
         assert_eq!(up.first(), Some(&(1, Via::Drop)));
         assert!(down.is_empty(), "{down:?}");
     }
 
     #[test]
     fn a_step_goes_up_only_up_to_the_limit() {
-        let [low, high] = ledge(0.8, step_up());
+        let [low, high] = ledge_links(0.8, step_up());
         assert_eq!(low.first(), Some(&(1, Via::Step)));
         // The same ledge from above is a drop, so each way has its own kind.
         assert_eq!(high, [(0, Via::Drop)]);
         // Above the limit it is no link, and a drop of 0.3 is just a slope.
-        assert!(ledge(1.5, step_up())[0].is_empty());
-        assert_eq!(ledge(1.5, 2.0)[0].first(), Some(&(1, Via::Step)));
-        assert!(ledge(0.3, step_up())[0].is_empty() && ledge(-0.3, step_up())[1].is_empty());
+        assert!(ledge_links(1.5, step_up())[0].is_empty());
+        assert_eq!(ledge_links(1.5, 2.0)[0].first(), Some(&(1, Via::Step)));
+        assert!(
+            ledge_links(0.3, step_up())[0].is_empty() && ledge_links(-0.3, step_up())[1].is_empty()
+        );
         // Down to the measured drop limit it is a drop, past it a fall.
         let drop = limits().drop();
         assert_eq!(
-            ledge(-(drop - 0.5), step_up())[0].first(),
+            ledge_links(-(drop - 0.5), step_up())[0].first(),
             Some(&(1, Via::Drop))
         );
-        assert!(ledge(-(drop + 0.5), step_up())[0].is_empty());
+        assert!(ledge_links(-(drop + 0.5), step_up())[0].is_empty());
     }
 
     #[test]

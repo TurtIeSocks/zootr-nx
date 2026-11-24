@@ -6,21 +6,23 @@
 //! pickup that gives a major item when no `Obj_*` form exists.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use ounce_formats::{ActorPack, ModBuilder, Romfs};
+use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs};
 
 use crate::checks::{
     DROP_ACTOR, Drop, GYAML, ItemCheck, Watched, actors, banc_files, hash_of, load_bancs, room_of,
     str_field,
 };
 use crate::gifts;
-use crate::known::{Name, actor, field as fields, item, map};
+use crate::known::{Name, actor, field as fields, item};
+use crate::per_dump::PerDump;
 use crate::settings::{NPC_GIFTS, NewGame};
 use crate::standins::{StandIn, Tables, item_pack};
-use crate::warp;
 use crate::world::presence_of;
 
+mod drops;
 pub mod groups;
 pub mod nodes;
 mod shared;
@@ -28,7 +30,10 @@ mod stale;
 pub mod steps;
 pub mod taken;
 
+use drops::{own_drop, pickup_for, template_for};
+
 /// One kind of placed holder.
+#[derive(PartialEq)]
 pub struct Kind {
     /// The placed actors.
     pub actors: &'static [&'static Name],
@@ -44,6 +49,7 @@ pub struct Kind {
 
 /// The placements of a kind with a `Name` beginning `prefix`, shown as
 /// `holder`.
+#[derive(PartialEq)]
 struct Named {
     prefix: &'static str,
     holder: &'static str,
@@ -265,89 +271,8 @@ const ANIMAL: &str = "Animal_";
 /// The remix's Dream World, outside the story a seed plays.
 const REMIX: &str = "Banc/DreamWorld/";
 
-/// A pickup that gives a major item with its get, the stand-ins' template.
-const TEMPLATE: &Name = actor::OBJ_ARROW_FIRE;
-/// The template of a stand-in a holder drops: a pickup that gives with the
-/// same get, but falls, bounces and lands as drops do. One built on
-/// [`TEMPLATE`], which lies placed and never falls, drops through the floor
-/// (Mac, 2026-11-14).
-const DROPPED: &Name = actor::OBJ_SHIELD_DEKU;
-/// Pickups the game only places, never drops. They have no contact with
-/// the ground, so a holder drops a stand-in for them.
-const PLACED_ONLY: [&Name; 2] = [actor::OBJ_HEART_PIECE, actor::OBJ_HEART_CONTAINER];
 /// Each stand-in's actor is this plus its holder's number.
 const NEW: &str = "Obj_Rando_";
-/// World pickups already, which a holder gives as they are.
-const PICKUP: &str = "Obj_";
-/// A chest's rupee, which a holder drops as the floor rupee of its colour:
-/// a stand-in rupee pays 1 (Mac, 2026-11-14).
-const CHEST_RUPEE: &str = "TBox_Rupee_";
-const FLOOR_RUPEE: &str = "Obj_Rupee_";
-
-/// The pickup a holder places for `item` as it is, when there is one that
-/// shows where it's put: one that lands, when the holder `dropped` it.
-fn pickup_for(item: &str, dropped: bool) -> Option<String> {
-    let pickup = match item.strip_prefix(CHEST_RUPEE) {
-        Some(colour) => format!("{FLOOR_RUPEE}{colour}"),
-        None => item.starts_with(PICKUP).then(|| item.to_owned())?,
-    };
-    (!dropped || !PLACED_ONLY.iter().any(|p| **p == *pickup)).then_some(pickup)
-}
-
-/// What a holder placed without a fixed drop brings to the pool: what its
-/// drop table always gives, Deku seeds in a child's file or arrows in an
-/// adult's for a range weapon table, and a Recovery Heart for the rest (a
-/// table picking what Link is lowest on, or none), as Ship does.
-fn own_drop(table: Option<&str>, file: &str) -> &'static Name {
-    const ALWAYS: [(&Name, &Name); 6] = [
-        (fields::DROP_TABLE_OBJ_HEART, actor::OBJ_HEART),
-        (
-            fields::DROP_TABLE_OBJ_MAGIC_JAR_SMALL,
-            actor::OBJ_MAGIC_JAR_SMALL,
-        ),
-        (fields::DROP_TABLE_OBJ_BOMB, actor::OBJ_BOMB),
-        (fields::DROP_TABLE_OBJ_DEKU_STICK, actor::OBJ_DEKU_STICK),
-        (fields::DROP_TABLE_OBJ_FAIRY, actor::OBJ_FAIRY),
-        (fields::DROP_RUPEE_RED2, actor::OBJ_RUPEE_RED),
-    ];
-    const RANGE: [&Name; 2] = [
-        fields::DROP_TABLE_RANGE_WEAPON_01,
-        fields::DROP_TABLE_RANGE_WEAPON_02,
-    ];
-    let Some(table) = table else {
-        return actor::OBJ_HEART;
-    };
-    if let Some((_, item)) = ALWAYS.iter().find(|(t, _)| **t == *table) {
-        return item;
-    }
-    match RANGE.iter().any(|t| **t == *table) {
-        true if child_file(file) => actor::OBJ_DEKU_SEED,
-        true => actor::OBJ_ARROW_BUNDLE_SMALL,
-        false => actor::OBJ_HEART,
-    }
-}
-
-/// The dungeons only a child plays, whose files name no age.
-const CHILD_DUNGEONS: [&Name; 4] = [
-    map::INSIDE_THE_DEKU_TREE,
-    map::DODONGO_CAVERN,
-    map::INSIDE_JABU_JABU_BELLY,
-    map::BOTTOM_OF_THE_WELL,
-];
-
-/// Whether Link is a child in Banc file `file`.
-fn child_file(file: &str) -> bool {
-    let map = warp::map_of(file);
-    warp::era(map).unwrap_or_else(|| CHILD_DUNGEONS.iter().any(|d| **d == *map))
-}
-
-/// The pickup a stand-in for what `field` names is built on.
-fn template_for(field: &str) -> &'static str {
-    match field {
-        DROP => DROPPED,
-        _ => TEMPLATE,
-    }
-}
 
 impl Kind {
     /// Whether `actor` is one of the placed actors.
@@ -362,53 +287,74 @@ impl Kind {
 
     /// One check per placement, as chests are.
     pub fn checks(&self, romfs: &Romfs) -> Result<Vec<ItemCheck>> {
-        let mut out = Vec::new();
-        let files = (banc_files(romfs)?.into_iter())
-            .filter(|f| !f.starts_with(REMIX))
-            .collect();
-        for (file, doc) in load_bancs(romfs, files) {
-            let doc = doc?;
-            for actor in actors(&doc.root)? {
-                let gyaml = str_field(actor, GYAML).unwrap_or_default();
-                if !self.places(gyaml) {
-                    continue;
-                }
-                let dynamic = actor.as_map()?.get("Dynamic");
-                let held = (dynamic.and_then(|d| str_field(d, DROP_ACTOR)))
-                    .filter(|d| !d.starts_with(ANIMAL));
-                let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
-                let own = self.owns_drop().then(|| own_drop(table, &file).get());
-                let (holder, item) = match &self.named {
-                    Some(Named { prefix, holder }) => {
-                        if !str_field(actor, NAME).is_some_and(|n| n.starts_with(prefix)) {
-                            continue;
-                        }
-                        (*holder, gyaml)
-                    }
-                    None => {
-                        let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
-                            continue;
-                        };
-                        (gyaml, item)
-                    }
-                };
-                let hash = hash_of(actor).context("actor without Hash")?;
-                let area = file.split('/').nth(1).unwrap_or("?");
-                let mut check = gifts::check(file.clone(), area, hash, holder.into(), item);
-                // A named holder is there once its event has put it there,
-                // which the seed doesn't have to wait for.
-                check.presence = presence_of(actor).filter(|_| self.named.is_none());
-                check.room = room_of(actor);
-                out.push(check);
-            }
+        let i = (KINDS.iter().position(|k| *k == self)).context("a kind outside KINDS")?;
+        Ok(by_kind(romfs)?[i].clone())
+    }
+
+    /// The check `actor`, placed in Banc file `file`, is, if it's one of
+    /// this kind.
+    fn check_of(&self, actor: &Byml, file: &str) -> Result<Option<ItemCheck>> {
+        let gyaml = str_field(actor, GYAML).unwrap_or_default();
+        if !self.places(gyaml) {
+            return Ok(None);
         }
-        Ok(out)
+        let dynamic = actor.as_map()?.get("Dynamic");
+        let held =
+            (dynamic.and_then(|d| str_field(d, DROP_ACTOR))).filter(|d| !d.starts_with(ANIMAL));
+        let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
+        let own = self.owns_drop().then(|| own_drop(table, file).get());
+        let (holder, item) = match &self.named {
+            Some(Named { prefix, holder }) => {
+                if !str_field(actor, NAME).is_some_and(|n| n.starts_with(prefix)) {
+                    return Ok(None);
+                }
+                (*holder, gyaml)
+            }
+            None => {
+                let Some(item) = self.item.map(|i| i.get()).or(held).or(own) else {
+                    return Ok(None);
+                };
+                (gyaml, item)
+            }
+        };
+        let hash = hash_of(actor).context("actor without Hash")?;
+        let area = file.split('/').nth(1).unwrap_or("?");
+        let mut check = gifts::check(file.into(), area, hash, holder.into(), item);
+        // A named holder is there once its event has put it there,
+        // which the seed doesn't have to wait for.
+        check.presence = presence_of(actor).filter(|_| self.named.is_none());
+        check.room = room_of(actor);
+        Ok(Some(check))
     }
 
     pub fn holds(&self, check: &ItemCheck) -> bool {
         let named = self.named.as_ref().map(|n| n.holder);
         self.places(&check.holder) || named == Some(check.holder.as_str())
     }
+}
+
+/// The checks of each of [`KINDS`], in its order. Kept per dump: a seed
+/// asks for them several times over, and reading every Banc file is slow.
+fn by_kind(romfs: &Romfs) -> Result<Arc<Vec<Vec<ItemCheck>>>> {
+    static KEPT: PerDump<Arc<Vec<Vec<ItemCheck>>>> = PerDump::new();
+    KEPT.get(romfs, || read_kinds(romfs).map(Arc::new))
+}
+
+/// [`by_kind`], reading each Banc file once for every kind.
+fn read_kinds(romfs: &Romfs) -> Result<Vec<Vec<ItemCheck>>> {
+    let mut out = vec![Vec::new(); KINDS.len()];
+    let files = (banc_files(romfs)?.into_iter())
+        .filter(|f| !f.starts_with(REMIX))
+        .collect();
+    for (file, doc) in load_bancs(romfs, files) {
+        let doc = doc?;
+        for actor in actors(&doc.root)? {
+            for (kind, checks) in KINDS.iter().zip(&mut out) {
+                checks.extend(kind.check_of(actor, &file)?);
+            }
+        }
+    }
+    Ok(out)
 }
 
 /// The checks of every kind `new_game` turns on.
@@ -464,10 +410,7 @@ fn watch(romfs: &Romfs, checks: &mut [ItemCheck]) -> Result<()> {
 
 /// Every pickup check of every kind a logic module makes appear or watches.
 pub fn watched(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
-    let mut checks = Vec::new();
-    for kind in KINDS {
-        checks.extend(kind.checks(romfs)?);
-    }
+    let mut checks = by_kind(romfs)?.concat();
     watch(romfs, &mut checks)?;
     checks.retain(|c| c.watched != Watched::No);
     Ok(checks)
@@ -624,6 +567,7 @@ pub fn tabled(checks: &[ItemCheck]) -> HashSet<u64> {
 
 #[cfg(test)]
 mod tests {
+    use super::drops::{DROPPED, PLACED_ONLY, TEMPLATE};
     use super::*;
     use crate::known::{actor, field, item};
 
@@ -642,48 +586,6 @@ mod tests {
             ..NewGame::default()
         };
         assert_eq!(letters(&moved), 1);
-    }
-
-    #[test]
-    fn a_chest_rupee_drops_as_the_floor_rupee_and_a_major_item_as_a_stand_in() {
-        needs_names!();
-        assert_eq!(
-            pickup_for(actor::T_BOX_RUPEE_RED, true).as_deref(),
-            Some(actor::OBJ_RUPEE_RED.get())
-        );
-        assert_eq!(
-            pickup_for(actor::OBJ_HEART_PIECE, false).as_deref(),
-            Some(actor::OBJ_HEART_PIECE.get())
-        );
-        assert_eq!(pickup_for(item::SHIELD_MIRROR, false), None);
-    }
-
-    #[test]
-    fn a_heart_piece_a_holder_drops_is_a_stand_in_that_lands() {
-        needs_names!();
-        assert_eq!(pickup_for(actor::OBJ_HEART_PIECE, true), None);
-        assert_eq!(pickup_for(actor::OBJ_HEART_CONTAINER, true), None);
-        assert_eq!(template_for(DROP), DROPPED);
-        assert_eq!(template_for(GYAML), TEMPLATE);
-    }
-
-    #[test]
-    fn a_holder_without_a_fixed_drop_brings_what_its_table_gives() {
-        needs_names!();
-        let file = |map: &Name| format!("Banc/X/{}_Dynamic.bcett.byml.zs", map.get());
-        let (child, adult) = (file(map::GORON_CITY_CHILD), file(map::FOREST_TEMPLE));
-        let stick = Some(field::DROP_TABLE_OBJ_DEKU_STICK.get());
-        assert_eq!(own_drop(stick, &adult), actor::OBJ_DEKU_STICK);
-        let range = Some(field::DROP_TABLE_RANGE_WEAPON_02.get());
-        assert_eq!(own_drop(range, &child), actor::OBJ_DEKU_SEED);
-        assert_eq!(own_drop(range, &adult), actor::OBJ_ARROW_BUNDLE_SMALL);
-        // A child's dungeon names no age.
-        assert_eq!(
-            own_drop(range, &file(map::DODONGO_CAVERN)),
-            actor::OBJ_DEKU_SEED
-        );
-        assert_eq!(own_drop(Some("Drop_FakeSupply"), &child), actor::OBJ_HEART);
-        assert_eq!(own_drop(None, &child), actor::OBJ_HEART);
     }
 
     #[test]

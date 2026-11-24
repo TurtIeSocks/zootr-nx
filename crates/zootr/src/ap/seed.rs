@@ -212,7 +212,7 @@ impl Seed {
 /// so a seed from an older world still opens: chests, Business Scrubs and
 /// the running man's race are locations those worlds always held, and Link
 /// starts with nothing.
-fn pinned() -> Settings {
+pub(super) fn pinned() -> Settings {
     Settings::from([
         (CHESTS.into(), Value::Bool(true)),
         (SCRUBS.into(), Value::Bool(true)),

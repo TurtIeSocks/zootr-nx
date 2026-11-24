@@ -10,7 +10,7 @@ use ounce_formats::Romfs;
 use serde::Serialize;
 
 use super::dev_args::{DevCommand, MemCommand, Switch};
-use crate::config::{Config, TestSetup};
+use crate::config::{Config, Target, TestSetup};
 use crate::nav::{act, drive, shove};
 use crate::notice::Shown;
 use crate::play::{self, Input};
@@ -18,9 +18,8 @@ use crate::tracker::Flag;
 use crate::{gamedata, live, recorder, steps, warp};
 
 /// Whether `hash`'s name contains `grep`, or there's no `grep`.
-pub(super) fn named(gd: &gamedata::GameData, grep: &Option<String>, hash: u32) -> bool {
-    grep.as_ref()
-        .is_none_or(|g| gd.name(hash).contains(g.as_str()))
+pub(super) fn named(gd: &gamedata::GameData, grep: Option<&str>, hash: u32) -> bool {
+    grep.is_none_or(|g| gd.name(hash).contains(g))
 }
 
 /// `[mm:ss]` since `start`.
@@ -41,7 +40,7 @@ pub(super) fn live(romfs: &Romfs, grep: Option<String>, all: bool, only_named: b
     let mut poll = live::Poll::new(game)?;
     loop {
         std::thread::sleep(live::TICK);
-        let wanted = |h| named(&gd, &grep, h) && (!only_named || gd.known(h));
+        let wanted = |h| named(&gd, grep.as_deref(), h) && (!only_named || gd.known(h));
         for c in poll.next(&gd, all, wanted)?.0 {
             println!("{} {c}", stamp(start));
         }
@@ -59,12 +58,20 @@ pub(super) fn attach(plays: bool) -> Result<live::Game> {
     live::Game::attach(&Config::load()?.target()?)
 }
 
+/// The configured target, and its way of pressing buttons and pushing the
+/// stick.
+pub(super) fn target_input() -> Result<(Target, Box<dyn Input>)> {
+    let config = Config::load()?;
+    let target = config.target()?;
+    let input = play::input(&target, config.game.as_deref())?;
+    Ok((target, input))
+}
+
 /// The target's way of pressing buttons and pushing the stick, on this
 /// session's turn.
 fn input() -> Result<Box<dyn Input>> {
     crate::turn::hold(&crate::turn::session())?;
-    let config = Config::load()?;
-    play::input(&config.target()?, config.game.as_deref())
+    Ok(target_input()?.1)
 }
 
 /// A report as lines, or as one JSON object with `json`.
@@ -75,8 +82,8 @@ pub(super) fn said<T: Display + Serialize>(report: &T, json: bool) -> Result<Str
     })
 }
 
-/// How often `zootr ap connect` renews its hold on the game.
-pub(super) const RENEW: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+/// How often a long-running command renews its hold on the game.
+pub(super) const RENEW: Duration = Duration::from_secs(5 * 60);
 
 /// `zootr ap connect`: the client core on the live game, its notes
 /// printed until the process is stopped.
@@ -121,8 +128,6 @@ pub(super) fn give(romfs: &Romfs, actor: &str, count: i32) -> Result<()> {
     Ok(())
 }
 
-/// GameData as the installed seed wrote it, which names the Bools a seed
-/// adds, else the game's own.
 /// The installed seed's gamedata, or the game's own when there's no target
 /// or the target has no seed installed.
 pub(super) fn installed_gamedata(romfs: &Romfs) -> Result<gamedata::GameData> {
@@ -459,6 +464,10 @@ pub(super) fn saved_test(name: &str) -> Result<TestSetup> {
 /// How far a search reads at once, so a big region never stalls the game.
 const CHUNK: usize = 1 << 20;
 
+/// The protection bits [`live::Game::regions`] gives.
+const READ: i32 = 1;
+const WRITE: i32 = 2;
+
 pub(super) fn mem(cmd: MemCommand) -> Result<()> {
     use live::Memory;
     let writes = matches!(
@@ -518,7 +527,7 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
         } => {
             let needle = bytes(&needle)?;
             anyhow::ensure!(!needle.is_empty(), "nothing to find");
-            let wanted = if writable { 3 } else { 1 };
+            let wanted = if writable { READ | WRITE } else { READ };
             let from = from.as_deref().map(address).transpose()?.unwrap_or(0);
             let to = to.as_deref().map(address).transpose()?.unwrap_or(u64::MAX);
             let mut hits = 0;
@@ -526,7 +535,7 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
             // readable region, skipping chunks that don't read.
             let regions = match game.regions() {
                 Ok(regions) => regions,
-                Err(_) if to != u64::MAX => vec![(from, (to - from) as usize, 3)],
+                Err(_) if to != u64::MAX => vec![(from, span(from, to)?, READ | WRITE)],
                 Err(e) => return Err(e.context("give --from and --to to scan without regions")),
             };
             for (start, size, prot) in regions {
@@ -593,7 +602,7 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
                 std::fs::remove_dir_all(&dir)?;
             }
             let regions: Vec<_> = (game.regions()?.into_iter())
-                .filter(|&(_, _, prot)| prot & 3 == 3)
+                .filter(|&(_, _, prot)| prot & (READ | WRITE) == READ | WRITE)
                 .map(|(start, size, _)| (start, size))
                 .collect();
             match live::snap::snap(&game, &regions, &dir, &state)? {
@@ -646,6 +655,13 @@ fn range(text: &str, main: u64) -> Result<(u64, usize)> {
     Ok((address(at, main)?, len))
 }
 
+/// The bytes from `from` up to `to`, refused when `to` comes first.
+fn span(from: u64, to: u64) -> Result<usize> {
+    let size = (to.checked_sub(from))
+        .with_context(|| format!("--to {to:#x} is below --from {from:#x}"))?;
+    Ok(usize::try_from(size)?)
+}
+
 /// Hex bytes, or `s:` and text.
 fn bytes(text: &str) -> Result<Vec<u8>> {
     if let Some(s) = text.strip_prefix("s:") {
@@ -653,12 +669,15 @@ fn bytes(text: &str) -> Result<Vec<u8>> {
     }
     let digits: String = text.chars().filter(|c| !c.is_whitespace()).collect();
     anyhow::ensure!(
+        digits.chars().all(|c| c.is_ascii_hexdigit()),
+        "{text} isn't hex"
+    );
+    anyhow::ensure!(
         digits.len().is_multiple_of(2),
         "{text} has an odd number of hex digits"
     );
-    (0..digits.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&digits[i..i + 2], 16).context("not hex"))
+    (digits.as_bytes().chunks(2))
+        .map(|pair| Ok(u8::from_str_radix(std::str::from_utf8(pair)?, 16)?))
         .collect()
 }
 
@@ -696,6 +715,9 @@ mod tests {
         assert_eq!(bytes("0f1e").unwrap(), [0x0f, 0x1e]);
         assert_eq!(bytes("s:Ab").unwrap(), b"Ab");
         assert!(bytes("0f1").is_err());
+        assert!(bytes("a\u{e9}b").is_err(), "not hex, and no panic");
+        assert_eq!(span(0x10, 0x30).unwrap(), 0x20);
+        assert!(span(0x30, 0x10).is_err());
         assert_eq!(address("0x7f21d600e0", 1).unwrap(), 0x007f_21d6_00e0);
         assert_eq!(address("main+0x10", 0x1000).unwrap(), 0x1010);
         assert!(address("main+zz", 0x1000).is_err());

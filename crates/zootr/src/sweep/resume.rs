@@ -49,16 +49,19 @@ impl Resume {
         let _ = std::fs::remove_file(Self::path(dir));
     }
 
-    /// Drop each name in `names` that `done` holds, as many times as it
-    /// holds it (two spots can share a name).
+    /// Drop each of `planned` whose `name` `done` holds, as many times as
+    /// it holds it (two spots can share a name).
     pub fn skip<T>(&self, planned: &mut Vec<T>, name: impl Fn(&T) -> String) {
         let mut done = self.done.clone();
-        planned.retain(|p| match done.iter().position(|d| *d == name(p)) {
-            Some(i) => {
-                done.swap_remove(i);
-                false
+        planned.retain(|p| {
+            let named = name(p);
+            match done.iter().position(|d| *d == named) {
+                Some(i) => {
+                    done.swap_remove(i);
+                    false
+                }
+                None => true,
             }
-            None => true,
         });
     }
 }
@@ -182,5 +185,6 @@ mod tests {
         assert_eq!(Resume::load(&dir), Some(resume));
         Resume::clear(&dir);
         assert_eq!(Resume::load(&dir), None);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

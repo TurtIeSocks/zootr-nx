@@ -98,15 +98,15 @@ fn find(romfs: &Romfs, flows: &Flows) -> Result<Vec<Arrival>> {
     for (_, doc) in checks::bancs(romfs)? {
         let doc = doc?;
         for a in checks::actors(&doc.root)? {
-            if checks::str_field(a, "Gyaml") != Some(ENTRANCE) {
+            if checks::str_field(a, checks::GYAML) != Some(ENTRANCE) {
                 continue;
             }
-            let Some(d) = a.as_map()?.get("Dynamic") else {
+            let Some(d) = a.as_map()?.get(checks::DYNAMIC) else {
                 continue;
             };
-            let field = |k| checks::str_field(d, k).map(String::from);
+            let text = |k| checks::str_field(d, k).map(String::from);
             if let (Some(event), Some(flag)) =
-                (field(field::INIT_EVENT_NAME), field(field::INIT_EVENT_FLAG))
+                (text(field::INIT_EVENT_NAME), text(field::INIT_EVENT_FLAG))
             {
                 found.insert((event, flag));
             }
@@ -128,9 +128,7 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
             .and_then(|e| e.into_iter().next())
             .map(|e| e.to_string())
     };
-    let cutscene = flag
-        .strip_prefix(&**PLAYED)
-        .and_then(|s| s.strip_prefix('.'));
+    let cutscene = played_cutscene(flag);
     if let Some(why) = cutscene.and_then(first) {
         return Ok(Skip::Plays(why));
     }
@@ -143,7 +141,10 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
     if let Some(cutscene) = cutscene {
         for (flow, entry) in flows.resolve(event) {
             let chart = &flows.0[flow];
-            let Some(entry) = entry.filter(|_| flow != cutscene) else {
+            if flow == cutscene {
+                continue;
+            }
+            let Some(entry) = entry else {
                 continue;
             };
             let runs = flows::reachable(chart, entry)?
@@ -156,6 +157,11 @@ fn skip_for(flows: &Flows, gd: &GameData, event: &str, flag: &str) -> Result<Ski
         }
     }
     Ok(Skip::Plays(why))
+}
+
+/// The cutscene a `PLAYED.<cutscene>` flag names.
+fn played_cutscene(flag: &str) -> Option<&str> {
+    flag.strip_prefix(&**PLAYED)?.strip_prefix('.')
 }
 
 /// The flag that stops the entrance booting `event`: `flag` itself, or the
@@ -171,15 +177,15 @@ fn settable(gd: &GameData, event: &str, flag: &str) -> Result<Option<String>> {
 
 /// Swap each transition to `cutscene` in `flow` for setting `flag`.
 pub(crate) fn swap(flow: &mut Flowchart, cutscene: &str, flag: &str) -> Result<()> {
-    let params = vec![
+    let params = [
         (
             field::GAME_DATA_NAME.to_string(),
             Value::String(vec![flag.into()]),
         ),
         ("Index".into(), Value::Int(vec![-1])),
-        ("Value".into(), Value::Bool(vec![true])),
+        (field::VALUE.get().into(), Value::Bool(vec![true])),
     ];
-    replace(flow, cutscene, SET_BOOL, params)
+    replace(flow, cutscene, SET_BOOL, &params)
 }
 
 /// Swap each transition to `cutscene` in `flow` for `with`, an `(actor,
@@ -188,7 +194,7 @@ pub(crate) fn replace(
     flow: &mut Flowchart,
     cutscene: &str,
     with: (impl AsRef<str>, impl AsRef<str>),
-    params: Vec<(String, Value)>,
+    params: &[(String, Value)],
 ) -> Result<()> {
     let template = flow
         .actors
@@ -208,7 +214,7 @@ pub(crate) fn replace(
         flow.events[i].kind = EventKind::Action {
             actor,
             action,
-            params: params.clone(),
+            params: params.to_vec(),
             next,
         };
     }
@@ -227,10 +233,7 @@ pub fn skip(
 ) -> Result<()> {
     for a in all(romfs, flows)? {
         if !matches!(a.skip, Skip::Plays(_)) {
-            let cutscene = a
-                .flag
-                .strip_prefix(&**PLAYED)
-                .and_then(|s| s.strip_prefix('.'));
+            let cutscene = played_cutscene(&a.flag);
             flags.extend(visits(
                 flows,
                 [a.event.as_str()].into_iter().chain(cutscene),

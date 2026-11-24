@@ -14,11 +14,19 @@ use crate::known::{field, flag};
 use crate::world::presence_of;
 
 const SETTER: &str = "EventTriggerSetGameData";
-const ACTORS: (&str, &str) = ("Pack/Actor", ".pack.zs");
+/// Where actor packs live, and their suffix, as
+/// [`ounce_formats::pack_file`] spells them.
+const PACKS: (&str, &str) = ("Pack/Actor", ".pack.zs");
 
-/// romfs path of an actor's pack, e.g. `Pack/Actor/NAME.pack.zs`.
-pub fn actor_pack(actor: &str) -> String {
-    format!("{}/{actor}{}", ACTORS.0, ACTORS.1)
+/// Every actor with a pack, by name, sorted.
+pub(crate) fn pack_actors(romfs: &Romfs) -> Result<Vec<String>> {
+    let mut names: Vec<String> = files_with_suffix(&romfs.root().join(PACKS.0), PACKS.1)?
+        .iter()
+        .filter_map(|p| p.file_name()?.to_str()?.strip_suffix(PACKS.1))
+        .map(str::to_owned)
+        .collect();
+    names.sort();
+    Ok(names)
 }
 
 #[derive(Default)]
@@ -95,10 +103,8 @@ impl Survey {
             }
         }
         // Flags the engine sets itself, named after an actor or a flow.
-        for path in files_with_suffix(&romfs.root().join(ACTORS.0), ACTORS.1)? {
-            let rel = romfs.rel(&path)?;
-            let actor = rel.rsplit('/').next().unwrap_or(&rel);
-            gamedata.learn(&format!("IsGet.{}", actor.trim_end_matches(ACTORS.1)));
+        for actor in pack_actors(romfs)? {
+            gamedata.learn(&format!("IsGet.{actor}"));
         }
         let mut setters = BTreeMap::<String, BTreeSet<String>>::new();
         flows

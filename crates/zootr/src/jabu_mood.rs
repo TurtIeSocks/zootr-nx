@@ -10,10 +10,9 @@
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::{Graph, Patch};
-use ounce_formats::{ModBuilder, Romfs};
+use ounce_formats::{ModBuilder, Romfs, pack_file};
 use roead::sarc::{Sarc, SarcWriter};
 
-use crate::flags::actor_pack;
 use crate::gamedata::{GameData, Op};
 use crate::known::{actor, field, flag};
 use crate::settings::AdultJabu;
@@ -48,7 +47,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, mode: AdultJabu) -> Result
     if mode == AdultJabu::Off {
         return Ok(());
     }
-    let path = actor_pack(actor::NPC_JABU_JABU.get());
+    let path = pack_file(actor::NPC_JABU_JABU.get());
     let data = romfs.read(&path)?;
     let pack = Sarc::new(&data)?;
     let (file, vanilla) = (pack.files())
@@ -93,7 +92,7 @@ mod tests {
     use super::*;
 
     fn graph(romfs: &Romfs) -> Vec<u8> {
-        let data = romfs.read(&actor_pack(actor::NPC_JABU_JABU.get())).unwrap();
+        let data = romfs.read(&pack_file(actor::NPC_JABU_JABU.get())).unwrap();
         let pack = Sarc::new(&data).unwrap();
         let found = (pack.files())
             .find(|f| f.name.is_some_and(|n| n.ends_with(".ainb")) && mood_node(f.data).is_ok());

@@ -11,7 +11,7 @@ use ounce_formats::{ActorPack, Romfs};
 
 use super::graph::{Border, Cross, Graph, Snap, Via, dist};
 use super::kinds;
-use super::shape::place;
+use super::shape::{place, turn};
 use crate::checks::flat;
 use crate::warp::Placement;
 use crate::world::Presence;
@@ -80,12 +80,6 @@ pub struct Water {
     pub depth: f32,
     /// `None` when it's always there.
     pub presence: Option<Presence>,
-}
-
-/// Twice the signed area of a, b, c: positive when they turn
-/// counterclockwise.
-fn turn(a: [f32; 2], b: [f32; 2], c: [f32; 2]) -> f32 {
-    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 }
 
 impl Water {
@@ -216,7 +210,6 @@ pub fn waters(
 /// `0..n` in groups, chaining every pair `joined` says is together, each
 /// group in order and the groups by their first.
 fn groups(n: usize, joined: impl Fn(usize, usize) -> bool) -> Vec<Vec<usize>> {
-    let mut of: Vec<usize> = (0..n).collect();
     fn root(of: &mut [usize], mut i: usize) -> usize {
         while of[i] != i {
             of[i] = of[of[i]];
@@ -224,6 +217,7 @@ fn groups(n: usize, joined: impl Fn(usize, usize) -> bool) -> Vec<Vec<usize>> {
         }
         i
     }
+    let mut of: Vec<usize> = (0..n).collect();
     for a in 0..n {
         for b in a + 1..n {
             if joined(a, b) {
@@ -233,7 +227,7 @@ fn groups(n: usize, joined: impl Fn(usize, usize) -> bool) -> Vec<Vec<usize>> {
         }
     }
     let mut out: Vec<Vec<usize>> = vec![];
-    let mut at = std::collections::HashMap::new();
+    let mut at = HashMap::new();
     for i in 0..n {
         let r = root(&mut of, i);
         let g = *at.entry(r).or_insert_with(|| {
@@ -287,11 +281,7 @@ impl Graph<'_> {
         self.float = float(child);
         self.shores = self.find_shores(waters);
         self.waters = waters.to_vec();
-        for c in self
-            .crossings(waters)
-            .into_iter()
-            .filter(|c| c.not.is_none())
-        {
+        for c in self.crossings().into_iter().filter(|c| c.not.is_none()) {
             let via = Via::Swim(waters[c.from.water].hash);
             let weight = super::drive::SPEED / SWIM_SPEED;
             for (a, b) in [(c.from, c.to), (c.to, c.from)] {
@@ -469,11 +459,11 @@ impl Graph<'_> {
     /// within [`STRETCH`] of each other and at one water's shore, chained. The nearest pair between
     /// them that [`Graph::swims`], or the nearest pair and why not when none
     /// does.
-    pub fn crossings(&self, waters: &[Water]) -> Vec<Crossing> {
-        let shores = self.find_shores(waters);
+    pub fn crossings(&self) -> Vec<Crossing> {
+        let waters = &self.waters;
         let mut found = vec![];
         for (n, body) in bodies(waters).iter().enumerate() {
-            let on: Vec<Shore> = (shores.iter())
+            let on: Vec<Shore> = (self.shores.iter())
                 .filter(|s| body.contains(&s.water))
                 .copied()
                 .collect();

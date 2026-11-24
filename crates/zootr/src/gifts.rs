@@ -45,6 +45,7 @@ use crate::flows::{
     self, ACTOR, FITS_POUCH, GAME_DATA, GRANT, IN_POUCH, IS_BOOL, Rewrites, SET_BOOL, is_local,
     only, param, params_mut, running, string,
 };
+use crate::grant::POUCH;
 use crate::known::{Name, actor, field, flag, flow, item, scene};
 use crate::settings::{
     DOOR_OPEN, DUNGEON_REWARDS, HUNDRED_TOKENS, MASTER_SWORD, MERCHANTS, NPC_GIFTS, RUNNING_RACE,
@@ -91,9 +92,6 @@ pub enum How {
         caller: &'static Name,
         found: &'static Name,
     },
-    /// A sale of one item. The call to `call` at `price` that sells `sold`
-    /// sells the dealt item instead, and `gate` and `shop` edit the giver's
-    /// flow and the shop flow around it, whichever the sale needs.
     /// No grant in the vanilla game: `trade_chain` adds one, of the dealt
     /// item, to the giver's flow and to each flow in `also`, where the same
     /// giver stands in another place.
@@ -101,6 +99,9 @@ pub enum How {
     /// The Master Sword pedestal (`pedestal`): the first pull's grant, or
     /// the swap's or the opening's once the door is open.
     Pedestal,
+    /// A sale of one item. The call to `call` at `price` that sells `sold`
+    /// sells the dealt item instead, and `gate` and `shop` edit the giver's
+    /// flow and the shop flow around it, whichever the sale needs.
     Sale {
         call: &'static [Call],
         sold: &'static Name,
@@ -252,16 +253,14 @@ const POUCH_GRANT: Call = call(
 /// Rauru's scene, which the open Door of Time skips.
 const RAURU: &Name = scene::SAGE_ROOM_0005;
 
-/// The flow chests and NPCs hand items out through.
-use crate::grant::POUCH;
-
 /// The "You got" window.
 const WINDOW: &Name = flow::DISPLAY_GET_BY_ACTOR_NAME;
 
 /// An NPC's reward: the grant and its window.
 const REWARD: &Name = flow::GET_POUCH_CONTENT_BY_ACTOR_NAME;
 
-pub(super) const NAME: &Name = flag::ACTOR_NAME;
+/// The param a pouch call names its item by.
+const NAME: &Name = flag::ACTOR_NAME;
 
 /// What a Bool about an item's name starts with.
 const IS_GET: &str = "IsGet.";
@@ -285,7 +284,7 @@ impl Gift {
     /// Whether a new game with `on` deals it: its setting is on, and it's
     /// not the 100-token reward with that one turned off.
     pub fn dealt(&self, on: &BTreeSet<String>) -> bool {
-        self.setting().is_none_or(|s| on.contains(s))
+        self.setting.is_none_or(|s| on.contains(s))
             && !(self.is_hundred_tokens() && !on.contains(HUNDRED_TOKENS))
     }
 
@@ -342,11 +341,6 @@ impl Gift {
             .collect()
     }
 
-    /// The setting that deals it, if only one does.
-    pub fn setting(&self) -> Option<&'static str> {
-        self.setting
-    }
-
     /// Whether it's a sale, which keeps selling what it sold.
     pub fn is_sale(&self) -> bool {
         matches!(self.how, How::Sale { .. })
@@ -381,7 +375,8 @@ const UNSTUCK: [(&Name, Edit); 3] = [
 
 /// Write each gift whose item changed, and Zelda's always, so her lesson
 /// never plays without an ocarina. Biggoron never makes Link wait, sword
-/// moved or not. Every Great Fairy opens in any order.
+/// moved or not. The weeding Kokiri offers his weeding until he's paid.
+/// Every Great Fairy opens in any order.
 pub fn give_all(
     romfs: &Romfs,
     flows: &Flows,
@@ -417,10 +412,18 @@ pub fn give_all(
         {
             flows::edit(romfs, rewrites, gift.flow, free)?;
         }
-        let lost = pocket || gift.lost(on, rewrites)?;
-        let given = item != gift.item || matches!(gift.how, How::Cut { .. }) || lost;
+        let placement = if pocket {
+            Placement::Pocket
+        } else if gift.lost(on, rewrites)? {
+            Placement::Lost
+        } else {
+            Placement::Scene
+        };
+        let given = item != gift.item
+            || matches!(gift.how, How::Cut { .. })
+            || placement != Placement::Scene;
         let took = match (given, &gift.how) {
-            (true, _) => give(romfs, flows, rewrites, gift, item, mine, lost, pocket)
+            (true, _) => give(romfs, flows, rewrites, gift, item, mine, placement)
                 .with_context(|| format!("{} giving {item}", gift.giver))?,
             (false, How::Calls { call, .. }) => {
                 let flow = flows::current(romfs, rewrites, gift.flow)?;
@@ -436,7 +439,7 @@ pub fn give_all(
         let shop = matches!(gift.how, How::Sale { .. }) && !drops.contains_key(&gift.hash());
         if leveled && !pocket && !shop {
             // The grant moved to the caller when its scene can't play.
-            let at = given.then(|| gift.moved_to(lost, pocket)).flatten();
+            let at = given.then(|| gift.moved_to(placement)).flatten();
             let only = (at.is_none() && !took.is_empty()).then_some(took);
             by_level.insert((at.unwrap_or(gift.flow), item, only));
             if let How::Added { also } = gift.how {
@@ -470,9 +473,8 @@ pub fn give_all(
     }
     pedestal::shuffle(romfs, rewrites, on)?;
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
-    let weeding = GIFTS.iter().find(|g| g.flow == WEEDING);
-    let paid = weeding
-        .and_then(|g| g.found())
+    let paid = (GIFTS.iter().find(|g| g.flow == WEEDING))
+        .and_then(Gift::found)
         .context("the weeding pays no Bool")?;
     flows::edit(romfs, rewrites, WEEDING, |f| {
         weeding::offered_until_paid(f, &paid)
@@ -480,9 +482,19 @@ pub fn give_all(
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }
 
+/// Where a gift's grant is made this seed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Placement {
+    /// In its own scene, which plays.
+    Scene,
+    /// Its scene never plays: the grant moves to its caller.
+    Lost,
+    /// Its scene never plays: the opening gives it, as Link's Pocket.
+    Pocket,
+}
+
 /// Rewrite `gift` to give `item`, leaving alone the events of its flow
 /// another gift has `taken`. Returns the events of its flow that give it.
-#[allow(clippy::too_many_arguments)]
 fn give(
     romfs: &Romfs,
     flows: &Flows,
@@ -490,13 +502,12 @@ fn give(
     gift: &Gift,
     item: &str,
     taken: &BTreeSet<u16>,
-    lost: bool,
-    pocket: bool,
+    placement: Placement,
 ) -> Result<Vec<u16>> {
     let mut back = None;
     let mut took = Vec::new();
     // A scene that never plays has nothing to cut or silence.
-    if !lost {
+    if placement == Placement::Scene {
         flows::edit(romfs, rewrites, gift.flow, |flow| match gift.how {
             How::InPlace => in_place(flow, item),
             How::Cut { then } => cut(flow, flows, gift.item, item, then).map(|(b, given)| {
@@ -523,9 +534,9 @@ fn give(
             flows::edit(romfs, rewrites, SIMPLE_SHOP, shop)?;
         }
     }
-    if let Some(to) = gift.moved_to(lost, pocket) {
+    if let Some(to) = gift.moved_to(placement) {
         flows::edit(romfs, rewrites, to, |f| {
-            match (gift.is_pedestal(), pocket) {
+            match (gift.is_pedestal(), placement == Placement::Pocket) {
                 (true, _) => pedestal::in_swap(romfs, f, flows, item),
                 (false, true) => grant_before_save(f, flows, item),
                 (false, false) => grant_after(f, flows, gift.flow, item),
@@ -646,14 +657,7 @@ mod tests {
             return;
         };
         let catalogue = crate::cutscenes::Catalogue::load(&romfs).unwrap();
-        let every = crate::cutscenes::Skips {
-            intro: true,
-            saria: true,
-            owl: true,
-            great_deku: true,
-            arrivals: true,
-            areas: crate::cutscenes::AREAS.iter().map(|a| a.0).collect(),
-        };
+        let every = skip_all();
         let picked = catalogue.picked(&every);
         assert!(!picked.is_empty());
         // Zelda's letter and Impa's lullaby are swapped for their played

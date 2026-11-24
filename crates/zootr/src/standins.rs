@@ -225,11 +225,13 @@ pub(crate) fn resolved(pack: &ActorPack, path: &str) -> Result<BymlMap> {
         .with_context(|| format!("{} has no {path}", pack.name))
 }
 
+/// A file of `pack`, borrowed.
+fn bytes<'a>(pack: &'a ActorPack, path: &str) -> Result<&'a [u8]> {
+    (pack.raw(path)).with_context(|| format!("{} has no {path}", pack.name))
+}
+
 pub(crate) fn raw(pack: &ActorPack, path: &str) -> Result<Vec<u8>> {
-    Ok(pack
-        .raw(path)
-        .with_context(|| format!("{} has no {path}", pack.name))?
-        .to_vec())
+    Ok(bytes(pack, path)?.to_vec())
 }
 
 /// A file of a pack: its path, its bytes, and its bytes edited.
@@ -329,7 +331,7 @@ fn cloned(
         added.push((
             path.clone(),
             like.clone(),
-            raw(template, &like)?.len(),
+            bytes(template, &like)?.len(),
             data.len(),
         ));
         writer.add_file(path, data);
@@ -373,6 +375,11 @@ struct NewFile<'a> {
 }
 
 impl StandIn<'_> {
+    /// Whether it's a pickup, not a shop's: it has no price.
+    fn is_pickup(&self) -> bool {
+        self.price.is_none()
+    }
+
     pub fn build(&self, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
         let name = self.name;
         let (template, item) = (&self.template, &self.item);
@@ -389,7 +396,7 @@ impl StandIn<'_> {
         pouch
             .entry(POUCH_ACTOR.get().into())
             .or_insert_with(|| pouch_actor(&item.name));
-        if self.price.is_none() {
+        if self.is_pickup() {
             pouch.insert(COUNT_CHECK.get().into(), Byml::Bool(false));
             // Every take plays its get, so the pickup event graph marks it
             // ([`crate::pickups::taken`]), whatever Link already has.
@@ -411,11 +418,12 @@ impl StandIn<'_> {
         }
         refs.insert(POUCH.get().into(), reference(&new_pouch));
         refs.insert(RESPAWN.get().into(), Byml::String(NO_RESPAWN.into()));
-        let shelf = match self.price {
-            Some(_) => Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?),
-            None => None,
+        let shelf = if self.is_pickup() {
+            None
+        } else {
+            Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?)
         };
-        if self.price.is_none() && self.falls()? {
+        if self.is_pickup() && self.falls()? {
             self.lift(name, tables, &mut refs, &mut new_files)?;
         }
         let new_table = self.table(name, &like, &mut new_files)?;
@@ -450,10 +458,10 @@ impl StandIn<'_> {
                 writer.add_file(file.clone(), data);
             }
         }
-        for f in &new_files {
-            let like_size = raw(f.like_pack, &f.like)?.len();
+        for f in new_files {
+            let like_size = bytes(f.like_pack, &f.like)?.len();
             builder.add_entry(&f.path, &f.like, like_size, f.data.len())?;
-            writer.add_file(f.path.clone(), f.data.clone());
+            writer.add_file(f.path, f.data);
         }
         let pack = format!("Pack/Actor/{name}.pack.zs");
         builder.add(
@@ -587,9 +595,10 @@ impl StandIn<'_> {
         let template_table = path_of(template, TABLE)?;
         let own = resolved(template, &template_table)?;
         let mut parts = BymlMap::default();
-        let kept: &[&Name] = match self.price {
-            Some(_) => &[PUT_IN_POUCH],
-            None => &FALLS,
+        let kept: &[&Name] = if self.is_pickup() {
+            &FALLS
+        } else {
+            &[PUT_IN_POUCH]
         };
         for &key in kept {
             if let Some(part) = component(&own, key) {
@@ -615,17 +624,23 @@ impl StandIn<'_> {
             });
         }
         let mut table = BymlMap::default();
-        match path_of(item, TABLE) {
-            Ok(theirs) => table.insert(PARENT.into(), Byml::String(work(&theirs).into())),
+        let given = item
+            .actor_param()?
+            .with_context(|| format!("the item has no {}", field::ACTOR_PARAM))?;
+        match component(&given, TABLE) {
+            Some(theirs) => {
+                let parent = work(&pack_path(&theirs));
+                table.insert(PARENT.into(), Byml::String(parent.into()));
+            }
             // Rupees, bundles and songs have none: the template's category
             // stands alone.
-            Err(_) => {
+            None => {
                 let category = own
                     .get(CATEGORY)
-                    .context("the template's table has no category");
-                table.insert(CATEGORY.into(), category?.clone())
+                    .context("the template's table has no category")?;
+                table.insert(CATEGORY.into(), category.clone());
             }
-        };
+        }
         table.insert(COMPONENTS.into(), Byml::Map(parts));
         let new_table = format!(
             "{}/{}/{name}.engine__actor__GameParameterTable.bgyml",
@@ -709,18 +724,6 @@ fn shape_bottom(shape: &BymlMap) -> Option<f32> {
             Some(y - float(s.get(RADIUS)?)?)
         })
         .reduce(f32::min)
-}
-
-/// How far a placed stand-in rises to rest on a shelf `plank` metres
-/// above its placement: the plank, less how far above its origin the
-/// item's model starts in the pose it plays there (`shops::floor`, else
-/// its `ActorInfo` row).
-pub fn rise(tables: &Tables, plank: f32, item: &str) -> Result<f32> {
-    let floor = match crate::shops::floor(item) {
-        Some(floor) => floor,
-        None => table_floor(&tables.actor, item)?,
-    };
-    Ok(plank - floor)
 }
 
 /// How far above its origin `item`'s model starts, by its `ActorInfo`

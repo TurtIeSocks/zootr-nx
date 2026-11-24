@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use anyhow::Result;
 use ounce_formats::{Actor, EventKind, Flowchart, Link, Params, Value};
 
-use crate::cutscenes::{self, Cutscene, lasting};
+use crate::cutscenes::{self, Cutscene, PLAYER_WARP, TRANSITION, lasting};
 use crate::events::Flows;
 use crate::flows::{self, ACTOR, GRANT, param};
 use crate::known::{Name, flag, flow, scene};
@@ -33,7 +33,6 @@ fn is_copied(action: &str) -> bool {
 /// Parts of an action's name that make or end an actor, which only the scene
 /// itself reaches.
 const ACTOR_STATE: [&str; 5] = ["Death", "Appear", "Spawn", "Generate", "Pause"];
-const TRANSITION: &Name = flow::EVENT_TRANSITION;
 /// Sets up a "You got" window, which a cut has no use for.
 const WINDOW: &Name = flow::EVENT_TRIGGER_SET_FOR_GET_WINDOW;
 /// The song lesson, which a grant in the scene's place makes pointless.
@@ -174,7 +173,7 @@ fn effect(flow: &Flowchart, flows: &Flows, items: &[&str], e: u16) -> Fx {
                 params: params.clone(),
             };
             let name = param(params, ACTOR);
-            if action.starts_with("EventPlayerWarp") {
+            if action.starts_with(PLAYER_WARP) {
                 Fx::Nothing
             } else if actor.name == GRANT.0 && action == GRANT.1 {
                 let num = params.iter().find(|(k, _)| k == crate::flows::NUM);
@@ -294,7 +293,7 @@ pub(crate) fn plan(
     // An entry point picks one scene from a flow several share, like the
     // Fire Temple Gorons' rescues in `scene::FIRE_TEMPLE_0020`: its other entry
     // points are the others' scenes, not variants.
-    let main = main.filter(|_| entry.is_none());
+    let has_variants = main.is_some() && entry.is_none();
     let reach: BTreeSet<u16> = starts
         .iter()
         .flat_map(|s| flows::reachable_from(flow, *s))
@@ -311,14 +310,16 @@ pub(crate) fn plan(
             .collect()
     };
     // Entry points the main one never runs are variants of the scene.
-    for ep in flow.entry_points.iter().filter(|_| main.is_some()) {
-        let others = flows::reachable_from(flow, ep.main);
-        let acts = |e: &u16| !matches!(effect(flow, flows, items, *e), Fx::Nothing);
-        if others.difference(&reach).any(acts) {
-            return Err(format!(
-                "its entry point {} has effects of its own",
-                ep.name
-            ));
+    if has_variants {
+        for ep in &flow.entry_points {
+            let others = flows::reachable_from(flow, ep.main);
+            let acts = |e: &u16| !matches!(effect(flow, flows, items, *e), Fx::Nothing);
+            if others.difference(&reach).any(acts) {
+                return Err(format!(
+                    "its entry point {} has effects of its own",
+                    ep.name
+                ));
+            }
         }
     }
     let mut copies: Vec<Copy> = Vec::new();
@@ -421,7 +422,7 @@ pub(crate) fn judge(all: &Flows, c: &Cutscene) -> Verdict {
 /// Swap each of `flow`'s transitions to `scene` for its played flag, then the
 /// scene's `copies` after it, before whatever followed the transition.
 pub(crate) fn swap(flow: &mut Flowchart, scene: &str, copies: &[Copy]) -> Result<()> {
-    arrivals::swap(flow, scene, &format!("{}.{scene}", cutscenes::PLAYED))?;
+    arrivals::swap(flow, scene, &cutscenes::played_flag(scene))?;
     for at in gifts::scene_marks(flow, scene).1 {
         let EventKind::Action { next, .. } = flow.events[at as usize].kind else {
             unreachable!("a swapped transition is an action");

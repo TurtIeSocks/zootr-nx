@@ -21,10 +21,6 @@ struct KindFile {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[allow(
-    dead_code,
-    reason = "derive and audit read them (room reach build step 4)"
-)]
 pub struct Kind {
     /// The actor name's hash.
     pub hash: u32,
@@ -32,6 +28,10 @@ pub struct Kind {
     /// What getting past or using one needs.
     pub uses: String,
     pub sets: Sets,
+    #[expect(
+        dead_code,
+        reason = "for people reading the file: nothing reads it back"
+    )]
     pub why: String,
     /// Settled by its name, not the game's data: a live test settles it.
     #[serde(default)]

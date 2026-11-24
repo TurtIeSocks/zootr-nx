@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 
 use super::{Boot, Input};
 use crate::build::{self, Status};
@@ -156,6 +156,8 @@ fn link(from: &Path, to: &Path) -> std::io::Result<()> {
 
 /// Press A whenever the game is in its menus, until play. `look` says how
 /// far a start has got, by the time since launch, for an input that can't.
+/// A failed status or press is retried, and the last one says why a start
+/// that never got there failed.
 fn into_play(
     input: &mut impl Input,
     look: impl Fn(Duration) -> Boot,
@@ -163,8 +165,12 @@ fn into_play(
 ) -> Result<()> {
     let start = Instant::now();
     let mut seen = false;
+    let mut last: Option<anyhow::Error> = None;
     loop {
-        ensure!(start.elapsed() <= limit, "the game never reached play");
+        if start.elapsed() > limit {
+            let never = "the game never reached play";
+            return Err(last.map_or_else(|| anyhow!(never), |e| e.context(never)));
+        }
         sleep(tick);
         // Once up, a game that's gone has crashed or quit: waiting out the
         // limit would only hide it.
@@ -179,12 +185,17 @@ fn into_play(
         let boot = match input.boot() {
             Ok(Some(boot)) => boot,
             Ok(None) => look(start.elapsed()),
-            Err(_) => continue,
+            Err(e) => {
+                last = Some(e.context("asking how far the start has got"));
+                continue;
+            }
         };
         match boot {
             Boot::Play => return Ok(()),
             Boot::Menus => {
-                let _ = input.press("A");
+                if let Err(e) = input.press("A") {
+                    last = Some(e.context("pressing A"));
+                }
             }
             Boot::Starting => {}
         }
@@ -263,6 +274,10 @@ mod tests {
         launches: u32,
         /// How many more times it reads as running, once launched.
         up: Cell<u32>,
+        /// Refuse every press.
+        no_keys: bool,
+        /// Fail every status request.
+        no_status: bool,
     }
 
     impl Input for Fake {
@@ -282,11 +297,16 @@ mod tests {
             bail!("no control file")
         }
         fn hold(&mut self, button: &str, _: u64) -> Result<()> {
+            ensure!(!self.no_keys, "no control file");
             self.presses.push(button.into());
             Ok(())
         }
         fn stick(&mut self, _: &str, _: u64) -> Result<()> {
             bail!("no stick")
+        }
+        fn boot(&mut self) -> Result<Option<Boot>> {
+            ensure!(!self.no_status, "the bridge is down");
+            Ok(None)
         }
         fn shot(&mut self, _: &Path) -> Result<()> {
             bail!("no shot")
@@ -352,6 +372,24 @@ mod tests {
         let err = into_play(&mut game, |_| Boot::Starting, QUICK).unwrap_err();
         assert!(err.to_string().contains("never reached play"), "{err}");
         assert!(game.presses.is_empty());
+    }
+
+    #[test]
+    fn a_start_that_gives_up_says_its_last_failure() {
+        let mut game = Fake {
+            no_keys: true,
+            ..Fake::default()
+        };
+        let err = into_play(&mut game, |_| Boot::Menus, QUICK).unwrap_err();
+        let err = format!("{err:#}");
+        assert!(err.contains("never reached play"), "{err}");
+        assert!(err.contains("pressing A: no control file"), "{err}");
+        let mut game = Fake {
+            no_status: true,
+            ..Fake::default()
+        };
+        let err = into_play(&mut game, |_| Boot::Play, QUICK).unwrap_err();
+        assert!(format!("{err:#}").contains("the bridge is down"), "{err:#}");
     }
 
     /// Boxed, as the CLI hands it over.

@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use anyhow::{Result, bail, ensure};
-use ounce_formats::{BymlDoc, ModBuilder, Romfs, par_map, threads};
+use ounce_formats::{BymlDoc, ModBuilder, Romfs, pack_file, par_map, threads};
 
 use super::Written;
 use crate::bombchu_bags;
@@ -23,11 +23,11 @@ use crate::starter_bags;
 use crate::world::Era;
 use crate::{
     adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters,
-    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, flags,
-    foreign, fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood,
-    jabu_mouth, key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups,
-    presets, rsdb, scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker,
-    trade_chain, twins,
+    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, foreign,
+    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
+    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
+    scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
+    twins,
 };
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
@@ -167,7 +167,7 @@ pub fn write_mod(
                 && !foreign::is_copy(i)
                 && !crate::known::is_ours(i)
                 && ammo::copied(i).is_none()
-                && !romfs.root().join(flags::actor_pack(i)).is_file()
+                && !romfs.root().join(pack_file(i)).is_file()
         })
     {
         bail!("{item} isn't an actor");
@@ -189,25 +189,26 @@ pub fn write_mod(
         _ => shops::slots(romfs)?,
     };
     let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
-    let mut copies = match new_game.shop_slots {
-        0 => Vec::new(),
-        _ => vec![shops::captions(romfs, &shelves)?],
-    };
     let key_copies = (
         new_game.keys.copies(),
         BOSS_COPIES,
         new_game.fortress_keys.copies(),
     );
-    // First, so a copy on a shelf takes its caption from its own lines.
-    copies.insert(0, foreign::captions(&new_game.foreign));
     let mut key_lines = key_tints::captions(new_game.keys, key_copies.1, key_copies.2);
     if maps_move(new_game) {
         key_lines.new.extend(map_copies::captions());
     }
-    copies.insert(0, key_lines);
-    copies.push(starter_bags::captions(new_game));
-    copies.push(notice::banners());
-    copies.push(notice::senders(&new_game.players));
+    // Copies' own lines before the shelves', so a copy on a shelf takes its
+    // caption from its own lines.
+    let mut copies = vec![key_lines, foreign::captions(&new_game.foreign)];
+    if new_game.shop_slots > 0 {
+        copies.push(shops::captions(romfs, &shelves)?);
+    }
+    copies.extend([
+        starter_bags::captions(new_game),
+        notice::banners(),
+        notice::senders(&new_game.players),
+    ]);
     text::write(romfs, &mut builder, &lines, &copies, hints)?;
     let cows = match new_game.cows {
         true => cows::find(romfs)?,
@@ -542,7 +543,7 @@ pub fn write_mod(
     jabu_mood::write(romfs, &mut builder, new_game.adult_jabu)?;
     wiring.write(romfs, &mut builder)?;
     for f in &fields {
-        let (hash, ..) = checks::field(f)?;
+        let hash = checks::parse_field(f)?.hash;
         ensure!(found.contains(&hash), "no actor with hash {hash} for {f}");
     }
     // Checks that aren't a placed actor's drop.

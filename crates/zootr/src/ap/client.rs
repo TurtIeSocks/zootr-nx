@@ -143,8 +143,7 @@ impl std::fmt::Display for Note {
     }
 }
 
-/// One look at the game, without the server: what to send, whether the goal
-/// is new, and the one give to make.
+/// What the server already has from us this connection.
 #[derive(Default)]
 struct Ledger {
     /// Spots the server has from us this connection.
@@ -152,6 +151,8 @@ struct Ledger {
     goal: bool,
 }
 
+/// One look at the game, without the server: what to send, and whether the
+/// goal is new.
 #[derive(Debug, Default, PartialEq)]
 struct Look {
     send: Vec<u64>,

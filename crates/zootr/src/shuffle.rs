@@ -280,21 +280,21 @@ pub fn drop(item: &str, lines: Lines) -> Drop {
 /// The drops a mod has to write, shuffled or not: chests whose item
 /// changed, whose drop swaps, or whose vanilla swap needs clearing.
 pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> HashMap<u64, Drop> {
-    let write = |c: &ItemCheck, item: &str| {
-        let d = match gifts::is_gift(c) {
+    let entry = |c: &ItemCheck, item: &str| {
+        let d = if !gifts::is_gift(c) {
+            drop(item, lines)
+        } else if gifts::is_prize(c) {
             // A minigame's chest can't be a substitute chest.
-            true if gifts::is_prize(c) => {
-                Drop::from(ammo::copy(item, lines).unwrap_or(item.to_owned()))
-            }
+            Drop::from(ammo::copy(item, lines).unwrap_or_else(|| item.to_owned()))
+        } else {
             // The deal keeps swaps off gifts.
-            true => Drop::from(item.to_owned()),
-            false => drop(item, lines),
+            Drop::from(item.to_owned())
         };
-        let write = d.swap.is_some() || item != c.item || c.substitute.is_some();
-        write.then_some((c.hash, d))
+        let changed = d.swap.is_some() || item != c.item || c.substitute.is_some();
+        changed.then_some((c.hash, d))
     };
-    let unmoved = checks.iter().filter_map(|c| write(c, &c.item));
-    let placed = placements.iter().filter_map(|p| write(p.check, p.item));
+    let unmoved = checks.iter().filter_map(|c| entry(c, &c.item));
+    let placed = placements.iter().filter_map(|p| entry(p.check, p.item));
     // Placements come last so they win.
     unmoved.chain(placed).collect()
 }

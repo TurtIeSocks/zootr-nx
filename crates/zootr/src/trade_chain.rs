@@ -194,7 +194,7 @@ fn copied(flow: &mut Flowchart, what: (&Name, &Name), next: Option<u16>) -> Resu
     let params = flows::params_mut(&mut kind);
     flows::set(params, flows::GAME_DATA, flows::string(TALON_GAVE))?;
     if what == SET_BOOL {
-        flows::set(params, flows::VALUE, Value::Bool(vec![true]))?;
+        flows::set(params, field::VALUE, Value::Bool(vec![true]))?;
     }
     match &mut kind {
         EventKind::Action { next: n, .. } => *n = next,

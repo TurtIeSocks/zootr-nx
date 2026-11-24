@@ -10,7 +10,6 @@
 
 use std::collections::{BTreeSet, HashMap};
 
-use ounce_formats::murmur3;
 use ounce_formats::{EventKind, Flowchart};
 use serde::Serialize;
 
@@ -97,7 +96,10 @@ impl Graph {
         let quoted = format!("{item:?}");
         let grants: Vec<u16> = (0u16..)
             .zip(&chart.events)
-            .filter(|(_, e)| params_of(&e.kind).is_some_and(|p| p.contains(&quoted)))
+            .filter(|(_, e)| {
+                crate::flows::params_of(&e.kind)
+                    .is_some_and(|p| crate::flows::params(p).contains(&quoted))
+            })
             .map(|(i, _)| i)
             .collect();
         self.gates_of_targets(chart, &grants)
@@ -112,11 +114,11 @@ impl Graph {
     ) -> Option<Vec<Gate>> {
         let chart = self.flows.as_ref()?.0.get(flow)?;
         let node = *self.ids.get(&format!("event:{flow}/{entry}"))?;
-        let saved = state(quest);
+        let (saved, suffix) = (state(quest), format!(" {step}"));
         let targets: Vec<u16> = (self.outs[node].iter())
             .map(|&e| &self.edges[e])
             .filter(|e| e.link == Link::Writes && self.nodes[e.to].name == saved)
-            .filter(|e| e.label.ends_with(&format!(" {step}")))
+            .filter(|e| e.label.ends_with(&suffix))
             .filter_map(|e| e.at)
             .collect();
         self.gates_of_targets(chart, &targets)
@@ -144,7 +146,7 @@ impl Graph {
         let cmps = self.step_reads();
         let ways = starts.into_iter().map(|(node, target)| {
             let mut seen = BTreeSet::from([node]);
-            self.nearest(&cmps, node, target, DEPTH, &mut seen)
+            self.nearest(cmps, node, target, DEPTH, &mut seen)
         });
         every(ways)
     }
@@ -309,8 +311,12 @@ impl Graph {
     }
 
     /// Every state that is a quest's step enum or a BoolExp built on one,
-    /// with what it compares.
-    pub(super) fn step_reads(&self) -> HashMap<usize, Vec<Cmp>> {
+    /// with what it compares. Built once, into the graph's own cache.
+    pub(super) fn step_reads(&self) -> &HashMap<usize, Vec<Cmp>> {
+        self.step_reads.get_or_init(|| self.build_step_reads())
+    }
+
+    fn build_step_reads(&self) -> HashMap<usize, Vec<Cmp>> {
         let mut out: HashMap<usize, Vec<Cmp>> = HashMap::new();
         let Some(gd) = &self.gamedata else {
             return out;
@@ -337,10 +343,14 @@ impl Graph {
                 if self.edges[e].link != Link::Reads || self.nodes[to].kind != Kind::State {
                     continue;
                 }
-                let Ok(Some(expr)) = gd.expr_of(hash_of(&self.nodes[to].name)) else {
+                let Ok(hash) = crate::live::hash(&self.nodes[to].name) else {
+                    continue;
+                };
+                let Ok(Some(expr)) = gd.expr_of(hash) else {
                     continue;
                 };
                 let simple = !expr.contains("&&") && !expr.contains("||");
+                let exps = self.exps_from(to);
                 for (op, step) in compares(&expr, &n.name) {
                     let cmp = Cmp {
                         quest: quest.to_owned(),
@@ -348,7 +358,7 @@ impl Graph {
                         step: Some(step.to_owned()),
                         simple,
                     };
-                    for exp in self.exps_from(to) {
+                    for &exp in &exps {
                         // A BoolExp built on this one shares only its true side.
                         let simple = cmp.simple && exp == to;
                         out.entry(exp).or_default().push(Cmp {
@@ -435,25 +445,6 @@ fn opposite(op: &str) -> &'static str {
         "after" => "before|equal",
         "before" => "equal|after",
         _ => "before|after",
-    }
-}
-
-/// The params an event carries, rendered, if it has any.
-fn params_of(kind: &EventKind) -> Option<String> {
-    match kind {
-        EventKind::Action { params, .. }
-        | EventKind::Switch { params, .. }
-        | EventKind::SubFlow { params, .. }
-        | EventKind::SubFlowSwitch { params, .. } => Some(crate::flows::params(params)),
-        _ => None,
-    }
-}
-
-/// A state node's GameData hash, from its name or `#hash`.
-fn hash_of(name: &str) -> u32 {
-    match name.strip_prefix('#') {
-        Some(hex) => u32::from_str_radix(hex, 16).unwrap_or_default(),
-        None => murmur3(name.as_bytes()),
     }
 }
 

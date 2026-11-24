@@ -57,6 +57,7 @@ const STICKS: Ammo = Ammo {
 /// the model's own animation. The Medium bags have all three, the Small
 /// ones none, and a get missing them can hold a chest open.
 const GET_REFS: [&str; 3] = ["ASInfoRef", "ASRef", "AnimationRef"];
+const SCENE: &str = GET_REFS[0];
 const ANIMATION: &str = GET_REFS[2];
 
 /// The pouch param `name` in its packs.
@@ -115,10 +116,10 @@ fn take_get(
     let anim = doc(anim, &anim_doc).to_binary();
     builder.add_entry(&anim_at, &anim_like, anim_raw.len(), anim.len())?;
     writer.add_file(anim_at.clone(), anim.clone());
-    for key in &GET_REFS[..1] {
-        let at = path_of(medium, key)?;
-        writer.add_file(at.clone(), raw(medium, &at)?);
-    }
+    // Of the Medium's files, the animation goes in renamed (above) and
+    // the scene as it is.
+    let scene = path_of(medium, SCENE)?;
+    writer.add_file(scene.clone(), raw(medium, &scene)?);
     let actor = doc(actor, &actor_doc).to_binary();
     // Each component costs the game more than its bytes: sized by its
     // bytes alone, the param's table didn't fit and the game crashed
@@ -421,7 +422,7 @@ mod tests {
         let anim = pack.resolve(&anim).unwrap().unwrap();
         let names = format!("{:?}", anim);
         assert!(names.contains(&format!("{small}_Animation")), "{names}");
-        assert!(pack.raw(&path_of(&pack, GET_REFS[0]).unwrap()).is_some());
+        assert!(pack.raw(&path_of(&pack, SCENE).unwrap()).is_some());
         // The game keeps one copy of a param by its path, whichever pack
         // loads it first: every bag above the Small carries the same one.
         let own = actor_path(small);

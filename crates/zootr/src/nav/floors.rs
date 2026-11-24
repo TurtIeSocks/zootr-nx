@@ -9,9 +9,10 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, Edge, Face, NavMesh, Romfs};
 
-use super::graph::{BODY, Cross, Graph, LOOK, STEP_MIN, Via};
-use super::mesh::{Walls, facing_up, floor_normal, height_in, through};
+use super::graph::{BODY, Cross, Graph, LOOK, STEP_MIN, Via, body_hits};
+use super::mesh::{Walls, facing_up, floor_normal, height_in, moller, through};
 use super::shape::Solid;
+use super::vec3::{cross, dot, sub};
 use super::water::Water;
 use crate::known::{actor, field};
 
@@ -33,6 +34,11 @@ const WAIST: f32 = 0.5;
 const LOOK_ROUND: f32 = 2.0;
 /// How many rays go round.
 const RAYS: usize = 8;
+/// How many steps along a ray its cells are looked up at.
+const RAY_STEPS: usize = 4;
+
+/// A triangle of a collision mesh, its corners in the world.
+pub type Tri = [[f32; 3]; 3];
 
 /// Link's height at his age, from his game params: how much room a
 /// floor needs above it.
@@ -57,16 +63,22 @@ pub fn height(romfs: &Romfs, child: bool) -> Result<f32> {
     }
 }
 
-/// Things in a flat grid by the bounds of their corners in x and z.
-struct Grid(HashMap<(i32, i32), Vec<usize>>);
-
-fn cell(v: f32) -> i32 {
-    (v / CELL).floor() as i32
+/// Things in a flat grid of `size` m cells, by the bounds of their
+/// corners in x and z.
+pub(super) struct Grid {
+    size: f32,
+    cells: HashMap<(i32, i32), Vec<usize>>,
 }
 
 impl Grid {
-    fn of<'p>(each: impl Iterator<Item = impl Iterator<Item = &'p [f32; 3]>>) -> Self {
-        let mut cells: HashMap<_, Vec<usize>> = HashMap::new();
+    pub(super) fn of<'p>(
+        size: f32,
+        each: impl Iterator<Item = impl Iterator<Item = &'p [f32; 3]>>,
+    ) -> Self {
+        let mut grid = Self {
+            size,
+            cells: HashMap::new(),
+        };
         for (i, corners) in each.enumerate() {
             let (lo, hi) = corners.fold(([f32::MAX; 2], [f32::MIN; 2]), |(lo, hi), v| {
                 (
@@ -74,69 +86,77 @@ impl Grid {
                     [hi[0].max(v[0]), hi[1].max(v[2])],
                 )
             });
-            for cx in cell(lo[0])..=cell(hi[0]) {
-                for cz in cell(lo[1])..=cell(hi[1]) {
-                    cells.entry((cx, cz)).or_default().push(i);
+            for cx in grid.cell(lo[0])..=grid.cell(hi[0]) {
+                for cz in grid.cell(lo[1])..=grid.cell(hi[1]) {
+                    grid.cells.entry((cx, cz)).or_default().push(i);
                 }
             }
         }
-        Self(cells)
+        grid
+    }
+
+    /// `mesh`'s faces.
+    pub(super) fn faces(mesh: &NavMesh, size: f32) -> Self {
+        Self::of(
+            size,
+            (0..mesh.faces.len()).map(|f| mesh.ring(f).iter().map(|e| &mesh.vertices[e.a])),
+        )
+    }
+
+    fn cell(&self, v: f32) -> i32 {
+        (v / self.size).floor() as i32
     }
 
     fn at(&self, x: f32, z: f32) -> &[usize] {
-        self.0.get(&(cell(x), cell(z))).map_or(&[], Vec::as_slice)
+        let key = (self.cell(x), self.cell(z));
+        self.cells.get(&key).map_or(&[], Vec::as_slice)
+    }
+
+    /// The things that may lie within `r` of (x, z), each once, in order.
+    pub(super) fn near(&self, x: f32, z: f32, r: f32) -> Vec<usize> {
+        let found = (self.cell(x - r)..=self.cell(x + r))
+            .flat_map(|cx| (self.cell(z - r)..=self.cell(z + r)).map(move |cz| (cx, cz)))
+            .filter_map(|c| self.cells.get(&c))
+            .flatten();
+        sorted(found.copied())
+    }
+
+    /// The things in the cells at `steps` even steps from `from` by `by`,
+    /// both ends in, each once, in order.
+    fn along(&self, from: [f32; 3], by: [f32; 3], steps: usize) -> Vec<usize> {
+        let found = (0..=steps).flat_map(|k| {
+            let f = k as f32 / steps.max(1) as f32;
+            self.at(from[0] + by[0] * f, from[2] + by[2] * f)
+        });
+        sorted(found.copied())
     }
 }
 
-fn middle(t: &[[f32; 3]; 3]) -> [f32; 3] {
+fn sorted(each: impl Iterator<Item = usize>) -> Vec<usize> {
+    let mut found: Vec<usize> = each.collect();
+    found.sort_unstable();
+    found.dedup();
+    found
+}
+
+fn middle(t: &Tri) -> [f32; 3] {
     std::array::from_fn(|i| (t[0][i] + t[1][i] + t[2][i]) / 3.0)
 }
 
-fn area([p, q, r]: &[[f32; 3]; 3]) -> f32 {
-    let (u, v) = (sub(*q, *p), sub(*r, *p));
-    let n = [
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-    ];
-    (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt() / 2.0
-}
-
-fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
-}
-
-fn cross(u: [f32; 3], v: [f32; 3]) -> [f32; 3] {
-    [
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-    ]
-}
-
-fn dot(u: [f32; 3], v: [f32; 3]) -> f32 {
-    u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
+fn area([p, q, r]: &Tri) -> f32 {
+    let n = cross(sub(*q, *p), sub(*r, *p));
+    dot(n, n).sqrt() / 2.0
 }
 
 /// How far along the ray from `o` by `d` (times its length) it meets
-/// triangle `t`, and whether it meets the triangle's back: Möller and
-/// Trumbore's test.
-fn ray_hit(o: [f32; 3], d: [f32; 3], [p, q, r]: &[[f32; 3]; 3]) -> Option<(f32, bool)> {
-    let (e1, e2) = (sub(*q, *p), sub(*r, *p));
-    let h = cross(d, e2);
-    let det = dot(e1, h);
-    if det.abs() < 1e-9 {
-        return None;
-    }
-    let s = sub(o, *p);
-    let u = dot(s, h) / det;
-    let k = cross(s, e1);
-    let v = dot(d, k) / det;
-    let t = dot(e2, k) / det;
+/// triangle `t`, and whether it meets the triangle's back.
+fn ray_hit(o: [f32; 3], d: [f32; 3], tri: &Tri) -> Option<(f32, bool)> {
+    let [u, v, t] = moller(o, d, tri)?;
     let inside = u >= 0.0 && v >= 0.0 && u + v <= 1.0 && t > 0.0;
     // The front is the side its winding faces: the ray meets its back
     // when it runs the way the triangle faces.
-    inside.then_some((t, dot(cross(e1, e2), d) > 0.0))
+    let [p, q, r] = tri;
+    inside.then_some((t, dot(cross(sub(*q, *p), sub(*r, *p)), d) > 0.0))
 }
 
 /// A corner as a key, so corners that meet compare equal.
@@ -147,14 +167,14 @@ fn key(v: [f32; 3]) -> [i64; 3] {
 /// The solid walls round a spot, to tell whether it is inside one: a
 /// floor runs on under the walls stood on it, with no ceiling there.
 pub struct Round<'w> {
-    solid: Vec<&'w [[f32; 3]; 3]>,
+    solid: Vec<&'w Tri>,
     grid: Grid,
 }
 
 impl<'w> Round<'w> {
     pub fn of(walls: &'w Walls) -> Self {
         let solid: Vec<_> = walls.solid.iter().flat_map(|w| &w.triangles).collect();
-        let grid = Grid::of(solid.iter().map(|t| t.iter()));
+        let grid = Grid::of(CELL, solid.iter().map(|t| t.iter()));
         Self { solid, grid }
     }
 
@@ -166,15 +186,7 @@ impl<'w> Round<'w> {
             .map(|i| {
                 let a = i as f32 * std::f32::consts::TAU / RAYS as f32;
                 let d = [a.cos() * LOOK_ROUND, 0.0, a.sin() * LOOK_ROUND];
-                let mut seen: Vec<usize> = (0..=4)
-                    .flat_map(|k| {
-                        let f = k as f32 / 4.0;
-                        self.grid.at(x + d[0] * f, z + d[2] * f).iter().copied()
-                    })
-                    .collect();
-                seen.sort_unstable();
-                seen.dedup();
-                (seen.into_iter())
+                (self.grid.along(o, d, RAY_STEPS).into_iter())
                     .filter_map(|j| ray_hit(o, d, self.solid[j]))
                     .filter(|(t, _)| *t <= 1.0)
                     .min_by(|a, b| a.0.total_cmp(&b.0))
@@ -186,18 +198,7 @@ impl<'w> Round<'w> {
     /// Whether the line from `a` to `b` passes through a solid wall.
     pub fn crosses(&self, a: [f32; 3], b: [f32; 3]) -> bool {
         let steps = ((a[0] - b[0]).hypot(a[2] - b[2]) / (CELL / 2.0)).ceil() as usize;
-        let mut seen: Vec<usize> = (0..=steps)
-            .flat_map(|k| {
-                let f = k as f32 / steps.max(1) as f32;
-                self.grid
-                    .at(a[0] + (b[0] - a[0]) * f, a[2] + (b[2] - a[2]) * f)
-                    .iter()
-                    .copied()
-            })
-            .collect();
-        seen.sort_unstable();
-        seen.dedup();
-        seen.into_iter().any(|j| through(a, b, self.solid[j]))
+        (self.grid.along(a, sub(b, a), steps).into_iter()).any(|j| through(a, b, self.solid[j]))
     }
 
     /// Whether floor `p` is inside a wall: most rays round it that meet
@@ -226,7 +227,7 @@ const UNDER: f32 = 0.5;
 
 /// Whether triangle `t` lies under `solid`'s footprint: a corner of
 /// either inside the other, or an edge of `t` across it.
-fn under(solid: &Solid, t: &[[f32; 3]; 3]) -> bool {
+fn under(solid: &Solid, t: &Tri) -> bool {
     let (lo, hi) = t.iter().fold((f32::MAX, f32::MIN), |(lo, hi), v| {
         (lo.min(v[1]), hi.max(v[1]))
     });
@@ -245,19 +246,18 @@ fn under(solid: &Solid, t: &[[f32; 3]; 3]) -> bool {
 /// water he'd float in, and no navmesh floor within [`NAVMESH_NEAR`] of
 /// its height. Triangles that share corners make a patch, and a patch
 /// under [`PATCH_MIN`] is dropped.
-pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<[[f32; 3]; 3]>> {
+pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<Tri>> {
     let Keep {
         waters,
         float,
         height,
         under: obstacles,
     } = *keep;
-    let faces =
-        Grid::of((0..mesh.faces.len()).map(|f| mesh.ring(f).iter().map(|e| &mesh.vertices[e.a])));
-    let all: Vec<&[[f32; 3]; 3]> = (walls.solid.iter().chain(&walls.air))
+    let faces = Grid::faces(mesh, CELL);
+    let all: Vec<&Tri> = (walls.solid.iter().chain(&walls.air))
         .flat_map(|w| &w.triangles)
         .collect();
-    let above = Grid::of(all.iter().map(|t| t.iter()));
+    let above = Grid::of(CELL, all.iter().map(|t| t.iter()));
     let navmesh_has = |[x, y, z]: [f32; 3]| {
         (faces.at(x, z).iter())
             .filter_map(|&f| mesh.height_on(f, x, z))
@@ -274,7 +274,7 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<[[f32; 3];
     // Stairs stand twice, as their slope and their steps: the slope until
     // a live check says which Link's controller stands on (rule 7).
     let step = format!("__{}", field::STAIR_STEP.get());
-    let kept: Vec<[[f32; 3]; 3]> = (walls.solid.iter())
+    let kept: Vec<Tri> = (walls.solid.iter())
         .filter(|w| w.ridable && !w.name.ends_with(&step))
         .flat_map(|w| w.triangles.iter().copied())
         .filter(|t| key(t[0]) != key(t[1]) && key(t[1]) != key(t[2]) && key(t[0]) != key(t[2]))
@@ -302,7 +302,7 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<[[f32; 3];
             parent[a] = b;
         }
     }
-    let mut by_root: HashMap<usize, Vec<[[f32; 3]; 3]>> = HashMap::new();
+    let mut by_root: HashMap<usize, Vec<Tri>> = HashMap::new();
     for (i, t) in kept.iter().enumerate() {
         by_root.entry(root(&mut parent, i)).or_default().push(*t);
     }
@@ -311,7 +311,7 @@ pub fn patches(mesh: &NavMesh, walls: &Walls, keep: &Keep) -> Vec<Vec<[[f32; 3];
         .collect();
     // In a fixed order, so derive writes the same files each run.
     out.sort_by(|a, b| {
-        let at = |p: &Vec<[[f32; 3]; 3]>| key(middle(&p[0]));
+        let at = |p: &Vec<Tri>| key(middle(&p[0]));
         at(a).cmp(&at(b))
     });
     out
@@ -325,8 +325,8 @@ pub fn reached(graph: &Graph, first: usize, jump: f32) -> Vec<bool> {
     let mut out: Vec<Vec<usize>> = (graph.arcs.iter())
         .map(|arcs| arcs.iter().map(|a| a.to).collect())
         .collect();
-    for (a, b, _, _) in graph.gaps(jump).into_iter().chain(graph.plunges()) {
-        out[a].push(b);
+    for hop in graph.gaps(jump).into_iter().chain(graph.plunges()) {
+        out[hop.from].push(hop.to);
     }
     let mut seen: Vec<bool> = (0..n).map(|f| f < first).collect();
     let mut stack: Vec<usize> = (0..first.min(n)).collect();
@@ -344,7 +344,7 @@ pub fn reached(graph: &Graph, first: usize, jump: f32) -> Vec<bool> {
 /// `mesh` with each of `patches`' triangles added as a face, after its
 /// own and in their order. Triangles that share an edge face each other
 /// across it.
-pub fn joined(mesh: &NavMesh, patches: &[Vec<[[f32; 3]; 3]>]) -> NavMesh {
+pub fn joined(mesh: &NavMesh, patches: &[Vec<Tri>]) -> NavMesh {
     let mut out = NavMesh {
         vertices: mesh.vertices.clone(),
         faces: mesh.faces.clone(),
@@ -399,11 +399,7 @@ impl<'a> Graph<'a> {
     /// under the walls stood on them.
     pub fn with_floors(mut self, first: usize, walls: &Walls) -> Self {
         for b in self.borders() {
-            let past = [
-                b.mid[0] + b.out[0] * LOOK,
-                b.mid[1],
-                b.mid[2] + b.out[1] * LOOK,
-            ];
+            let past = b.at(LOOK);
             let Some(g) = self.floor(past, STEP_MIN) else {
                 continue;
             };
@@ -416,25 +412,12 @@ impl<'a> Graph<'a> {
         }
         let round = Round::of(walls);
         for f in 0..self.arcs.len() {
-            let from = self.centers[f];
             let mut arcs = std::mem::take(&mut self.arcs[f]);
             arcs.retain(|arc| {
                 if f < first && arc.to < first {
                     return true;
                 }
                 let path = match arc.cross {
-                    Cross::Edge([a, b]) => {
-                        vec![
-                            from,
-                            std::array::from_fn(|i| (a[i] + b[i]) / 2.0),
-                            self.centers[arc.to],
-                        ]
-                    }
-                    Cross::Link {
-                        via: Via::Walk | Via::Step,
-                        from,
-                        to,
-                    } => vec![from, to],
                     Cross::Link {
                         via: Via::Drop,
                         from,
@@ -452,13 +435,12 @@ impl<'a> Graph<'a> {
                         }
                         vec![from, over]
                     }
-                    Cross::Link { .. } => return true,
+                    _ => match self.walk_path(f, arc) {
+                        Some(path) => path,
+                        None => return true,
+                    },
                 };
-                !BODY.iter().any(|&h| {
-                    let up = |p: [f32; 3]| [p[0], p[1] + h, p[2]];
-                    path.windows(2)
-                        .any(|leg| round.crosses(up(leg[0]), up(leg[1])))
-                })
+                !body_hits(&path, &BODY, |a, b| round.crosses(a, b))
             });
             self.arcs[f] = arcs;
         }
@@ -471,14 +453,14 @@ mod tests {
     use super::*;
     use crate::nav::mesh::Wall;
 
-    fn wall(name: &str, triangles: Vec<[[f32; 3]; 3]>) -> Wall {
+    fn wall(name: &str, triangles: Vec<Tri>) -> Wall {
         let mut w = Wall::new(name, triangles);
         w.ridable = true;
         w
     }
 
     /// A 2 m square of floor at `y`, centred on (x, z), as two triangles.
-    fn square(x: f32, y: f32, z: f32) -> Vec<[[f32; 3]; 3]> {
+    fn square(x: f32, y: f32, z: f32) -> Vec<Tri> {
         let (a, b, c, d) = (
             [x - 1.0, y, z - 1.0],
             [x + 1.0, y, z - 1.0],
@@ -489,7 +471,7 @@ mod tests {
     }
 
     /// Triangle `t` wound to face along `d`.
-    fn toward(t: [[f32; 3]; 3], d: [f32; 3]) -> [[f32; 3]; 3] {
+    fn toward(t: Tri, d: [f32; 3]) -> Tri {
         let n = cross(sub(t[1], t[0]), sub(t[2], t[0]));
         if dot(n, d) >= 0.0 {
             t
@@ -499,7 +481,7 @@ mod tests {
     }
 
     /// A closed 2 m pillar round (0, 0), 3 m tall from y 0, facing out.
-    fn pillar() -> Vec<[[f32; 3]; 3]> {
+    fn pillar() -> Vec<Tri> {
         let mut out = vec![];
         for (axis, sign) in [(0, 1.0), (0, -1.0), (2, 1.0), (2, -1.0)] {
             let mut d = [0.0; 3];
@@ -536,10 +518,7 @@ mod tests {
 
     #[test]
     fn a_ledge_with_room_over_it_is_a_patch() {
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall("FakeLedge", square(0.0, 5.0, 0.0))],
-        };
+        let walls = Walls::solid_only(vec![wall("FakeLedge", square(0.0, 5.0, 0.0))]);
         let found = patches(&empty(), &walls, &KEEP);
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].len(), 2);
@@ -550,29 +529,20 @@ mod tests {
         // A ceiling 1 m over: a child's 1.17 m doesn't fit.
         let mut low = square(0.0, 6.0, 0.0);
         low.extend(square(0.0, 5.0, 0.0));
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall("FakeCrawl", low)],
-        };
+        let walls = Walls::solid_only(vec![wall("FakeCrawl", low)]);
         let found = patches(&empty(), &walls, &KEEP);
         // The ceiling's own top is floor with room over it; the floor under it isn't.
         assert!(found.iter().flatten().all(|t| t[0][1] == 6.0), "{found:?}");
         // A sliver under 0.25 m².
         let sliver = vec![[[0.0, 0.0, 0.0], [0.3, 0.0, 0.0], [0.0, 0.0, 0.3]]];
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall("FakeSliver", sliver)],
-        };
+        let walls = Walls::solid_only(vec![wall("FakeSliver", sliver)]);
         assert!(patches(&empty(), &walls, &KEEP).is_empty());
     }
 
     #[test]
     fn floor_under_a_pillar_is_no_patch_and_floor_beside_one_is() {
         let floor = |x: f32| wall("FakeFloor", square(x, 0.0, 0.0));
-        let walls = |x: f32| Walls {
-            air: vec![],
-            solid: vec![floor(x), wall("FakePillar", pillar())],
-        };
+        let walls = |x: f32| Walls::solid_only(vec![floor(x), wall("FakePillar", pillar())]);
         assert!(patches(&empty(), &walls(0.0), &KEEP).is_empty(), "under");
         assert_eq!(patches(&empty(), &walls(2.5), &KEEP).len(), 1, "beside");
     }
@@ -586,10 +556,7 @@ mod tests {
             low: 0.0,
             high: 3.0,
         };
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall("FakeDoorway", square(0.0, 0.0, 0.0))],
-        };
+        let walls = Walls::solid_only(vec![wall("FakeDoorway", square(0.0, 0.0, 0.0))]);
         let keep = Keep {
             under: std::slice::from_ref(&shutter),
             ..KEEP
@@ -598,13 +565,10 @@ mod tests {
             patches(&empty(), &walls, &keep).is_empty(),
             "under the shutter"
         );
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall(
-                &format!("Fake__{}", field::STAIR_STEP.get()),
-                square(0.0, 0.0, 0.0),
-            )],
-        };
+        let walls = Walls::solid_only(vec![wall(
+            &format!("Fake__{}", field::STAIR_STEP.get()),
+            square(0.0, 0.0, 0.0),
+        )]);
         assert!(
             patches(&empty(), &walls, &KEEP).is_empty(),
             "a stair's steps"
@@ -619,7 +583,7 @@ mod tests {
             .map(|t| toward(t, [0.0, -1.0, 0.0]))
             .collect();
         solid.push(wall("FakeCeiling", ceiling));
-        let walls = Walls { air: vec![], solid };
+        let walls = Walls::solid_only(solid);
         let mesh =
             crate::nav::fixture::mesh(&[crate::nav::fixture::quad(1.2, -1.0, 3.5, 1.0, 0.0)]);
         let patches = patches(&mesh, &walls, &KEEP);
@@ -640,10 +604,7 @@ mod tests {
             .into_iter()
             .map(|t| [t[0], t[2], t[1]])
             .collect();
-        let walls = Walls {
-            air: vec![],
-            solid: vec![wall("FakeCeiling", down)],
-        };
+        let walls = Walls::solid_only(vec![wall("FakeCeiling", down)]);
         assert!(patches(&empty(), &walls, &KEEP).is_empty());
     }
 
@@ -655,10 +616,7 @@ mod tests {
             "FakeSteep",
             vec![[[0.0, 0.0, 0.0], [2.0, 4.0, 0.0], [0.0, 0.0, 2.0]]],
         );
-        let walls = Walls {
-            air: vec![],
-            solid: vec![slick, steep],
-        };
+        let walls = Walls::solid_only(vec![slick, steep]);
         assert!(patches(&empty(), &walls, &KEEP).is_empty());
     }
 
@@ -699,10 +657,7 @@ mod tests {
             [[1.2, 0.0, -2.0], [1.2, 3.0, -2.0], [1.2, 0.0, 2.0]],
             [[1.2, 3.0, -2.0], [1.2, 3.0, 2.0], [1.2, 0.0, 2.0]],
         ];
-        let walls = Walls {
-            air: vec![],
-            solid: vec![crate::nav::mesh::Wall::new("FakeWall", wall)],
-        };
+        let walls = Walls::solid_only(vec![crate::nav::mesh::Wall::new("FakeWall", wall)]);
         let graph = Graph::build(&mesh, &[], 1.0).with_floors(first, &walls);
         let crossing = (0..mesh.faces.len())
             .flat_map(|f| graph.arcs[f].iter().map(move |a| (f, a.to)))

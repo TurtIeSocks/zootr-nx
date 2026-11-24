@@ -6,6 +6,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use super::map;
 use crate::sweep::plan::{Planned, Trigger};
+use crate::sweep::report::{verdict_of, verdicts};
 use crate::warp::{self, Side};
 
 /// What earlier nights learned of each spot, by placement hash.
@@ -49,18 +50,19 @@ pub(in crate::sweep) fn learn(known: &mut Known, rows: &str) {
         .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
     {
         known.rows += 1;
-        let verdict = row["swept"]["verdict"]["verdict"].as_str();
-        let reached = matches!(verdict, Some("pass" | "wrong_item" | "substituted"));
+        let verdict = verdict_of(&row);
+        let gave = verdict.is_some_and(verdicts::gave);
+        let reached = gave || verdict == Some(verdicts::WRONG_ITEM);
         let Some(hash) = row["spot"]["hash"].as_str().and_then(|h| h.parse().ok()) else {
             continue;
         };
-        if verdict.is_some_and(|v| !matches!(v, "pass" | "substituted")) {
+        if verdict.is_some() && !gave {
             *known.tries.entry(hash).or_default() += 1;
         }
         if let (true, Some(child)) = (reached, row["child"].as_bool()) {
             known.ages.insert(hash, child);
         }
-        if matches!(verdict, Some("pass" | "substituted")) {
+        if gave {
             known.confirmed.insert(hash);
             let holder = row["spot"]["holder"].as_str().unwrap_or_default();
             known.kinds.insert(holder_kind(holder).to_owned());
@@ -69,7 +71,9 @@ pub(in crate::sweep) fn learn(known: &mut Known, rows: &str) {
         match (side, reached) {
             (Ok(side), true) => _ = known.sides.insert(hash, side),
             // A side a swing broke a neighbour from is as good as none.
-            (Ok(side), false) if matches!(verdict, Some("nothing" | "neighbour")) => {
+            (Ok(side), false)
+                if matches!(verdict, Some(verdicts::NOTHING | verdicts::NEIGHBOUR)) =>
+            {
                 known
                     .missed
                     .entry(hash)

@@ -12,23 +12,50 @@ export const untested = (description: string): [boolean, string] =>
     ? [true, description.slice(UNTESTED.length)]
     : [false, description];
 
-/** Why the Archipelago world leaves a setting or pick out, or nothing
- * while it offers it. */
-export const notInAp = (ap: Archipelago): string | undefined => {
-  if (ap.ap === "later") return `Not in Archipelago yet (${ap.why})`;
-  if (ap.ap === "never") return `Doesn't apply to Archipelago: ${ap.why}`;
-  return undefined;
+/** How the app marks a setting or pick the Archipelago world doesn't
+ * offer: its badge, and why. */
+export interface ApMark {
+  label: "Not in AP" | "Forced in AP";
+  why: string;
+}
+
+/** The mark for a setting or pick the Archipelago world leaves out, or
+ * nothing while it offers it. */
+export const apMark = (ap: Archipelago): ApMark | undefined => {
+  switch (ap.ap) {
+    case "offered":
+      return undefined;
+    case "later":
+      return { label: "Not in AP", why: `Not in Archipelago yet (${ap.why})` };
+    case "never":
+      return {
+        label: "Not in AP",
+        why: `Doesn't apply to Archipelago: ${ap.why}`,
+      };
+    case "on-until":
+      return {
+        label: "Forced in AP",
+        why: `Always on in Archipelago for now (${ap.why})`,
+      };
+    case "always-on":
+      return {
+        label: "Forced in AP",
+        why: `Always on in Archipelago: ${ap.why}`,
+      };
+  }
 };
 
-/** A choice's picks the Archipelago world leaves out, by why. */
-export const heldPicks = (def: SettingDef): [string, string[]][] => {
+/** A choice's picks the Archipelago world leaves out, by their mark's
+ * why. */
+export const heldPicks = (def: SettingDef): [ApMark, string[]][] => {
   if (def.kind.type !== "choice") return [];
-  const by = new Map<string, string[]>();
+  const by = new Map<string, [ApMark, string[]]>();
   for (const o of def.kind.options) {
-    const why = notInAp(o.archipelago);
-    if (why) by.set(why, [...(by.get(why) ?? []), o.label]);
+    const mark = apMark(o.archipelago);
+    if (mark)
+      by.set(mark.why, [mark, [...(by.get(mark.why)?.[1] ?? []), o.label]]);
   }
-  return [...by];
+  return [...by.values()];
 };
 
 /** The setting forcing `def` on, if one is. */

@@ -42,9 +42,12 @@ fn answers(questions: &[String], reply: &str) -> Map<String, Value> {
     let got: Map<String, Value> = vision::object(reply)
         .and_then(|j| serde_json::from_str(j).ok())
         .unwrap_or_default();
-    let each = questions.iter().enumerate();
-    let each = each.map(|(i, q)| (q.clone(), got.get(&(i + 1).to_string()).cloned()));
-    each.map(|(q, a)| (q, a.unwrap_or(Value::Null))).collect()
+    (questions.iter().enumerate())
+        .map(|(i, q)| {
+            let a = got.get(&(i + 1).to_string()).cloned();
+            (q.clone(), a.unwrap_or(Value::Null))
+        })
+        .collect()
 }
 
 /// Take a frame from `game` and ask `vision` every question about it. The
@@ -59,10 +62,13 @@ pub fn look(
     let dir = keep.map_or_else(std::env::temp_dir, Path::to_path_buf);
     std::fs::create_dir_all(&dir)?;
     let frame = dir.join(format!("look-{stamp}.png"));
-    game.shot(&frame)?;
-    let looked = look_at(vision, &frame, questions);
+    let looked = game
+        .shot(&frame)
+        .and_then(|()| look_at(vision, &frame, questions));
+    // A frame left behind in the temp folder never hides the look's own
+    // answer or error.
     if keep.is_none() {
-        std::fs::remove_file(&frame)?;
+        let _ = std::fs::remove_file(&frame);
     }
     let looked = looked?;
     Ok(Looked {

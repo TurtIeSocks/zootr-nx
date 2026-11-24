@@ -43,7 +43,9 @@ pub(super) fn add(g: &mut Graph, flows: &Flows, gd: &GameData) {
         for ep in &chart.entry_points {
             let ev = g.event(name, &ep.name);
             let args = calls.get(&(name.clone(), ep.name.clone()));
-            for i in own(chart, ep.main) {
+            // The events it runs itself: calls into other entry points are
+            // `runs` edges of their own.
+            for i in flows::runs_itself(chart, ep.main) {
                 step(
                     g,
                     gd,
@@ -87,19 +89,6 @@ fn calls(flows: &Flows) -> Calls {
         }
     }
     calls
-}
-
-/// The events an entry point runs itself, not through calls into other
-/// entry points: those are `runs` edges of their own.
-fn own(chart: &Flowchart, start: Option<u16>) -> Vec<u16> {
-    let mut seen = std::collections::BTreeSet::new();
-    let mut todo = Vec::from_iter(start);
-    while let Some(e) = todo.pop() {
-        if seen.insert(e) {
-            todo.extend(flows::successors(&chart.events[e as usize].kind));
-        }
-    }
-    seen.into_iter().collect()
 }
 
 /// The edges event `i` of `chart` adds for entry point `ev`. `args` are

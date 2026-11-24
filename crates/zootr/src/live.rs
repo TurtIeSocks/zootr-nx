@@ -64,6 +64,12 @@ static TYPES: LazyLock<[Row; 21]> = LazyLock::new(|| {
 /// Where the type tables start in the manager, and each one's size.
 const TABLES: u64 = 8;
 const TABLE: u64 = 0x60;
+/// A table's header, from the table's start: its entry count, the pointer
+/// to its entries, the pointer to its map and the map's capacity.
+const COUNT: usize = 8;
+const ENTRIES: usize = 0x10;
+const MAP: usize = 0x18;
+const MAP_CAP: usize = 0x24;
 /// More bytes than this in one read means the layout is off.
 const MAX: usize = 1 << 24;
 /// How often [`Poll`] is meant to be called.
@@ -193,6 +199,11 @@ fn table(manager: u64, row: &Row) -> u64 {
     manager + TABLES + TABLE * row.0
 }
 
+/// Where `row`'s table keeps the pointer to its entries.
+fn entries_pointer(manager: u64, row: &Row) -> u64 {
+    table(manager, row) + ENTRIES as u64
+}
+
 /// Every mapped value, in manager order, given the global from [`global`].
 pub fn snapshot(mem: &impl Memory, global: u64) -> Result<Vec<Value>> {
     values(mem, manager(mem, global)?)
@@ -241,9 +252,9 @@ fn values(mem: &impl Memory, manager: u64) -> Result<Vec<Value>> {
     for row in TYPES.iter() {
         let &(_, kind, stride, _) = row;
         let head = &heads[(TABLE * row.0) as usize..];
-        let (count, cap) = (word(head, 8) as usize, word(head, 0x24) as usize);
-        lists.push((quad(head, 0x18), sized(kind, cap * 8)?));
-        lists.push((quad(head, 0x10), sized(kind, count * stride)?));
+        let (count, cap) = (word(head, COUNT) as usize, word(head, MAP_CAP) as usize);
+        lists.push((quad(head, MAP), sized(kind, cap * 8)?));
+        lists.push((quad(head, ENTRIES), sized(kind, count * stride)?));
     }
     let lists = mem.read_many(&lists)?;
     let mut found = Vec::new();
@@ -331,9 +342,9 @@ fn text(kind: &str, b: &[u8]) -> Vec<u8> {
 
 fn show(gd: &GameData, kind: &str, b: &[u8]) -> String {
     let text = value::decode(gd, kind, b);
-    match value::element(kind) {
-        k if k.starts_with("String") || k.starts_with("WString") => format!("{text:?}"),
-        "Vector2" | "Vector3" => format!("({})", text.replace(',', ", ")),
+    match value::input(kind) {
+        value::Input::Text => format!("{text:?}"),
+        value::Input::Vector => format!("({})", text.replace(',', ", ")),
         _ => text,
     }
 }
@@ -427,7 +438,7 @@ impl<M: Memory> Poll<M> {
             if !wanted(h) {
                 return false;
             }
-            if all || self.noise.quiet(h, at) {
+            if all || self.noise.allows(h, at) {
                 return true;
             }
             if self.muted.insert(h) {
@@ -449,7 +460,7 @@ pub struct Noise(HashMap<u32, (Instant, u32)>);
 
 impl Noise {
     /// Whether a change to `hash` at `now` should still print.
-    pub fn quiet(&mut self, hash: u32, now: Instant) -> bool {
+    pub fn allows(&mut self, hash: u32, now: Instant) -> bool {
         let (start, n) = self.0.entry(hash).or_insert((now, 0));
         if *n <= BURST && now - *start > WINDOW {
             (*start, *n) = (now, 0);
@@ -977,10 +988,10 @@ pub(crate) mod tests {
     fn noise_mutes_a_burst_for_good() {
         let (mut noise, start) = (Noise::default(), Instant::now());
         let at = |ms| start + Duration::from_millis(ms);
-        let slow: Vec<bool> = (0..8).map(|k| noise.quiet(1, at(k * 4000))).collect();
+        let slow: Vec<bool> = (0..8).map(|k| noise.allows(1, at(k * 4000))).collect();
         assert!(slow.iter().all(|&q| q));
-        let fast: Vec<bool> = (0..7).map(|k| noise.quiet(2, at(k * 100))).collect();
+        let fast: Vec<bool> = (0..7).map(|k| noise.allows(2, at(k * 100))).collect();
         assert_eq!(fast, [true, true, true, true, true, false, false]);
-        assert!(!noise.quiet(2, at(60_000)));
+        assert!(!noise.allows(2, at(60_000)));
     }
 }

@@ -130,6 +130,22 @@ impl Limits {
                     .all(|l| !l.evidence.is_empty()),
                 "a {age} limit has no evidence"
             );
+            // A leap's arc runs through both jumps: it needs a level jump
+            // with some length, and an edge jump further at a real drop.
+            if let Some(level) = &reach.level_jump {
+                ensure!(level.value > 0.0, "the {age} level jump is no length");
+            }
+            if let Some(edge) = &reach.edge_jump {
+                ensure!(
+                    edge.drop.is_some_and(|d| d > 0.0),
+                    "the {age} edge jump has no drop"
+                );
+                let level = reach.level_jump.as_ref().map_or(0.0, |l| l.value);
+                ensure!(
+                    edge.value > level,
+                    "the {age} edge jump is no further than the level jump"
+                );
+            }
         }
         for (word, l) in limits.range.all() {
             ensure!(!l.evidence.is_empty(), "the {word} range has no evidence");
@@ -206,11 +222,29 @@ mod tests {
     #[test]
     fn the_file_loads_and_the_graph_takes_the_lower_age() {
         let l = limits();
-        assert_eq!(
-            l.step_up(),
-            l.child.step_up.value.min(l.adult.step_up.value)
-        );
+        assert_eq!(l.step_up(), 0.99, "the child's, under the adult's 1.29");
         assert!(l.drop() >= 4.65, "a child lands a measured 4.65 m drop");
+    }
+
+    #[test]
+    fn an_edge_jump_no_further_than_the_level_jump_is_refused() {
+        // A Windows checkout ends lines with CRLF.
+        let text = TEXT.replace("\r\n", "\n");
+        let short = text.replacen("value = 5.2\ndrop = 4.65", "value = 3.0\ndrop = 4.65", 1);
+        assert_ne!(short, text);
+        assert!(
+            Limits::parse(&short)
+                .unwrap_err()
+                .to_string()
+                .contains("no further")
+        );
+        let flat = text.replacen("value = 5.2\ndrop = 4.65", "value = 5.2\ndrop = 0.0", 1);
+        assert!(
+            Limits::parse(&flat)
+                .unwrap_err()
+                .to_string()
+                .contains("no drop")
+        );
     }
 
     #[test]

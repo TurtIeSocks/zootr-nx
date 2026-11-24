@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import { AllNone, Checklist } from "@/settings/checklist";
 import { Fold } from "@/settings/fold";
 import { ResetButton } from "@/settings/reset-button";
-import { NotInApBadge, UntestedBadge } from "@/settings/row";
-import { controlId, lockedBy, notInAp, untested } from "@/settings/setting";
+import { ApBadge, UntestedBadge } from "@/settings/row";
+import { apMark, controlId, lockedBy, untested } from "@/settings/setting";
 import { LockedBy, SettingRow } from "@/settings/setting-row";
 import { StartInventory } from "@/settings/start-inventory";
 import { PageHeader } from "@/shell/page-header";
@@ -157,7 +157,7 @@ function SubgroupList({ id, title, defs }: SectionProps) {
           tags: (
             <>
               {isUntested && <UntestedBadge />}
-              <NotInApBadge why={notInAp(d.archipelago)} />
+              <ApBadge mark={apMark(d.archipelago)} />
             </>
           ),
           on: on[i] ?? false,

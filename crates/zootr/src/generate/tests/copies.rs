@@ -8,7 +8,7 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-keys-gen-{}", std::process::id()));
+    let dir = Scratch::new("keys-gen");
     let held = |r: &Report| {
         let spots = r.spots.iter().filter(|s| keys::is_key(&s.vanilla));
         spots.map(|s| s.hash).collect::<HashSet<_>>()
@@ -57,7 +57,6 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
             .iter()
             .any(|d| d.contains("DungeonInfo"))
     );
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -65,7 +64,7 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-fortress-gen-{}", std::process::id()));
+    let dir = Scratch::new("fortress-gen");
     let thieves = |r: &Report| {
         let spots = r.spots.iter().filter(|s| s.holder == pickups::THIEF);
         spots.cloned().collect::<Vec<_>>()
@@ -142,7 +141,6 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     .unwrap();
     assert!(thieves(&off).is_empty());
     assert_eq!(carrying(&dir.join("off")), 3);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -150,7 +148,7 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-fortress-singles-{}", std::process::id()));
+    let dir = Scratch::new("fortress-singles");
     let settings = Settings::from([(crate::settings::FORTRESS_KEYS.into(), "singles".into())]);
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
@@ -164,7 +162,6 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
     // No key at the start: the copies fill the counter.
     let counter = "DungeonInfo.GerudoFortress.SmallKeyNum";
     assert!(!report.written.defaults.iter().any(|d| d.contains(counter)));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -172,7 +169,7 @@ fn freed_carpenters_keep_the_thieves_and_their_keys_with_fortress_keysanity() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-fortress-freed-{}", std::process::id()));
+    let dir = Scratch::new("fortress-freed");
     let settings = Settings::from([
         (crate::settings::FORTRESS_KEYS.into(), "singles".into()),
         (crate::settings::GERUDO_FORTRESS.into(), "freed".into()),
@@ -185,7 +182,6 @@ fn freed_carpenters_keep_the_thieves_and_their_keys_with_fortress_keysanity() {
     assert_eq!(report.spots.iter().filter(|s| s.item == copy).count(), 4);
     let beaten = |d: &&String| d.contains("DestroyGerudoThief");
     assert!(!report.written.defaults.iter().any(|d| beaten(&d)));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -193,7 +189,7 @@ fn maps_and_compasses_deal_their_dungeon_s_copies_anywhere_and_name_it() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = std::env::temp_dir().join(format!("zootr-map-copies-{}", std::process::id()));
+    let dir = Scratch::new("map-copies");
     let settings = Settings::from([(crate::settings::MAPS_COMPASSES.into(), true.into())]);
     let new_game = NewGame::from_settings(&settings, &[]).unwrap();
     let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
@@ -225,7 +221,6 @@ fn maps_and_compasses_deal_their_dungeon_s_copies_anywhere_and_name_it() {
         away += usize::from(!own.starts_with(&s.area));
     }
     assert!(away > 0, "every copy stayed in its own dungeon");
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
@@ -235,7 +230,7 @@ fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
     };
     // A Kokiri Forest pot, its vanilla drop a Blue Rupee.
     const POT: u64 = 5133775918408786238;
-    let dir = std::env::temp_dir().join(format!("zootr-pot-compass-{}", std::process::id()));
+    let dir = Scratch::new("pot-compass");
     let settings = Settings::from([
         (crate::settings::MAPS_COMPASSES.into(), true.into()),
         (crate::settings::POTS.into(), true.into()),
@@ -267,5 +262,4 @@ fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
             .is_file(),
         "{drop}"
     );
-    std::fs::remove_dir_all(dir).unwrap();
 }

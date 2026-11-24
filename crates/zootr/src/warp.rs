@@ -175,7 +175,7 @@ pub fn rooms_in(romfs: &Romfs, map: &str) -> Result<HashMap<u64, u32>> {
 pub fn area_of(romfs: &Romfs, map: &str) -> Result<String> {
     let files = banc_files(romfs)?;
     let rel = files.iter().find(|rel| map_of(rel) == map);
-    let area = rel.and_then(|rel| rel.split('/').nth(1));
+    let area = rel.and_then(|rel| banc_area(rel));
     Ok(area.with_context(|| format!("no map {map}"))?.to_owned())
 }
 
@@ -188,7 +188,7 @@ pub fn placements_in(romfs: &Romfs, map: &str) -> Result<Vec<Placement>> {
 /// Each map of the Banc folder `area` with the pose of every actor it
 /// places, by instance hash.
 pub fn poses_in(romfs: &Romfs, area: &str) -> Result<BTreeMap<String, HashMap<u64, Pose>>> {
-    let found = placed_by_map(romfs, |rel| rel.split('/').nth(1) == Some(area))?;
+    let found = placed_by_map(romfs, |rel| banc_area(rel) == Some(area))?;
     Ok(found
         .into_iter()
         .map(|(map, placed)| {
@@ -213,7 +213,7 @@ pub fn spots_where(
     area: &str,
     keep: impl Fn(&Placement) -> bool,
 ) -> Result<BTreeMap<String, Vec<[f32; 3]>>> {
-    let found = placed_by_map(romfs, |rel| rel.split('/').nth(1) == Some(area))?;
+    let found = placed_by_map(romfs, |rel| banc_area(rel) == Some(area))?;
     Ok(found
         .into_iter()
         .map(|(map, placed)| {
@@ -245,6 +245,11 @@ pub fn era(map: &str) -> Option<bool> {
     } else {
         map.ends_with(ADULT).then_some(false)
     }
+}
+
+/// The area folder a Banc file `rel` sits in.
+fn banc_area(rel: &str) -> Option<&str> {
+    rel.split('/').nth(1)
 }
 
 pub(crate) fn map_of(rel: &str) -> &str {

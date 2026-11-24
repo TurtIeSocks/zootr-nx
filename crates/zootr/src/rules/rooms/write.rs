@@ -54,8 +54,11 @@ pub fn room_files(dir: &Path) -> Result<Vec<(String, String)>> {
 }
 
 fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return Ok(());
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        // A tier with no folder, like a dungeon not yet confirmed.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e).with_context(|| dir.display().to_string()),
     };
     for entry in entries {
         let path = entry?.path();
@@ -291,6 +294,17 @@ mod tests {
         assert!(got.contains("# A note.\n[[check]]\nhash = 18000000000000000001\nname = \"Gate chest\"\nneeds = \"bombs\"\nwhy = \"blast it\"\n\n[[flag]]"));
         assert!(!got.contains("evidence"));
         let _: RoomFile = toml::from_str(&got).unwrap();
+    }
+
+    #[test]
+    fn room_files_skip_a_missing_tier_but_not_an_unreadable_one() {
+        let dir = std::env::temp_dir().join(format!("zootr-tiers-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        assert!(room_files(&dir).unwrap().is_empty());
+        fs::write(dir.join("baseline"), "not a folder").unwrap();
+        let err = room_files(&dir).unwrap_err();
+        fs::remove_dir_all(&dir).unwrap();
+        assert!(format!("{err:#}").contains("baseline"), "{err:#}");
     }
 
     #[test]

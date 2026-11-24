@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::vision::{self, Ask, Vision};
 
@@ -28,7 +28,7 @@ pub struct Look<'a> {
 }
 
 /// The judge's answer.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(tag = "action", rename_all = "lowercase")]
 pub enum Answer {
     Press {
@@ -38,7 +38,7 @@ pub enum Answer {
     },
     Stick {
         direction: String,
-        #[serde(default = "step")]
+        #[serde(default = "stick_ms")]
         ms: u64,
         #[serde(default)]
         why: String,
@@ -61,8 +61,11 @@ pub enum Answer {
     Unreadable(String),
 }
 
-fn step() -> u64 {
-    300
+/// How long a stick answer holds the stick when it names no time, in ms.
+const STICK_MS: u64 = 300;
+
+fn stick_ms() -> u64 {
+    STICK_MS
 }
 
 impl Answer {
@@ -187,7 +190,7 @@ mod tests {
             stick,
             Answer::Stick {
                 direction: "left".into(),
-                ms: 300,
+                ms: STICK_MS,
                 why: String::new()
             }
         );

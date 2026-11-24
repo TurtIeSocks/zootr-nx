@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 
-use super::landing::across_from;
+use super::landing::{across_from, flat};
 use super::{Planner, Ready, Steps, Trigger, quests, step_of};
 use crate::gates::{Atom, Expr};
 use crate::generate::Spot;
@@ -11,7 +11,7 @@ use crate::gifts;
 use crate::known::{Name, actor, field, flag};
 use crate::nav::graph::dist;
 use crate::scrubs;
-use crate::warp::{self, Pose, Side};
+use crate::warp::{self, Placement, Side};
 use crate::world::Presence;
 
 /// Every shopkeeper's actor name has this, like a Goron shopkeeper's.
@@ -47,9 +47,9 @@ impl Planner<'_> {
     pub(super) fn shop(&mut self, spot: &Spot) -> Result<(Trigger, Option<bool>)> {
         let maps = self.maps(&spot.area)?;
         let shelf = maps.iter().find_map(|(map, poses)| {
-            Some((warp::era(map), poses.get(&spot.hash)?.at, poses.clone()))
+            Some((map.clone(), warp::era(map), poses.get(&spot.hash)?.at))
         });
-        let Some((era, shelf, slots)) = shelf else {
+        let Some((shelves_map, era, shelf)) = shelf else {
             let why = format!("shelf not found in {}", spot.area);
             return Ok((Trigger::Skip(why), None));
         };
@@ -62,14 +62,22 @@ impl Planner<'_> {
             let placed = warp::placements_in(self.romfs, &map)?;
             let shop = (placed.into_iter())
                 .filter(|p| p.name.starts_with(PERSON) && p.name.contains(KEEPER));
-            keepers.extend(shop.map(|p| (map.clone(), p.name, p.hash, p.pose, p.presence)));
+            keepers.extend(shop.map(|p| (map.clone(), p)));
         }
-        let flat = |pose: &Pose| (pose.at[0] - shelf[0]).hypot(pose.at[2] - shelf[2]);
+        let off = |p: &Placement| flat(p.pose.at, shelf);
         let near = keepers
             .into_iter()
-            .filter(|(_, _, _, pose, _)| flat(pose) < KEEPER_REACH);
-        let Some((map, name, hash, pose, presence)) =
-            near.min_by(|a, b| flat(&a.3).total_cmp(&flat(&b.3)))
+            .filter(|(_, keeper)| off(keeper) < KEEPER_REACH);
+        let Some((
+            map,
+            Placement {
+                name,
+                hash,
+                pose,
+                presence,
+                ..
+            },
+        )) = near.min_by(|a, b| off(&a.1).total_cmp(&off(&b.1)))
         else {
             let why = format!("no shopkeeper by the shelf in {}", spot.area);
             return Ok((Trigger::Skip(why), None));
@@ -89,6 +97,7 @@ impl Planner<'_> {
         // them, a spot the sweep's own landing, by his front, never finds.
         // Landed there by the navmesh, Link stood at the counter's end and
         // A said nothing (Market Bazaar and Potion Shop, every round).
+        let slots = &self.areas[&spot.area][&shelves_map];
         let shelves: Vec<[f32; 3]> = (sold.iter())
             .filter_map(|h| Some(slots.get(h)?.at))
             .collect();
@@ -167,6 +176,22 @@ mod tests {
     use crate::known::{flow, map};
     use crate::{shops, steps};
 
+    /// The first slot of each shop of `names`, as a seed's spot.
+    fn shop_spots(romfs: &ounce_formats::Romfs, names: &[&str]) -> Vec<Spot> {
+        let slots = shops::slots(romfs).unwrap();
+        (names.iter())
+            .map(|&shop| {
+                let slot = slots.iter().find(|s| s.shop == shop).unwrap();
+                Spot {
+                    hash: slot.hash(),
+                    area: slot.area.clone(),
+                    holder: format!("{shop} 1"),
+                    ..Default::default()
+                }
+            })
+            .collect()
+    }
+
     #[test]
     fn a_business_scrub_is_made_a_seller_before_its_talk() {
         let Some((romfs, _, planned)) = seed() else {
@@ -217,25 +242,15 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let slots = shops::slots(&romfs).unwrap();
-        let shops = [
-            "Kokiri Shop",
-            "Goron Shop",
-            "Kakariko Bazaar",
-            "Bombchu Shop",
-        ];
-        let spots: Vec<Spot> = shops
-            .into_iter()
-            .map(|shop| {
-                let slot = slots.iter().find(|s| s.shop == shop).unwrap();
-                Spot {
-                    hash: slot.hash(),
-                    area: slot.area.clone(),
-                    holder: format!("{shop} 1"),
-                    ..Default::default()
-                }
-            })
-            .collect();
+        let spots = shop_spots(
+            &romfs,
+            &[
+                "Kokiri Shop",
+                "Goron Shop",
+                "Kakariko Bazaar",
+                "Bombchu Shop",
+            ],
+        );
         let planned = plan(&romfs, &spots).unwrap();
         let talks: Vec<(&str, [f32; 3], &Steps)> = (planned.iter())
             .map(|p| match &p.trigger {
@@ -288,19 +303,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let slots = shops::slots(&romfs).unwrap();
-        let spots: Vec<Spot> = ["Market Bazaar", "Market Potion Shop"]
-            .into_iter()
-            .map(|shop| {
-                let slot = slots.iter().find(|s| s.shop == shop).unwrap();
-                Spot {
-                    hash: slot.hash(),
-                    area: slot.area.clone(),
-                    holder: format!("{shop} 1"),
-                    ..Default::default()
-                }
-            })
-            .collect();
+        let spots = shop_spots(&romfs, &["Market Bazaar", "Market Potion Shop"]);
         let planned = plan(&romfs, &spots).unwrap();
         for (p, potion) in planned.iter().zip([false, true]) {
             let Trigger::Talk {

@@ -144,7 +144,7 @@ mod tests {
         let place: Place = (map::INSIDE_THE_DEKU_TREE.get().to_owned(), Era::Child);
         let flag = "#1a2b3c4d";
         let world = World {
-            places: vec![place.clone()],
+            places: vec![place],
             edges: vec![],
             locations: vec![Location {
                 hash: 1,
@@ -160,7 +160,7 @@ mod tests {
             }],
             obstacles: BTreeMap::new(),
             goal: vec![],
-            start: place,
+            start: 0,
         };
         let play = world.play(&Have::default(), &HashMap::new());
         assert!(play.reached.contains(&1));
@@ -173,10 +173,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let book = crate::rules::Book::load().unwrap();
-        let new_game = crate::settings::NewGame::default();
-        let checks = checks::dealt(&romfs, &new_game).unwrap();
-        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        let world = super::super::tests::world(&romfs, &[]);
         // The Water Temple's fourth small key chest, underwater: Iron Boots.
         assert_eq!(world.only_child(3693930347660122883), Some(false));
         assert_eq!(world.only_child(1), None, "no such check");

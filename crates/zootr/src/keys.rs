@@ -19,25 +19,50 @@ pub const BOSS: &Name = item::DUNGEON_BOSS_KEY;
 /// What a key chest brings to the pool: the key itself stays out of it.
 pub const INSTEAD: &Name = actor::T_BOX_RUPEE_RED;
 
-/// Each dungeon with keys, as its `DungeonInfo` member and Banc folder
+/// A place that counts keys, as its `DungeonInfo` member and Banc folder
 /// name: how many small keys it has, which is how many small-key doors,
 /// and the boss room its boss key opens, if it has one.
-pub const DUNGEONS: [(&Name, i32, Option<&Name>); 8] = [
-    (flow::BOTTOM_OF_THE_WELL, 2, None),
-    (flag::FOREST_TEMPLE, 5, Some(map::PHANTOM_GANON_STAGE)),
-    (flag::FIRE_TEMPLE, 8, Some(map::VOLVAGIA_STAGE)),
-    (flag::WATER_TEMPLE, 4, Some(map::MORPHA_STAGE)),
-    (flag::SHADOW_TEMPLE, 5, Some(map::BONGO_BONGO_STAGE)),
-    (flag::SPIRIT_TEMPLE, 5, Some(map::TWINROVA_STAGE)),
-    (flag::GERUDO_TRAINING_GROUND, 9, None),
-    (flag::INSIDE_GANON_CASTLE, 1, Some(map::GANONDORF_STAGE)),
+pub struct Dungeon {
+    pub name: &'static Name,
+    pub keys: u32,
+    pub boss_room: Option<&'static Name>,
+}
+
+impl Dungeon {
+    const fn new(name: &'static Name, keys: u32, boss_room: Option<&'static Name>) -> Self {
+        Dungeon {
+            name,
+            keys,
+            boss_room,
+        }
+    }
+}
+
+/// Each dungeon with keys.
+pub const DUNGEONS: [Dungeon; 8] = [
+    Dungeon::new(flow::BOTTOM_OF_THE_WELL, 2, None),
+    Dungeon::new(flag::FOREST_TEMPLE, 5, Some(map::PHANTOM_GANON_STAGE)),
+    Dungeon::new(flag::FIRE_TEMPLE, 8, Some(map::VOLVAGIA_STAGE)),
+    Dungeon::new(flag::WATER_TEMPLE, 4, Some(map::MORPHA_STAGE)),
+    Dungeon::new(flag::SHADOW_TEMPLE, 5, Some(map::BONGO_BONGO_STAGE)),
+    Dungeon::new(flag::SPIRIT_TEMPLE, 5, Some(map::TWINROVA_STAGE)),
+    Dungeon::new(flag::GERUDO_TRAINING_GROUND, 9, None),
+    Dungeon::new(flag::INSIDE_GANON_CASTLE, 1, Some(map::GANONDORF_STAGE)),
 ];
+
+/// Dungeon `n` of [`DUNGEONS`], counting from 1.
+pub fn dungeon(n: usize) -> &'static Dungeon {
+    // Through a const reference, which is 'static, since indexing the
+    // const itself would borrow a temporary.
+    const ALL: &[Dungeon] = &DUNGEONS;
+    &ALL[n - 1]
+}
 
 /// How many small key copies Keysanity deals dungeon `n`: one for each of
 /// its keys, the chests' and the two lying in the open (Bottom of the
 /// Well's and the Shadow Temple's), and logic asks for them all.
 pub(crate) fn copies_of(n: usize) -> u32 {
-    DUNGEONS[n - 1].1 as u32
+    dungeon(n).keys
 }
 
 /// The dungeon whose maps `rel`, a Banc file, is under, by its number in
@@ -48,10 +73,7 @@ pub fn dungeon_of(rel: &str) -> Option<usize> {
 
 /// The dungeon `area`, a Banc folder, is, by its number in [`DUNGEONS`].
 pub fn dungeon_in(area: &str) -> Option<usize> {
-    DUNGEONS
-        .iter()
-        .position(|(d, ..)| *d == area)
-        .map(|i| i + 1)
+    DUNGEONS.iter().position(|d| d.name == area).map(|i| i + 1)
 }
 
 /// The two keys lying in the open, by placement, and the Bool their
@@ -75,7 +97,7 @@ pub fn loose_taken(hash: u64) -> Option<&'static str> {
 
 /// Whether dungeon `n` has a boss key.
 pub fn has_boss(n: usize) -> bool {
-    DUNGEONS[n - 1].2.is_some()
+    dungeon(n).boss_room.is_some()
 }
 
 /// With key rings, every ring and boss key, each dealt once.
@@ -108,7 +130,7 @@ pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
 
 /// With Fortress Keysanity, the Fortress key copy, one for each thief.
 pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
-    LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.1 as usize]);
+    LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.keys as usize]);
 
 /// Each copy `keys` and `fortress` deal takes the place of a key chest's or
 /// a thief's Red Rupee, but for those `placed` already holds. With nothing
@@ -148,13 +170,14 @@ pub fn deal_copies(
 /// `count` of dungeon `n`'s small keys as `keys` deals them: its ring, or
 /// that many copies. Nothing for none.
 fn smalls(n: usize, count: u32, keys: DungeonKeys) -> Option<Need> {
+    let count = match keys {
+        _ if count == 0 => return None,
+        DungeonKeys::Rings => 1,
+        DungeonKeys::Singles => count,
+        DungeonKeys::Vanilla | DungeonKeys::Start => return None,
+    };
     let actors = vec![key_tints::ring(n)];
-    match keys {
-        _ if count == 0 => None,
-        DungeonKeys::Rings => Some(Need::Items { actors, count: 1 }),
-        DungeonKeys::Singles => Some(Need::Items { actors, count }),
-        DungeonKeys::Vanilla | DungeonKeys::Start => None,
-    }
+    Some(Need::Items { actors, count })
 }
 
 /// With keys dealt as copies, what logic adds to `check`: the small keys
@@ -176,7 +199,7 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
     };
     (ctx.fortress.copies() && item == crate::gerudo::CARD).then(|| {
         let fast = Need::All(vec![ctx.setting(FORTRESS_FAST), copies(1)]);
-        Need::Any(vec![fast, copies(FORTRESS.1 as u32)])
+        Need::Any(vec![fast, copies(FORTRESS.keys)])
     })
 }
 
@@ -185,7 +208,7 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
 pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
     let i = DUNGEONS
         .iter()
-        .position(|(.., r)| r.is_some_and(|r| *r == *room))?;
+        .position(|d| d.boss_room.is_some_and(|r| *r == *room))?;
     let small = smalls(i + 1, copies_of(i + 1), keys)?;
     Some(Need::All(vec![holds(key_tints::boss(i + 1)), small]))
 }
@@ -197,19 +220,8 @@ pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) 
     if let Some(name) = map_copies::copy_name(actor, &area) {
         return Some(name);
     }
-    if actor == key_tints::fortress() {
-        return Some(format!("{} Small Key", area(FORTRESS.0)));
-    }
-    DUNGEONS.iter().enumerate().find_map(|(i, (dungeon, ..))| {
-        let n = i + 1;
-        let kind = match actor {
-            a if a == key_tints::ring(n) && keys == DungeonKeys::Singles => "Small Key",
-            a if a == key_tints::ring(n) => "Key Ring",
-            a if a == key_tints::boss(n) => "Boss Key",
-            _ => return None,
-        };
-        Some(format!("{} {kind}", area(dungeon)))
-    })
+    let (dungeon, english) = key_tints::english_name(actor, keys)?;
+    Some(english.replace("{}", &area(dungeon.name)))
 }
 
 fn holds(actor: String) -> Need {
@@ -242,7 +254,7 @@ pub fn pooled(check: &ItemCheck) -> &str {
 }
 
 /// The Gerudo Fortress counts keys like a dungeon, one for each thief.
-pub const FORTRESS: (&Name, i32) = (flag::GERUDO_FORTRESS, 4);
+pub const FORTRESS: Dungeon = Dungeon::new(flag::GERUDO_FORTRESS, 4, None);
 
 /// The Bool `dungeon`'s boss key sets.
 pub fn boss_flag(dungeon: &Name) -> String {
@@ -258,15 +270,16 @@ pub fn small_flag(dungeon: &Name) -> String {
 /// every dungeon, and the Fortress's counter when `fortress`.
 pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
     let mut edits = Vec::new();
-    for (name, small, boss) in DUNGEONS.iter().filter(|_| dungeons) {
-        edits.push(format!("{}={small}", small_flag(name)));
-        if boss.is_some() {
-            edits.push(format!("{}=true", boss_flag(name)));
+    if dungeons {
+        for d in &DUNGEONS {
+            edits.push(format!("{}={}", small_flag(d.name), d.keys));
+            if d.boss_room.is_some() {
+                edits.push(format!("{}=true", boss_flag(d.name)));
+            }
         }
     }
     if fortress {
-        let (name, small) = FORTRESS;
-        edits.push(format!("{}={small}", small_flag(name)));
+        edits.push(format!("{}={}", small_flag(FORTRESS.name), FORTRESS.keys));
     }
     edits
 }
@@ -355,7 +368,7 @@ mod tests {
         assert!(!items.contains(&red));
         let forest = DUNGEONS
             .iter()
-            .position(|d| d.0 == flag::FOREST_TEMPLE)
+            .position(|d| d.name == flag::FOREST_TEMPLE)
             .unwrap();
         let ring = key_tints::ring(forest + 1);
         let held = items.iter().filter(|i| **i == ring).count() as u32;
@@ -452,7 +465,7 @@ mod tests {
         assert_eq!(fortress_need(item::HOOKSHOT.get(), &keysanity), None);
         let area = |id: &str| format!("<{id}>");
         let name = copy_name(&key_tints::fortress(), area, DungeonKeys::Vanilla);
-        assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.0)));
+        assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.name)));
     }
 
     #[test]
@@ -504,7 +517,7 @@ mod tests {
     #[test]
     fn a_copy_is_named_after_its_dungeon() {
         let area = |id: &str| format!("<{id}>");
-        let forest = DUNGEONS.iter().position(|d| d.0 == flag::FOREST_TEMPLE);
+        let forest = DUNGEONS.iter().position(|d| d.name == flag::FOREST_TEMPLE);
         let n = forest.unwrap() + 1;
         let named = |a: String| copy_name(&a, area, DungeonKeys::Rings);
         assert_eq!(
@@ -568,14 +581,16 @@ mod tests {
                 }
             }
         }
-        for (name, small, boss) in DUNGEONS {
-            let chests = |key: &str| {
-                let n = held.iter().filter(|h| h.0 == name && h.1 == key).count();
-                n as i32
-            };
-            let lying = lying.iter().filter(|l| l.0 == name).count() as i32;
-            assert_eq!(chests(SMALL) + lying, small, "{name}");
-            assert_eq!(chests(BOSS), i32::from(boss.is_some()), "{name}");
+        for Dungeon {
+            name,
+            keys,
+            boss_room,
+        } in DUNGEONS
+        {
+            let chests = |key: &str| held.iter().filter(|h| h.0 == name && h.1 == key).count();
+            let lying = lying.iter().filter(|l| l.0 == name).count();
+            assert_eq!(chests(SMALL) + lying, keys as usize, "{name}");
+            assert_eq!(chests(BOSS), usize::from(boss_room.is_some()), "{name}");
         }
         assert_eq!(held.len(), 43);
     }

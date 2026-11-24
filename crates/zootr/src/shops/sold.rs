@@ -15,8 +15,8 @@ use ounce_formats::{EventKind, Flowchart, Romfs, Value};
 use super::Slot;
 use super::steps::{Step, stepped};
 use crate::checks::Drop;
-use crate::flows::{self, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, VALUE, param, string};
-use crate::known::{Name, actor, flag, flow};
+use crate::flows::{self, GAME_DATA, IS_BOOL, Model, Rewrites, SET_BOOL, param, string};
+use crate::known::{Name, actor, field, flag, flow};
 use crate::picked;
 use crate::settings::NewGame;
 
@@ -126,7 +126,7 @@ pub fn write(
 fn set_true(flow: &mut Flowchart, set: &Model, name: &str, next: u16) -> Result<u16> {
     let mut params = set.params.clone();
     flows::set(&mut params, GAME_DATA, string(name))?;
-    flows::set(&mut params, VALUE, Value::Bool(vec![true]))?;
+    flows::set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
     let (actor, action) = flow.action(&set.actor, set.name);
     Ok(flow.push(EventKind::Action {
         next: Some(next),
@@ -167,7 +167,7 @@ fn ask(
             let sold = set_true(flow, set, &flag(slot), shown)?;
             let mut params = is_bool.params.clone();
             flows::set(&mut params, GAME_DATA, string(flag::SHOP_SELECT_ITEM_INDEX))?;
-            params.push((VALUE.into(), Value::Int(vec![slot.goods_index])));
+            params.push((field::VALUE.to_string(), Value::Int(vec![slot.goods_index])));
             let (actor, query) = flow.query(&is_bool.actor, IS_INT);
             let mut cases = vec![(0, which), (1, which), (2, which)];
             cases[EQUAL].1 = sold;

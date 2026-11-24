@@ -153,7 +153,7 @@ fn gate(flow: &mut Flowchart, inline: &grant::Models) -> Result<()> {
         let grant = inline.push(flow, Value::Argument(ARG_ITEM.into()), None)?;
         let mut params = models.set_bool.params.clone();
         set(&mut params, GAME_DATA, flag())?;
-        set(&mut params, "Value", Value::Bool(vec![true]))?;
+        set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
         let (actor, action) = flow.action(&models.set_bool.actor, models.set_bool.name);
         let mark = flow.push(EventKind::Action {
             next: Some(grant),

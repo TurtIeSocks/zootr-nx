@@ -9,7 +9,9 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, bail, ensure};
 
 use crate::entrances::Doors;
-use crate::settings::{AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame};
+use crate::settings::{
+    AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame, PROGRESSIVE, value_word,
+};
 use crate::world::Era;
 
 pub mod audit;
@@ -22,6 +24,7 @@ pub mod rooms;
 mod set;
 pub mod vocab;
 
+pub(crate) use set::quote;
 pub use set::{Edit, Way, set, set_way};
 
 pub use files::{ExitRule, PlaceRule, SourceRule, settings_read};
@@ -80,6 +83,41 @@ impl Ctx {
             age: new_game.age,
             adult_jabu: new_game.adult_jabu,
         }
+    }
+
+    /// Progressive items and every toggle off: what the load check
+    /// resolves each rule against.
+    pub(crate) fn for_checks() -> Self {
+        Self {
+            progressive: true,
+            lines: Default::default(),
+            on: BTreeSet::new(),
+            seed: 0,
+            keys: DungeonKeys::Vanilla,
+            fortress: FortressKeys::Vanilla,
+            open: BTreeSet::new(),
+            doors: None,
+            age: Era::Child,
+            adult_jabu: AdultJabu::Off,
+        }
+    }
+
+    /// What `form` needs with the seed's progressive items, or with the
+    /// setting left open, either form behind its own word: one id names a
+    /// level's items each way (`rules::item`), and the export's world
+    /// has to hold both.
+    pub fn progressive(&self, form: impl Fn(bool) -> Result<Need>) -> Result<Need> {
+        if !self.open.contains(PROGRESSIVE) {
+            return form(self.progressive);
+        }
+        let (on, off) = (form(true)?, form(false)?);
+        if on == off {
+            return Ok(on);
+        }
+        Ok(Need::Any(vec![
+            Need::All(vec![self.setting(PROGRESSIVE), on]),
+            Need::All(vec![self.setting(&value_word(PROGRESSIVE, "off")), off]),
+        ]))
     }
 }
 
@@ -206,8 +244,8 @@ impl Book {
     }
 
     fn word(&self, word: &str, ctx: &Ctx) -> Result<Need> {
-        if let Some(need) = item::word(word, ctx.progressive, ctx.lines) {
-            return need;
+        if item::names(word) {
+            return ctx.progressive(|p| item::word(word, p, ctx.lines));
         }
         Ok(match word {
             "always" => Need::Always,
@@ -254,15 +292,8 @@ mod tests {
     fn ctx(progressive: bool, on: &[&str]) -> Ctx {
         Ctx {
             progressive,
-            lines: Default::default(),
             on: on.iter().map(|s| s.to_string()).collect(),
-            seed: 0,
-            keys: DungeonKeys::Vanilla,
-            fortress: FortressKeys::Vanilla,
-            open: BTreeSet::new(),
-            doors: None,
-            age: Era::Child,
-            adult_jabu: AdultJabu::Off,
+            ..Ctx::for_checks()
         }
     }
 

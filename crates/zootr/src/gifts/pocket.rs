@@ -53,12 +53,13 @@ impl Gift {
         }
     }
 
-    /// Where its grant moves when its scene can't play (`lost`) or comes
-    /// later: the opening for Link's Pocket, else its caller.
-    pub(super) fn moved_to(&self, lost: bool, pocket: bool) -> Option<&'static str> {
-        match pocket {
-            true => Some(starting::OPENING.get()),
-            false => (self.caller()).filter(|_| lost || matches!(self.how, How::Later { .. })),
+    /// Where its grant moves when its scene can't play or comes later: the
+    /// opening for Link's Pocket, else its caller.
+    pub(super) fn moved_to(&self, placement: Placement) -> Option<&'static str> {
+        match placement {
+            Placement::Pocket => Some(starting::OPENING.get()),
+            Placement::Lost => self.caller(),
+            Placement::Scene => (self.caller()).filter(|_| matches!(self.how, How::Later { .. })),
         }
     }
 }
@@ -83,14 +84,13 @@ pub(super) fn level<'a>(
 }
 
 /// Grant `item` in the opening just before its autosave, then show the get
-/// window.
+/// window. Fails when nothing leads to the autosave, as the grant would
+/// never be reached.
 pub(super) fn grant_before_save(flow: &mut Flowchart, flows: &Flows, item: &str) -> Result<()> {
     let save = only(flow, starting::AUTOSAVE)?;
     let callers = flow.links_to(save);
     let first = models(flows)?.push(flow, string(item), Some(save))?;
-    callers
-        .into_iter()
-        .try_for_each(|l| flow.link(l, Some(first)))
+    relink(flow, save, callers, first)
 }
 
 #[cfg(test)]
@@ -248,5 +248,17 @@ mod tests {
         let render = flows::render(&written(&rewrites, starting::OPENING));
         assert_eq!(render.matches(item::LONGSHOT.get()).count(), 1);
         assert!(!render.contains("EventQueryIsExistInPouch"));
+    }
+
+    /// The opening's grant is refused, not left where nothing reaches it,
+    /// when no event leads to the autosave.
+    #[test]
+    fn a_grant_nothing_leads_to_is_refused() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut flow = flows::load(&romfs, starting::OPENING).unwrap().unwrap();
+        let save = only(&flow, starting::AUTOSAVE).unwrap();
+        assert!(relink(&mut flow, save, Vec::new(), save).is_err());
     }
 }
