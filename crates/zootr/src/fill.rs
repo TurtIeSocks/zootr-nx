@@ -229,7 +229,8 @@ mod tests {
     /// in parallel, since these tests set the suite's wall time.
     fn seeds_fill_and(settings: &Settings, each: impl Fn(&Filled) + Sync) {
         let Some(romfs) = dev_dump() else { return };
-        let new_game = NewGame::from_settings(settings, &[]).unwrap();
+        let settings = crate::settings::favorites::randomizer_and(settings.clone());
+        let new_game = NewGame::from_settings(&settings, &[]).unwrap();
         let checks = crate::checks::all(&romfs).unwrap();
         let world = World::build(
             &romfs,
@@ -275,7 +276,8 @@ mod tests {
     #[test]
     fn the_way_is_every_check_ganondorf_needs_and_holds_the_bow() {
         let Some(romfs) = dev_dump() else { return };
-        let new_game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        let settings = crate::settings::favorites::randomizer();
+        let new_game = NewGame::from_settings(&settings, &[]).unwrap();
         let checks = crate::checks::all(&romfs).unwrap();
         let book = Book::load().unwrap();
         let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();

@@ -21,8 +21,8 @@ pub(super) struct NewGame {
     /// `IsGet.ITEM=true`. Repeatable.
     #[arg(long = "default", value_name = "NAME=VALUE")]
     pub(super) edits: Vec<String>,
-    /// Play the opening movie and Navi's wake-up cutscene. Skipped by
-    /// default, so a new game starts with Link in control.
+    /// Play the opening movie and Navi's wake-up cutscene, as a new game
+    /// does by default. Over a favorite that skips them, this keeps them.
     #[arg(long)]
     keep_intro: bool,
     /// Cutscenes to skip: `all`, or a name or area. Repeatable.
@@ -34,7 +34,8 @@ pub(super) struct NewGame {
     /// What a new game starts with, as `WORD` or `WORD=N`: `kokiri-sword`,
     /// `longshot` (which brings the Hookshot), `bombs=20`, `heart-pieces=8`,
     /// `heart-containers=5`, `rupees=99`. Repeatable. Without it, a new game
-    /// starts with the Master Sword, and `none` starts it with nothing.
+    /// starts with nothing, or the favorite's, and `none` starts it with
+    /// nothing either way.
     #[arg(long = "start", value_name = "WORD[=N]", value_parser = starting::parse)]
     start: Vec<(String, i32)>,
     /// Any app setting by id, for those without a flag of their own, e.g.
@@ -119,7 +120,7 @@ impl NewGame {
         }
         out.extend(self.raw.iter().cloned());
         // Old preset names and toggle ids, as the settings they became.
-        settings::upgrade(&mut out);
+        settings::upgrade(&mut out, settings::SettingsVersion::CURRENT);
         out
     }
 

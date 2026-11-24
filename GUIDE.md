@@ -157,7 +157,7 @@ saves in the target's save folder.
 
 ## Settings
 
-Each page under Randomizer in the app's sidebar, with what every setting does.
+Each page under Randomizer in the app's sidebar, with what every setting does. Every setting starts at the game's own behavior, so a new seed with nothing changed is the game as it is. The Randomizer favorite turns on the usual setup.
 
 ### General
 
@@ -194,7 +194,7 @@ Its sections are Logic, Win Condition, Area Access and Entrances.
 | Ganon's trials | All six, or done: every barrier in Ganon's Castle down from the start |
 | Open forest | Mido and the forest exit stop blocking Link, as child or adult |
 | Open Kakariko gate | The Death Mountain trail is open from the start |
-| Door of Time | Open, the default, has the door standing open from the start, so Link can grow up without the stones or the Song of Time. Closed opens it as in the game |
+| Door of Time | Open has the door standing open from the start, so Link can grow up without the stones or the Song of Time. Closed, the default, opens it as in the game |
 
 ### Inventory
 
@@ -204,7 +204,7 @@ The Save Editor's item grid and two of its Status fields, on a new game. Click a
 
 | Setting | What it does |
 |---|---|
-| Chests | On by default. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a pot holding a bag upgrade, keeps it too |
+| Chests | Each chest is a check. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a pot holding a bag upgrade, keeps it too |
 | Business scrubs | Every Business Scrub outside the Dream World sells a check once, at a price you pick from 10 to 90 rupees |
 | NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet. A gift dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them, as a chest does |
 | Songs | Twelve songs become checks, given without the lesson. The Scarecrow's Song stays where it is |

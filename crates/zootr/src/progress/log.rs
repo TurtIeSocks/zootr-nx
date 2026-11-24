@@ -143,7 +143,7 @@ mod tests {
             text.contains(&format!("dump {}", tilde("oot.nup"))),
             "{text}"
         );
-        assert!(text.contains("share ZR1-") && text.contains("reading checks"));
+        assert!(text.contains("share ZR2-") && text.contains("reading checks"));
         assert!(text.contains(&format!("broke at {}", tilde("x"))), "{text}");
         assert!(!old(0).exists() && old(1).exists() && live.exists());
         let logs = std::fs::read_dir(&dir).unwrap().count() - 1;

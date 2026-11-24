@@ -22,7 +22,7 @@ Archipelago shuffles items between several games at once. One person hosts: they
 
 1. Get `znx.apworld`: in the zootr-nx app, open the Play page's Archipelago tab and press Save apworld, beside "For hosts". That copy matches your app's version. Each release also attaches it under Assets.
 2. Install it: open the Archipelago Launcher, choose Install APWorld and pick `znx.apworld`. Copying it into Archipelago's `custom_worlds` folder does the same.
-3. Each player makes an options file (a `.yaml`) with the Launcher's Options Creator. For zootr-nx, pick the game `Ocarina of Time (znx)`. Players of other games make theirs for their own game.
+3. Each player makes an options file (a `.yaml`) with the Launcher's Options Creator. For zootr-nx, pick the game `Ocarina of Time (znx)`. Players of other games make theirs for their own game. Every zootr-nx option starts at the game's own behavior, with nothing shuffled, so turn on the shuffles you want.
 4. Put every player's `.yaml` in Archipelago's `Players` folder and run Generate from the Launcher. The result is a `.zip` in the `output` folder.
 5. Host the room: upload that `.zip` at [archipelago.gg/uploads](https://archipelago.gg/uploads) and use the server shown on its room page, or run Host from the Launcher on your own machine.
 6. Inside the `.zip`, each zootr-nx player has a `.apznx`. Send each one their file and the server.

@@ -4,13 +4,9 @@ use super::*;
 
 /// Every setting, each panel's sections in the order they show.
 pub fn schema() -> Vec<SettingDef> {
-    let presets = PRESETS.iter().map(|p| {
-        let def = toggle(p.name, p.place, p.label, p.what);
-        match presets::DEFAULT_ON.contains(&p.name) {
-            true => default_on(def),
-            false => def,
-        }
-    });
+    let presets = PRESETS
+        .iter()
+        .map(|p| toggle(p.name, p.place, p.label, p.what));
     let mut all: Vec<SettingDef> = presets.collect();
     all.extend(logic_defs());
     all.extend(check_defs());
@@ -125,24 +121,24 @@ fn check_defs() -> Vec<SettingDef> {
             "Swaps junk (rupees, ammo, recovery hearts) for ice traps. Each looks like an item logic needs until Link gets it, then says FOOL! and freezes him",
             IceTraps::label,
         ),
-        default_on(toggle(
+        toggle(
             SHUFFLE_ITEMS,
             place::CHECKS,
             "Shuffle Items",
             "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
-        )),
-        default_on(toggle(
+        ),
+        toggle(
             CHESTS,
             place::CHECKS,
             "Chests",
             "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
-        )),
-        default_on(toggle(
+        ),
+        toggle(
             SCRUBS,
             place::CHECKS,
             "Business Scrubs",
             "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
-        )),
+        ),
         requires(
             SCRUBS,
             choice(
@@ -274,12 +270,12 @@ fn breakable_defs() -> Vec<SettingDef> {
 /// The items that join the pool or change how it gives them.
 fn pool_defs() -> Vec<SettingDef> {
     vec![
-        default_on(toggle(
+        toggle(
             PROGRESSIVE,
             place::ITEM_POOL,
             "Progressive Items",
             "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
-        )),
+        ),
         choice(
             BOMBCHUS,
             place::ITEM_POOL,
@@ -368,12 +364,12 @@ fn enhancement_defs() -> Vec<SettingDef> {
             "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
             ChestSize::label,
         ),
-        default_on(toggle(
+        toggle(
             QUIET_NAVI,
             place::COMFORT,
             "Quiet Navi",
             "Navi never stops Link to talk on her own: the Lost Woods warning, dungeon and quest tips, and reminders. Hints you ask her for still work",
-        )),
+        ),
         toggle(
             QUIET_ENEMIES,
             place::COMFORT,
@@ -444,12 +440,12 @@ fn cutscene_defs() -> Vec<SettingDef> {
             "Skip All Cutscenes",
             "Turns on every skip below. Cutscenes that give an item, set a flag or move Link still play",
         ),
-        default_on(cutscene(
+        cutscene(
             SKIP_INTRO.into(),
             place::CUTSCENES,
             "Skip the Intro",
             "A new game starts with Link in control, without the opening movie and Navi's wake-up",
-        )),
+        ),
         cutscene(
             SKIP_SARIA.into(),
             place::CUTSCENES,
@@ -468,12 +464,12 @@ fn cutscene_defs() -> Vec<SettingDef> {
             "Skip Meeting the Great Deku Tree",
             "His mouth is open from the start, and the forest quest is where his talk leaves it",
         ),
-        default_on(cutscene(
+        cutscene(
             SKIP_ARRIVALS.into(),
             place::CUTSCENES,
             "Skip Area Intros",
             "Reaching an area for the first time skips its camera pan. Any quest step the arrival sets still happens",
-        )),
+        ),
     ];
     let areas = AREAS.iter().map(|(id, label, _)| {
         cutscene(

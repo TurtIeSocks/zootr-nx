@@ -1,6 +1,7 @@
 //! Config shared by the CLI and the app: the game files, the randomizer
 //! settings, and the targets a seed installs to.
 
+use crate::settings::SettingsVersion;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -32,6 +33,11 @@ pub struct Config {
     pub game: Option<PathBuf>,
     /// Randomizer setting values by id. Missing ids take their default.
     pub settings: BTreeMap<String, serde_json::Value>,
+    /// Which defaults `settings` and `favorites` were saved under. Loading
+    /// brings both up to date, so the UI never sees it.
+    #[serde(default = "SettingsVersion::unwritten")]
+    #[cfg_attr(feature = "specta", specta(skip))]
+    pub settings_version: SettingsVersion,
     pub targets: Vec<Target>,
     /// Name of the target Play opens.
     pub picked: Option<String>,
@@ -486,9 +492,10 @@ impl Config {
             obj.insert("dev_tools".into(), used.into());
         }
         let mut config: Self = serde_json::from_value(json)?;
-        crate::settings::upgrade(&mut config.settings);
+        let from = std::mem::take(&mut config.settings_version);
+        crate::settings::upgrade(&mut config.settings, from);
         for f in &mut config.favorites {
-            crate::settings::upgrade(&mut f.settings);
+            crate::settings::upgrade(&mut f.settings, from);
         }
         config.fix_mods_roots();
         Ok(config)
@@ -737,12 +744,36 @@ mod tests {
         };
         let json = serde_json::to_string(&config).unwrap();
         assert_eq!(serde_json::from_str::<Config>(&json).unwrap(), config);
+        // A file without a settings version is from before it was kept.
         assert_eq!(
             serde_json::from_str::<Config>("{}").unwrap(),
-            Config::default()
+            Config {
+                settings_version: SettingsVersion::unwritten(),
+                ..Config::default()
+            }
         );
         let old = Config::parse(br#"{"romfs": "/dump/romfs"}"#).unwrap();
         assert_eq!(old.game.as_deref(), Some(Path::new("/dump/romfs")));
+    }
+
+    #[test]
+    fn settings_saved_before_vanilla_defaults_keep_the_randomizers() {
+        use crate::settings::favorites::randomizer;
+        let json = br#"{"settings": {"chests": false}, "favorites": [
+            {"name": "F", "time": 0, "settings": {}}
+        ]}"#;
+        let old = Config::parse(json).unwrap();
+        let mut want = randomizer();
+        want.insert("chests".into(), false.into());
+        assert_eq!(old.settings, want);
+        assert_eq!(old.favorites[0].settings, randomizer());
+        assert_eq!(old.settings_version, SettingsVersion::CURRENT);
+        let saved = serde_json::to_vec(&old).unwrap();
+        assert_eq!(Config::parse(&saved).unwrap(), old);
+        let new = br#"{"settings_version": 2, "settings": {"chests": true}}"#;
+        let new = Config::parse(new).unwrap();
+        let chests = crate::settings::Settings::from([("chests".into(), true.into())]);
+        assert_eq!(new.settings, chests);
     }
 
     #[test]

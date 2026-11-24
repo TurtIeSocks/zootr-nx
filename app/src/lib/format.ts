@@ -7,12 +7,12 @@ export const LISTED = 4;
 export const count = (n: number, one: string) =>
   `${n} ${one}${n === 1 ? "" : "s"}`;
 
-/** Starts every share code, as `share.rs` writes it. */
-const SHARE_PREFIX = "ZR1-";
+/** Starts every share code, as `share.rs` writes it: `ZR2-`, or `ZR1-`
+ * from before the defaults went vanilla. */
+const SHARE_PREFIX = /^ZR[12]-/;
 
 /** Whether `text` is a share code rather than a seed number. */
-export const isShareCode = (text: string) =>
-  text.trim().startsWith(SHARE_PREFIX);
+export const isShareCode = (text: string) => SHARE_PREFIX.test(text.trim());
 
 /** A pasted share code as is, anything else as the digits in it. */
 export function seedOrCode(text: string) {

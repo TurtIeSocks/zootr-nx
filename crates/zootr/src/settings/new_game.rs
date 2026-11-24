@@ -388,11 +388,11 @@ mod tests {
         assert!(new_game.defaults.contains(&nuts), "{:?}", new_game.defaults);
     }
 
-    /// What the default-on presets add, the softlock fixes, then `edits`.
+    /// The softlock fixes, then `edits`: what a new game takes with every
+    /// preset off.
     fn with_defaults(edits: &[&str]) -> Vec<String> {
-        let on: Vec<String> = presets::DEFAULT_ON.map(String::from).into();
         let edits: Vec<String> = edits.iter().map(|&e| e.into()).collect();
-        presets::expand(&on, &[presets::softlocks(), edits].concat()).unwrap()
+        presets::expand(&[], &[presets::softlocks(), edits].concat()).unwrap()
     }
 
     /// `with_defaults`, with `keys` and then `edits` after the presets.
@@ -422,18 +422,14 @@ mod tests {
             game,
             NewGame {
                 defaults: with_defaults(&[]),
-                skips: Skips {
-                    intro: true,
-                    arrivals: true,
-                    ..Default::default()
-                },
+                skips: Skips::default(),
                 chest_size: ChestSize::Vanilla,
-                vanilla: false,
-                keep_chests: false,
+                vanilla: true,
+                keep_chests: true,
                 start: starting::Start::of(&starting::DEFAULT),
-                progressive: true,
-                open_door: true,
-                scrubs: true,
+                progressive: false,
+                open_door: false,
+                scrubs: false,
                 scrub_price: ScrubPrice::default().rupees(),
                 shop_slots: 0,
                 freestanding: false,
@@ -456,11 +452,11 @@ mod tests {
                 seed: 0,
                 age: Era::Child,
                 random_age: false,
-                bombchus: Bombchus::Free,
+                bombchus: Bombchus::BombBag,
                 shuffle_nut_bag: false,
                 shuffle_stick_bag: false,
                 magic_with_first_item: false,
-                quiet_navi: true,
+                quiet_navi: false,
                 quiet_enemies: false,
                 bunny_hood: false,
                 day_skulltulas: false,
@@ -598,7 +594,8 @@ mod tests {
         let game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
         assert_eq!(game.keys, DungeonKeys::Vanilla);
         assert!(!game.defaults.iter().any(|d| d.contains("DungeonInfo")));
-        let settings = Settings::from([(KEYS.into(), "rings".into())]);
+        let rings = Settings::from([(KEYS.into(), "rings".into())]);
+        let settings = crate::settings::favorites::randomizer_and(rings);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
         assert_eq!(game.keys, DungeonKeys::Rings);
         assert!(!game.defaults.iter().any(|d| d.contains("DungeonInfo")));

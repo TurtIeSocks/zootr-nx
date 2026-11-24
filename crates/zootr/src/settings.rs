@@ -30,6 +30,7 @@ pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
 pub(crate) use new_game::{toggles, toggles_on};
 pub use schema::schema;
+pub use upgrade::SettingsVersion;
 pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, dropped, renamed, renamed_as, upgrade};
 
 /// Setting values by id. A missing id takes its default.
@@ -325,13 +326,6 @@ pub fn skip_parser() -> PossibleValuesParser {
             .chain(AREAS.iter().map(|a| (a.0, a.1)))
             .map(|(name, help)| PossibleValue::new(name).help(help)),
     )
-}
-
-fn default_on(def: SettingDef) -> SettingDef {
-    SettingDef {
-        kind: Kind::Toggle { default: true },
-        ..def
-    }
 }
 
 fn toggle(

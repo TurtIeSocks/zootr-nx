@@ -9,7 +9,7 @@ use crate::config::Config;
 use crate::game::Release;
 use crate::generate::{Extras, Report, Spot};
 use crate::icons::icons;
-use crate::settings::{self, SHUFFLE_ITEMS, Settings};
+use crate::settings::{self, SHUFFLE_ITEMS, Settings, SettingsVersion};
 use crate::shuffle::Fixed;
 use crate::{places, share};
 use anyhow::{Context, Result, ensure};
@@ -40,6 +40,10 @@ pub struct History {
     game: Option<String>,
     /// Oldest first.
     pub entries: Vec<Entry>,
+    /// Which defaults the entries' settings were saved under. Loading
+    /// brings them up to date.
+    #[serde(default = "SettingsVersion::unwritten")]
+    settings_version: SettingsVersion,
 }
 
 /// A game's installed seed and when it went in, as [`History`] keeps them.
@@ -210,9 +214,10 @@ impl History {
     /// settings, and the old `vanilla` extra as Shuffle items off.
     fn parse(json: &[u8]) -> Result<Self> {
         let mut history: Self = serde_json::from_slice(json)?;
+        let from = std::mem::take(&mut history.settings_version);
         for e in &mut history.entries {
             e.report.spots.iter_mut().for_each(Spot::fill_names);
-            settings::upgrade(&mut e.settings);
+            settings::upgrade(&mut e.settings, from);
             if std::mem::take(&mut e.extras.vanilla) {
                 e.settings.insert(SHUFFLE_ITEMS.into(), false.into());
             }
@@ -742,6 +747,25 @@ pub(crate) mod tests {
         assert_eq!(history.entries[0].id, first);
         assert_eq!(history.entries[1].report.seed, 7);
         assert!(history.view().installed.is_some());
+    }
+
+    #[test]
+    fn entries_saved_before_vanilla_defaults_keep_the_randomizers() {
+        let mut history = History::default();
+        history.add(
+            Settings::new(),
+            Extras::default(),
+            Label::default(),
+            report(7),
+        );
+        let mut json = serde_json::to_value(&history).unwrap();
+        assert_eq!(json["settings_version"], 2);
+        let current = History::parse(json.to_string().as_bytes()).unwrap();
+        assert_eq!(current.entries[0].settings, Settings::new());
+        json.as_object_mut().unwrap().remove("settings_version");
+        let old = History::parse(json.to_string().as_bytes()).unwrap();
+        let want = crate::settings::favorites::randomizer();
+        assert_eq!(old.entries[0].settings, want);
     }
 
     #[test]
