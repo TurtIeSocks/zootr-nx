@@ -53,7 +53,11 @@ export const commands = {
 	clearHistory: () => typedError<null, string>(__TAURI_INVOKE("clear_history")),
 	spoiler: (id: number) => typedError<Spoiler, string>(__TAURI_INVOKE("spoiler", { id })),
 	play: (target: string) => typedError<null, string>(__TAURI_INVOKE("play", { target })),
-	/**  A shared preset as a new target, named so no saved target has its name. */
+	/**
+	 *  A shared preset as a new target, named so no saved target has its name,
+	 *  another game's included: saving drops another game's target that
+	 *  shares a name with one of this shell's.
+	 */
 	importTarget: (preset: string) => typedError<Target, string>(__TAURI_INVOKE("import_target", { preset })),
 	/**  A saved target's preset JSON, to share. */
 	exportTarget: (name: string) => typedError<string, string>(__TAURI_INVOKE("export_target", { name })),
