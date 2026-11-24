@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { WhyButton } from "@/components/why-button";
+import { message } from "@/lib/api";
 import { CLOSE_GAME } from "@/lib/config";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
@@ -38,7 +39,7 @@ function useInstall(version: string) {
     setProgress({ done: 0, total: null });
     install(update, setProgress).catch((e: unknown) => {
       setProgress(null);
-      setError(String(e));
+      setError(message(e));
     });
   };
   return { update, progress, error, running, go };

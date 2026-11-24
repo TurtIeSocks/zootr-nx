@@ -37,53 +37,49 @@ impl Generating {
         *self.log.lock().unwrap() = None;
         let config = Config::load()?;
         let game = config.game.as_ref().context("Set the game dump first")?;
-        let run = Run::silent().with(move |e| {
-            let _ = steps.send(e.clone());
-        });
-        let run = run.logged(&About {
+        let run = Self::run(steps).logged(&About {
             seed,
             settings,
             extras,
             game,
-            folders: match install {
-                true => About::folders(&config.targets),
-                false => Vec::new(),
+            folders: if install {
+                About::folders(&config.targets)
+            } else {
+                Vec::new()
             },
         });
         *self.log.lock().unwrap() = run.log().map(Into::into);
-        *self.stop.lock().unwrap() = Some(run.stopper());
-        let report = progress::caught(|| {
-            let romfs = zootr::game::prepare(game, &run)?;
-            let write =
-                |d: &std::path::Path| generate::generate(&romfs, d, seed, settings, extras, &run);
-            match install {
-                true => generate::install(&config.targets, &run, write),
-                false => generate::throwaway(write),
-            }
+        let report = self.stoppable(&run, || {
+            progress::caught(|| {
+                let romfs = zootr::game::prepare(game, &run)?;
+                let write = |d: &std::path::Path| {
+                    generate::generate(&romfs, d, seed, settings, extras, &run)
+                };
+                if install {
+                    generate::install(&config.targets, &run, write)
+                } else {
+                    generate::throwaway(write)
+                }
+            })
         });
-        run.end(&report);
-        *self.stop.lock().unwrap() = None;
         if report.is_ok() {
             let what = if install { "installed" } else { "generated" };
             let share = zootr::share::encode(seed, settings, extras);
-            let log = match run.log() {
-                Some(log) => format!(", log {}", log.display()),
-                None => String::new(),
-            };
+            let log = (run.log()).map_or_else(String::new, |l| format!(", log {}", l.display()));
             log::info!("Seed {seed} {what} (share {share}){log}");
         }
         if let Err(e) = &report
             && progress::took_off(e)
+            && let Err(e) = History::load().and_then(|mut history| {
+                history.install(None);
+                history.save()
+            })
         {
-            let mut history = History::load()?;
-            history.install(None);
-            history.save()?;
+            log::warn!("Couldn't clear the installed seed: {e:#}");
         }
         report
     }
-}
 
-impl Generating {
     /// Rebuild the target named `name`, its output sent to `steps`. A stop
     /// kills the rebuild.
     pub(crate) fn rebuild(&self, steps: Channel<StepEvent>, name: &str) -> anyhow::Result<()> {
@@ -91,11 +87,27 @@ impl Generating {
         let target = (config.targets.iter())
             .find(|t| t.name == name)
             .with_context(|| format!("No target named {name}"))?;
-        let run = Run::silent().with(move |e| {
+        let run = Self::run(steps);
+        self.stoppable(&run, || {
+            zootr::build::rebuild(target, config.game.as_deref(), &run).map(drop)
+        })
+    }
+
+    /// A run whose every step goes to `steps`.
+    fn run(steps: Channel<StepEvent>) -> Run {
+        Run::silent().with(move |e| {
             let _ = steps.send(e.clone());
-        });
+        })
+    }
+
+    /// Do `work` as `run`, which Stop Generate stops until it ends.
+    fn stoppable<T>(
+        &self,
+        run: &Run,
+        work: impl FnOnce() -> anyhow::Result<T>,
+    ) -> anyhow::Result<T> {
         *self.stop.lock().unwrap() = Some(run.stopper());
-        let done = zootr::build::rebuild(target, config.game.as_deref(), &run).map(drop);
+        let done = work();
         run.end(&done);
         *self.stop.lock().unwrap() = None;
         done

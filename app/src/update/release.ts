@@ -85,17 +85,28 @@ export async function fetchLatest(repo: string): Promise<Release | null> {
 /** How many releases one page of the changelog holds. */
 export const PAGE = 10;
 
-/** Page `page` (from 1) of `repo`'s published releases, newest first.
- * Drafts and prereleases are left out. Throws when the request fails. */
+/** One page of the changelog. */
+export interface ReleasePage {
+  /** Its published releases, newest first. */
+  releases: Release[];
+  /** Whether GitHub gave a full page, so an older one may follow. */
+  more: boolean;
+}
+
+/** Page `page` (from 1) of `repo`'s releases. Drafts and prereleases are
+ * left out, after `more` counts them. Throws when the request fails. */
 export async function fetchReleases(
   repo: string,
   page: number,
-): Promise<Release[]> {
+): Promise<ReleasePage> {
   const list = await ask(repo, `releases?per_page=${PAGE}&page=${page}`);
   if (!Array.isArray(list)) throw new Error("Not a list of releases");
-  return list
-    .filter((r) => !r?.draft && !r?.prerelease)
-    .map((r) => toRelease(repo, r));
+  return {
+    releases: list
+      .filter((r) => !r?.draft && !r?.prerelease)
+      .map((r) => toRelease(repo, r)),
+    more: list.length === PAGE,
+  };
 }
 
 /** An ISO 8601 date, as "Nov 21, 2026". */

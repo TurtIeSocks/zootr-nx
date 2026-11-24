@@ -8,10 +8,11 @@
 //! 5. The string pool, then the relocation table listing every pointer.
 
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 use super::{
-    ACTOR_LEN, Actor, ENTRY_POINT_LEN, EVENT_LEN, EntryPoint, Event, EventKind, Flowchart, MAGIC,
-    NONE, Params, VERSION, Value,
+    ACTOR_LEN, Actor, ENTRY_MAIN, ENTRY_POINT_LEN, EVENT_LEN, EntryPoint, Event, EventKind,
+    Flowchart, MAGIC, NONE, Params, VERSION, Value, ev,
 };
 
 const HEADER_LEN: usize = 0x48;
@@ -136,6 +137,7 @@ impl Out {
 
     fn value(&mut self, v: &Value) {
         // Single values and arrays share a variant: one item is a single.
+        // So a one-item array reads back as a single, and writes the same.
         let kind = |single: u8, n: usize| if n == 1 { single } else { single + 5 };
         let words = |o: &mut Self, single, w: Vec<u32>| {
             let at = o.header(kind(single, w.len()), w.len(), w.len() * 4);
@@ -154,14 +156,16 @@ impl Out {
             ),
             Value::Float(v) => words(self, 4, v.iter().map(|f| f.to_bits()).collect()),
             Value::Argument(s) => self.strings(0, 1, &[s]),
-            Value::String(v) => {
-                self.strings(kind(5, v.len()), v.len(), &v.iter().collect::<Vec<_>>())
-            }
+            Value::String(v) => self.strings(
+                kind(5, v.len()),
+                v.len(),
+                &v.iter().map(String::as_str).collect::<Vec<_>>(),
+            ),
             Value::ActorId { name, secondary } => self.strings(12, 2, &[name, secondary]),
         }
     }
 
-    fn strings(&mut self, kind: u8, n: usize, list: &[&String]) {
+    fn strings(&mut self, kind: u8, n: usize, list: &[&str]) {
         let at = self.header(kind, n, list.len() * 8);
         for (i, s) in list.iter().enumerate() {
             self.inline(at + 0x10 + i * 8, s);
@@ -183,6 +187,10 @@ fn bit(s: &[u8], i: u32) -> bool {
 }
 
 /// The `DIC ` radix tree over `names`, root first.
+///
+/// # Panics
+///
+/// On a duplicate or empty name: the tree can't tell it apart.
 fn dic_tree(names: &[&str]) -> Vec<Node> {
     // (bit, children, name); the root's bit is -1 so it sorts first.
     let mut nodes: Vec<(i64, [usize; 2], &[u8])> = vec![(-1, [0, 0], b"")];
@@ -198,7 +206,10 @@ fn dic_tree(names: &[&str]) -> Vec<Node> {
             (p, x)
         };
         let closest = nodes[descend(i64::MAX).1].2;
-        let diff = (0..).find(|&i| bit(key, i) != bit(closest, i)).unwrap();
+        let bits = 8 * key.len().max(closest.len()) as u32;
+        let diff = (0..bits)
+            .find(|&i| bit(key, i) != bit(closest, i))
+            .unwrap_or_else(|| panic!("duplicate or empty DIC name {name:?}"));
         let (p, x) = descend(diff.into());
         let children = if bit(key, diff) { [x, n] } else { [n, x] };
         nodes.push((diff.into(), children, key));
@@ -217,6 +228,11 @@ fn dic_tree(names: &[&str]) -> Vec<Node> {
 
 impl Flowchart {
     /// The file `parse` read, with any edits made since.
+    ///
+    /// # Panics
+    ///
+    /// When a parameter container or the entry points hold a duplicate or
+    /// empty name.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut o = Out::default();
         let h = o.reserve(HEADER_LEN);
@@ -306,7 +322,7 @@ impl Out {
     fn entry_point(&mut self, at: usize, ep: &EntryPoint, calls: &[u16]) {
         self.u16(at + 0x18, calls.len() as u16);
         self.u16(at + 0x1A, ep.vars.len() as u16);
-        self.index(at + 0x1C, ep.main);
+        self.index(at + ENTRY_MAIN, ep.main);
         self.align(8);
         self.here_unless(at, calls.is_empty());
         for &e in calls {
@@ -321,25 +337,26 @@ impl Out {
             self.here(at + 8);
             self.dic(ep.vars.iter().map(|(n, _)| n.as_str()));
             self.here(at + 0x10);
-            ep.vars.iter().for_each(|(_, raw)| self.buf.extend(raw));
+            for (_, raw) in &ep.vars {
+                self.buf.extend(raw);
+            }
         }
     }
 
     fn event(&mut self, at: usize, e: &Event) {
         self.name(at, &e.name);
-        let kind = |o: &mut Self, k: u8| o.buf[at + 8] = k;
-        match &e.kind {
+        let kind = match &e.kind {
             EventKind::Action {
                 next,
                 actor,
                 action,
                 params,
             } => {
-                kind(self, 0);
-                self.index(at + 0xA, *next);
-                self.u16(at + 0xC, *actor);
-                self.u16(at + 0xE, *action);
-                self.params(at + 0x10, params);
+                self.index(at + ev::NEXT, *next);
+                self.u16(at + ev::ACTOR, *actor);
+                self.u16(at + ev::CALL, *action);
+                self.params(at + ev::PARAMS, params);
+                ev::ACTION
             }
             EventKind::Switch {
                 actor,
@@ -347,25 +364,25 @@ impl Out {
                 params,
                 cases,
             } => {
-                kind(self, 1);
-                self.u16(at + 0xC, *actor);
-                self.u16(at + 0xE, *query);
+                self.u16(at + ev::ACTOR, *actor);
+                self.u16(at + ev::CALL, *query);
                 self.cases(at, cases);
-                self.params(at + 0x10, params);
+                self.params(at + ev::PARAMS, params);
+                ev::SWITCH
             }
             EventKind::Fork { join, branches } => {
-                kind(self, 2);
-                self.u16(at + 0xA, branches.len() as u16);
-                self.u16(at + 0xC, *join);
+                self.u16(at + ev::COUNT, branches.len() as u16);
+                self.u16(at + ev::JOIN, *join);
                 self.align(8);
-                self.here(at + 0x10);
+                self.here(at + ev::BRANCHES);
                 for &b in branches {
                     self.buf.extend(b.to_le_bytes());
                 }
+                ev::FORK
             }
             EventKind::Join { next } => {
-                kind(self, 3);
-                self.index(at + 0xA, *next);
+                self.index(at + ev::NEXT, *next);
+                ev::JOIN_KIND
             }
             EventKind::SubFlow {
                 next,
@@ -373,11 +390,11 @@ impl Out {
                 flowchart,
                 entry_point,
             } => {
-                kind(self, 4);
-                self.index(at + 0xA, *next);
-                self.params(at + 0x10, params);
-                self.name(at + 0x18, flowchart);
-                self.name(at + 0x20, entry_point);
+                self.index(at + ev::NEXT, *next);
+                self.params(at + ev::PARAMS, params);
+                self.name(at + ev::SUB_FLOWCHART, flowchart);
+                self.name(at + ev::SUB_ENTRY, entry_point);
+                ev::SUB_FLOW
             }
             EventKind::SubFlowSwitch {
                 params,
@@ -385,23 +402,24 @@ impl Out {
                 entry_point,
                 cases,
             } => {
-                kind(self, 5);
                 self.cases(at, cases);
-                self.params(at + 0x10, params);
-                self.name(at + 0x20, flowchart);
-                self.name(at + 0x28, entry_point);
+                self.params(at + ev::PARAMS, params);
+                self.name(at + ev::SWITCH_FLOWCHART, flowchart);
+                self.name(at + ev::SWITCH_ENTRY, entry_point);
+                ev::SUB_FLOW_SWITCH
             }
             EventKind::Return { code } => {
-                kind(self, 6);
-                self.u32(at + 0xC, *code);
+                self.u32(at + ev::CODE, *code);
+                ev::RETURN
             }
-        }
+        };
+        self.buf[at + ev::KIND] = kind;
     }
 
     fn cases(&mut self, event: usize, cases: &[(u32, u16)]) {
-        self.u16(event + 0xA, cases.len() as u16);
+        self.u16(event + ev::COUNT, cases.len() as u16);
         self.align(8);
-        self.here_unless(event + 0x18, cases.is_empty());
+        self.here_unless(event + ev::CASES, cases.is_empty());
         let at = self.reserve(cases.len() * 8);
         for (i, &(value, to)) in cases.iter().enumerate() {
             self.u32(at + i * 8, value);
@@ -420,9 +438,9 @@ impl Out {
             .chain(names.iter().map(|(_, s)| s.as_str()));
         let mut offsets = HashMap::new();
         for s in all {
-            if !offsets.contains_key(s) {
+            if let Entry::Vacant(slot) = offsets.entry(s) {
                 self.align(2);
-                offsets.insert(s, self.pos());
+                slot.insert(self.pos());
                 self.buf.extend((s.len() as u16).to_le_bytes());
                 self.buf.extend(s.as_bytes());
                 self.buf.push(0);
@@ -485,5 +503,17 @@ mod tests {
             }
             assert_eq!(x, i, "{name}");
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "duplicate or empty DIC name")]
+    fn a_duplicate_name_panics_instead_of_spinning() {
+        dic_tree(&["Walk", "Walk"]);
+    }
+
+    #[test]
+    #[should_panic(expected = "duplicate or empty DIC name")]
+    fn an_empty_name_panics_instead_of_spinning() {
+        dic_tree(&[""]);
     }
 }

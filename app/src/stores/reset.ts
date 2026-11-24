@@ -1,4 +1,6 @@
 import type { StoreApi } from "zustand";
+import * as ap from "@/stores/ap";
+import * as appLog from "@/stores/app-log";
 import * as checks from "@/stores/checks";
 import * as config from "@/stores/config";
 import * as dev from "@/stores/dev";
@@ -7,6 +9,7 @@ import * as live from "@/stores/live";
 import * as seeds from "@/stores/seeds";
 import { useShell } from "@/stores/shell";
 import { useUi } from "@/stores/ui";
+import * as update from "@/stores/update";
 
 const reset =
   <T>(
@@ -29,6 +32,9 @@ const RESETS = [
   reset(checks.useChecks, checks.stop),
   reset(useShell),
   reset(dev.useDev, dev.stop),
+  reset(ap.useAp, ap.stop),
+  reset(appLog.useAppLog, appLog.stop),
+  reset(update.useUpdate, update.stop),
 ];
 
 export function resetStores() {

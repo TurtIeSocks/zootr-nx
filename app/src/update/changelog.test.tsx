@@ -23,7 +23,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  useUpdate.setState({ latest: null, current: null });
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -53,6 +52,18 @@ test("the changelog fetches nothing until opened, then a page at a time", async 
   expect(
     screen.queryByRole("button", { name: "Load Older Releases" }),
   ).toBeNull();
+});
+
+test("a full page with a prerelease still offers older releases", async () => {
+  const first = releases(20, PAGE);
+  first[1] = { ...first[1], prerelease: true } as (typeof first)[number];
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(page(first)));
+  render(<ChangelogButton />);
+  fireEvent.click(screen.getByRole("button", { name: "Changelog" }));
+  expect(
+    await screen.findByRole("button", { name: "Load Older Releases" }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /v0\.19\.0/ })).toBeNull();
 });
 
 test("the changelog says when it can't reach GitHub", async () => {

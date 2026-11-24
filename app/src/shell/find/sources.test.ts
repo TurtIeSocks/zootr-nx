@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import type { Row, SettingDef, Summary } from "@/bindings";
 import { GROUP_HELP, TOPICS } from "@/help/topics";
 import { APP_FIELDS } from "@/settings/app-fields";
@@ -19,6 +19,12 @@ vi.mock("@/shell/find/reveal", async (real) => ({
   ...(await real<typeof import("@/shell/find/reveal")>()),
   reveal: vi.fn(),
 }));
+
+// Restored even when an assertion fails, so fake timers never leak on.
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 const def = (over: Partial<SettingDef> = {}): SettingDef => ({
   id: "fake-cows",
@@ -152,8 +158,6 @@ test("opening a setting opens its page and its closed section", () => {
   expect(useUi.getPath("tab")).toBe("Settings");
   expect(useUi.getPath("section")).toBe("Shuffles");
   expect(useUi.getPath("settings.closed")).toEqual(["Other/x"]);
-  vi.clearAllTimers();
-  vi.useRealTimers();
 });
 
 test("a blocked action greys out and says why; Stop shows only while generating", () => {

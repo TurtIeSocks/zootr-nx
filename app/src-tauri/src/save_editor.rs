@@ -19,48 +19,52 @@ use zootr::savefile::Edit;
 use zootr::settings::{NewGame, Settings};
 use zootr::starting::{self, Start};
 
-use crate::{Live, Res, blocking, romfs};
+use crate::{Live, Res, blocking, cached, romfs};
 
-/// The grid with no save loaded, and the pouch table, read once.
+/// The grid with no save loaded, and the pouch table.
+struct Grid {
+    inv: Inventory,
+    pouch: Pouch,
+}
+
+/// The [`Grid`], read once.
 #[derive(Default)]
-pub(crate) struct Layout(Mutex<Option<Arc<(Inventory, Pouch)>>>);
+pub(crate) struct Layout(Mutex<Option<Arc<Grid>>>);
 
-impl Layout {
-    fn get(&self, gd: &GameData, config: &Config) -> anyhow::Result<Arc<(Inventory, Pouch)>> {
-        let mut layout = self.0.lock().unwrap();
-        if layout.is_none() {
-            let romfs = romfs(config)?;
-            *layout = Some(Arc::new((
-                Inventory::new(gd, &romfs)?,
-                Pouch::load(&romfs)?,
-            )));
-        }
-        Ok(layout.clone().expect("just loaded"))
-    }
+/// The config, GameData and the layout.
+fn loaded(app: &AppHandle) -> anyhow::Result<(Config, Arc<GameData>, Arc<Grid>)> {
+    let config = Config::load()?;
+    let gd = app.state::<Live>().gamedata(&config)?;
+    let grid = cached(&app.state::<Layout>().0, || {
+        let romfs = romfs(&config)?;
+        Ok(Grid {
+            inv: Inventory::new(&gd, &romfs)?,
+            pouch: Pouch::load(&romfs)?,
+        })
+    })?;
+    Ok((config, gd, grid))
 }
 
 /// What every view needs: GameData, the layout, and the slot opened with
 /// the pending edits.
 struct Ready {
     gd: Arc<GameData>,
-    layout: Arc<(Inventory, Pouch)>,
+    grid: Arc<Grid>,
     opened: Opened,
 }
 
 fn ready(app: &AppHandle, slot: u8, pending: &Pending) -> anyhow::Result<Ready> {
-    let config = Config::load()?;
-    let gd = app.state::<Live>().gamedata(&config)?;
-    let layout = app.state::<Layout>().get(&gd, &config)?;
+    let (config, gd, grid) = loaded(app)?;
     let opened = editor::open(&gd, &config.save_dir()?, slot, pending)?;
-    Ok(Ready { gd, layout, opened })
+    Ok(Ready { gd, grid, opened })
 }
 
 /// Every slot holding a save, newest first.
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn save_slots(app: AppHandle) -> Res<Vec<SlotRow>> {
-    with_layout(app, |_, (inv, _)| {
-        editor::slots(inv, &Config::load()?.save_dir()?)
+    with_layout(app, |config, _, grid| {
+        editor::slots(&grid.inv, &config.save_dir()?)
     })
     .await
 }
@@ -91,7 +95,7 @@ pub(crate) fn save_presets() -> Vec<SavePreset> {
 pub(crate) async fn save_items(app: AppHandle, slot: u8, pending: Pending) -> Res<ItemsView> {
     blocking(move || {
         let r = ready(&app, slot, &pending)?;
-        Ok(editor::items(&r.gd, &r.layout.0, &r.layout.1, &r.opened))
+        Ok(editor::items(&r.gd, &r.grid.inv, &r.grid.pouch, &r.opened))
     })
     .await
 }
@@ -101,8 +105,9 @@ pub(crate) async fn save_items(app: AppHandle, slot: u8, pending: Pending) -> Re
 #[tauri::command]
 #[specta::specta]
 pub(crate) async fn save_stage(app: AppHandle, slot: u8, pending: Pending) -> Res<Staged> {
-    with_layout(app, move |gd, (inv, pouch)| {
-        editor::stage(gd, inv, pouch, &Config::load()?.save_dir()?, slot, &pending)
+    with_layout(app, move |config, gd, grid| {
+        let dir = config.save_dir()?;
+        editor::stage(gd, &grid.inv, &grid.pouch, &dir, slot, &pending)
     })
     .await
 }
@@ -119,7 +124,7 @@ pub(crate) async fn save_click(
 ) -> Res<Vec<Edit>> {
     blocking(move || {
         let r = ready(&app, slot, &pending)?;
-        editor::click(&r.layout.0, &r.layout.1, &r.opened, at as usize, intent)
+        editor::click(&r.grid.inv, &r.grid.pouch, &r.opened, at as usize, intent)
     })
     .await
 }
@@ -135,9 +140,9 @@ pub(crate) async fn start_items(
     given: Vec<Vec<String>>,
     settings: Settings,
 ) -> Res<ItemsView> {
-    with_layout(app, move |gd, (inv, pouch)| {
-        let pouch = seeded(pouch, &settings)?;
-        starting::view(gd, inv, &pouch, &start, &given)
+    with_layout(app, move |_, gd, grid| {
+        let pouch = seeded(&grid.pouch, &settings)?;
+        starting::view(gd, &grid.inv, &pouch, &start, &given)
     })
     .await
 }
@@ -152,9 +157,9 @@ pub(crate) async fn start_click(
     intent: Intent,
     settings: Settings,
 ) -> Res<Start> {
-    with_layout(app, move |gd, (inv, pouch)| {
-        let pouch = seeded(pouch, &settings)?;
-        starting::click(gd, inv, &pouch, &start, at as usize, intent)
+    with_layout(app, move |_, gd, grid| {
+        let pouch = seeded(&grid.pouch, &settings)?;
+        starting::click(gd, &grid.inv, &pouch, &start, at as usize, intent)
     })
     .await
 }
@@ -176,16 +181,14 @@ pub(crate) fn start_arsenal(mut start: Start) -> Res<Start> {
     Ok(start)
 }
 
-/// `f` with GameData and the layout, off the main thread.
+/// `f` with the config, GameData and the layout, off the main thread.
 async fn with_layout<T: Send + 'static>(
     app: AppHandle,
-    f: impl FnOnce(&GameData, &(Inventory, Pouch)) -> anyhow::Result<T> + Send + 'static,
+    f: impl FnOnce(&Config, &GameData, &Grid) -> anyhow::Result<T> + Send + 'static,
 ) -> Res<T> {
     blocking(move || {
-        let config = Config::load()?;
-        let gd = app.state::<Live>().gamedata(&config)?;
-        let layout = app.state::<Layout>().get(&gd, &config)?;
-        f(&gd, &layout)
+        let (config, gd, grid) = loaded(&app)?;
+        f(&config, &gd, &grid)
     })
     .await
 }

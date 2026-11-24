@@ -86,7 +86,7 @@ impl Checks {
             *tracker = Some((id, t));
         }
         let (_, t) = tracker.as_ref().expect("just built");
-        let gd = app.state::<Live>().gd.lock().unwrap().clone();
+        let gd = app.state::<Live>().loaded();
         let entry = history.get(id)?;
         Ok(ChecksState {
             id: Some(id),

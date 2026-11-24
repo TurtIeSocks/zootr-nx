@@ -47,13 +47,52 @@ impl tauri_specta::Event for ApEvent {
 
 /// The running client: what stops it, and what the page shows.
 #[derive(Default)]
-pub(crate) struct Ap(Mutex<(Option<Sender<()>>, ApState)>);
+pub(crate) struct Ap(Mutex<Held>);
+
+#[derive(Default)]
+struct Held {
+    /// Dropped to stop the running client.
+    stop: Option<Sender<()>>,
+    /// The latest run's number. A run stopped by Disconnect can still be
+    /// winding down when the next one starts, and must leave it alone.
+    run: u64,
+    state: ApState,
+}
 
 impl Ap {
+    /// Start a run stopped by dropping `stop`, its number, unless one is
+    /// running.
+    fn start(&self, stop: Sender<()>) -> Res<u64> {
+        let mut held = self.0.lock().unwrap();
+        if held.stop.is_some() {
+            return Err("The client is already running".into());
+        }
+        held.run += 1;
+        held.stop = Some(stop);
+        held.state.log.clear();
+        Ok(held.run)
+    }
+
+    /// Whether `run` is the latest one.
+    fn current(&self, run: u64) -> bool {
+        self.0.lock().unwrap().run == run
+    }
+
+    /// `run` ended: whether it was refused, or `None` when a newer run
+    /// owns the page now.
+    fn finish(&self, run: u64) -> Option<bool> {
+        let mut held = self.0.lock().unwrap();
+        if held.run != run {
+            return None;
+        }
+        held.stop = None;
+        Some(held.state.status == ApStatus::Refused)
+    }
+
     /// Keep and send a status, and a line when there is one.
     fn say(&self, app: &AppHandle, status: Option<ApStatus>, line: Option<String>) {
         let mut held = self.0.lock().unwrap();
-        let state = &mut held.1;
+        let state = &mut held.state;
         state.status = status.unwrap_or(state.status);
         if let Some(l) = &line {
             state.log.push(l.clone());
@@ -82,7 +121,7 @@ impl Ap {
 #[tauri::command]
 #[specta::specta]
 pub(crate) fn ap_state(app: AppHandle) -> ApState {
-    app.state::<Ap>().0.lock().unwrap().1.clone()
+    app.state::<Ap>().0.lock().unwrap().state.clone()
 }
 
 /// Connect the running game to `server` as the installed seed's slot. It
@@ -102,16 +141,8 @@ pub(crate) async fn ap_connect(
         client::installed(&romfs(&config)?, gd, target)
     })
     .await?;
-    let ap = app.state::<Ap>();
     let (send, stop) = channel();
-    {
-        let mut held = ap.0.lock().unwrap();
-        if held.0.is_some() {
-            return Err("The client is already running".into());
-        }
-        held.0 = Some(send);
-        held.1.log.clear();
-    }
+    let run = app.state::<Ap>().start(send)?;
     let room = Room {
         server,
         slot: parts.slot.clone(),
@@ -120,11 +151,11 @@ pub(crate) async fn ap_connect(
     std::thread::spawn(move || {
         let ap = app.state::<Ap>();
         client::run(&room, &parts.book, &mut parts.game, &stop, &mut |n| {
-            ap.note(&app, &n)
+            if ap.current(run) {
+                ap.note(&app, &n);
+            }
         });
-        let refused = ap.0.lock().unwrap().1.status == ApStatus::Refused;
-        ap.0.lock().unwrap().0 = None;
-        if !refused {
+        if ap.finish(run) == Some(false) {
             ap.say(&app, Some(ApStatus::Offline), Some("disconnected".into()));
         }
     });
@@ -135,7 +166,7 @@ pub(crate) async fn ap_connect(
 #[specta::specta]
 pub(crate) fn ap_disconnect(app: AppHandle) {
     // Dropping the sender stops the client at its next look.
-    app.state::<Ap>().0.lock().unwrap().0 = None;
+    app.state::<Ap>().0.lock().unwrap().stop = None;
 }
 
 /// This build's znx.apworld, or empty when it has none (see build.rs).
@@ -156,4 +187,30 @@ pub(crate) fn save_apworld(path: String) -> Res<()> {
         return Err("This build has no znx.apworld".into());
     }
     std::fs::write(&path, APWORLD).map_err(|e| format!("Couldn't save {path}: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_stopped_run_winding_down_leaves_the_next_one_alone() {
+        let ap = Ap::default();
+        let (send, _old) = channel();
+        let old = ap.start(send).unwrap();
+        let (send, _) = channel();
+        assert!(ap.start(send).is_err(), "one run at a time");
+        ap.0.lock().unwrap().stop = None;
+        let (send, new_stop) = channel();
+        let new = ap.start(send).unwrap();
+        assert!(!ap.current(old) && ap.current(new));
+        assert_eq!(ap.finish(old), None);
+        assert!(
+            ap.0.lock().unwrap().stop.is_some(),
+            "the new run still runs"
+        );
+        drop(new_stop);
+        assert_eq!(ap.finish(new), Some(false));
+        assert!(ap.0.lock().unwrap().stop.is_none());
+    }
 }

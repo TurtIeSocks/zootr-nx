@@ -102,6 +102,34 @@ fn rejects_an_unknown_codec() {
 }
 
 #[test]
+fn rejects_node_counts_that_overflow() {
+    let mut bytes = base(&[("romfs/a.txt", b"hi")]);
+    bytes[0x88..0x90].copy_from_slice(&u64::MAX.to_le_bytes());
+    fixture::rehash(&mut bytes);
+    assert!(matches!(open("counts", &bytes), Err(Error::Corrupt(_))));
+}
+
+#[test]
+fn rejects_a_node_listed_twice_or_a_listed_root() {
+    // The tree is root (0) -> romfs (1) -> a (2), and the child slots
+    // follow the file records. Point a's slot at romfs, then at the root.
+    for (id, name) in [(1u32, "twice"), (0, "root")] {
+        let mut bytes = base(&[("romfs/a", b"hi")]);
+        let slots = fixture::file_record(&bytes, 1);
+        let at = (slots..)
+            .step_by(4)
+            .find(|&at| bytes[at..at + 4] == 2u32.to_le_bytes())
+            .unwrap();
+        bytes[at..at + 4].copy_from_slice(&id.to_le_bytes());
+        fixture::rehash(&mut bytes);
+        assert!(
+            matches!(open(name, &bytes), Err(Error::Corrupt(_))),
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn rejects_reserved_kinds() {
     for kind in [3, 4, 9] {
         let bytes = fixture::build(&[Package {
@@ -125,6 +153,21 @@ fn rejects_a_bad_file_hash() {
     fixture::rehash(&mut bytes);
     let nup = open("file-hash", &bytes).unwrap();
     assert!(matches!(nup.read(file(&nup, "a.txt")), Err(Error::Hash(_))));
+}
+
+#[test]
+fn stops_decoding_past_the_recorded_size() {
+    let mut bytes = base(&[("romfs/big.bin", BIG)]);
+    let at = fixture::file_record(&bytes, 0) + 0x08;
+    bytes[at..at + 8].copy_from_slice(&10u64.to_le_bytes());
+    fixture::rehash(&mut bytes);
+    let nup = open("bomb", &bytes).unwrap();
+    let mut out = Vec::new();
+    assert!(matches!(
+        nup.copy(file(&nup, "big.bin"), &mut out),
+        Err(Error::Hash(_))
+    ));
+    assert!(out.len() <= 10, "{} bytes written", out.len());
 }
 
 #[test]

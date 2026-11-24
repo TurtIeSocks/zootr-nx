@@ -10,6 +10,7 @@ use texture2ddecoder as tex;
 
 use crate::blocks::{self, Rgba};
 use crate::par::par_map;
+use crate::reader::Reader;
 
 #[derive(Clone)]
 pub struct Texture {
@@ -28,12 +29,13 @@ pub fn textures(data: &[u8]) -> Result<Vec<Texture>> {
 /// what's wanted from it.
 pub fn textures_named(data: &[u8], keep: impl Fn(&str) -> bool) -> Result<Vec<Texture>> {
     ensure!(data.get(..4) == Some(b"BNTX"), "not a BNTX file");
-    let count = u32_at(data, 0x24)? as usize;
-    let infos = u64_at(data, 0x28)?;
+    let r = Reader(data);
+    let count = r.offset(0x24)?;
+    let infos = r.ptr(0x28)?;
     let mut out = Vec::new();
     for i in 0..count {
-        let brti = u64_at(data, infos + i * 8)?;
-        if keep(&string(data, u64_at(data, brti + 0x60)?)?) {
+        let brti = r.ptr(infos + i * 8)?;
+        if keep(&string(data, r.ptr(brti + 0x60)?)?) {
             out.push(texture(data, brti)?);
         }
     }
@@ -75,28 +77,37 @@ impl Info {
             data.get(brti..brti + 4) == Some(b"BRTI"),
             "no BRTI at {brti:#x}"
         );
-        let field = |off| u32_at(data, brti + off);
-        let levels = u16::from_le_bytes([data[brti + 0x16], data[brti + 0x17]]) as usize;
-        let offsets = u64_at(data, brti + 0x70)?;
-        let level_starts = (0..levels.max(1))
-            .map(|i| u64_at(data, offsets + 8 * i))
+        let r = Reader(data);
+        let field = |off| r.offset(brti + off);
+        let levels = (r.u16(brti + 0x16)? as usize).max(1);
+        let offsets = r.ptr(brti + 0x70)?;
+        let level_starts = (0..levels)
+            .map(|i| r.ptr(offsets + 8 * i))
             .collect::<Result<Vec<_>>>()?;
+        let format = r.u32(brti + 0x1c)?;
+        let gobs = r.u32(brti + 0x34)?;
         Ok(Self {
-            name: string(data, u64_at(data, brti + 0x60)?)?,
-            format: field(0x1c)?,
-            width: field(0x24)? as usize,
-            height: field(0x28)? as usize,
-            levels: levels.max(1),
-            block_height: 1 << field(0x34)?,
-            size: field(0x50)? as usize,
+            name: string(data, r.ptr(brti + 0x60)?)?,
+            format,
+            width: field(0x24)?,
+            height: field(0x28)?,
+            levels,
+            block_height: 1usize
+                .checked_shl(gobs)
+                .with_context(|| format!("a block height of 2^{gobs} GOBs"))?,
+            size: field(0x50)?,
             start: level_starts[0],
             level_starts,
         })
     }
 
+    fn kind(&self) -> Result<Kind> {
+        Kind::of(self.format)
+    }
+
     /// Level `i`'s size in texels, its block height in GOBs and its bytes.
     fn level(&self, i: usize) -> Result<(usize, usize, usize, usize)> {
-        let (bw, bh, unit) = block(self.format)?;
+        let (bw, bh, unit) = self.kind()?.block();
         let (w, h) = ((self.width >> i).max(1), (self.height >> i).max(1));
         let rows = h.div_ceil(bh);
         let mut gobs = self.block_height;
@@ -111,29 +122,25 @@ impl Info {
 
 /// One level's swizzled `raw` bytes, decoded to row-major RGBA8.
 fn decode(info: &Info, raw: &[u8], width: usize, height: usize, gobs: usize) -> Result<Vec<u8>> {
-    let (format, name) = (info.format, &info.name);
-    let (bw, bh, bytes) = block(format)?;
+    let kind = info.kind()?;
+    let (bw, bh, bytes) = kind.block();
     let (cols, rows) = (width.div_ceil(bw), height.div_ceil(bh));
     let linear = deswizzle(raw, cols * bytes, rows, bytes, gobs)?;
     let mut pixels = vec![0u32; width * height];
-    let decoded = match format >> 8 {
-        0x0b => return Ok(linear[..width * height * 4].to_vec()),
-        0x1a => tex::decode_bc1(&linear, width, height, &mut pixels),
-        0x1b => tex::decode_bc2(&linear, width, height, &mut pixels),
-        0x1c => tex::decode_bc3(&linear, width, height, &mut pixels),
-        0x1d => tex::decode_bc4(&linear, width, height, &mut pixels),
-        0x1e => tex::decode_bc5(&linear, width, height, &mut pixels),
-        0x20 => tex::decode_bc7(&linear, width, height, &mut pixels),
-        _ => tex::decode_astc(&linear, width, height, bw, bh, &mut pixels),
+    let decoded = match kind {
+        Kind::Rgba8 => return Ok(linear[..width * height * 4].to_vec()),
+        Kind::Bc1 => tex::decode_bc1(&linear, width, height, &mut pixels),
+        Kind::Bc2 => tex::decode_bc2(&linear, width, height, &mut pixels),
+        Kind::Bc3 => tex::decode_bc3(&linear, width, height, &mut pixels),
+        Kind::Bc4 => tex::decode_bc4(&linear, width, height, &mut pixels),
+        Kind::Bc5 => tex::decode_bc5(&linear, width, height, &mut pixels),
+        Kind::Bc7 => tex::decode_bc7(&linear, width, height, &mut pixels),
+        Kind::Astc(..) => tex::decode_astc(&linear, width, height, bw, bh, &mut pixels),
     };
-    decoded.map_err(|e| anyhow::anyhow!("{name}: {e}"))?;
-    // The decoder packs BGRA into each little-endian u32.
+    decoded.map_err(|e| anyhow::anyhow!("{}: {e}", info.name))?;
     Ok(pixels
         .iter()
-        .flat_map(|p| {
-            let [b, g, r, a] = p.to_le_bytes();
-            [r, g, b, a]
-        })
+        .flat_map(|&p| blocks::from_packed(p))
         .collect())
 }
 
@@ -163,7 +170,8 @@ fn level(data: &[u8], info: &Info, i: usize) -> Result<Texture> {
 
 fn first(data: &[u8]) -> Result<usize> {
     ensure!(data.get(..4) == Some(b"BNTX"), "not a BNTX file");
-    u64_at(data, u64_at(data, 0x28)?)
+    let r = Reader(data);
+    r.ptr(r.ptr(0x28)?)
 }
 
 /// A file's first texture's format, as its BRTI stores it.
@@ -171,14 +179,68 @@ pub fn format(data: &[u8]) -> Result<u32> {
     Ok(Info::read(data, first(data)?)?.format)
 }
 
-/// Format kinds, a format's high byte.
-const BC1: u32 = 0x1a;
-const BC4: u32 = 0x1d;
+/// A texture format's kind, its high byte: what decodes it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Kind {
+    Rgba8,
+    Bc1,
+    Bc2,
+    Bc3,
+    Bc4,
+    Bc5,
+    Bc7,
+    /// ASTC, by its block's width and height.
+    Astc(usize, usize),
+}
+
+impl Kind {
+    fn of(format: u32) -> Result<Self> {
+        const ASTC: [(usize, usize); 14] = [
+            (4, 4),
+            (5, 4),
+            (5, 5),
+            (6, 5),
+            (6, 6),
+            (8, 5),
+            (8, 6),
+            (8, 8),
+            (10, 5),
+            (10, 6),
+            (10, 8),
+            (10, 10),
+            (12, 10),
+            (12, 12),
+        ];
+        Ok(match format >> 8 {
+            0x0b => Kind::Rgba8,
+            0x1a => Kind::Bc1,
+            0x1b => Kind::Bc2,
+            0x1c => Kind::Bc3,
+            0x1d => Kind::Bc4,
+            0x1e => Kind::Bc5,
+            0x20 => Kind::Bc7,
+            f @ 0x2d..=0x3a => {
+                let (w, h) = ASTC[f as usize - 0x2d];
+                Kind::Astc(w, h)
+            }
+            _ => bail!("texture format {format:#06x} isn't decoded"),
+        })
+    }
+
+    /// Block width, height and bytes per block.
+    fn block(self) -> (usize, usize, usize) {
+        match self {
+            Kind::Rgba8 => (1, 1, 4),
+            Kind::Bc1 | Kind::Bc4 => (4, 4, 8),
+            Kind::Bc2 | Kind::Bc3 | Kind::Bc5 | Kind::Bc7 => (4, 4, 16),
+            Kind::Astc(w, h) => (w, h, 16),
+        }
+    }
+}
 
 /// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1 or BC4.
 pub fn redraws(format: u32) -> bool {
-    let kind = format >> 8;
-    kind == BC1 || kind == BC4 || (0x2d..=0x3a).contains(&kind)
+    matches!(Kind::of(format), Ok(Kind::Bc1 | Kind::Bc4 | Kind::Astc(..)))
 }
 
 /// A file of one texture with its texels redrawn from `rgba`, its first
@@ -236,15 +298,20 @@ fn redraw_key(data: &[u8], rgba: &[u8], kept: &[bool]) -> [u64; 2] {
 /// row-major.
 fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8>> {
     let (width, height) = (info.width, info.height);
-    let (bw, bh, unit) = block(info.format)?;
-    let kind = info.format >> 8;
+    let kind = info.kind()?;
+    let (bw, bh, unit) = kind.block();
     ensure!(
         redraws(info.format),
         "{}: only ASTC, BC1 and BC4 are redrawn",
         info.name
     );
+    ensure!(
+        info.start + info.size <= data.len(),
+        "{}: texture data past the end",
+        info.name
+    );
     let mut out = data.to_vec();
-    let mut image: Vec<Rgba> = rgba.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]).collect();
+    let mut image = blocks::texels(rgba);
     for i in 0..info.levels {
         let (w, h, gobs, bytes) = info.level(i)?;
         let at = info.level_starts[i];
@@ -291,11 +358,12 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
                 })
                 .collect();
             Some(match kind {
-                BC1 => blocks::bc1(&texels).to_vec(),
-                BC4 => {
+                Kind::Bc1 => blocks::bc1(&texels).to_vec(),
+                Kind::Bc4 => {
                     let red: [u8; 16] = std::array::from_fn(|t| texels[t][0]);
                     blocks::bc4(&red).to_vec()
                 }
+                // ASTC, the one kind left that `redraws` takes.
                 _ => blocks::astc(&texels, bw, bh).to_vec(),
             })
         });
@@ -311,56 +379,25 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
 
 /// [`halve`] over row-major RGBA8 bytes.
 pub fn redraw_halve(rgba: &[u8], w: usize, h: usize) -> Vec<u8> {
-    let image: Vec<Rgba> = rgba.chunks(4).map(|c| [c[0], c[1], c[2], c[3]]).collect();
-    halve(&image, w, h).concat()
+    halve(&blocks::texels(rgba), w, h).concat()
 }
 
 /// `image` at half its size, each texel the average of the two by two it
-/// covers (or fewer at an odd edge).
+/// covers. An odd edge's last column or row is dropped; a one-texel edge
+/// repeats its texel.
 fn halve(image: &[Rgba], w: usize, h: usize) -> Vec<Rgba> {
     let (nw, nh) = ((w / 2).max(1), (h / 2).max(1));
     let mut out = Vec::with_capacity(nw * nh);
     for y in 0..nh {
         for x in 0..nw {
-            let near: Vec<Rgba> = [(0, 0), (1, 0), (0, 1), (1, 1)]
-                .iter()
-                .map(|(dx, dy)| ((2 * x + dx).min(w - 1), (2 * y + dy).min(h - 1)))
-                .map(|(x, y)| image[y * w + x])
-                .collect();
+            let near = [(0, 0), (1, 0), (0, 1), (1, 1)].map(|(dx, dy)| {
+                let (x, y) = ((2 * x + dx).min(w - 1), (2 * y + dy).min(h - 1));
+                image[y * w + x]
+            });
             out.push(blocks::average(&near));
         }
     }
     out
-}
-
-/// Block width, height and bytes per block for a format's high byte.
-fn block(format: u32) -> Result<(usize, usize, usize)> {
-    const ASTC: [(usize, usize); 14] = [
-        (4, 4),
-        (5, 4),
-        (5, 5),
-        (6, 5),
-        (6, 6),
-        (8, 5),
-        (8, 6),
-        (8, 8),
-        (10, 5),
-        (10, 6),
-        (10, 8),
-        (10, 10),
-        (12, 10),
-        (12, 12),
-    ];
-    Ok(match format >> 8 {
-        0x0b => (1, 1, 4),
-        0x1a | 0x1d => (4, 4, 8),
-        0x1b | 0x1c | 0x1e | 0x20 => (4, 4, 16),
-        f @ 0x2d..=0x3a => {
-            let (w, h) = ASTC[f as usize - 0x2d];
-            (w, h, 16)
-        }
-        _ => bail!("texture format {format:#06x} isn't decoded"),
-    })
 }
 
 /// Tegra block-linear to row-major. `row_bytes` is one row of blocks,
@@ -405,25 +442,9 @@ fn gob_offset(x: usize, y: usize) -> usize {
 
 /// A `_STR` entry: a u16 length, then the bytes.
 fn string(data: &[u8], at: usize) -> Result<String> {
-    let len = u16::from_le_bytes(
-        data.get(at..at + 2)
-            .context("name past the end")?
-            .try_into()?,
-    ) as usize;
-    let bytes = data
-        .get(at + 2..at + 2 + len)
-        .context("name past the end")?;
+    let r = Reader(data);
+    let bytes = r.bytes(at + 2, r.u16(at)? as usize)?;
     Ok(String::from_utf8_lossy(bytes).into_owned())
-}
-
-fn u32_at(data: &[u8], at: usize) -> Result<u32> {
-    Ok(u32::from_le_bytes(
-        data.get(at..at + 4).context("BNTX too short")?.try_into()?,
-    ))
-}
-
-fn u64_at(data: &[u8], at: usize) -> Result<usize> {
-    Ok(u64::from_le_bytes(data.get(at..at + 8).context("BNTX too short")?.try_into()?) as usize)
 }
 
 #[cfg(test)]
@@ -445,6 +466,23 @@ mod tests {
         assert_eq!(gob_address(0, 8, 4, 2), 512);
         assert_eq!(gob_address(64, 0, 4, 2), 1024);
         assert_eq!(gob_address(0, 16, 4, 2), 4096);
+    }
+
+    #[test]
+    fn kinds_name_their_blocks_and_which_redraw() {
+        assert_eq!(Kind::of(0x2d06).unwrap().block(), (4, 4, 16));
+        assert_eq!(Kind::of(0x3a06).unwrap().block(), (12, 12, 16));
+        assert_eq!(Kind::of(0x1a01).unwrap().block(), (4, 4, 8));
+        assert!(Kind::of(0x2101).is_err());
+        assert!(redraws(0x1d01) && redraws(0x3001) && !redraws(0x2001));
+    }
+
+    #[test]
+    fn halving_drops_an_odd_edge_and_repeats_a_thin_one() {
+        let px = |v: u8| [v, v, v, 255];
+        let image = [px(0), px(10), px(90), px(20), px(30), px(90)];
+        assert_eq!(halve(&image, 3, 2), [px(15)]);
+        assert_eq!(halve(&[px(8), px(4)], 1, 2), [px(6)]);
     }
 
     #[test]

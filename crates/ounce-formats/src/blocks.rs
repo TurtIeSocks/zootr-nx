@@ -9,6 +9,17 @@
 /// One RGBA8 texel.
 pub type Rgba = [u8; 4];
 
+/// A texel as the decoder packs it: BGRA in a little-endian u32.
+pub fn from_packed(p: u32) -> Rgba {
+    let [b, g, r, a] = p.to_le_bytes();
+    [r, g, b, a]
+}
+
+/// Row-major RGBA8 bytes as texels; a trailing partial texel is dropped.
+pub fn texels(rgba: &[u8]) -> Vec<Rgba> {
+    rgba.as_chunks::<4>().0.to_vec()
+}
+
 /// An ASTC block of one colour (the void-extent block): its mode bits and
 /// an extent of "none", then RGBA as 16-bit values.
 pub fn astc_solid(c: Rgba) -> [u8; 16] {
@@ -25,8 +36,14 @@ pub fn astc_solid(c: Rgba) -> [u8; 16] {
 const LUMINANCE_ALPHA: u32 = 4;
 const RGB: u32 = 8;
 const RGB_SCALE_ALPHA: u32 = 10;
-/// Bits before the endpoints: block mode, partition count, endpoint mode.
-const HEADER: usize = 17;
+/// Where a block's fields start, from bit 0: its 11-bit block mode, then
+/// (past a 2-bit partition count of one) its 4-bit endpoint mode, then the
+/// endpoints.
+const BLOCK_MODE: usize = 0;
+const BLOCK_MODE_BITS: usize = 11;
+const ENDPOINT_MODE: usize = 13;
+const ENDPOINT_MODE_BITS: usize = 4;
+const HEADER: usize = ENDPOINT_MODE + ENDPOINT_MODE_BITS;
 
 /// The ASTC block closest to `texels` (row-major, `w` by `h`): one colour,
 /// or two on whichever weight grid that fits decodes nearest.
@@ -47,9 +64,8 @@ fn error(block: &[u8; 16], texels: &[Rgba], w: usize, h: usize) -> u64 {
     }
     px.iter()
         .zip(texels)
-        .map(|(p, t)| {
-            let [b, g, r, a] = p.to_le_bytes();
-            [r, g, b, a]
+        .map(|(&p, t)| {
+            from_packed(p)
                 .iter()
                 .zip(t)
                 .map(|(x, y)| (x.abs_diff(*y) as u64).pow(2))
@@ -103,14 +119,14 @@ fn two_colour(texels: &[Rgba], w: usize, h: usize) -> impl Iterator<Item = [u8; 
             HEADER + n + endpoint_bits <= 128 && (24..=96).contains(&n)
         })
         .filter_map(move |(gw, gh, bits)| {
-            let block_mode = block_mode(gw, gh, bits)?;
+            let mode_bits = block_mode(gw, gh, bits)?;
             let levels = (1u32 << bits) - 1;
             // Each grid point takes the texel nearest it.
             let at =
                 |j: usize, grid: usize, size: usize| (j * (size - 1) + (grid - 1) / 2) / (grid - 1);
             let mut block = Bits::default();
-            block.put(0, 11, block_mode as u128);
-            block.put(13, 4, mode as u128);
+            block.put(BLOCK_MODE, BLOCK_MODE_BITS, mode_bits as u128);
+            block.put(ENDPOINT_MODE, ENDPOINT_MODE_BITS, mode as u128);
             for (i, v) in values.iter().enumerate() {
                 block.put(HEADER + 8 * i, 8, *v as u128);
             }
@@ -166,7 +182,7 @@ fn ends(texels: &[Rgba], channels: &[usize]) -> (Rgba, Rgba) {
         .collect();
     // Power iteration on the covariance, from the farthest texel.
     let far = (centred.iter())
-        .max_by(|a, b| norm(&a[..k]).total_cmp(&norm(&b[..k])))
+        .max_by(|a, b| norm_sq(&a[..k]).total_cmp(&norm_sq(&b[..k])))
         .copied()
         .unwrap_or_default();
     let mut axis = far;
@@ -178,7 +194,7 @@ fn ends(texels: &[Rgba], channels: &[usize]) -> (Rgba, Rgba) {
                 *n += along * v;
             }
         }
-        if norm(&next[..k]) == 0.0 {
+        if norm_sq(&next[..k]) == 0.0 {
             break;
         }
         axis = next;
@@ -229,7 +245,7 @@ fn dot(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }
 
-fn norm(a: &[f32]) -> f32 {
+fn norm_sq(a: &[f32]) -> f32 {
     dot(a, a)
 }
 
@@ -267,15 +283,15 @@ pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
     let mix = |wa: u32, wb: u32| -> [u32; 3] {
         std::array::from_fn(|i| (wa * a[i] + wb * b[i]) / (wa + wb))
     };
-    let palette = match c0 > c1 {
-        true => vec![a, b, mix(2, 1), mix(1, 2)],
-        false => vec![a, b, mix(1, 1)],
+    let (palette, colours) = match c0 > c1 {
+        true => ([a, b, mix(2, 1), mix(1, 2)], 4),
+        false => ([a, b, mix(1, 1), [0; 3]], 3),
     };
     let mut indices = 0u32;
     for (i, c) in texels.iter().enumerate() {
         let index = match c[3] < 128 {
             true => 3,
-            false => (0..palette.len())
+            false => (0..colours)
                 .min_by_key(|&p| {
                     (0..3)
                         .map(|k| (palette[p][k] as i32 - c[k] as i32).pow(2))
@@ -342,12 +358,7 @@ mod tests {
     fn decode_bc1(block: &[u8; 8]) -> Vec<Rgba> {
         let mut px = vec![0u32; 16];
         tex::decode_bc1a(block, 4, 4, &mut px).unwrap();
-        px.iter()
-            .map(|p| {
-                let [b, g, r, a] = p.to_le_bytes();
-                [r, g, b, a]
-            })
-            .collect()
+        px.into_iter().map(from_packed).collect()
     }
 
     #[test]
@@ -386,12 +397,7 @@ mod tests {
     fn decode(block: &[u8; 16], w: usize, h: usize) -> Vec<Rgba> {
         let mut px = vec![0u32; w * h];
         tex::decode_astc(block, w, h, w, h, &mut px).unwrap();
-        px.iter()
-            .map(|p| {
-                let [b, g, r, a] = p.to_le_bytes();
-                [r, g, b, a]
-            })
-            .collect()
+        px.into_iter().map(from_packed).collect()
     }
 
     fn worst(a: &[Rgba], b: &[Rgba]) -> u8 {

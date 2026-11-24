@@ -16,6 +16,7 @@ afterEach(() => vi.clearAllMocks());
 const fake = (version: string, events: DownloadEvent[] = [], fail = false) =>
   ({
     version,
+    close: vi.fn(async () => {}),
     downloadAndInstall: vi.fn(async (on?: (e: DownloadEvent) => void) => {
       for (const e of events) on?.(e);
       if (fail) throw new Error("signature mismatch");
@@ -27,9 +28,11 @@ test("installable gives the update whose version the notice names", async () => 
   vi.mocked(check).mockResolvedValue(update);
   expect(await installable("0.5.0")).toBe(update);
   expect(await installable("0.6.0")).toBeNull();
+  expect(update.close).toHaveBeenCalledTimes(1);
 });
 
 test("installable is null without an update or when the check fails", async () => {
+  vi.spyOn(console, "debug").mockImplementation(() => {});
   vi.mocked(check).mockResolvedValue(null);
   expect(await installable("0.5.0")).toBeNull();
   vi.mocked(check).mockRejectedValue(new Error("no latest.json"));
