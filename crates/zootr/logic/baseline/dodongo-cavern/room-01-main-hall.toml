@@ -106,7 +106,7 @@ why = "0.3 m from its room's floor, within a small chest's reach (1.25 m)"
 hash = 8291119063305855945
 name = "Dodongo's Cavern Map Chest"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
 
 [[check]]
 hash = 8607798771661947511

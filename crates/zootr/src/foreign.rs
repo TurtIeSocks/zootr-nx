@@ -42,8 +42,13 @@ pub struct Foreign {
 /// Whom a copy is for.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Owner {
-    /// Another player: the item as its game names it, and the player.
-    Player { item: String, player: String },
+    /// Another player: the item as its game names it, the player, and
+    /// whether Archipelago classes it progression.
+    Player {
+        item: String,
+        player: String,
+        progression: bool,
+    },
     /// No one: an ice trap, named on a shelf by its disguise's name line,
     /// `label`.
     Trap { label: String },
@@ -155,7 +160,7 @@ impl Foreign {
     /// shows.
     pub fn name(&self, shown: impl FnOnce(&str) -> String) -> String {
         match &self.owner {
-            Owner::Player { item, player } => format!("{} for {}", clean(item), clean(player)),
+            Owner::Player { item, player, .. } => format!("{} for {}", clean(item), clean(player)),
             Owner::Trap { .. } => format!("{} (as {})", ice_traps::NAME, shown(&self.shows)),
         }
     }
@@ -168,7 +173,7 @@ impl Foreign {
     /// received notice shows, is the trap's own.
     fn lines(&self) -> [Says; 3] {
         match &self.owner {
-            Owner::Player { item, player } => {
+            Owner::Player { item, player, .. } => {
                 let (item, player) = (clean(item), clean(player));
                 [
                     format!("{item} for {player}"),
@@ -402,6 +407,7 @@ mod tests {
             owner: Owner::Player {
                 item: "Hookshot".into(),
                 player: player.into(),
+                progression: true,
             },
         }
     }

@@ -522,7 +522,9 @@ fn options() -> Value {
                 "id": d.id, "label": d.label, "description": d.description,
                 "kind": "toggle", "default": default,
             }),
-            Kind::Choice { default, options } => json!({
+            Kind::Choice {
+                default, options, ..
+            } => json!({
                 "id": d.id, "label": d.label, "description": described(&d.id, d.description),
                 "kind": "choice", "default": default,
                 "options": (options.iter())

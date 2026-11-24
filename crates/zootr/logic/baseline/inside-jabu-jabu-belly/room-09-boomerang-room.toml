@@ -6,7 +6,7 @@ name = "Boomerang Room"
 hash = 5527401621172639818
 name = "Jabu-Jabu's Belly Boomerang Chest"
 needs = "flag:#ed5247fb"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #ed5247fb"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #ed5247fb"
 
 [[flag]]
 hash = 0xed5247fb

@@ -79,7 +79,7 @@ const START: [&str; 5] = [
 ];
 
 /// The settings mixes, one a round in turn, so a failure names its mix.
-pub const MIXES: [(&str, &[&str]); 4] = [
+pub const MIXES: [(&str, &[&str]); 5] = [
     ("chests", &[]),
     (
         "songs and gifts",
@@ -113,6 +113,9 @@ pub const MIXES: [(&str, &[&str]); 4] = [
             "fortress-keys=start",
         ],
     ),
+    // Every chest that comes in sizes as a big one, so a spot too tight
+    // for one shows before chest size matching contents grows it.
+    ("big chests", &["chest-size=big"]),
 ];
 
 /// The settings of mix `i`. An entry is a toggle's id, or `ID=VALUE` for a
