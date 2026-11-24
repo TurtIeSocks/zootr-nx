@@ -4,7 +4,6 @@ import {
   Loader2,
   Pencil,
   ScrollText,
-  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { memo } from "react";
@@ -19,6 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import {
+  ConfirmButton,
+  DiffersIn,
+  ListRow,
+  UseSettings,
+} from "@/play/list-row";
 import { ExtrasBadges, Name } from "@/play/seed";
 import { useArmed } from "@/play/use-armed";
 import { rowId } from "@/shell/find/reveal";
@@ -77,24 +82,17 @@ interface DeleteSeedProps extends SeedActionProps {
 /** Deletes the seed on a second click, while no job runs. */
 function DeleteSeed({ id, installed }: DeleteSeedProps) {
   const [busy] = useSeeds.usePath("busy");
-  const { armed, ...handlers } = useArmed(() => deleteSeed(id));
   return (
-    <TipButton
+    <ConfirmButton
       label="Delete seed"
       tip={
-        installed
-          ? "The installed seed can't be deleted"
-          : armed
-            ? "Really delete?"
-            : "Delete this seed"
+        installed ? "The installed seed can't be deleted" : "Delete this seed"
       }
-      variant={armed ? "destructive" : "ghost"}
-      size={armed ? "sm" : "icon-sm"}
+      confirm="Really delete?"
+      icon={<Trash2 />}
       disabled={busy || installed}
-      {...handlers}
-    >
-      {armed ? "Really delete?" : <Trash2 />}
-    </TipButton>
+      onConfirm={() => deleteSeed(id)}
+    />
   );
 }
 
@@ -194,72 +192,62 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
   const isInstalled = e.id === installedId;
   const isInstalling = e.id === installingId;
   return (
-    <li
+    <ListRow
       id={rowId.seed(e.id)}
-      data-reveal
-      className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover"
-    >
-      <SeedIcons icons={e.icons} size="sm" />
-      <div className="min-w-0 flex-1">
-        {nameOf(e) ? (
+      lead={<SeedIcons icons={e.icons} size="sm" />}
+      name={
+        nameOf(e) ? (
           <Name entry={e} className="w-fit max-w-full font-medium text-sm" />
         ) : (
           <p className="text-ink-faint text-sm">Unnamed seed</p>
-        )}
-        <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-ink-faint text-xs">
+        )
+      }
+      meta={
+        <>
           {when(e.time)}
           <ExtrasBadges entry={e} />
-          {!e.ap_slot && differs > 0 && (
-            <span>
-              · differs in {differs} setting{differs === 1 ? "" : "s"}
-            </span>
+          {!e.ap_slot && <DiffersIn n={differs} />}
+        </>
+      }
+      mark={
+        (isInstalled || isInstalling) && (
+          <InstallMark
+            installing={isInstalling}
+            replaced={installingId !== null && !isInstalling}
+          />
+        )
+      }
+      actions={
+        <>
+          {!isInstalled && !isInstalling && <InstallSeed id={e.id} />}
+          {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
+          {!e.ap_slot && (
+            <UseSettings
+              differs={differs}
+              tip="Use this seed's settings for the next one. Plando and flag edits stay behind"
+              onUse={() => takeSettings(e)}
+            />
           )}
-        </div>
-      </div>
-      {(isInstalled || isInstalling) && (
-        <InstallMark
-          installing={isInstalling}
-          replaced={installingId !== null && !isInstalling}
-        />
-      )}
-      {/* Floats over the row's end, so hidden actions take no room. */}
-      <div className="absolute inset-y-0 right-3 flex items-center gap-0.5 pointer-events-none bg-surface-hover pl-2 opacity-0 transition-opacity duration-(--duration-fast) group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100">
-        {!isInstalled && !isInstalling && <InstallSeed id={e.id} />}
-        {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
-        {!e.ap_slot && (
           <TipButton
-            label="Use settings"
-            tip={
-              differs === 0
-                ? "Your settings already match this seed's"
-                : "Use this seed's settings for the next one. Plando and flag edits stay behind"
-            }
+            label="Spoiler Log"
+            tip="Spoiler Log"
             variant="ghost"
-            disabled={differs === 0}
-            onClick={() => takeSettings(e)}
+            onClick={() => openSpoiler(e)}
           >
-            <SlidersHorizontal />
+            <ScrollText />
           </TipButton>
-        )}
-        <TipButton
-          label="Spoiler Log"
-          tip="Spoiler Log"
-          variant="ghost"
-          onClick={() => openSpoiler(e)}
-        >
-          <ScrollText />
-        </TipButton>
-        {!e.ap_slot && <CopySeed entry={e} variant="ghost" size="icon-sm" />}
-        <TipButton
-          label="Label seed"
-          tip="Name this seed or note what it's for"
-          variant="ghost"
-          onClick={() => openLabel(e)}
-        >
-          <Pencil />
-        </TipButton>
-        <DeleteSeed id={e.id} installed={isInstalled} />
-      </div>
-    </li>
+          {!e.ap_slot && <CopySeed entry={e} variant="ghost" size="icon-sm" />}
+          <TipButton
+            label="Label seed"
+            tip="Name this seed or note what it's for"
+            variant="ghost"
+            onClick={() => openLabel(e)}
+          >
+            <Pencil />
+          </TipButton>
+          <DeleteSeed id={e.id} installed={isInstalled} />
+        </>
+      }
+    />
   );
 });

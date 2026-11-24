@@ -23,6 +23,7 @@ use zootr::platform;
 use zootr::progress::{self, Run};
 use zootr::recorder;
 use zootr::savefile::{self, Change};
+use zootr::settings::favorites::{self, BuiltIn};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 
@@ -137,6 +138,13 @@ fn schema() -> Vec<SettingDef> {
     zootr::settings::shown()
 }
 
+/// The favorites that come with the app, as the Favorites list shows them.
+#[tauri::command]
+#[specta::specta]
+fn built_in_favorites() -> Vec<BuiltIn> {
+    favorites::built_in()
+}
+
 #[tauri::command]
 #[specta::specta]
 fn config() -> Res<Config> {
@@ -188,6 +196,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
             tracker: old.tracker.clone(),
             ..config
         };
+        favorites::check(&config.favorites)?;
         let notes = config.fix_mods_roots();
         if let Some(game) = config
             .game
@@ -653,6 +662,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             status,
             build_info,
             schema,
+            built_in_favorites,
             config,
             set_config,
             generate,

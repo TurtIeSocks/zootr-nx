@@ -50,6 +50,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "specta", specta(type = BTreeMap<String, BTreeMap<String, String>>))]
     pub plandos: BTreeMap<String, Fixed>,
+    /// Setting sets kept by name, newest first.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub favorites: Vec<crate::settings::favorites::Favorite>,
     /// The Items tab's look. The UI sets it through its own command, so
     /// it's left out of the UI's config.
     #[cfg_attr(feature = "specta", specta(skip))]
@@ -484,6 +487,9 @@ impl Config {
         }
         let mut config: Self = serde_json::from_value(json)?;
         crate::settings::upgrade(&mut config.settings);
+        for f in &mut config.favorites {
+            crate::settings::upgrade(&mut f.settings);
+        }
         config.fix_mods_roots();
         Ok(config)
     }

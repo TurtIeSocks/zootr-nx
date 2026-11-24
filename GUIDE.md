@@ -39,8 +39,8 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 
 ### Play
 
-- The Play page files seeds in three tabs: Standard, Archipelago and
-  History.
+- The Play page has four tabs: Standard, Archipelago, History and
+  Favorites.
 - Generate a seed from your settings, from a seed number, or from a friend's
   share code, which carries the seed and its settings together. Generate &
   install (⌘↵) installs it, Generate only (⇧⌘↵) just adds it to History,
@@ -48,6 +48,10 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 - Each seed shows as a row of icons instead of a number.
 - Every seed stays in the history with its spoiler, a name and a note, and
   can be installed again. History filters by Standard or Archipelago.
+- Favorites keeps setting sets by name. Save your current settings, then
+  Use, Update, rename or delete them. Vanilla+ (nothing shuffled, comfort
+  enhancements on) and Randomizer (the usual setup) come built in. The
+  CLI takes any of them with `--favorite NAME`.
 - A bar flags settings you've changed since the installed seed (or from the
   defaults, before the first seed, or the last standard seed while an
   Archipelago slot is installed), lists them, and makes a new seed from

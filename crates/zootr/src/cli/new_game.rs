@@ -9,6 +9,11 @@ use crate::{presets, savefile, settings, starting};
 /// How a new save starts: GameData defaults, and the cutscenes skipped.
 #[derive(clap::Args)]
 pub(super) struct NewGame {
+    /// Start from a favorite's settings, built in (`randomizer`,
+    /// `vanilla-plus`) or one saved in the app, then lay every other flag
+    /// over it.
+    #[arg(long, value_name = "NAME", value_parser = favorite)]
+    favorite: Option<Settings>,
     /// Flag sets for a new game. Repeatable.
     #[arg(long = "preset", value_parser = presets::parser())]
     presets: Vec<String>,
@@ -36,6 +41,13 @@ pub(super) struct NewGame {
     /// `progressive-items=false`. Repeatable.
     #[arg(long = "setting", value_name = "ID=VALUE", value_parser = setting)]
     raw: Vec<(String, serde_json::Value)>,
+}
+
+/// The settings of the favorite called `name`, built in or the app's.
+/// A built-in never reads the config.
+fn favorite(name: &str) -> Result<Settings> {
+    let find = settings::favorites::find;
+    find(name, &[]).or_else(|_| find(name, &crate::config::Config::load()?.favorites))
 }
 
 /// `ID=VALUE`, where `true` and `false` are toggles and anything else a
@@ -75,14 +87,12 @@ pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
 }
 
 impl NewGame {
-    /// The presets and the skips as the app's settings. `--default` edits
+    /// The favorite, then the presets and the skips over it, as the app's
+    /// settings. `--default` edits
     /// have no setting, so they stay apart.
     pub(super) fn settings(&self) -> Settings {
-        let mut out: Settings = self
-            .presets
-            .iter()
-            .map(|p| (p.clone(), true.into()))
-            .collect();
+        let mut out = self.favorite.clone().unwrap_or_default();
+        out.extend(self.presets.iter().map(|p| (p.clone(), true.into())));
         if self.keep_intro {
             out.insert(settings::SKIP_INTRO.into(), false.into());
         }
@@ -185,6 +195,27 @@ mod tests {
         assert_eq!(settings(&["--preset", "claim-check"]), Settings::new());
         let met = Settings::from([(settings::MET_ZELDA.into(), true.into())]);
         assert_eq!(settings(&["--preset", "zelda-done"]), met);
+    }
+
+    #[test]
+    fn every_other_flag_lays_over_the_favorite() {
+        let settings = |extra: &[&str]| {
+            let args = [&["zootr"], extra].concat();
+            Flags::try_parse_from(args).unwrap().new_game.settings()
+        };
+        let mut want = settings::favorites::randomizer();
+        assert_eq!(settings(&["--favorite", "randomizer"]), want);
+        want.insert(presets::OPEN_FOREST.into(), true.into());
+        want.insert(settings::CHESTS.into(), false.into());
+        let over = [
+            "--favorite",
+            "Randomizer",
+            "--preset",
+            "open-forest",
+            "--setting",
+            "chests=false",
+        ];
+        assert_eq!(settings(&over), want);
     }
 
     #[test]

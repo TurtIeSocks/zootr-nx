@@ -5,6 +5,7 @@ import {
   FlaskConical,
   Gamepad2,
   Globe,
+  Heart,
   History,
   Lightbulb,
   ListChecks,
@@ -51,6 +52,7 @@ export const PLAY_FOLDERS: Record<
   standard: { label: "Standard", icon: Swords },
   archipelago: { label: "Archipelago", icon: Globe },
   history: { label: "History", icon: History },
+  favorites: { label: "Favorites", icon: Heart },
 };
 
 /** The installed seed's views, under Installed Seed. */

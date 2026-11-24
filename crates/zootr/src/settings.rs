@@ -15,6 +15,7 @@ use crate::presets::{self, PRESETS};
 use crate::starting;
 
 mod choices;
+pub mod favorites;
 mod layout;
 mod new_game;
 mod schema;
