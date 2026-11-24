@@ -183,31 +183,11 @@ mod tests {
         // The room rule finds the web in front of the basement's sticks chest,
         // as the hand rule has it.
         assert!(!(deku.disagree.iter()).any(|d| d.name == "Lower Three Deku Sticks"));
-        // The hand rule asks for a shield against the slingshot room's
-        // scrub, the room rule only for its shutter's flag on the way in.
-        let slingshot = (deku.disagree.iter())
-            .find(|d| d.name == "Upper Fairy Slingshot")
-            .expect("the hand rule and the room rule differ");
-        assert_eq!((slingshot.room, slingshot.rule.as_str()), (2, "always"));
-        assert_eq!(
-            slingshot.hand, "deku-shield or hylian-shield",
-            "a hand rule prints as written"
-        );
+        // The maintainer's playtest settled every other disagreement and
+        // guess: only a Gold Skulltula a sword may reach is left.
+        assert!(deku.disagree.is_empty(), "{deku}");
         assert!(
-            slingshot.ways_in.iter().any(|w| w.contains("flag:#")),
-            "{:?}",
-            slingshot.ways_in
-        );
-        // A measured level jump settles every gap: what's left to guess
-        // is how a room gets cleared, gold skulltulas a sword may reach or
-        // seen from another room, links over terrain floor, which no live
-        // run has walked yet, and loose pickups lying past a walk's reach.
-        assert!(!deku.guess.is_empty());
-        assert!(
-            (deku.guess.iter()).all(|g| g.what.contains("Cleared")
-                || g.what.contains("Skulltula")
-                || g.why.contains("on terrain floor")
-                || g.why.contains("past a walk's reach")),
+            (deku.guess.iter()).all(|g| g.what.contains("Skulltula")),
             "{:?}",
             deku.guess.iter().map(|g| &g.what).collect::<Vec<_>>()
         );

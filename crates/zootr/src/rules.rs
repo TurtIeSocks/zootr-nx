@@ -250,6 +250,7 @@ impl Book {
         }
         Ok(match word {
             "always" => Need::Always,
+            "never" => Need::Never,
             "child" => Need::Era(Era::Child),
             "adult" => Need::Era(Era::Adult),
             "adult-jabu-jabu" if ctx.open.contains(&value_word(ADULT_JABU, "always")) => {
