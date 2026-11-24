@@ -61,10 +61,13 @@ pub(super) fn text<'a>(map: &'a BymlMap, key: &str) -> Option<&'a str> {
     map.get(key)?.as_string().ok().map(|s| s.as_str())
 }
 
+/// The entries of the array under `key`, none when there is none.
+pub(super) fn array<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a Byml> {
+    (map.get(key).and_then(|v| v.as_array().ok()).into_iter()).flatten()
+}
+
 pub(super) fn maps<'a>(map: &'a BymlMap, key: &str) -> impl Iterator<Item = &'a BymlMap> {
-    (map.get(key).and_then(|v| v.as_array().ok()).into_iter())
-        .flatten()
-        .filter_map(|v| v.as_map().ok())
+    array(map, key).filter_map(|v| v.as_map().ok())
 }
 
 /// `key`'s value in `map`, loaded by `load` the first time it's asked
