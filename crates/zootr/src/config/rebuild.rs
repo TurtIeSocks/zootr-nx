@@ -43,6 +43,31 @@ impl Target {
             && other.manifest() == self.manifest()
     }
 
+    /// The build's folder, symlinks resolved: the one its patch list is in.
+    pub fn build_folder(&self) -> Option<PathBuf> {
+        std::fs::canonicalize(self.manifest()?.parent()?).ok()
+    }
+
+    /// [`Target::running`], `all` being every target saved and `proc` the
+    /// process list. A bridge socket another build's target shares (a
+    /// machine's own game, two builds on one socket) answers for a game of
+    /// either, so there the game runs only while a process works in this
+    /// build's folder or names a path inside it. Without a process list
+    /// or a build folder, the socket answering still counts.
+    pub fn running_among(&self, all: &[Target], proc: &Path) -> bool {
+        let Some(socket) = &self.bridge else {
+            return crate::platform::running(&self.app);
+        };
+        let shared = (all.iter()).any(|o| {
+            o.name != self.name && o.bridge == self.bridge && o.manifest() != self.manifest()
+        });
+        crate::live::Bridge::listening(socket)
+            && match (shared, self.build_folder()) {
+                (true, Some(folder)) => crate::platform::inside(proc, &folder).unwrap_or(true),
+                _ => true,
+            }
+    }
+
     /// The rebuild command with `{game}` filled in, or `None` when it has
     /// none.
     pub fn rebuild_args(&self, game: Option<&Path>) -> Result<Option<Vec<String>>> {
@@ -108,6 +133,46 @@ mod tests {
         let typo = r#"{"name": "a", "app": "/a", "mod_dir": "/m", "rebuild": {"comand": []}}"#;
         let err = Target::import_at(typo, None).unwrap_err().to_string();
         assert!(err.contains("comand"), "{err}");
+    }
+
+    /// Two builds' targets on one socket, its game answering, and a fake
+    /// process list.
+    #[cfg(unix)]
+    #[test]
+    fn a_shared_socket_runs_only_the_build_a_process_is_in() {
+        let root = std::env::temp_dir().join(format!("zootr-shared-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let (proc, socket) = (root.join("proc"), root.join("control.sock"));
+        let build = |name: &str| {
+            std::fs::create_dir_all(root.join(name).join("mods/zootr")).unwrap();
+            Target {
+                name: name.into(),
+                app: root.join("launcher"),
+                mod_dir: root.join(name).join("mods/zootr"),
+                bridge: Some(socket.clone()),
+                ..Target::import_at(r#"{"name": "a", "app": "/a", "mod_dir": "/m"}"#, None).unwrap()
+            }
+        };
+        let (one, two) = (build("FakeOne"), build("FakeTwo"));
+        let all = [one.clone(), two.clone()];
+        std::fs::create_dir_all(proc.join("7")).unwrap();
+        let args = format!(
+            "/opt/fake-game\0--crash-watch\0{}/\0",
+            two.build_folder().unwrap().display()
+        );
+        std::fs::write(proc.join("7/cmdline"), args).unwrap();
+        assert!(!two.running_among(&all, &proc), "nothing answers");
+        let _game = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        assert!(!one.running_among(&all, &proc), "the other build's game");
+        assert!(two.running_among(&all, &proc), "its own build's game");
+        // No process in either build: the socket alone blames neither.
+        std::fs::remove_file(proc.join("7/cmdline")).unwrap();
+        assert!(!one.running_among(&all, &proc) && !two.running_among(&all, &proc));
+        // A socket only one build uses is its game, and so is one without
+        // a process list to tell by.
+        assert!(one.running_among(std::slice::from_ref(&one), &proc));
+        assert!(one.running_among(&all, &root.join("no proc")));
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

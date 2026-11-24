@@ -198,12 +198,11 @@ impl Target {
 
     /// Whether the game is running: answering on its bridge when it has
     /// one, since `app` may only launch it under another name, else a
-    /// process started from `app`'s path.
+    /// process started from `app`'s path. A socket another build shares
+    /// counts only with a process in this build ([`Target::running_among`]).
     pub fn running(&self) -> bool {
-        match &self.bridge {
-            Some(socket) => crate::live::Bridge::listening(socket),
-            None => platform::running(&self.app),
-        }
+        let all = Config::load_all().map(|c| c.targets).unwrap_or_default();
+        self.running_among(&all, Path::new(platform::PROC))
     }
 
     /// `args` with `{game}` filled in.
@@ -716,9 +715,9 @@ mod tests {
             bridge: Some(path.clone()),
             ..target("a", None)
         };
-        assert!(!t.running());
+        assert!(!t.running_among(&[], Path::new("/nowhere/proc")));
         let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
-        assert!(t.running());
+        assert!(t.running_among(&[], Path::new("/nowhere/proc")));
         drop(listener);
         std::fs::remove_file(&path).unwrap();
     }
