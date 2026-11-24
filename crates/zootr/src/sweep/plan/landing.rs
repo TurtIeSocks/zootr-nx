@@ -3,6 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use crate::nav::flat_dir;
 use crate::warp::{self, Pose, Side};
 
 /// How far in front of a chest or a scrub Link lands: close enough that A
@@ -97,15 +98,11 @@ pub(super) fn across_from(pose: &Pose, far: &[[f32; 3]]) -> Side {
 /// point, seen from the holder: 1 for a point right behind him. Ties keep
 /// [`warp::sides_from`]'s order, the front first.
 fn rank(pose: &Pose, near: &[[f32; 3]], score: impl Fn(f32) -> f32) -> Vec<Side> {
-    let unit = |from: [f32; 3], to: [f32; 3]| {
-        let n = flat(to, from).max(1e-3);
-        [(to[0] - from[0]) / n, (to[2] - from[2]) / n]
-    };
     let worst = |side| {
-        let link = unit(pose.at, warp::landing_at(pose, side, REACH));
+        let link = flat_dir(pose.at, warp::landing_at(pose, side, REACH));
         (near.iter())
             .map(|&n| {
-                let n = unit(pose.at, n);
+                let n = flat_dir(pose.at, n);
                 score(link[0] * n[0] + link[1] * n[1])
             })
             .fold(f32::INFINITY, f32::min)

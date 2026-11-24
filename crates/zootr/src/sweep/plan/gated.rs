@@ -3,7 +3,8 @@
 
 use anyhow::Result;
 
-use super::{NPC, Planner, Raise, Ready, in_map, lazy, quests};
+use super::quest::quests;
+use super::{NPC, Planner, Raise, Ready, in_map, lazy};
 use crate::events::{Effect, Flows};
 use crate::flags;
 use crate::gates;
