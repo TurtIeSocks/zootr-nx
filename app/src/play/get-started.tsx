@@ -14,14 +14,15 @@ interface Step {
   open?: () => void;
 }
 
-/** The steps from a fresh install to playing a seed, while none is
- * installed and the card wasn't dismissed. */
+/** The steps from a fresh install to playing a seed, until the first seed
+ * lands in history (uninstalling it later doesn't bring them back) or the
+ * card is dismissed. */
 export function GetStarted() {
-  const installed = useSeeds((s) => s.history.installed !== null);
+  const started = useSeeds((s) => s.history.entries.length > 0);
   const [dismissed, setDismissed] = useUi.usePath("getStarted.dismissed");
   const dump = !useNoDump();
   const target = useConfig((s) => s.config.targets.length > 0);
-  if (installed || dismissed) return null;
+  if (started || dismissed) return null;
   const steps: Step[] = [
     { label: "Choose your game dump", done: dump, open: openDumpField },
     {

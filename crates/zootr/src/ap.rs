@@ -29,7 +29,7 @@ pub mod timing;
 mod when;
 mod zip;
 
-pub use open::{ApSeed, Placed, Resolved};
+pub use open::{ApSeed, Placed, Resolved, check_room};
 
 /// The game's name in Archipelago.
 pub const GAME: &str = "Ocarina of Time (znx)";
