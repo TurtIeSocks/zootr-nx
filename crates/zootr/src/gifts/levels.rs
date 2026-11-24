@@ -423,7 +423,7 @@ mod tests {
             panic!("the archery prizes are calls")
         };
         let before = flows::load(&romfs, quiver.flow).unwrap().unwrap();
-        let at = |gift: &Gift| naming(&before, call, gift.item, &BTreeSet::new()).unwrap();
+        let at = |gift: &Gift| naming(&before, call, gift.item, &BTreeSet::new());
         let drops = HashMap::from([(heart.hash(), Drop::from(item::QUIVER_MEDIUM.to_string()))]);
         let mut rewrites = Rewrites::default();
         let flows = Flows::load(&romfs).unwrap();
