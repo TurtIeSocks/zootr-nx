@@ -9,9 +9,10 @@ use ounce_formats::Romfs;
 use super::{BEAT, Sweeper};
 use crate::play::Input;
 use crate::sweep::judge::Judge;
-use crate::sweep::watch::{lands_as, owned_as};
+use crate::sweep::watch::{Other, lands_as, owned_as};
 
-/// Legs of each length in the square spiral [`search`] walks.
+/// The longest leg of the square spiral [`search`] walks, in steps: each
+/// length is walked twice.
 const SPIRAL: usize = 8;
 /// How long each step pushes the stick: about 0.75 m on the Mac. A 100 ms
 /// push moves Link 0.15 m, most of it spent getting going.
@@ -44,7 +45,7 @@ fn search() -> impl Iterator<Item = &'static str> {
 
 /// The item of the one of `near` that `other`, an item landing beside the
 /// spot's own, is the get of.
-pub(super) fn neighbour(romfs: &Romfs, near: &[String], other: &str) -> Option<String> {
+pub(super) fn neighbour(romfs: &Romfs, near: &[String], other: &Other) -> Option<String> {
     (near.iter())
         .find(|item| owned_as(romfs, item).is_ok_and(|names| lands_as(other, &names)))
         .cloned()
@@ -85,12 +86,12 @@ mod tests {
             actor::OBJ_RUPEE_RED.to_string(),
             actor::OBJ_ARMOR_GORON.to_string(),
         ];
-        let got = |item: &str| format!("IsGet.{item}");
+        let got = |item: &str| Other::Flag(item.to_owned());
         let found = neighbour(&romfs, &near, &got(actor::OBJ_ARMOR_GORON));
         assert_eq!(found.as_deref(), Some(actor::OBJ_ARMOR_GORON.get()));
         let gear = got(actor::ARMOR_ADULT_GORON);
         assert_eq!(neighbour(&romfs, &near, &gear).as_deref(), found.as_deref());
-        assert_eq!(neighbour(&romfs, &near, "IsGet.Item_A"), None);
+        assert_eq!(neighbour(&romfs, &near, &got("Item_A")), None);
         assert_eq!(neighbour(&romfs, &[], &gear), None);
     }
 }
