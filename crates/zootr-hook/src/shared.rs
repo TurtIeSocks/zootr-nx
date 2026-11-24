@@ -57,8 +57,8 @@ pub struct List {
     noticed: u32,
 }
 
-/// A key copy credited: its name's hash, whether the pickup window
-/// credited it (else the pouch add), and when, in counter ticks.
+/// A key copy credited: its name's hash, and whether the pickup window
+/// credited it (else the pouch add).
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Credited {
@@ -88,9 +88,9 @@ impl List {
 
     /// Whether to credit `now`. A chest or gift both adds to the pouch and
     /// opens the pickup window, so each hook sees its get: when the other
-    /// hook credited the same name within `same_get` ticks, this is that
-    /// get's other half. A paired credit is forgotten, so the next get of
-    /// the same name counts.
+    /// hook credited the same name with no event-free frame since (`idle`
+    /// clears it), this is that get's other half. A paired credit is
+    /// forgotten, so the next get of the same name counts.
     pub fn first_credit(&mut self, now: Credited) -> bool {
         let last = self.credited;
         let pair =

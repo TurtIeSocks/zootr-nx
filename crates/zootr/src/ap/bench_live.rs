@@ -211,16 +211,14 @@ fn unchecked(gd: &crate::gamedata::GameData, book: &Book, game: &live::Game) -> 
     let entry = history.get(history.installed.context("no seed is installed")?)?;
     let spots = &entry.report.spots;
     let tracker = Tracker::new(gd, spots)?;
-    let mut picks: Vec<(i64, u32)> = (spots.iter())
+    let picks: Vec<(i64, u32)> = (spots.iter())
         .filter(|s| !s.given && s.holder.starts_with(crate::gates::CHEST))
         .filter_map(|s| match (tracker.flag(s.hash), book.location(s.hash)) {
             (Some(Flag::Bool(h)), Some(id)) => Some((id, h)),
             _ => None,
         })
         .collect();
-    picks.sort();
-    picks.dedup_by_key(|p| p.1);
-    let flags: Vec<u32> = picks.iter().map(|p| p.1).collect();
+    let flags = distinct_flags(picks);
     let set = live::bools(game, game.global(), &flags)?;
     let free: Vec<u32> = (flags.into_iter().zip(set))
         .filter(|(_, on)| !on)
@@ -230,6 +228,15 @@ fn unchecked(gd: &crate::gamedata::GameData, book: &Book, game: &live::Game) -> 
         bail!("only {} unchecked checks to write", free.len());
     }
     Ok(free[..EACH].to_vec())
+}
+
+/// The flags of `(AP id, flag)` picks in AP id order, each flag once (at its
+/// lowest id), so no write repeats one already made.
+fn distinct_flags(mut picks: Vec<(i64, u32)>) -> Vec<u32> {
+    picks.sort_by_key(|&(id, flag)| (flag, id));
+    picks.dedup_by_key(|p| p.1);
+    picks.sort();
+    picks.into_iter().map(|p| p.1).collect()
 }
 
 /// CPU over a window, in percent of one core: the game's and ours.
@@ -317,6 +324,11 @@ mod tests {
         assert_eq!(parse_time("1:00:00"), Some(3600.0));
         assert_eq!(parse_time("1-00:00:01"), Some(86401.0));
         assert_eq!(parse_time("soon"), None);
+    }
+
+    #[test]
+    fn a_shared_flag_is_written_once_even_when_not_adjacent_by_id() {
+        assert_eq!(distinct_flags(vec![(3, 7), (1, 7), (2, 9)]), [7, 9]);
     }
 
     #[test]

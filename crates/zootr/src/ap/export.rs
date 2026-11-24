@@ -208,10 +208,10 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         for l in &seed.world.locations {
             by_hash.entry(l.hash).or_default().push((l.place, &l.need));
         }
-        for (&hash, spots) in &by_hash {
+        for (&hash, found) in &by_hash {
             if seed.dealt.kept.contains_key(&hash) {
                 if reach.checks.contains(&hash) {
-                    let at = at(&mut rules, spots.clone());
+                    let at = at(&mut rules, found.clone());
                     let row = json!({ "name": vanilla(hash) });
                     Row::add(&mut events, vanilla(hash), (n, seeds.len()), row, at)?;
                 }
@@ -236,7 +236,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
                 "unprovable": !reach.checks.contains(&hash),
                 "forbid": forbid,
             });
-            let at = at(&mut rules, spots.clone());
+            let at = at(&mut rules, found.clone());
             Row::add(&mut checks, hash, (n, seeds.len()), row, at)?;
         }
         let sources = seed.world.sources.iter();

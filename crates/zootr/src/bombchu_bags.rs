@@ -10,6 +10,7 @@ use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, murmur
 use crate::gamedata;
 use crate::key_tints;
 use crate::known::{Name, field, hash, item};
+use crate::rsdb;
 use crate::standins::{
     TABLE, Tables, clone_pack, component, doc, path_of, pouch_actor, raw, renamed, resolved,
     with_ref, write_clone,
@@ -194,15 +195,17 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
     let mut failed = None;
     let rows = tables.edit_pouch(|row| {
         let id = row
-            .get("__RowId")
+            .get(rsdb::ROW_ID)
             .and_then(|v| v.as_string().ok())
             .map(|s| s.to_string());
         let id = id.as_deref().unwrap_or_default();
         let list = &**field::EXPANSION_MAX_NUM_ACTOR;
-        let done = match () {
-            _ if BAGS.contains(&id) => own(row, list, field::MAX_NUM_GAME_DATA),
-            _ if BOMB_BAGS.iter().any(|b| b.get() == id) => expand_only(row, list, |a| !is_chu(a)),
-            _ => return false,
+        let done = if BAGS.contains(&id) {
+            own(row, list, field::MAX_NUM_GAME_DATA)
+        } else if BOMB_BAGS.iter().any(|b| b.get() == id) {
+            expand_only(row, list, |a| !is_chu(a))
+        } else {
+            return false;
         };
         if let Err(e) = done {
             failed.get_or_insert(e);

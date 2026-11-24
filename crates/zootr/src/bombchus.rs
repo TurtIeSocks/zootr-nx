@@ -10,6 +10,7 @@ use anyhow::{Result, ensure};
 
 use crate::bombchu_bags;
 use crate::known::{Name, actor, field, item};
+use crate::rsdb;
 use crate::settings::Bombchus;
 use crate::standins::{Tables, pouch_actor};
 use ounce_formats::{Byml, BymlDoc, BymlMap, ModBuilder};
@@ -105,7 +106,7 @@ fn capped_by_bag(row: &BymlMap) -> bool {
             .is_some_and(|v| v == value)
     };
     is(field::MAX_NUM_GAME_DATA, "Bomb")
-        && (is("__RowId", item::BOMBCHU) || is(field::BUNDLE_ACTOR, &actor_param()))
+        && (is(rsdb::ROW_ID, item::BOMBCHU) || is(field::BUNDLE_ACTOR, &actor_param()))
 }
 
 /// Recap every bombchu row of the pouch table with `edit`.
@@ -203,7 +204,7 @@ mod tests {
         rows.iter()
             .map(|r| {
                 (
-                    r.as_map().unwrap()["__RowId"]
+                    r.as_map().unwrap()[rsdb::ROW_ID]
                         .as_string()
                         .unwrap()
                         .to_string(),
@@ -268,14 +269,14 @@ mod tests {
     fn a_row_the_bag_doesnt_cap_is_left_alone() {
         let mut row = BymlMap::default();
         row.insert(
-            "__RowId".into(),
+            rsdb::ROW_ID.into(),
             Byml::String(item::MAGIC_BEAN.to_string().into()),
         );
         row.insert(field::FIXED_MAX_NUM.to_string().into(), Byml::I32(10));
         assert!(!capped_by_bag(&row));
         let mut bomb = BymlMap::default();
         bomb.insert(
-            "__RowId".into(),
+            rsdb::ROW_ID.into(),
             Byml::String(item::BOMB.to_string().into()),
         );
         bomb.insert(

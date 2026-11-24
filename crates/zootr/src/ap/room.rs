@@ -62,28 +62,17 @@ impl Archipelago {
     /// The worktree at the checkout's HEAD, its `worlds/znx` pointing at
     /// `world`.
     pub fn prepare(&self, world: &Path) -> Result<()> {
-        let git = |args: &[&str]| -> Result<()> {
-            let mut cmd = Command::new("git");
-            cmd.arg("-C").arg(&self.checkout).args(args);
-            run(&mut cmd)
-        };
         let wt = self.worktree.to_string_lossy();
         match self.worktree.join(".git").exists() {
-            false => git(&["worktree", "add", "-q", "--detach", &wt, "HEAD"])?,
+            false => git(
+                &self.checkout,
+                &["worktree", "add", "-q", "--detach", &wt, "HEAD"],
+            )?,
             true => {
-                let head = output(
-                    Command::new("git")
-                        .arg("-C")
-                        .arg(&self.checkout)
-                        .args(["rev-parse", "HEAD"]),
-                )?;
-                let mut cmd = Command::new("git");
-                cmd.arg("-C")
-                    .arg(&self.worktree)
-                    .args(["checkout", "-q", "--detach", head.trim()]);
-                run(&mut cmd)?;
+                let head = git(&self.checkout, &["rev-parse", "HEAD"])?;
+                git(&self.worktree, &["checkout", "-q", "--detach", head.trim()])?
             }
-        }
+        };
         let host = self.checkout.join("host.yaml");
         if host.exists() && !self.worktree.join("host.yaml").exists() {
             std::fs::copy(&host, self.worktree.join("host.yaml"))?;
@@ -484,6 +473,11 @@ fn symlink(_: &Path, _: &Path) -> Result<()> {
 
 fn run(cmd: &mut Command) -> Result<()> {
     output(cmd).map(drop)
+}
+
+/// Runs `git -C dir args`, its stdout on success.
+fn git(dir: &Path, args: &[&str]) -> Result<String> {
+    output(Command::new("git").arg("-C").arg(dir).args(args))
 }
 
 /// Runs `cmd`, its stdout on success, else its stderr's tail as the error.
