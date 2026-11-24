@@ -91,3 +91,12 @@ export function blocked(status: Status, config: FullConfig): string {
   if (config.targets.length === 0) return NEED_TARGET;
   return "";
 }
+
+/** Why `name` can't start: it's already running. */
+export const alreadyRunning = (name: string) => `${name} is already running`;
+
+/** Why the picked target can't be played, or "" when it can. */
+export function playBlocked(picked: string | undefined, running: boolean) {
+  if (!picked) return NEED_TARGET;
+  return running ? alreadyRunning(picked) : "";
+}

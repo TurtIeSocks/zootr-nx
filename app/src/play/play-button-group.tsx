@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WhyButton } from "@/components/why-button";
 import { call } from "@/lib/api";
-import { NEED_TARGET } from "@/lib/config";
+import { playBlocked } from "@/lib/config";
 import { useRequest } from "@/lib/request";
 import { RebuildDialog } from "@/play/rebuild-dialog";
 import { saveConfig, useConfig } from "@/stores/config";
@@ -34,7 +34,7 @@ export function PlayButtonGroup() {
   const running = useTargetRunning(picked);
   const [asking, setAsking] = useState<string>();
   const start = (name: string) => play.run(() => call(commands.play(name)));
-  const why = !picked ? NEED_TARGET : running && `${picked} is already running`;
+  const why = playBlocked(picked, running);
 
   return (
     <ButtonGroup>
