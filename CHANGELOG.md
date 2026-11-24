@@ -3,6 +3,178 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.14.0] - 2026-11-24
+
+### Added
+
+- The Iron and Hover Boots for a child
+- Open the equipment slots' boots gate to a child
+- The boots reach a child only in a seed that asks, with the adult's clips
+- Offer Ice Traps, swapping the app's share of the junk for traps
+- The child's boots clank, float and raise dust like the adult's
+- Offer Progressive Items, with each line's levels named either way
+- Write each progressive fork as its off form alone
+- A "Forced in AP" badge for settings AP seeds hold on
+- The child's Hover Boots play the adult's float sound
+- The child's D-pad Down swaps his boots and shows their icon
+- Offer the goal and rules options
+- Terrain heights into derive, its links marked as guesses
+- Offer the comfort options
+- The child's Iron Boots land with the adult's stomp
+- One AP name per upgrade line, and offer the starter bags and magic
+- Shrink world.json by merging single-item anys and sharing repeated rules
+- Offer gossip stone hints, picked across the multiworld
+- Loose rupees and hearts in the ledger, with room rules
+- Source builds show their commit
+- Read ZBIC frames: our table reader in the vendored decoder
+- Read NSO executables, LZ4 and ZBIC segments both
+- History shows which seed is installing
+- List the area Link is in first under Warp > Places
+- Make a param-less tag in the file's own width
+- Game 1.0.0's offsets, V65536, from the port
+- Read the romfs of the dump's build, 1.0.0 without an update
+- Build the hook once per game build, and patch each build's main
+- A 1.0.0 seed says so, in its spoiler, history and the app
+- Every seed names its build, 1.1.1 too
+- Favorites, setting sets kept by name
+- The Deku Tree's room files drive logic (LIVE)
+- Child Link wears the Zora, Goron and Kokiri Tunics
+- Extract the child's cloth and vest textures for his tunics
+- Paint child Link's headband with his tunic
+- Every setting defaults to the game's own behavior
+- A target names the game build it runs
+
+### Fixed
+
+- The child model path lives in a files module the name guard skips
+- A trap the room sends reads "Ice Trap" in its notice, not its disguise
+- Sweep the play folder's step marks, tabs and drops
+- Sweep the save editor's stamp, stale warning, staging races and resets
+- Sweep launch arguments, card keys and settings page smells
+- Sweep an event with no way in, an empty search word, shared table and search parts
+- Sweep search tags, a stale live read, the count field and icon retries
+- Sweep a Mark popover reopening, refused clipboards, a stale load frame
+- Sweep the shell and backend commands
+- Sweep container checks, update checks and store resets
+- Sweep bounds checks, shared readers and parse steps
+- Sweep save, mod folder, xlink and tagfile guards
+- Grow the child's equipment file entry with its parse, not its bytes
+- Sweep slot imports, mem input checks and command plumbing
+- Sweep shared helpers, a checked cow event rename and the room file writer
+- Sweep setup gives, enemy life reads and flow walk helpers
+- Sweep Banc rereads, patch read errors and duplicated graph wiring
+- Sweep lost start errors, quit waits and step checks
+- Sweep probe argument panics, a one-shot GameData load and lost session logs
+- Sweep short spot arrays and stale notes
+- Sweep the pause-menu check and archive bounds
+- Sweep the bench's flag dedup, zip size caps and stray docs
+- Sweep the rebuild's pipe reader and stop, and name repeated keys
+- Sweep the starting inventory and quest steps
+- Sweep the turn service, vision replies and tool table
+- Compile and clippy errors from the sweep, found on CI
+- Sweep flag search, backups and room loading
+- Sweep shared sale setup and names
+- Sweep shop slot finding and stand-in tables
+- Sweep kind filter, hash lookup and duplicates
+- Sweep install cleanup, test scratch folders and exp tests
+- Sweep grant placement, shared helpers and nits
+- Compile and clippy errors from the sweep, found on CI
+- Point the new Value users at the known field const
+- Sweep trims, atomic writes and docs
+- Sweep the key table, labels file and ledger
+- Sweep the live reader, world building and the meter icon
+- Compile and clippy errors from the sweep, found on CI
+- Sweep solids, floors, jump limits and shared geometry
+- Sweep reach and trace limits, border kinds and shared water geometry
+- Compile and clippy errors from the sweep, found on CI
+- Point the sale flow edits at the known Value field const
+- A preset's choice options go by AP's spelling
+- The Deku Tree scrub room has no way down, and baselines rederived
+- Take the value param's name from the known fields
+- Open the dump before boot, mem and sweep report read names
+- Take the flow value key from the game names
+- Walk the empty bow's way to Link with null checks
+- Name the setter's value by its known field
+- Read the flow value key from the known fields
+- Read a quest's steps from its own keys only
+- Suggest actor names, not list positions, in Test Setup's Near
+- Keep a log line that reaches the Logs page out of order
+- Only say a target is running when the dialog names one
+- Name the flow value key through the known field
+- Warn when a live flag read for the waters fails
+- Read the setter's value key from the known names
+- Refuse a rebuild when the config can't load
+- Check out the floors table with LF on every OS
+- Bring back the label helper the merge dropped
+- Put an enemy's Life back on any failed fight
+- Refuse a never-ending settle on a leap, before any side effect
+- Reject directories whose child ranges overlap
+- Find a header that just fits, and keep name read errors
+- Fail a link or a source swap before marking its output read
+- Keep every animation offset from the file in bounds
+- Load the small key's pack only for a seed with copies
+- Test the opening's grant itself when nothing leads to the autosave
+- Keep a written save saved when its new stamp can't be read
+- Stop a failed step's clock as soon as the run ends
+- Keep the rebuild dialog's buttons as they were while it fades
+- Let a late failed start clear only its own run
+- Check and change the Archipelago client's page in one lock
+- Name an imported target clear of every game's targets
+- Satisfy clippy on the free-name check
+- Regenerate the bindings for import_target's doc
+- Report a stop that left the mod on as a failure
+- Give every atomic save its own temporary file
+- Replace a kept save by swapping, never by deleting first
+- Prune every old log past a stuck one, and say so
+- Test a same-second backup for real, keeping its permissions
+- Let a sweep that died without a word lapse after the lease
+- Judge only a real empty reply, not a broken endpoint
+- Never delete the only copy of an earlier keep
+- Give a sweep from an older state file a lease from the load
+- Put an enemy's Life back on an error only while it's there
+- Size a shape header by the furthest field read
+- Loose rupees and hearts count as EIE debt
+- Catch a build info call that throws before it returns
+- A numbered choice takes its own number in a player's YAML
+- An export to a new folder keeps the ids the world gave out
+- An install or uninstall stops the running Archipelago client
+- A failed Connect in the installed-seed header shows its error
+- Give an item from outside the slot's pool instead of jamming the queue
+- Count only a rise of one in the death counter as a DeathLink death
+- Trim the server address before connecting
+- The Installed card counts checks, not chests
+- Read the item add from the build table's entries
+- Every new game starts the Deku Tree's slingshot room solved
+- Clean another slot's names, and page a stone too long for its box
+- Wrap stone lines at 50 characters, not 67
+- Pick the highest stamp by number, in a folder and a package alike
+- Find the frozen call and its shells by the file's structure
+- The Get Started card stays gone after the mod comes off
+- Connect refuses until the stopped client has ended
+- Every install and connect checks the seed's world version
+- Each game on a machine keeps its own installed seed
+- A socket another build shares runs only the build a process is in
+- A start inventory's names from the other progressive mode count
+- A received item that lands counts as given, whatever fails after
+- A location the room doesn't know no longer blocks every send
+- A trouble that lasts is said once, and a dead game says so
+- The save isn't held against the server's items before they arrive
+- A save loading never reads as Link's death
+- The Connected strip says when the game isn't answering
+- Uninstall keeps the settings lines that don't point at the mod
+- A root curve's data lands in the same room every run
+- Regrowing grass copies its group instead of a loud node
+- Put the child tunic on where the armor actor is created
+- Let child Link take a tunic off with the Kokiri Tunic
+- Mark the tunic child Link wears in the equipment menu
+- Skip the intros guarded by their own played flag
+
+### Faster
+
+- Ask once per level whether Link owns it
+- Work out each check's forbidden items once, not once per seed
+- Read the game data once for the export's many seeds
+
 ## [0.13.0] - 2026-11-24
 
 ### Added
