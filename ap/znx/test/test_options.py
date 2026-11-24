@@ -188,6 +188,38 @@ class TestProgressiveItemsOnDealsTheLine(ZnxTestBase):
         self.assertNotIn("Longshot", pool)
 
 
+class TestStartInventoryFromPoolOffInTheLineSpelling(ZnxTestBase):
+    """Off, a line's name counts as its first levels, so logic reads them."""
+
+    options = {
+        "progressive_items": False,
+        "start_inventory_from_pool": {"Progressive Slingshot": 1, "Progressive Hookshot": 2, "Magic Bean": 1},
+    }
+
+    def test_the_levels_are_what_starts(self) -> None:
+        start = self.multiworld.worlds[self.player].options.start_inventory_from_pool.value
+        self.assertEqual(start, {"Fairy Slingshot": 1, "Hookshot": 1, "Longshot": 1, "Magic Bean": 1})
+
+
+class TestStartInventoryFromPoolOnInTheLevelSpelling(ZnxTestBase):
+    """On, a level's name counts as the line's copies up to it, and the
+    higher level of two named holds the lower."""
+
+    options = {
+        "progressive_items": True,
+        "start_inventory_from_pool": {"Hookshot": 1, "Longshot": 1, "Fairy Slingshot": 1, "Magic Bean": 1},
+        "start_inventory": {"Big Bomb Bag": 1},
+    }
+
+    def test_the_line_s_copies_are_what_starts(self) -> None:
+        options = self.multiworld.worlds[self.player].options
+        self.assertEqual(
+            options.start_inventory_from_pool.value,
+            {"Progressive Hookshot": 2, "Progressive Slingshot": 1, "Magic Bean": 1},
+        )
+        self.assertEqual(options.start_inventory.value, {"Progressive Bomb Bag": 2})
+
+
 class TestIceTrapsTakeTheirShare(ZnxTestBase):
     """Mayhem: every item a trap may take, after the trade, is a trap,
     and no other item goes."""
