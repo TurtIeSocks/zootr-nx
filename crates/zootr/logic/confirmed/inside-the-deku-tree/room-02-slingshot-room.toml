@@ -1,0 +1,16 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 2
+name = "Slingshot Room"
+
+# The plank back over the gap drops only to the eye switch, a slingshot or
+# bow shot. Every new game starts the room solved, plank down
+# (presets::softlocks), so the way out is a walk.
+[[link]]
+to = 1
+needs = "always"
+via = "walk"
+why = "the plank is down from the start: every new game sets the room cleared"
+evidence = [
+    "playtest 2026-11-24, the maintainer: without a slingshot or bow, Link can't leave",
+    "the room's graph boots the plank and the falling ladder down when its cleared flag, #77279a83, is set",
+]
