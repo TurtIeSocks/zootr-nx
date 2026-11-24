@@ -5,7 +5,7 @@ import { ExtrasBadges, Name } from "@/play/seed";
 
 afterEach(cleanup);
 
-const entry = {
+const entry: Summary = {
   id: 1,
   time: 0,
   seed: "42",
@@ -19,7 +19,7 @@ const entry = {
   plando: true,
   ap_slot: null,
   death_link: false,
-} as unknown as Summary;
+};
 
 test.each([
   ["Plando", "Built with a plando: items pinned to checks"],

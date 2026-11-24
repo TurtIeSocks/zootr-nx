@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { FlagGroup, FlagRow, FlagsView, Info } from "@/bindings";
-import { Callout } from "@/components/callout";
+import { Callout, InlineError } from "@/components/callout";
 import { Card } from "@/components/card";
 import { divided, fieldClass } from "@/components/styles";
 import { Tip } from "@/components/tip";
@@ -14,8 +14,9 @@ import { ChangedDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { useRequestState } from "@/lib/request";
 import { cn } from "@/lib/utils";
-import { kindOptions, kindWord } from "@/save/flag-kinds";
+import { elementKind, isArray, kindOptions, kindWord } from "@/save/flag-kinds";
 import { StagedInput } from "@/save/staged-input";
 import { stage } from "@/save/tabs";
 import { useDevTools } from "@/stores/config";
@@ -166,7 +167,7 @@ function Group({ group }: { group: FlagGroup }) {
 
 /** A row's field, for one element. */
 const infoOf = (row: FlagRow): Info => ({
-  kind: row.kind.replace(/Array$/, ""),
+  kind: elementKind(row.kind),
   input: row.input,
   choices: row.choices,
   default: row.default,
@@ -177,7 +178,8 @@ const infoOf = (row: FlagRow): Info => ({
 function Row({ row }: { row: FlagRow }) {
   const [open, setOpenRow] = useState(false);
   const dev = useDevTools();
-  const array = row.kind.endsWith("Array");
+  const array = isArray(row.kind);
+  const reset = useRequestState();
   const edit = (index: number) => (value: string) =>
     stage([{ hash: row.hash, index, value }]);
   const resettable =
@@ -226,12 +228,16 @@ function Row({ row }: { row: FlagRow }) {
             size="icon-sm"
             aria-label={`Reset ${row.name}`}
             className={cn(!resettable && "invisible")}
-            onClick={() => row.default !== null && edit(0)(row.default)}
+            onClick={() => {
+              const to = row.default;
+              if (to !== null) reset.run(() => edit(0)(to));
+            }}
           >
             <RotateCcw />
           </Button>
         </Tip>
       </div>
+      <InlineError error={reset.error} />
       {array && open && (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2 pl-4">
           {row.values.map((v, i) => (

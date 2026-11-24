@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { useMemo } from "react";
 import { Tip } from "@/components/tip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,14 @@ export function ChecksTab() {
   } = useSpoiler();
   const [query, setQuery] = useUi.usePath("spoiler.query");
   const shown = search(spots, query);
+  // Each check's rule, worked out once a spoiler rather than a keystroke.
+  const texts = useMemo(
+    () =>
+      new Map(
+        spots.map((s) => [s.hash, ruleText(rule(s, spots, start.items))]),
+      ),
+    [spots, start],
+  );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-4 px-5 py-2">
@@ -59,7 +68,7 @@ export function ChecksTab() {
           </thead>
           <tbody className="[&_td]:h-8.5 [&_td]:border-line [&_td]:border-b [&_td]:px-3 [&_td]:first:pl-5">
             {shown.map((s) => {
-              const text = ruleText(rule(s, spots, start.items));
+              const text = texts.get(s.hash);
               return (
                 <tr
                   key={s.hash}

@@ -163,7 +163,8 @@ export function SpoilerBody({ id }: SpoilerBodyProps) {
  * only its checks show. */
 function TabBar() {
   const { spoiler } = useSpoiler();
-  const [tab, setTab] = useUi.usePath("spoiler.tab");
+  const tab = useShownTab();
+  const [, setTab] = useUi.usePath("spoiler.tab");
   const [heroOnly, setHeroOnly] = useUi.usePath("spoiler.heroOnly");
   if (!hasLogic(spoiler))
     return (

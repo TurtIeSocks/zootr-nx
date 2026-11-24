@@ -177,8 +177,8 @@ const runItems = (heading: string) =>
 test("Play sits alone above the run group, which holds the seed's views", () => {
   useSeeds.setPath("history", { installed: seed, entries: [seed] });
   sidebar();
-  const nav = screen.getByRole("navigation");
-  expect(nav.querySelector("button")?.textContent).toBe("Play");
+  const list = screen.getByRole("navigation");
+  expect(list.querySelector("button")?.textContent).toBe("Play");
   expect(runItems("Installed Seed")).toEqual([
     "Checks",
     "Items",
@@ -216,8 +216,8 @@ test("the Spoiler Log item opens the Spoiler tab", () => {
 test("the Spoiler tab shows the installed seed's spoiler inline once revealed", async () => {
   backend.installed = seed;
   render(<App />);
-  const nav = await screen.findByRole("navigation");
-  fireEvent.click(within(nav).getByRole("button", { name: /^Spoiler Log/ }));
+  const list = await screen.findByRole("navigation");
+  fireEvent.click(within(list).getByRole("button", { name: /^Spoiler Log/ }));
   fireEvent.click(
     await screen.findByRole("button", { name: "Reveal Spoiler Log" }),
   );
@@ -271,12 +271,12 @@ test("each schema group is an item, marked when it holds changes", () => {
   useConfig.setPath("config.dev_tools", true);
   useConfig.setPath("config.test.spawn", "Map/Spot");
   sidebar();
-  const nav = screen.getByRole("navigation");
+  const list = screen.getByRole("navigation");
   expect(within(item(/^Checks/)).getByText("41/112")).toBeTruthy();
   expect(within(item(/^General/)).getByLabelText("changed")).toBeTruthy();
   expect(within(item(/^Cutscenes/)).queryByLabelText("changed")).toBeNull();
   expect(within(item(/^Test Setup/)).getByText("On")).toBeTruthy();
-  fireEvent.click(within(nav).getByRole("button", { name: /^Cutscenes/ }));
+  fireEvent.click(within(list).getByRole("button", { name: /^Cutscenes/ }));
   expect(useUi.getState()).toMatchObject({
     tab: "Settings",
     section: "Cutscenes",

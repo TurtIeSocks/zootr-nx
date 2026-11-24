@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { Build } from "@/bindings";
@@ -70,6 +71,9 @@ vi.mock("@/bindings", () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  saving.hold = undefined;
+  saving.notes = [];
+  saving.after = undefined;
   useSeeds.setPath("status", { game: true, targets: [] });
 });
 
@@ -88,6 +92,12 @@ const button = (name: string) =>
 const nameField = () =>
   screen.getByDisplayValue(/^FakeTarget/) as HTMLInputElement;
 
+/** Clicks the import dialog's own Import, apart from the one opening it. */
+const submitImport = () =>
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Import" }),
+  );
+
 const rename = (value: string) =>
   fireEvent.change(nameField(), { target: { value } });
 
@@ -97,9 +107,7 @@ test("imports pasted text as a new draft with its name made unique", async () =>
   fireEvent.change(screen.getByLabelText("Target"), {
     target: { value: '{"name":"FakeTarget"}' },
   });
-  fireEvent.click(
-    screen.getByRole("button", { name: "Import", hidden: false }),
-  );
+  submitImport();
   await waitFor(() => expect(screen.getByText("FakeTarget 2")).toBeTruthy());
 });
 
@@ -109,8 +117,7 @@ test("an import error shows in the dialog and adds nothing", async () => {
   fireEvent.change(screen.getByLabelText("Target"), {
     target: { value: "nope" },
   });
-  const buttons = screen.getAllByRole("button", { name: "Import" });
-  fireEvent.click(buttons[buttons.length - 1] as HTMLElement);
+  submitImport();
   await waitFor(() =>
     expect(screen.getByText(/unknown key "bad"/)).toBeTruthy(),
   );
@@ -184,7 +191,6 @@ test("a second Save while one runs is ignored, and the bar goes once saved", asy
     expect(screen.queryByRole("button", { name: "Save Targets" })).toBeNull(),
   );
   expect(nameField().value).toBe("FakeTarget edited");
-  saving.hold = undefined;
 });
 
 test("Download writes the saved target to the file picked", async () => {
@@ -230,8 +236,6 @@ test("a save that moves a mod folder says so, and shows the folder it saved", as
   fireEvent.click(button("Save Targets"));
   await waitFor(() => expect(screen.getByText(note)).toBeTruthy());
   expect(screen.getByDisplayValue(moved)).toBeTruthy();
-  saving.notes = [];
-  saving.after = undefined;
 });
 
 /** Shows the pane with FakeTarget's game built as `build` says. */
@@ -292,6 +296,21 @@ test("a card shows four fields, the rest under a closed Advanced", () => {
   ).toBe(true);
   expect(screen.getByRole("button", { name: "About Targets" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "About Mod Folder" })).toBeTruthy();
+});
+
+test("removing a card keeps each other card's own Advanced state", () => {
+  useConfig.setPath(
+    "config",
+    full({
+      targets: [
+        { name: "FakeOpen", app: "/a", mod_dir: "/m", args: ["-x"] },
+        { name: "FakeClosed", app: "/b", mod_dir: "/n" },
+      ],
+    }),
+  );
+  render(<TargetsPane />);
+  fireEvent.click(button("Remove FakeOpen"));
+  expect(screen.getByText("Advanced").closest("details")?.open).toBe(false);
 });
 
 test("a target using an advanced field or a variable opens both", () => {

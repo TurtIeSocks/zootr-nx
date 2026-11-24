@@ -8,7 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { commands, type TargetStatus } from "@/bindings";
+import { commands, type Target, type TargetStatus } from "@/bindings";
 import { Callout } from "@/components/callout";
 import { Card } from "@/components/card";
 import { Field } from "@/components/field";
@@ -30,6 +30,7 @@ import {
   type Draft,
   type DraftField,
   FIELDS,
+  importedDraft,
   isEdited,
   isSaved,
   namesVariable,
@@ -38,7 +39,6 @@ import {
   toDraft,
   toTarget,
   VARIABLES,
-  withTarget,
   worksIn,
 } from "@/settings/targets-draft";
 import { PageHeader } from "@/shell/page-header";
@@ -66,12 +66,22 @@ interface TargetsFormProps {
   onSaved: (notes: string[]) => void;
 }
 
+let lastKey = 0;
+
+/** A draft with a key of its own, so its card keeps its state when one
+ * before it goes. */
+const keyed = (draft: Draft) => ({ key: ++lastKey, draft });
+
+/** The saved targets as keyed drafts. */
+const cardsOf = (targets: Target[]) => targets.map((t) => keyed(toDraft(t)));
+
 /** The drafts, one card each, with Add and Import in the header, and a bar
  * with Save floating at the foot while they differ from the saved targets.
  * Copying a target and saving them all share the request, one at a time. */
 function TargetsForm({ notes, onSaved }: TargetsFormProps) {
   const [targets] = useConfig.usePath("config.targets");
-  const [drafts, setDrafts] = useState(() => targets.map(toDraft));
+  const [cards, setCards] = useState(() => cardsOf(targets));
+  const drafts = cards.map((c) => c.draft);
   /** Why the form couldn't be saved as it was. */
   const [invalid, setInvalid] = useState("");
   const { busy, error, run } = useRequest();
@@ -104,12 +114,22 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
           <>
             <Button
               variant="secondary"
-              onClick={() => setDrafts((ds) => [...ds, BLANK])}
+              onClick={() => setCards((cs) => [...cs, keyed(BLANK)])}
             >
               <Plus /> Add a Target
             </Button>
             <ImportTargetDialog
-              onImport={(t) => setDrafts((ds) => withTarget(ds, t))}
+              onImport={(t) =>
+                setCards((cs) => [
+                  ...cs,
+                  keyed(
+                    importedDraft(
+                      cs.map((c) => c.draft),
+                      t,
+                    ),
+                  ),
+                ])
+              }
             />
           </>
         }
@@ -119,18 +139,19 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
           {note}
         </Callout>
       ))}
-      {drafts.map((d, i) => (
+      {cards.map(({ key, draft }) => (
         <TargetCard
-          // biome-ignore lint/suspicious/noArrayIndexKey: drafts have no stable id until saved, and only grow at the end
-          key={i}
-          id={String(i)}
-          draft={d}
+          key={key}
+          id={String(key)}
+          draft={draft}
           onChange={(patch) =>
-            setDrafts((ds) =>
-              ds.map((d, j) => (j === i ? { ...d, ...patch } : d)),
+            setCards((cs) =>
+              cs.map((c) =>
+                c.key === key ? { key, draft: { ...c.draft, ...patch } } : c,
+              ),
             )
           }
-          onRemove={() => setDrafts((ds) => ds.filter((_, j) => j !== i))}
+          onRemove={() => setCards((cs) => cs.filter((c) => c.key !== key))}
         />
       ))}
       <VariablesCard open={drafts.some(namesVariable)} />
@@ -142,7 +163,7 @@ function TargetsForm({ notes, onSaved }: TargetsFormProps) {
           saveLabel="Save Targets"
           onDiscard={() => {
             setInvalid("");
-            setDrafts(targets.map(toDraft));
+            setCards(cardsOf(targets));
           }}
           onSave={save}
         />

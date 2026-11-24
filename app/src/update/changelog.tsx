@@ -1,6 +1,7 @@
 import { Loader2, Newspaper } from "lucide-react";
 import { useEffect, useState } from "react";
 import { InlineError } from "@/components/callout";
+import { Disclosure } from "@/components/disclosure";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Disclosure } from "@/settings/fold";
 import { askedRepo, useUpdate } from "@/stores/update";
 import { Notes, ReleaseLink } from "@/update/notes";
 import { day, fetchReleases, PAGE, type Release } from "@/update/release";
