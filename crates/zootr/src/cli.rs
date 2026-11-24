@@ -162,7 +162,11 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         Command::Save(cmd) => save_command(&romfs()?, cmd),
-        Command::Boot { start, limit } => boot_command(start, limit),
+        // These read the game's names, which opening the dump registers.
+        Command::Boot { start, limit } => {
+            dump()?;
+            boot_command(start, limit)
+        }
         Command::Live { grep, all, named } => live(&romfs()?, grep, all, named),
         Command::Give { actor, count } => give(&romfs()?, &actor, count),
         Command::Set { name, value } => set(&romfs()?, &name, &value),
@@ -170,7 +174,10 @@ pub fn run() -> Result<()> {
             let (romfs, path) = dump()?;
             dev(&romfs, &path, cmd)
         }
-        Command::Mem(cmd) => mem(cmd),
+        Command::Mem(cmd) => {
+            dump()?;
+            mem(cmd)
+        }
         Command::Look {
             questions,
             vision,
@@ -228,7 +235,10 @@ pub fn run() -> Result<()> {
                     drills,
                 }),
             ..
-        } => sweep_report(&out, from, to, &drills),
+        } => {
+            dump()?;
+            sweep_report(&out, from, to, &drills)
+        }
         Command::Sweep {
             out: Some(out),
             rounds,
