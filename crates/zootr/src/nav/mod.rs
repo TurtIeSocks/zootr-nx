@@ -83,6 +83,13 @@ pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
     (crate::around::clockwise(yaw, from, to) / std::f32::consts::FRAC_PI_4).round() as i32
 }
 
+/// Whether a live `read` of `flag` says it's set. A failed read counts as
+/// not set, with a warning, so the waters still build.
+fn live_set(flag: &str, read: Result<String>) -> bool {
+    (read.inspect_err(|e| log::warn!("reading {flag} for the waters, taken as not set: {e:#}")))
+        .is_ok_and(|v| v == "true")
+}
+
 /// The shortest flat length a direction is divided by, so one of no
 /// length comes out zero rather than not a number.
 const FLAT_MIN: f32 = f32::EPSILON;
@@ -157,9 +164,9 @@ impl Level {
         if level.placed.iter().any(|p| p.presence.is_some()) {
             let gd = crate::gamedata::GameData::load(romfs)?;
             let set = |flag: &str| {
-                crate::live::hash(flag)
-                    .and_then(|h| crate::live::read(dev.game(), &gd, dev.global(), h))
-                    .is_ok_and(|v| v == "true")
+                let read = crate::live::hash(flag)
+                    .and_then(|h| crate::live::read(dev.game(), &gd, dev.global(), h));
+                live_set(flag, read)
             };
             level.waters = water::waters(romfs, game, &level.placed, set)?;
         }
@@ -403,6 +410,13 @@ pub(crate) mod fixture {
 mod tests {
     use super::*;
     use crate::known::actor;
+
+    #[test]
+    fn a_failed_live_read_counts_as_not_set() {
+        assert!(live_set("FakeFlag", Ok("true".into())));
+        assert!(!live_set("FakeFlag", Ok("false".into())));
+        assert!(!live_set("FakeFlag", Err(anyhow::anyhow!("no such flag"))));
+    }
 
     #[test]
     fn a_flat_direction_has_length_one_however_short_its_way() {
