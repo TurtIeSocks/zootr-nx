@@ -27,7 +27,7 @@ from .exported import (
     WORLD,
 )
 from .options import ZnxOptions, attr, setting_values
-from .output import GAME, ZnxContainer, placement
+from .output import GAME, ZnxContainer, hints, placement
 
 VICTORY = WORLD["goal"]
 ICE_TRAPS = "ice-traps"
@@ -313,6 +313,9 @@ class ZnxWorld(World):
                 if item.code is not None
             ],
         }
+        if self.setting_values.get("hints"):
+            locations = list(self.multiworld.get_locations())
+            seed["hints"] = hints(locations, self.player, names, HASHES, self.random)
         name = self.multiworld.get_out_file_name_base(self.player)
         ZnxContainer(
             seed,

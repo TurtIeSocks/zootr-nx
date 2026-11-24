@@ -30,11 +30,20 @@ const READ: (&Name, &Name) = (
 /// The call that turns Link to the stone before the reading.
 const INIT: (&Name, &Name) = (flow::INIT_TALK, flow::INIT_TALK_GOSSIP_STONE);
 
-/// One hint: an item and the Banc folder it's in.
+/// One hint: an item and where it is.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hint {
-    pub area: String,
+    pub place: Place,
     pub item: String,
+}
+
+/// Where a hinted item is.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Place {
+    /// A Banc folder, named in each language.
+    Area(String),
+    /// Words written as they are: another Archipelago slot's check.
+    Words(String),
 }
 
 /// Up to `STONES` hints, each a different spot holding an item in
@@ -48,7 +57,7 @@ pub fn choose(spots: &[Spot], wanted: &BTreeSet<&str>, seed: u64) -> Vec<Hint> {
     Rng::new(seed ^ u64::from_le_bytes(*b"gossip!!")).shuffle(&mut found);
     found.truncate(STONES);
     let hint = |s: &&Spot| Hint {
-        area: s.area.clone(),
+        place: Place::Area(s.area.clone()),
         item: s.item.clone(),
     };
     found.iter().map(hint).collect()
@@ -98,7 +107,10 @@ pub(crate) fn language(
         names.get(label).filter(|n| !n.is_empty()).cloned()
     };
     for (stone, hint) in stones.iter().zip(hints.iter().cycle()) {
-        let area = named(&areas, &hint.area).unwrap_or_else(|| pretty(&hint.area));
+        let area = match &hint.place {
+            Place::Area(a) => named(&areas, a).unwrap_or_else(|| pretty(a)),
+            Place::Words(words) => words.clone(),
+        };
         let item = labels
             .get(hint.item.as_str())
             .and_then(|l| named(&pouch, l));
@@ -155,10 +167,14 @@ mod tests {
     #[test]
     fn every_stone_names_a_hint_in_every_language() {
         let Some(romfs) = dev_dump() else { return };
-        let hints = [Hint {
-            area: flag::KOKIRI_FOREST.to_string(),
+        let hint = |place| Hint {
+            place,
             item: item::HAMMER.to_string(),
-        }];
+        };
+        let hints = [
+            hint(Place::Area(flag::KOKIRI_FOREST.to_string())),
+            hint(Place::Words("Fake Pot 3 (Fake Player)".into())),
+        ];
         let item = crate::names::name_label(&romfs, item::HAMMER).unwrap();
         let labels = HashMap::from([(item::HAMMER.get(), item.unwrap())]);
         let rels = text::archives(&romfs).unwrap();
@@ -168,11 +184,24 @@ mod tests {
             let sarc = Sarc::new(&data).unwrap();
             let lines = messages(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
             let read: Vec<&String> = stones(&lines).iter().map(|s| &lines[*s]).collect();
-            assert!(read.iter().all(|l| *l == read[0]), "{rel}");
+            // The stones take the hints in turn.
+            assert!(read.iter().step_by(2).all(|l| *l == read[0]), "{rel}");
+            assert!(
+                read.iter().skip(1).step_by(2).all(|l| *l == read[1]),
+                "{rel}"
+            );
+            assert!(
+                read[1].starts_with("Fake Pot 3 (Fake Player)") || text::is_english(&rel),
+                "{rel}"
+            );
             if rel.contains("USen") {
                 assert_eq!(
                     read[0],
                     "They say that Kokiri Forest\nhides Megaton Hammer."
+                );
+                assert_eq!(
+                    read[1],
+                    "They say that Fake Pot 3 (Fake Player)\nhides Megaton Hammer."
                 );
             }
         }

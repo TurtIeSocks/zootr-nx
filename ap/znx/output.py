@@ -3,7 +3,7 @@
 import json
 import zipfile
 
-from BaseClasses import Item, ItemClassification
+from BaseClasses import Item, ItemClassification, Location
 from worlds.Files import APPlayerContainer
 
 GAME = "Ocarina of Time (znx)"
@@ -55,3 +55,31 @@ def placement(item: Item, player: int, player_names: dict) -> dict:
     if item.game == GAME:
         foreign["id"] = item.code
     return {"foreign": foreign}
+
+
+# The game's gossip stones, one hint each.
+STONES = 40
+
+
+def hints(locations: list[Location], player: int, names: dict, hashes: dict, random) -> list[dict]:
+    """Up to one hint a stone, in stone order: where this slot's progression
+    items are, in any slot's world. The mod repeats them over the stones
+    when there are fewer."""
+    found = [
+        location
+        for location in locations
+        if location.address is not None
+        and location.item is not None
+        and location.item.player == player
+        and location.item.advancement
+    ]
+    found.sort(key=lambda location: (location.player, location.name))
+    random.shuffle(found)
+    return [hint(location, player, names, hashes) for location in found[:STONES]]
+
+
+def hint(location: Location, player: int, names: dict, hashes: dict) -> dict:
+    """One stone's hint: our own check by hash, another slot's by name."""
+    if location.player == player:
+        return {"item": location.item.code, "own": int(hashes[location.name])}
+    return {"item": location.item.code, "player": names[location.player], "location": location.name}
