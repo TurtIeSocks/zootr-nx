@@ -25,7 +25,6 @@ const TRAP: &str = "trap";
 /// one Link gets once, so it reads as a get of its own.
 const STAND_IN: &Name = item::TOKEN_GERUDO;
 
-/// The ids the world was exported with.
 /// A `.apznx`, as kept with a seed so it reinstalls without the file.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApSeed {
