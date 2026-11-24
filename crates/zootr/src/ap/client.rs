@@ -20,7 +20,7 @@ use super::ids::Ids;
 use super::notice::Notices;
 use super::seed::Dealt;
 use super::{ApSeed, GAME, RECEIVED};
-use crate::dev::Dev;
+use crate::dev::{Dev, Landed};
 use crate::gamedata::GameData;
 use crate::generate::Spot;
 use crate::known::flow;
@@ -39,9 +39,11 @@ pub trait Game {
     fn goal(&mut self) -> Result<bool>;
     /// How many received items Link has been given, from the save.
     fn given(&mut self) -> Result<usize>;
-    /// Give Link `actor`, then count `given` items given. Says what he
-    /// got: a progressive item's level.
-    fn give(&mut self, actor: &str, given: usize) -> Result<String>;
+    /// Give Link `actor`. Says what he got: a progressive item's level.
+    /// An error marked [`Landed`] came after the item reached him.
+    fn give(&mut self, actor: &str) -> Result<String>;
+    /// Save that `given` received items have been given.
+    fn count(&mut self, given: usize) -> Result<()>;
     /// Show a received item's notice.
     fn notice(&mut self, shown: &Shown) -> Result<()>;
     /// Link died since the last look.
@@ -202,8 +204,13 @@ fn give_next(
     };
     let actor =
         (book.actors.get(&id)).with_context(|| format!("no item of ours has AP id {id}"))?;
-    let got = game.give(actor, given + 1)?;
-    Ok(Some((given, got)))
+    // A give that reached Link counts, even when what came after it
+    // failed: else every pass gives it again.
+    let got = game.give(actor);
+    if got.as_ref().map_or_else(|e| e.is::<Landed>(), |_| true) {
+        game.count(given + 1)?;
+    }
+    Ok(Some((given, got?)))
 }
 
 /// Give the next item owed, if any, then show the notice due: between a
@@ -613,15 +620,13 @@ impl Game for Live {
         self.dev.kill()
     }
 
-    fn give(&mut self, actor: &str, given: usize) -> Result<String> {
-        let got = self.dev.give_level(actor)?;
-        live::set(
-            self.dev.game(),
-            self.dev.game().global(),
-            self.received,
-            &given.to_string(),
-        )?;
-        Ok(got)
+    fn give(&mut self, actor: &str) -> Result<String> {
+        self.dev.give_level(actor)
+    }
+
+    fn count(&mut self, given: usize) -> Result<()> {
+        let game = self.dev.game();
+        live::set(game, game.global(), self.received, &given.to_string())
     }
 
     fn notice(&mut self, shown: &Shown) -> Result<()> {
@@ -638,7 +643,12 @@ pub(super) mod tests {
         pub busy: bool,
         pub checked: BTreeSet<u64>,
         pub goal: bool,
+        /// What Link got, give by give.
         pub given: Vec<String>,
+        /// The save's count of received items given.
+        pub counted: usize,
+        /// Each give lands, then fails.
+        pub fail_landed: bool,
         /// Link died since the last look.
         pub died: bool,
         pub kills: usize,
@@ -656,12 +666,18 @@ pub(super) mod tests {
             Ok(self.goal)
         }
         fn given(&mut self) -> Result<usize> {
-            Ok(self.given.len())
+            Ok(self.counted)
         }
-        fn give(&mut self, actor: &str, given: usize) -> Result<String> {
+        fn give(&mut self, actor: &str) -> Result<String> {
             self.given.push(actor.into());
-            assert_eq!(self.given.len(), given);
-            Ok(actor.into())
+            match self.fail_landed {
+                true => Err(anyhow::anyhow!("FakeWait timed out").context(Landed)),
+                false => Ok(actor.into()),
+            }
+        }
+        fn count(&mut self, given: usize) -> Result<()> {
+            self.counted = given;
+            Ok(())
         }
         fn notice(&mut self, shown: &Shown) -> Result<()> {
             self.notices.push(shown.clone());
@@ -769,10 +785,22 @@ pub(super) mod tests {
     #[test]
     fn a_save_ahead_of_the_server_gives_nothing_and_says_so() {
         let (mut game, book) = (Fake::default(), book());
-        game.given = vec!["Item_FakeBow".into(); 3];
+        game.counted = 3;
         let err = give_next(&mut game, &book, &[1]).unwrap_err();
         assert!(err.to_string().contains("another room"), "{err}");
-        assert_eq!(game.given.len(), 3);
+        assert!(game.given.is_empty());
+    }
+
+    /// A give whose wait after it fails still counts, or every pass gives
+    /// it again.
+    #[test]
+    fn a_give_that_lands_then_fails_is_counted() {
+        let (mut game, book) = (Fake::default(), book());
+        game.fail_landed = true;
+        assert!(give_next(&mut game, &book, &[1, 2]).is_err());
+        game.fail_landed = false;
+        give_next(&mut game, &book, &[1, 2]).unwrap();
+        assert_eq!(game.given, ["Item_FakeBow", "Item_FakeHook"]);
     }
 
     #[test]
