@@ -358,11 +358,11 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
             flows::edit(romfs, &mut out, flow, |f| {
                 if c.name == FIELD_ARRIVAL {
                     let [hour, min] = FIELD_ARRIVAL_TIME;
-                    let params = vec![
+                    let params = [
                         (field::TIME_HOUR.to_string(), Value::Int(vec![hour])),
                         (field::TIME_MIN.to_string(), Value::Int(vec![min])),
                     ];
-                    arrivals::replace(f, &c.name, WORLD, params)
+                    arrivals::replace(f, &c.name, WORLD, &params)
                 } else {
                     cut::swap(f, &c.name, &[])?;
                     if c.name == IMPA_SCENE {

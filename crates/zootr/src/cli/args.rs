@@ -675,7 +675,7 @@ pub(super) enum SaveCommand {
 }
 
 fn field(arg: &str) -> Result<String> {
-    checks::field(arg)?;
+    checks::parse_field(arg)?;
     Ok(arg.to_owned())
 }
 
