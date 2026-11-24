@@ -81,6 +81,23 @@ impl Ctx {
             adult_jabu: new_game.adult_jabu,
         }
     }
+
+    /// Progressive items and every toggle off: what the load check
+    /// resolves each rule against.
+    pub(crate) fn for_checks() -> Self {
+        Self {
+            progressive: true,
+            lines: Default::default(),
+            on: BTreeSet::new(),
+            seed: 0,
+            keys: DungeonKeys::Vanilla,
+            fortress: FortressKeys::Vanilla,
+            open: BTreeSet::new(),
+            doors: None,
+            age: Era::Child,
+            adult_jabu: AdultJabu::Off,
+        }
+    }
 }
 
 /// What a check needs beyond reaching its place.
@@ -254,15 +271,8 @@ mod tests {
     fn ctx(progressive: bool, on: &[&str]) -> Ctx {
         Ctx {
             progressive,
-            lines: Default::default(),
             on: on.iter().map(|s| s.to_string()).collect(),
-            seed: 0,
-            keys: DungeonKeys::Vanilla,
-            fortress: FortressKeys::Vanilla,
-            open: BTreeSet::new(),
-            doors: None,
-            age: Era::Child,
-            adult_jabu: AdultJabu::Off,
+            ..Ctx::for_checks()
         }
     }
 

@@ -342,10 +342,33 @@ pub(crate) fn edit(gd: &GameData, path: &Path, edits: &[String]) -> Result<(Vec<
 /// Write `save` over the file at `path`, keeping the old one next to it as
 /// a timestamped backup, which it returns.
 pub fn write(path: &Path, save: &Save) -> Result<PathBuf> {
-    let backup = path.with_extension(format!("sav.{}.bak", generate::time_seed() / 1_000_000_000));
-    std::fs::copy(path, &backup)?;
+    let backup = back_up(path)?;
     std::fs::write(path, save.bytes())?;
     Ok(backup)
+}
+
+/// Copy the file at `path` to a backup named by the second, never over an
+/// older one: a second write inside the same second gets `-1`, `-2` and on,
+/// so the first backup keeps the save from before any edit.
+fn back_up(path: &Path) -> Result<PathBuf> {
+    let mut old = std::fs::File::open(path)?;
+    let secs = generate::time_seed() / 1_000_000_000;
+    for n in 0u32.. {
+        let stamp = match n {
+            0 => secs.to_string(),
+            n => format!("{secs}-{n}"),
+        };
+        let backup = path.with_extension(format!("sav.{stamp}.bak"));
+        match std::fs::File::create_new(&backup) {
+            Ok(mut file) => {
+                std::io::copy(&mut old, &mut file)?;
+                return Ok(backup);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    unreachable!("a free backup name before u32::MAX")
 }
 
 /// One element of a save value to set, as text its type takes.
@@ -420,16 +443,22 @@ pub fn set(gd: &GameData, save: &mut Save, edits: &[String]) -> Result<Vec<Strin
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    fn unix_now() -> u32 {
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as u32
+    }
+
     #[test]
     fn a_save_counts_from_the_install_on() {
         let dir = std::env::temp_dir().join(format!("zootr-since-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let save = dir.join("progress.sav");
         std::fs::write(&save, b"save").unwrap();
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as u32;
+        let now = unix_now();
         assert!(written_since(&save, None));
         assert!(written_since(&save, Some(now - 60)));
         assert!(!written_since(&save, Some(now + 60)));
@@ -443,17 +472,28 @@ mod tests {
         let save = slot_file(&dir, 1);
         std::fs::create_dir_all(save.parent().unwrap()).unwrap();
         std::fs::write(&save, b"save").unwrap();
-        let now = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as u32;
+        let now = unix_now();
         assert_eq!(newest_since(&dir, None).unwrap(), Some(save.clone()));
         assert_eq!(newest_since(&dir, Some(now - 60)).unwrap(), Some(save));
         assert_eq!(newest_since(&dir, Some(now + 60)).unwrap(), None);
         std::fs::remove_dir_all(dir).unwrap();
     }
 
-    use super::*;
+    #[test]
+    fn two_writes_in_one_second_keep_the_first_backup() {
+        let dir = std::env::temp_dir().join(format!("zootr-backup-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("progress.sav");
+        let original = Save::fixture(&[(0, 0), (11, 0)]);
+        std::fs::write(&path, &original).unwrap();
+        let edited = Save::parse(Save::fixture(&[(0, 0), (11, 1)])).unwrap();
+        let first = write(&path, &edited).unwrap();
+        let second = write(&path, &edited).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(std::fs::read(&first).unwrap(), original);
+        assert_eq!(std::fs::read(&second).unwrap(), edited.bytes());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn keys_that_flip_come_one_change_each() {

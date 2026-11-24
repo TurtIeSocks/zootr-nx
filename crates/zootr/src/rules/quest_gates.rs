@@ -23,7 +23,7 @@ const EXIT_GIVERS: &[(&str, &str, (&Name, &Name), &str)] = &[(
     "Step06",
 )];
 
-/// A word's promise: quest `quest` at step index `least` or past it.
+/// A word's promise: quest `quest` at step `step` or past it.
 pub struct Implied {
     pub word: String,
     pub quest: String,
@@ -67,7 +67,7 @@ pub struct Report {
 pub fn audit(romfs: &Romfs, graph: &Graph, book: &Book) -> Result<Report> {
     let implied = implies()?;
     let mut report = Report::default();
-    let always = Expr::Word("always".into());
+    let always = super::files::always();
     let checks = crate::checks::all(romfs)?;
     for check in checks.into_iter().filter(|c| !crate::ledger::kept_out(c)) {
         let entry = book.check(check.hash);
