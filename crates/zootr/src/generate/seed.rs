@@ -13,7 +13,7 @@ use crate::names::Names;
 use crate::progress::{Run, Step};
 use crate::rng::Rng;
 use crate::rules::{self, Book, Ctx, Have, Need};
-use crate::settings::{self, DungeonEntrances, Logic, NewGame, Settings};
+use crate::settings::{self, DungeonEntrances, NewGame, Settings};
 use crate::shuffle::{self, Fixed};
 use crate::world::Era;
 use crate::{checks, fill, gamedata, gifts, hints, ice_traps, icons, places, presets, steps};
@@ -44,7 +44,7 @@ pub fn shuffle(
     };
     run.step(Step::Checks)?;
     let checks = checks::dealt(romfs, &new_game)?;
-    let logic = new_game.logic == Logic::Glitchless && !new_game.vanilla;
+    let logic = new_game.fills();
     let (mut placements, filled, started) = match logic {
         true => {
             let book = Book::load()?;

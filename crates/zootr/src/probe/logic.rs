@@ -229,14 +229,20 @@ pub(super) fn doors(
 }
 
 /// Fills seeds 1 to `seeds` and prints how many logic beats within its
-/// tries, and the last failure's reason.
+/// tries, and the last failure's reason. `settings` lie over `base`.
 pub(super) fn seeds(
     romfs: &Romfs,
     seeds: u64,
+    mut base: crate::settings::Settings,
     settings: &[(String, serde_json::Value)],
 ) -> Result<()> {
-    use crate::settings::{NewGame, Settings};
-    let new_game = NewGame::from_settings(&settings.iter().cloned().collect::<Settings>(), &[])?;
+    use crate::settings::NewGame;
+    base.extend(settings.iter().cloned());
+    let new_game = NewGame::from_settings(&base, &[])?;
+    if !new_game.fills() {
+        println!("no fill runs: shuffle-items or logic is off, so a seed places items without one");
+        return Ok(());
+    }
     let checks = crate::checks::dealt(romfs, &new_game)?;
     let book = crate::rules::Book::load()?;
     let ctx = crate::rules::Ctx::new(&new_game);

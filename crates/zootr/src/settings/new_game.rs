@@ -118,6 +118,12 @@ pub struct NewGame {
 }
 
 impl NewGame {
+    /// Whether a seed fills with logic: items shuffle and logic is on.
+    /// Otherwise items stay put or scatter at random.
+    pub fn fills(&self) -> bool {
+        self.logic == Logic::Glitchless && !self.vanilla
+    }
+
     /// A test's new game: the defaults, with key rings.
     #[cfg(test)]
     pub(crate) fn rings() -> Self {
@@ -374,6 +380,18 @@ mod tests {
     use crate::cutscenes::played_set;
     use crate::known::flag;
     use crate::presets::ADULT_DEKU_TREE;
+
+    /// Since every setting defaults to vanilla, a default seed places
+    /// every item where it always is, and only shuffled items fill.
+    #[test]
+    fn only_shuffled_items_with_logic_fill() {
+        let of = |settings: &Settings| NewGame::from_settings(settings, &[]).unwrap().fills();
+        assert!(!of(&Settings::new()));
+        let mut randomizer = super::super::favorites::randomizer();
+        assert!(of(&randomizer));
+        randomizer.insert(LOGIC.into(), choice_id(Logic::NoLogic).into());
+        assert!(!of(&randomizer));
+    }
 
     #[test]
     fn a_settled_start_marks_the_ammo_its_new_bags_hold() {

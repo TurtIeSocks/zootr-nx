@@ -46,7 +46,7 @@ pub(super) struct NewGame {
 
 /// The settings of the favorite called `name`, built in or the app's.
 /// A built-in never reads the config.
-fn favorite(name: &str) -> Result<Settings> {
+pub(crate) fn favorite(name: &str) -> Result<Settings> {
     let find = settings::favorites::find;
     find(name, &[]).or_else(|_| find(name, &crate::config::Config::load()?.favorites))
 }
