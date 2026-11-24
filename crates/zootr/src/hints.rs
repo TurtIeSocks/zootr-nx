@@ -129,9 +129,10 @@ fn line(rel: &str, area: &str, item: &str) -> String {
     }
 }
 
-/// The most characters a stone's box shows on a line: the longest read
-/// whole, live (`research/hints.md`).
-const WIDEST: usize = 67;
+/// The most characters a stone's box holds on a line. Hints are mostly
+/// Title Case names, wider than vanilla's prose: 64 of them ran past
+/// the bubble live, and 50 keeps inside it (`research/hints.md`).
+const WIDEST: usize = 50;
 /// The lines a stone's box shows at once.
 const PER_PAGE: usize = 2;
 /// The tag vanilla stones turn the page with (a Lost Woods stone's three
@@ -264,7 +265,7 @@ mod tests {
     #[test]
     fn a_stone_too_long_for_its_box_turns_the_page() {
         let Some(romfs) = dev_dump() else { return };
-        let place = format!("{}(FakePlayer)", "Fake Location ".repeat(6));
+        let place = format!("{}(FakePlayer)", "Fake Location ".repeat(4));
         let hints = [Hint {
             place: Place::Words(place.clone()),
             item: item::HAMMER.to_string(),
@@ -279,7 +280,9 @@ mod tests {
         let msbt = Msbt::parse(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
         let lines = messages(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
         let parts = msbt.get(stones(&lines)[0]).unwrap().unwrap();
-        let first = wrapped(&format!("They say that {place}")).join("\n");
+        let first = wrapped(&format!("They say that {place}"));
+        assert_eq!(first.len(), PER_PAGE, "the place fills the first page");
+        let first = first.join("\n");
         let hides = Part::Text("hides Megaton Hammer.".into());
         assert_eq!(parts, [Part::Text(first), msbt.tag(PAGE.0, PAGE.1), hides]);
     }
