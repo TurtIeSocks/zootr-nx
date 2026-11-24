@@ -8,7 +8,7 @@ from itertools import product
 from BaseClasses import LocationProgressType
 from .. import dealt, traded, trapped
 from ..exported import JUNK, OPTIONS, POOL, SHARES, TRAP, WORLD
-from ..options import attr
+from ..options import ZnxOptions, attr, setting_values
 from . import ZnxTestBase, ap_value
 
 
@@ -32,6 +32,19 @@ for combo in product(*([ap_value(e["id"], e["default"]), *other_values(e)] for e
     options = {"npc_gifts": True, **{attr(id_): value for id_, value in zip(JOINT, combo)}}
     name = "Test_npc_gifts_" + "_".join(str(value) for value in combo)
     globals()[name] = type(name, (ZnxTestBase,), {"options": options})
+
+
+class TestANumberedChoiceTakesItsNumber(unittest.TestCase):
+    """YAML gives `shop_slots: 4` as the int 4, which AP reads as a value."""
+
+    def test_the_number_is_the_option(self) -> None:
+        for entry in OPTIONS:
+            if entry["id"] not in ("shop-slots", "scrub-price"):
+                continue
+            option = ZnxOptions.type_hints[attr(entry["id"])]
+            for o in entry["options"]:
+                picked = option.from_any(int(o["id"]))
+                self.assertEqual(setting_values(entry, picked), {entry["id"]: o["id"]})
 
 
 class TestDeadTreeOnlyWithAdultDekuTree(ZnxTestBase):
