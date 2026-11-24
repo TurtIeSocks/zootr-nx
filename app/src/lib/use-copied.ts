@@ -17,5 +17,16 @@ export function useCopied() {
     setCopied(key);
     timer.current = setTimeout(() => setCopied(undefined), SHOWN);
   };
-  return { copied, flash };
+
+  /** Puts `text` on the clipboard and marks `key` as just copied. A refused
+   * write marks nothing. */
+  const copy = async (key: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      flash(key);
+    } catch {
+      // No clipboard to write to.
+    }
+  };
+  return { copied, flash, copy };
 }

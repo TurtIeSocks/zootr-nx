@@ -50,6 +50,11 @@ test("Give sends the item and count, the stepper keeping 1 to 99", async () => {
   expect((count as HTMLInputElement).value).toBe("2");
   fireEvent.change(count, { target: { value: "500" } });
   expect((count as HTMLInputElement).value).toBe("99");
+  fireEvent.change(count, { target: { value: "" } });
+  expect((count as HTMLInputElement).value).toBe("");
+  fireEvent.blur(count);
+  expect((count as HTMLInputElement).value).toBe("99");
+  fireEvent.change(count, { target: { value: "" } });
   fireEvent.change(count, { target: { value: "20" } });
   fireEvent.click(give);
   expect(devGive).toHaveBeenCalledWith("Item_A", 20);

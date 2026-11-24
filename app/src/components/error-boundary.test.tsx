@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { ErrorBoundary } from "@/components/error-boundary";
 
@@ -71,4 +77,18 @@ test("Copy Details puts the error on the clipboard", async () => {
   expect(writeText).toHaveBeenCalledWith(
     expect.stringContaining("Spoiler: Error: spots is null"),
   );
+  expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+});
+
+test("Copy Details with no clipboard to write to stays put", async () => {
+  const writeText = vi.fn(() => Promise.reject(new Error("denied")));
+  Object.assign(navigator, { clipboard: { writeText } });
+  render(
+    <ErrorBoundary label="Spoiler">
+      <Fragile />
+    </ErrorBoundary>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Copy Details" }));
+  await waitFor(() => expect(writeText).toHaveBeenCalled());
+  expect(screen.getByRole("button", { name: "Copy Details" })).toBeTruthy();
 });

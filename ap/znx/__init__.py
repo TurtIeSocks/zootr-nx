@@ -177,7 +177,11 @@ class ZnxWorld(World):
                     item.player != self.player or item.name not in forbid
                 )
         for event in filter(self.holds, WORLD["events"]):
-            location = self.place(event["name"], None, self.spots(event["at"], regions), regions, origin)
+            at = self.spots(event["at"], regions)
+            if event["at"] and not at:
+                # No way in with these options: never reached, not free.
+                continue
+            location = self.place(event["name"], None, at, regions, origin)
             location.place_locked_item(ZnxItem(event["name"], ItemClassification.progression, None, self.player))
 
     def spots(self, at: list, regions: dict) -> list:

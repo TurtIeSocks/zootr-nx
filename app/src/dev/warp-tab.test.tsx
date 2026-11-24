@@ -127,6 +127,8 @@ test("Actors in Map lists the map's actors, and search narrows them", async () =
   expect(within(list).getAllByRole("button")).toHaveLength(1);
   fireEvent.change(search, { target: { value: "field_0" } });
   expect(within(list).getAllByRole("button")).toHaveLength(1);
+  // Its tag counts over the whole map, so the search keeps its label.
+  expect(within(list).getByText("Field_000")).toBeTruthy();
 });
 
 test("a click on an actor warps to the picked side", async () => {

@@ -26,6 +26,13 @@ export function mapAge(map: string): "child" | "adult" | undefined {
   return age === "Child" ? "child" : "adult";
 }
 
+/** Link's age from the game's child flag, unknown while it isn't read. */
+export function ageOf(
+  child: boolean | undefined,
+): "child" | "adult" | undefined {
+  return child === undefined ? undefined : child ? "child" : "adult";
+}
+
 /** The spots of `places` for Link's age, both ages when it's unknown, in
  * their order. The query matches the area or the spot, any case. */
 export function spots(
@@ -33,7 +40,7 @@ export function spots(
   child: boolean | undefined,
   query: string,
 ): Spot[] {
-  const want = child === undefined ? undefined : child ? "child" : "adult";
+  const want = ageOf(child);
   const q = query.trim().toLowerCase();
   return places.flatMap((place) => {
     const [map, spot] = place.split("/");

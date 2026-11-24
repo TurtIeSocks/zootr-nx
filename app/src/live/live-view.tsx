@@ -9,13 +9,15 @@ import {
 import { ArmedButton } from "@/components/armed-button";
 import { InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
-import { typing, useLogKeys } from "@/components/log-view/keys";
+import { HiddenMenu } from "@/components/log-view/hidden-menu";
+import { typing } from "@/components/log-view/keys";
 import {
   CopyButton,
   GrepInput,
   OpenLogButton,
 } from "@/components/log-view/log-tools";
 import { Tail } from "@/components/log-view/tail";
+import { useLogCopy } from "@/components/log-view/use-log-copy";
 import {
   type Selection,
   useSelection,
@@ -24,13 +26,6 @@ import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -45,7 +40,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useRequest, useRequestState } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { useCopied } from "@/lib/use-copied";
 import { LiveHeader, LiveRow, NoteRow } from "@/live/live-row";
 import { fold, type Item, isRow, kindsOf, textOf, visible } from "@/live/rows";
 import { Room, useColumnsStyle, useRoom } from "@/live/use-columns";
@@ -56,7 +50,7 @@ import { clear, mark, useLive } from "@/stores/live";
 import { useUi } from "@/stores/ui";
 
 /** Muted values listed in the tooltip before it gives a count. */
-const LISTED = 20;
+const MUTED_LISTED = 20;
 
 /** What the watcher is doing. */
 const WATCHING = {
@@ -101,7 +95,7 @@ function SourceNote() {
 function MutedCount() {
   const [muted] = useLive.usePath("muted");
   if (muted.length === 0) return null;
-  const more = muted.length - LISTED;
+  const more = muted.length - MUTED_LISTED;
   return (
     <Tooltip>
       <TooltipTrigger asChild tabIndex={0}>
@@ -110,7 +104,7 @@ function MutedCount() {
         </span>
       </TooltipTrigger>
       <TooltipContent className="font-mono">
-        {muted.slice(0, LISTED).map((m) => (
+        {muted.slice(0, MUTED_LISTED).map((m) => (
           <div key={m.hash}>{m.name}</div>
         ))}
         {more > 0 && <div>and {more} more</div>}
@@ -159,33 +153,17 @@ function TypesMenu() {
   const [items] = useLive.usePath("items");
   const [hidden, setHidden] = useUi.usePath("live.hiddenKinds");
   const kinds = kindsOf(items, hidden);
-  const show = (kind: string, on: boolean) =>
-    setHidden(on ? hidden.filter((k) => k !== kind) : [...hidden, kind]);
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost" disabled={kinds.length === 0}>
-          Types
-          {hidden.length > 0 && (
-            <span className="text-ink-faint">· {hidden.length} hidden</span>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-        <DropdownMenuLabel>Show These Types</DropdownMenuLabel>
-        {kinds.map((kind) => (
-          <DropdownMenuCheckboxItem
-            key={kind}
-            checked={!hidden.includes(kind)}
-            onCheckedChange={(on) => show(kind, on)}
-            onSelect={(e) => e.preventDefault()}
-            className="font-mono text-xs"
-          >
-            {kind}
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <HiddenMenu
+      label="Types"
+      heading="Show These Types"
+      options={kinds}
+      hidden={hidden}
+      onHiddenChange={setHidden}
+      disabled={kinds.length === 0}
+      className="max-h-80 overflow-y-auto"
+      itemClassName="font-mono text-xs"
+    />
   );
 }
 
@@ -196,7 +174,11 @@ function MarkButton() {
   const [open, setOpen] = useState(false);
   const on = state === "Recording";
   useEffect(() => {
-    if (!on) return;
+    // A popover left open when recording stops stays shut on the next one.
+    if (!on) {
+      setOpen(false);
+      return;
+    }
     const key = (e: KeyboardEvent) => {
       if (e.key !== "m" || e.metaKey || e.ctrlKey || e.altKey || typing(e))
         return;
@@ -327,16 +309,7 @@ function ColumnsBox({ children }: ColumnsBoxProps) {
 export function LiveView() {
   const shown = useShown();
   const selection = useSelection();
-  const { copied, flash } = useCopied();
-  const selecting = selection.ids.size > 0;
-  const lines = selecting
-    ? shown.filter((i) => selection.ids.has(i.id))
-    : shown;
-  const copy = async () => {
-    await navigator.clipboard.writeText(textOf(lines));
-    flash("lines");
-  };
-  useLogKeys(shown, selection, copy);
+  const copyButton = useLogCopy(shown, selection, textOf);
 
   return (
     <Page wide className="min-h-0 flex-1">
@@ -363,12 +336,7 @@ export function LiveView() {
                   Clear
                 </ArmedButton>
               </Tip>
-              <CopyButton
-                count={lines.length}
-                selecting={selecting}
-                copied={copied !== undefined}
-                onCopy={copy}
-              />
+              <CopyButton {...copyButton} />
               <LiveLogButton />
             </div>
           </div>

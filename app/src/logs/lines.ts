@@ -29,7 +29,7 @@ export function add(log: AppLog, lines: Line[]): AppLog {
   return {
     ...log,
     lines: all.slice(-CAP),
-    next: (fresh.at(-1)?.seq ?? log.next - 1) + 1,
+    next: Math.max(...fresh.map((l) => l.seq)) + 1,
   };
 }
 

@@ -1,8 +1,9 @@
 import { Circle, CircleCheck, Ellipsis } from "lucide-react";
 import type { DoorRow } from "@/bindings";
 import { dungeonName } from "@/checks/doors";
-import { Meter } from "@/components/meter";
+import { AreaHeading } from "@/checks/table";
 import { RequestError } from "@/components/request-error";
+import { cellClass } from "@/components/styles";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,9 +15,6 @@ import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { cn } from "@/lib/utils";
 import { pick, useChecks } from "@/stores/checks";
-
-/** What every cell in a door's row shares, as a check's row has. */
-const cell = "h-8.5 border-line border-t px-3 align-middle";
 
 /** Props for the components that show one door. */
 interface DoorProps {
@@ -70,21 +68,21 @@ function EntranceRow({ door, doors }: DoorProps) {
   return (
     <RequestProvider>
       <tr className="transition-colors duration-(--duration-fast) hover:bg-surface-hover">
-        <td className={cn(cell, "w-10 pr-0")}>
+        <td className={cn(cellClass, "w-10 pr-0")}>
           {door.found ? (
             <CircleCheck className="size-4 text-primary" aria-label="found" />
           ) : (
             <Circle className="size-4 text-control-border" aria-hidden />
           )}
         </td>
-        <td className={cell}>{door.name}</td>
-        <td className={cell}>
+        <td className={cellClass}>{door.name}</td>
+        <td className={cellClass}>
           <Behind door={door} doors={doors} />
         </td>
-        <td className={cn(cell, "text-ink-muted")}>
+        <td className={cn(cellClass, "text-ink-muted")}>
           <RequestError />
         </td>
-        <td className={cn(cell, "w-12 text-right")}>
+        <td className={cn(cellClass, "w-12 text-right")}>
           {!door.found && <PickMenu door={door} doors={doors} />}
         </td>
       </tr>
@@ -99,19 +97,7 @@ export function EntranceRows() {
   const found = doors.filter((d) => d.found).length;
   return (
     <tbody className="group/area">
-      <tr>
-        <th
-          colSpan={5}
-          className="sticky top-8 z-1 bg-surface px-3 pt-3 pb-2 text-left font-normal"
-        >
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-[13.5px]">Entrances</span>
-            <Meter value={found} max={doors.length}>
-              {found}/{doors.length}
-            </Meter>
-          </div>
-        </th>
-      </tr>
+      <AreaHeading name="Entrances" done={found} total={doors.length} />
       {doors.map((d) => (
         <EntranceRow key={d.id} door={d} doors={doors} />
       ))}
