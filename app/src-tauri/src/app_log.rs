@@ -218,10 +218,15 @@ impl Log for AppLog {
     }
 }
 
-/// Starts the app's log, at debug with Developer Tools on. A logger
-/// already set stays.
+/// Starts the app's log, at debug with Developer Tools on, with every
+/// panic in it, where it happened too. A logger already set stays.
 pub(crate) fn install(dev_tools: bool) {
     start(AppLog::open, dev_tools);
+    let shown = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("{info}");
+        shown(info);
+    }));
 }
 
 /// Starts a log with no file, for tests that read what was logged.

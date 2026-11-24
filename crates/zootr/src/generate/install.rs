@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail, ensure};
 
 use crate::config::Target;
 use crate::patch;
-use crate::progress::{self, Run, Step, Stopped};
+use crate::progress::{self, Run, Step, Stopped, TookOff};
 use ounce_formats::copy_mod;
 
 /// Held while a seed is being installed, so two can't overlap.
@@ -48,15 +48,16 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
 /// [`patch::split`]). Refuses while another install runs or any target's game
 /// is open. Returns what the last `write` did.
 ///
-/// A stop before any folder's mod is replaced changes nothing. After, the
-/// targets would hold a mix of seeds, so it takes the mod off every one.
+/// A stop or failure (a panic too) before any folder's mod is replaced
+/// changes nothing. After, the targets would hold a mix of seeds, or a mod
+/// without its cheat, so it takes the mod off every one.
 pub fn install<T>(
     targets: &[Target],
     run: &Run,
     mut write: impl FnMut(&Path) -> Result<T>,
 ) -> Result<T> {
     guarded(targets, || {
-        let wrote: Result<T> = (|| {
+        let wrote: Result<T> = progress::caught(|| {
             let mut done = HashSet::new();
             let folders: Vec<&Target> =
                 targets.iter().filter(|t| done.insert(&t.mod_dir)).collect();
@@ -87,12 +88,14 @@ pub fn install<T>(
                 }
             }
             Ok(out)
-        })();
+        });
         match wrote {
-            // Writing the spoiler starts once a mod folder was replaced.
-            Err(e) if progress::stopped(&e).is_some() && run.reached(Step::Spoiler) => {
+            Err(e) if run.replaced() => {
                 take_off(targets)?;
-                Err(Stopped { took_off: true }.into())
+                Err(match progress::stopped(&e) {
+                    Some(_) => Stopped { took_off: true }.into(),
+                    None => e.context(TookOff),
+                })
             }
             wrote => wrote,
         }
@@ -303,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn a_stop_once_a_folder_is_replaced_takes_the_mod_off_every_target() {
+    fn a_stop_or_failure_once_a_folder_is_replaced_takes_the_mod_off_every_target() {
         let _turn = TURNS.lock().unwrap();
         let dir = std::env::temp_dir().join(format!("zootr-stop-{}", std::process::id()));
         let target = |name: &str| Target {
@@ -324,31 +327,70 @@ mod tests {
             game: None,
         };
         let targets = [target("a"), target("b")];
-        for t in &targets {
-            std::fs::create_dir_all(t.mod_dir.join("romfs")).unwrap();
-            std::fs::write(dir.join(format!("{}.txt", t.name)), "A=1\nK=old\n").unwrap();
-        }
+        let fresh = || {
+            for t in &targets {
+                std::fs::create_dir_all(t.mod_dir.join("romfs")).unwrap();
+                std::fs::write(dir.join(format!("{}.txt", t.name)), "A=1\nK=old\n").unwrap();
+            }
+        };
         let installed = |t: &Target| t.mod_dir.join("romfs").exists();
         let line = |t: &Target| std::fs::read_to_string(dir.join(format!("{}.txt", t.name)));
+        let as_were = || {
+            assert!(targets.iter().all(installed));
+            assert!(targets.iter().all(|t| line(t).unwrap() == "A=1\nK=old\n"));
+        };
+        let off = || {
+            assert!(!targets.iter().any(installed));
+            assert!(targets.iter().all(|t| line(t).unwrap() == "A=1\n"));
+        };
 
+        // Before writing replaced a folder, the targets keep what they had.
+        fresh();
         let run = Run::silent();
         run.stopper().stop();
         let err = install(&targets, &run, |_| run.step(Step::Checks)).unwrap_err();
-        assert!(!progress::stopped(&err).unwrap().took_off);
-        assert!(targets.iter().all(installed));
-        assert_eq!(line(&targets[0]).unwrap(), "A=1\nK=old\n");
+        assert!(!progress::took_off(&err));
+        as_were();
+        let err = install(&targets, &Run::silent(), |_| -> Result<()> {
+            bail!("broke")
+        })
+        .unwrap_err();
+        assert!(!progress::took_off(&err));
+        as_were();
 
+        // After, a stop, a failure and a panic each take the mod off.
         let run = Run::silent();
         let err = install(&targets, &run, |_| {
-            run.step(Step::Checks)?;
-            run.step(Step::Spoiler)?;
+            run.mark_replaced();
             run.stopper().stop();
-            Ok(())
+            run.check()
         })
         .unwrap_err();
         assert!(progress::stopped(&err).unwrap().took_off);
-        assert!(!targets.iter().any(installed));
-        assert!(targets.iter().all(|t| line(t).unwrap() == "A=1\n"));
+        off();
+        fresh();
+        let run = Run::silent();
+        let err = install(&targets, &run, |_| -> Result<()> {
+            run.mark_replaced();
+            bail!("the table needs 4076 bytes, 3968 are free")
+        })
+        .unwrap_err();
+        assert!(progress::took_off(&err));
+        assert!(format!("{err:#}").ends_with(": the table needs 4076 bytes, 3968 are free"));
+        off();
+        fresh();
+        let run = Run::silent();
+        let err = install(&targets, &run, |_| -> Result<()> {
+            run.mark_replaced();
+            panic!("index out of bounds")
+        })
+        .unwrap_err();
+        assert!(progress::took_off(&err));
+        assert!(format!("{err:#}").contains("the generator crashed: index out of bounds"));
+        off();
+        // And the lock it held is free for the next install.
+        fresh();
+        install(&targets[..1], &Run::silent(), |_| Ok(())).unwrap();
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
