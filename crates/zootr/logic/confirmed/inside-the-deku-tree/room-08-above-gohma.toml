@@ -1,0 +1,12 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 8
+name = "Above Gohma"
+
+[[link]]
+to = 4
+needs = "child"
+via = "crawl"
+why = "the crawl hole between the basement and above Gohma fits child Link only"
+evidence = [
+    "playtest 2026-11-24, the maintainer: the crawl hole is child only",
+]

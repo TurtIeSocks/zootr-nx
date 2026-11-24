@@ -34,3 +34,21 @@ evidence = [
     "playtest 2026-11-24, the maintainer: bombs don't break the web",
     "the maintainer's call 2026-11-24: logic always burns the web, the slip past it doesn't count",
 ]
+
+[[link]]
+to = 0
+needs = "always"
+via = "climb"
+why = "the ivy between the lobby and the basement"
+evidence = [
+    "the maintainer's rule: a climbable surface climbs every way",
+]
+
+[[link]]
+to = 8
+needs = "child"
+via = "crawl"
+why = "the crawl hole between the basement and above Gohma fits child Link only"
+evidence = [
+    "playtest 2026-11-24, the maintainer: the crawl hole is child only",
+]

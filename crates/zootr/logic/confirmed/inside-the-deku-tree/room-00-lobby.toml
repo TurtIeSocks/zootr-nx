@@ -1,0 +1,12 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 0
+name = "Lobby"
+
+[[link]]
+to = 4
+needs = "always"
+via = "climb"
+why = "the ivy between the lobby and the basement"
+evidence = [
+    "the maintainer's rule: a climbable surface climbs every way",
+]
