@@ -48,7 +48,7 @@ pub(super) fn locked_doors(placed: &[Placement]) -> BTreeSet<u64> {
     let near_lock = |at: [f32; 3]| locks.iter().any(|l| flat(l.pose.at, at) < LOCK_REACH);
     placed
         .iter()
-        .filter(|p| kinds::word(&p.name) == Some("door") && near_lock(p.pose.at))
+        .filter(|p| kinds::is_door(&p.name) && near_lock(p.pose.at))
         .filter_map(|p| p.hash)
         .collect()
 }
@@ -81,8 +81,7 @@ pub(super) fn rooms(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
     let (graph, locked, roots) = level.split();
     let room = |at: [f32; 3]| graph.locate(at).map(|s| roots[s.face]);
     for p in placed {
-        let word = kinds::word(&p.name);
-        if word != Some("chest") && !p.name.contains(LOCK) {
+        if !kinds::is_chest(&p.name) && !p.name.contains(LOCK) {
             continue;
         }
         let r = room(p.pose.at).map_or("off".into(), |r| r.to_string());

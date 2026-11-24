@@ -178,12 +178,18 @@ fn starts(steps: &[Step]) -> Vec<f32> {
         .collect()
 }
 
-/// When the trace stops: `settle` s past the end of the last step.
-fn end(steps: &[Step], settle: f32) -> Result<f32> {
+/// Refuses a `--settle` that a run would never get past.
+pub(super) fn check_settle(settle: f32) -> Result<()> {
     ensure!(
         settle.is_finite() && settle >= 0.0,
         "--settle {settle} isn't a time of 0 s or more"
     );
+    Ok(())
+}
+
+/// When the trace stops: `settle` s past the end of the last step.
+fn end(steps: &[Step], settle: f32) -> Result<f32> {
+    check_settle(settle)?;
     let starts = starts(steps);
     let last = starts.last().zip(steps.last());
     Ok(last.map_or(0.0, |(t, s)| t + s.secs()) + settle)
@@ -200,10 +206,10 @@ pub fn trace<M: Memory, I: Input>(
 ) -> Result<Traced> {
     let shoots = steps.contains(&Step::Shot);
     ensure!(!shoots || out.is_some(), "a shot needs --out to save it in");
+    let end = end(steps, settle)?;
     if let Some(dir) = out {
         std::fs::create_dir_all(dir).with_context(|| format!("making {}", dir.display()))?;
     }
-    let end = end(steps, settle)?;
     let starts = starts(steps);
     let (mut samples, mut shots, mut next) = (Vec::new(), Vec::new(), 0);
     let begun = Instant::now();
@@ -241,6 +247,7 @@ pub fn trace<M: Memory, I: Input>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::nav::sim;
 
     #[test]
     fn steps_read_as_control_lines() {
@@ -271,6 +278,16 @@ mod tests {
         for bad in [f32::INFINITY, f32::NAN, -1.0] {
             assert!(end(&steps, bad).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn a_refused_settle_leaves_no_out_folder() {
+        let (_, mut hands) = sim::start([0.0; 3], 0.0);
+        let out = std::env::temp_dir().join(format!("zootr-settle-{}", std::process::id()));
+        let steps = [Step::parse("A").unwrap()];
+        let err = trace(&sim::dev(), &mut hands, &steps, f32::NAN, Some(&out)).unwrap_err();
+        assert!(err.to_string().starts_with("--settle"), "{err}");
+        assert!(!out.exists());
     }
 
     #[test]

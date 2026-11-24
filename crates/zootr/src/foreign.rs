@@ -346,6 +346,10 @@ pub fn write(
     foreign: &[Foreign],
     keys: DungeonKeys,
 ) -> Result<()> {
+    // A seed without copies needs nothing, not even the small key's pack.
+    if foreign.is_empty() {
+        return Ok(());
+    }
     if foreign.iter().any(|f| f.model.is_some()) {
         let host = Host::read(romfs, &CLASS_LOOK)?;
         for (n, (_, colour)) in CLASSES.iter().enumerate() {

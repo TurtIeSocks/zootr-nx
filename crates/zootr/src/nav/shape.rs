@@ -352,8 +352,7 @@ pub fn solid(part: &Part, placed: &Placement) -> Solid {
 pub fn solids(romfs: &Romfs, placed: &[Placement]) -> Result<Vec<Solid>> {
     let mut shapes: HashMap<&str, Option<Shape>> = HashMap::new();
     let mut out = vec![];
-    let doors = |p: &&Placement| kinds::word(&p.name) == Some("door");
-    for p in placed.iter().filter(|p| !doors(p)) {
+    for p in placed.iter().filter(|p| !kinds::is_door(&p.name)) {
         let Some(shape) = cached(&mut shapes, &p.name, || shape_of(romfs, &p.name))? else {
             continue;
         };
@@ -476,12 +475,7 @@ mod tests {
         let named = |name: &str| level.solids.iter().filter(|s| s.name == name).count();
         assert_eq!(named(actor::OBJ_T_BOX_A_01), 5);
         assert!(level.solids.len() >= 50, "{}", level.solids.len());
-        assert!(
-            level
-                .solids
-                .iter()
-                .all(|s| kinds::word(&s.name) != Some("door"))
-        );
+        assert!(level.solids.iter().all(|s| !kinds::is_door(&s.name)));
         for s in &level.solids {
             assert!(s.ring.len() >= 3, "{s:?}");
             assert!(s.high > s.low && s.high - s.low < 10.0, "{s:?}");

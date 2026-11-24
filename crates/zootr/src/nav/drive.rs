@@ -91,7 +91,7 @@ const FIND_MS: u64 = 300;
 pub trait Sense {
     /// Where he stands.
     fn link(&self) -> Result<[f32; 3]>;
-    /// Which way he faces: his yaw, in radians.
+    /// Which way he faces: his yaw in radians. He faces `(sin, 0, cos)` of it.
     fn yaw(&self) -> Result<f32>;
     /// The map, and whether it is loading or an event plays.
     fn state(&self) -> Result<State>;
