@@ -539,7 +539,10 @@ mod tests {
             ("ips", 0x1083_af06_e0cb_712f),
             ("cheat", 0x451b_71a4_113e_7a7f),
         ];
-        assert_eq!(got, want, "{got:#x?}");
+        // The seed's outputs carry game names, which only the dump gives:
+        // without it they hold stand-ins, so only the code is pinned.
+        let pinned = if crate::game::no_names() { 4 } else { want.len() };
+        assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
 
     #[test]
