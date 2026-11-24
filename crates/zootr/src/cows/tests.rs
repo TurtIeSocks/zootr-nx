@@ -123,7 +123,7 @@ fn eight_cows_five_plain_and_kakarikos_in_three_files() {
         panic!("{} cows in Kakariko", kakariko.len())
     };
     assert_eq!(kakariko.placements.len(), 3);
-    assert!(child(&kakariko.check().file));
+    assert!(is_child(&kakariko.check().file));
     // Each cow runs its own event.
     let events: BTreeSet<&str> = cows.iter().map(|c| c.event.as_str()).collect();
     assert_eq!(events.len(), 8);

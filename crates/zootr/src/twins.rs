@@ -302,7 +302,7 @@ mod tests {
             found.cloned()
         };
         let chest = actor(&normal, CHEST_1).unwrap();
-        let dynamic = &chest.as_map().unwrap()["Dynamic"];
+        let dynamic = &chest.as_map().unwrap()[crate::checks::DYNAMIC];
         assert!(checks::str_field(dynamic, checks::DROP_ACTOR).is_some());
         let mut copy = actor(&burning, CHEST_1).unwrap();
         // Its gate is the one difference.

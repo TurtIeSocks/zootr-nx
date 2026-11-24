@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use super::drills::{DRILLS, Skill};
 use super::night::{RESULTS, holder_kind};
-use crate::gates::CHEST;
+use crate::checks::CHEST;
 use crate::known::actor;
 use crate::{cows, scrubs, shops};
 

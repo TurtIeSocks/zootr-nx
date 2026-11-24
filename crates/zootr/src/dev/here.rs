@@ -32,7 +32,7 @@ impl fmt::Display for Here {
 
 impl Dev {
     pub fn here(&self) -> Result<Here> {
-        let [x, y, z] = self.link()?;
+        let at = crate::checks::xyz(self.link()?);
         let map = self.state()?.map;
         let dungeon = (crate::entrances::DUNGEONS.iter()).find(|d| d.node.get() == map);
         let room = match dungeon {
@@ -44,7 +44,7 @@ impl Dev {
             None => None,
         };
         Ok(Here {
-            at: format!("{x:.1},{y:.1},{z:.1}"),
+            at,
             map,
             dungeon: dungeon.map(|d| d.id),
             room,

@@ -63,7 +63,8 @@ pub(super) fn exits(romfs: &Romfs, node: &str) -> Result<()> {
     for e in crate::world::exits(romfs)? {
         if touches(&e.from) || touches(&e.to) {
             let need = rule(&e.from, &e.to);
-            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &e.presence, &need));
+            let gate = crate::world::shown(e.presence.as_ref());
+            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &gate, &need));
         }
     }
     for r in book.exits.iter().filter(|r| r.added) {

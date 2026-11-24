@@ -8,7 +8,7 @@ use clap::ValueEnum;
 use ounce_formats::{Byml, Romfs};
 use serde::{Deserialize, Serialize};
 
-use crate::checks::{GYAML, actors, banc_files, hash_of, load_banc, str_field, vec3};
+use crate::checks::{GYAML, actors, banc_area, banc_files, hash_of, load_banc, str_field, vec3};
 use crate::config::TestSetup;
 use crate::dev::{Dev, Place};
 use crate::known::{Name, actor, field, flow};
@@ -58,7 +58,7 @@ pub fn placements(romfs: &Romfs, actor: &str) -> Result<BTreeMap<String, Pose>> 
 /// placement hash and pose.
 pub fn requested(romfs: &Romfs, event: &str) -> Result<BTreeMap<String, (Option<u64>, Pose)>> {
     first_where(romfs, |a| {
-        let dynamic = a.as_map().ok().and_then(|m| m.get("Dynamic"));
+        let dynamic = a.as_map().ok().and_then(|m| m.get(crate::checks::DYNAMIC));
         str_field(a, GYAML) == Some(REQUEST)
             && dynamic.and_then(|d| str_field(d, field::REQUEST_EVENT_NAME)) == Some(event)
     })
@@ -250,11 +250,6 @@ pub fn era(map: &str) -> Option<bool> {
     } else {
         map.ends_with(ADULT).then_some(false)
     }
-}
-
-/// The area folder a Banc file `rel` sits in.
-fn banc_area(rel: &str) -> Option<&str> {
-    rel.split('/').nth(1)
 }
 
 pub(crate) fn map_of(rel: &str) -> &str {

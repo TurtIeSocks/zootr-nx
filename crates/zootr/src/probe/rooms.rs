@@ -6,8 +6,9 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 
-use super::{root, xyz};
+use super::root;
 use crate::checks::flat;
+use crate::checks::xyz;
 use crate::nav::graph::{Cross, Graph, Via, step_up};
 use crate::nav::{kinds, navmesh_file};
 use crate::warp::{self, Placement};

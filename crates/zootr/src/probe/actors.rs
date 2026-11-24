@@ -6,7 +6,8 @@ use std::collections::{BTreeMap, HashSet};
 use anyhow::Result;
 use ounce_formats::{Byml, Romfs};
 
-use super::{Filter, xyz};
+use super::Filter;
+use crate::checks::xyz;
 use crate::checks::{GYAML, actors, banc_files, flat, hash_of, load_banc, str_field, vec3};
 use crate::items::show;
 

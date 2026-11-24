@@ -298,7 +298,7 @@ impl Kind {
         if !self.places(gyaml) {
             return Ok(None);
         }
-        let dynamic = actor.as_map()?.get("Dynamic");
+        let dynamic = actor.as_map()?.get(crate::checks::DYNAMIC);
         let held =
             (dynamic.and_then(|d| str_field(d, DROP_ACTOR))).filter(|d| !d.starts_with(ANIMAL));
         let table = dynamic.and_then(|d| str_field(d, fields::DROP_DROP_TABLE));
@@ -318,7 +318,7 @@ impl Kind {
             }
         };
         let hash = hash_of(actor).context("actor without Hash")?;
-        let area = file.split('/').nth(1).unwrap_or("?");
+        let area = crate::checks::area_of(file);
         let mut check = gifts::check(file.into(), area, hash, holder.into(), item);
         // A named holder is there once its event has put it there,
         // which the seed doesn't have to wait for.

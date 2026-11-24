@@ -26,7 +26,6 @@ use rule::{Rule, atom};
 pub use wiring::{Placed, Wiring, path, wiring};
 
 const LOGIC: &str = "Logic";
-pub(crate) const CHEST: &str = "Obj_TBox_";
 const TREASURE_BOX: &Name = field::ACTOR_LOGIC_TREASURE_BOX;
 /// A boss's heart container, and the logic node that makes it appear.
 const HEART: &Name = actor::OBJ_HEART_CONTAINER;
@@ -226,7 +225,7 @@ pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
         drives(
             romfs,
             TREASURE_BOX,
-            |gyaml| gyaml.starts_with(CHEST),
+            crate::checks::is_chest,
             // The chest inputs a gate is read from: whether it exists, and
             // whether it opens.
             Some(&[CREATE, "Unlock"]),
@@ -460,9 +459,8 @@ impl World {
                     world.gyamls.entry(hash).or_insert_with(|| gyaml.to_owned());
                 }
             }
-            let area = rel.trim_start_matches("Banc/");
             world.bancs.push(Banc {
-                area: area.split('/').next().unwrap_or(area).to_owned(),
+                area: crate::checks::area_of(&rel).to_owned(),
                 groups: groups(&doc.root)
                     .with_context(|| format!("{} in {rel}", field::AI_GROUPS))?,
             });

@@ -212,7 +212,7 @@ fn unchecked(gd: &crate::gamedata::GameData, book: &Book, game: &live::Game) -> 
     let spots = &entry.report.spots;
     let tracker = Tracker::new(gd, spots)?;
     let picks: Vec<(i64, u32)> = (spots.iter())
-        .filter(|s| !s.given && s.holder.starts_with(crate::gates::CHEST))
+        .filter(|s| !s.given && crate::checks::is_chest(&s.holder))
         .filter_map(|s| match (tracker.flag(s.hash), book.location(s.hash)) {
             (Some(Flag::Bool(h)), Some(id)) => Some((id, h)),
             _ => None,
