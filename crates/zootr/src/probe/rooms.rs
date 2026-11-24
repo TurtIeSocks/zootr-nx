@@ -6,8 +6,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use ounce_formats::{NavMesh, Romfs};
 
-use super::xyz;
-use crate::checks::flat;
+use crate::checks::{flat, xyz};
 use crate::nav::disjoint::DisjointSet;
 use crate::nav::graph::{Cross, Graph, Via, step_up};
 use crate::nav::{kinds, navmesh_file};

@@ -482,7 +482,7 @@ mod tests {
     fn logic_asks_a_dungeon_s_checks_for_its_ring_and_its_boss_door_for_both() {
         needs_names!();
         let at = |file: String| ItemCheck {
-            area: file.split('/').nth(1).unwrap().into(),
+            area: crate::checks::area_of(&file).into(),
             file,
             ..crate::narrowing::tests::chest(1, "Fake_Item")
         };
@@ -559,14 +559,14 @@ mod tests {
         let mut held = BTreeSet::new();
         let mut lying = BTreeSet::new();
         for rel in banc_files(&romfs).unwrap() {
-            let area = rel.split('/').nth(1).unwrap().to_owned();
+            let area = crate::checks::area_of(&rel).to_owned();
             let doc = load_banc(&romfs, &rel).unwrap();
             for actor in actors(&doc.root).unwrap() {
                 let hash = hash_of(actor).unwrap();
                 if str_field(actor, GYAML) == Some(actor::OBJ_DUNGEON_SMALL_KEY) {
                     lying.insert((area.clone(), hash));
                 }
-                let item = actor.as_map().unwrap().get("Dynamic");
+                let item = actor.as_map().unwrap().get(crate::checks::DYNAMIC);
                 let item = item.and_then(|d| str_field(d, crate::checks::DROP_ACTOR));
                 if let Some(item) = item.filter(|i| is_dungeon_key(i)) {
                     held.insert((area.clone(), item.to_owned(), hash));

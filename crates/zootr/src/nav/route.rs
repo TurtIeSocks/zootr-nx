@@ -13,6 +13,7 @@ use serde::Serialize;
 
 use super::Level;
 use super::graph::{Arc, Cross, FLOOR, Graph, Via, dist};
+use crate::checks::xyz;
 use crate::dev::Dev;
 use crate::live::Memory;
 
@@ -274,7 +275,6 @@ pub fn read<M: Memory>(dev: &Dev<M>, romfs: &Romfs, game: &Path, hash: u64) -> R
 
 impl fmt::Display for Plan {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
         writeln!(
             f,
             "Route in {} to {} {} at {}: {} waypoints, {:.1} m",

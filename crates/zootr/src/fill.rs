@@ -417,7 +417,7 @@ mod tests {
                 if !keys::is_shuffled(p.item) {
                     continue;
                 }
-                let chest = p.check.holder.starts_with("Obj_TBox_");
+                let chest = crate::checks::is_chest(&p.check.holder);
                 assert!(chest || gifts::is_gift(p.check), "{}", p.item);
                 let ring = (1..=keys::DUNGEONS.len()).find(|&n| key_tints::ring(n) == p.item);
                 let Some((n, count)) = crate::key_rooms::count(p.check) else {

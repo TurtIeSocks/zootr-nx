@@ -568,11 +568,6 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
     }
 }
 
-/// A point as `x,y,z`, to a tenth.
-fn xyz(p: [f32; 3]) -> String {
-    format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
-}
-
 /// Counts one more `key` in `by`, making its value with `make` the first
 /// time it's seen.
 fn tally<'a, T>(

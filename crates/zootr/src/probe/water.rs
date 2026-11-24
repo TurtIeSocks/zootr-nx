@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::xyz;
+use crate::checks::xyz;
 use crate::nav::Level;
 use crate::nav::disjoint::DisjointSet;
 use crate::nav::graph::{Graph, step_up};

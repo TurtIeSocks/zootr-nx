@@ -205,7 +205,7 @@ fn jabu_arrival() -> Vec<String> {
         (field::INIT_EVENT_NAME, event.to_string()),
         (field::INIT_EVENT_FLAG, played),
     ]
-    .map(|(k, v)| format!("{JABU_MOUTH}.{}.{k}={v}", field::DYNAMIC))
+    .map(|(k, v)| format!("{JABU_MOUTH}.{}.{k}={v}", crate::checks::DYNAMIC))
     .into()
 }
 

@@ -760,7 +760,7 @@ fn line_chests_hold_their_first_level_and_no_swap() {
             .iter()
             .find(|a| checks::hash_of(a) == Some(chest.hash))
             .unwrap();
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[crate::checks::DYNAMIC];
         let fields = [checks::DROP_ACTOR, checks::CHECK_ACTOR, checks::SUBSTITUTE];
         let [drop, check, substitute] = fields.map(|k| checks::str_field(dynamic, k));
         assert_eq!((check, substitute), (None, None), "{}", chest.file);
@@ -808,7 +808,7 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
             .iter()
             .find(|a| checks::hash_of(a) == Some(check.hash))
             .unwrap();
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[crate::checks::DYNAMIC];
         let drop = checks::str_field(dynamic, checks::DROP_ACTOR).unwrap();
         assert!(drop.starts_with("Obj_Rando_"), "{}: {drop}", check.holder);
         let rel = standins::POUCH_ACTOR_INFO;

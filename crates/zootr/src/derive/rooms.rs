@@ -22,6 +22,7 @@ use crate::rules::Book;
 use crate::rules::kinds::{Kind, Sets};
 use crate::rules::rooms::{self, folder};
 use crate::warp::Placement;
+use crate::world::NO_START_POS;
 
 mod confirmed;
 pub mod explain;
@@ -307,7 +308,7 @@ pub fn derive(
         };
         confirmed.writers(setter_rooms, &mut warnings);
         let name_of = |to: &str, start: &str| match start {
-            "-" => super::words(to),
+            NO_START_POS => super::words(to),
             _ => format!("{} {}", super::words(to), super::words(start)),
         };
         let exit_placed = |label: &str| {
@@ -318,7 +319,7 @@ pub fn derive(
         };
         for e in exits.iter().filter(|e| e.from == map) {
             let name = name_of(&e.to, &e.to_start);
-            match exit_placed(&e.name) {
+            match e.name.as_deref().and_then(exit_placed) {
                 Some(r) => drop(
                     traced
                         .spots
@@ -335,14 +336,14 @@ pub fn derive(
             .and_then(room_near);
         let added = (book.exits.iter()).filter(|r| r.added && r.from == map);
         for rule in added {
-            let name = name_of(&rule.to, "-");
+            let name = name_of(&rule.to, NO_START_POS);
             match boss.filter(|_| dungeon.boss.is_some_and(|b| b.get() == rule.to)) {
                 Some(r) => drop(
                     traced
                         .spots
                         .entry((r, "exit"))
                         .or_default()
-                        .insert(rooms::spot(&rule.to, "-"), name),
+                        .insert(rooms::spot(&rule.to, NO_START_POS), name),
                 ),
                 None => exitless.push(name),
             }

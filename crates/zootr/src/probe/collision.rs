@@ -6,7 +6,8 @@ use std::path::Path;
 use anyhow::Result;
 use ounce_formats::Romfs;
 
-use super::{tally, xyz};
+use super::tally;
+use crate::checks::xyz;
 use crate::nav::filter::Filter;
 use crate::nav::mesh::{self, MeshUse};
 use crate::warp;

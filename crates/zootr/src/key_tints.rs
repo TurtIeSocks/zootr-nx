@@ -549,7 +549,7 @@ pub fn swap(rel: &str, root: &mut Byml, bosses: bool) -> Result<usize> {
                 .insert(GYAML.into(), floor.as_str().into());
             swapped += 1;
         }
-        let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
+        let Some(dynamic) = actor.as_mut_map()?.get_mut(crate::checks::DYNAMIC) else {
             continue;
         };
         let held = checks::str_field(dynamic, DROP_ACTOR);
@@ -811,7 +811,10 @@ mod tests {
             let mut plain = doc.root.clone();
             swap(&rel, &mut plain, false).unwrap();
             for actor in checks::actors(&plain).unwrap() {
-                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = actor
+                    .as_map()
+                    .ok()
+                    .and_then(|m| m.get(crate::checks::DYNAMIC));
                 let held = held
                     .and_then(|d| checks::str_field(d, DROP_ACTOR))
                     .unwrap_or("");
@@ -826,7 +829,10 @@ mod tests {
             for actor in checks::actors(&doc.root).unwrap() {
                 let gyaml = checks::str_field(actor, GYAML);
                 assert_ne!(gyaml, Some(SMALL_LOOK.host.as_ref()), "{rel}");
-                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = actor
+                    .as_map()
+                    .ok()
+                    .and_then(|m| m.get(crate::checks::DYNAMIC));
                 let held = held.and_then(|d| checks::str_field(d, DROP_ACTOR));
                 for key in [SMALL, BOSS] {
                     assert_ne!(held, Some(key.as_ref()), "{rel}");

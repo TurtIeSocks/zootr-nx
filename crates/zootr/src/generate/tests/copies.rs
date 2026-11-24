@@ -83,7 +83,7 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
         };
         let doc = BymlDoc::parse(&data).unwrap();
         let held = |a: &&ounce_formats::Byml| {
-            let dynamic = a.as_map().unwrap().get("Dynamic");
+            let dynamic = a.as_map().unwrap().get(crate::checks::DYNAMIC);
             let drop = dynamic.and_then(|d| checks::str_field(d, checks::DROP_ACTOR));
             drop.is_some_and(keys::is_key)
         };
@@ -254,7 +254,7 @@ fn a_pot_dealt_a_compass_drops_the_compass_copy_s_stand_in() {
         .iter()
         .find(|a| checks::hash_of(a) == Some(POT))
         .unwrap();
-    let dynamic = pot.as_map().unwrap().get("Dynamic").unwrap();
+    let dynamic = pot.as_map().unwrap().get(crate::checks::DYNAMIC).unwrap();
     let drop = checks::str_field(dynamic, checks::DROP_ACTOR).unwrap();
     assert!(
         dir.join("romfs")

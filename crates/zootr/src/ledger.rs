@@ -497,7 +497,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
             if breakable.contains(holder) && !placed.contains(&hash) {
                 out.push(ItemCheck {
                     file: file.clone(),
-                    area: file.split('/').nth(1).unwrap_or("?").to_owned(),
+                    area: crate::checks::area_of(&file).to_owned(),
                     hash,
                     holder: holder.to_owned(),
                     item: String::new(),
@@ -559,7 +559,7 @@ fn kind(c: &ItemCheck) -> &'static str {
         "pickup"
     } else if gifts::of(c).is_some() {
         "gift"
-    } else if c.holder.starts_with("Obj_TBox_") {
+    } else if checks::is_chest(&c.holder) {
         "chest"
     } else {
         "other"

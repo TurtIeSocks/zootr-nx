@@ -174,8 +174,8 @@ pub fn door() -> world::Exit {
         to_start: field::INSIDE_JABU_JABU_BELLY_FROM_ZORA_FOUNTAIN
             .get()
             .into(),
-        name: String::new(),
-        presence: "-".into(),
+        name: None,
+        presence: None,
     }
 }
 
