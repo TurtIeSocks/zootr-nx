@@ -5,9 +5,7 @@
 //! each slot's cell show what the store says, on the menu's own thread.
 //! See `docs/research/in-game-ui.md`.
 
-use core::mem::transmute;
-
-use super::{at, chests, dev, hooked, name, shared, table};
+use super::{at, chests, dev, func, hooked, name, shared, table};
 use crate::Table;
 use crate::ui::{Buttons, MAX_SLOTS, Page, PageUp, Seen};
 
@@ -233,9 +231,9 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
         }
         let on_button = match slot.page {
             Page::Items => {
-                let set: CellSet = transmute(main + o.cell_set as usize);
+                let set: CellSet = func(main, o.cell_set);
                 set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
-                let equipped: Equipped = transmute(main + o.equipped as usize);
+                let equipped: Equipped = func(main, o.equipped);
                 equipped(at(main, o.manager as usize)?, child.into(), 1) == i32::from(kind)
             }
             Page::Equipment => {
@@ -247,11 +245,11 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
                     core::ptr::copy_nonoverlapping(actor.as_ptr(), to, n);
                     *to.add(n) = 0;
                     // The picture is a texture loaded by name, so only on a change.
-                    let icon: Icon = transmute(main + o.icon as usize);
+                    let icon: Icon = func(main, o.icon);
                     icon(at(cell, EQUIPMENT_PICTURE)?, &to.cast_const(), 0, 0);
                 }
                 seek(main, o, cell, EQUIPMENT_ICON, f32::from(kind))?;
-                let worn: Worn = transmute(main + o.worn as usize);
+                let worn: Worn = func(main, o.worn);
                 worn(dev::single(main, o.pouch_menu)?, &to.cast_const()) & 1 != 0
             }
         };
@@ -264,11 +262,11 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
         )?;
         if slot.page == Page::Equipment {
             // The Equipment page's own refresh applies the new frames so.
-            transmute::<usize, Redraw>(main + o.redraw as usize)(cell, 0);
+            func::<Redraw>(main, o.redraw)(cell, 0);
         }
         if focused {
             for refresh in [o.unfocus, o.focus] {
-                transmute::<usize, Focus>(main + refresh as usize)(button, 0, 0, 0);
+                func::<Focus>(main, refresh)(button, 0, 0, 0);
             }
         }
     }
@@ -289,7 +287,7 @@ unsafe fn seek(
     unsafe {
         let anim = at(cell, anim)?;
         if *((at(anim, ANIM_CONTROL)? + ANIM_FRAME) as *const f32) != frame {
-            transmute::<usize, AnimFrame>(main + o.anim_frame as usize)(anim, frame);
+            func::<AnimFrame>(main, o.anim_frame)(anim, frame);
         }
     }
     Some(())

@@ -6,9 +6,7 @@
 //! `BowParam.ShootableActor` already names its own Link's projectile, so
 //! vanilla play nocks and says what it always did.
 
-use core::mem::transmute;
-
-use super::at;
+use super::{at, func};
 use crate::{DEKU_SEED, OFFSETS};
 
 /// Where Link's EquipmentUser component keeps his projectile's name
@@ -40,14 +38,13 @@ type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 /// # Safety
 /// `user` is Link's EquipmentUser component.
 unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
-    let call = |off: u32| main + off as usize;
     unsafe {
-        let drawn: Drawn = transmute(call(OFFSETS.drawn_bow));
+        let drawn: Drawn = func(main, OFFSETS.drawn_bow);
         let bow = drawn(user);
         if bow == 0 {
             return None;
         }
-        let shootable: Shootable = transmute(call(OFFSETS.shootable));
+        let shootable: Shootable = func(main, OFFSETS.shootable);
         let name = shootable(&bow);
         let mut fixed = Fixed {
             text: core::ptr::null_mut(),
@@ -55,13 +52,13 @@ unsafe fn projectile(main: usize, user: usize) -> Option<u32> {
             buffer: [0; 64],
         };
         fixed.text = fixed.buffer.as_mut_ptr();
-        let copy: Copy = transmute(call(OFFSETS.name_copy));
+        let copy: Copy = func(main, OFFSETS.name_copy);
         copy(&mut fixed, name);
         fixed.buffer[63] = 0;
         if *fixed.text == 0 {
             return None;
         }
-        let hash: Hash = transmute(call(OFFSETS.hash));
+        let hash: Hash = func(main, OFFSETS.hash);
         Some(hash(fixed.text, 0))
     }
 }

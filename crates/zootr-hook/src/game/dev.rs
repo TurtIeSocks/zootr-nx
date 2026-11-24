@@ -5,7 +5,7 @@ use core::arch::asm;
 use core::sync::atomic::Ordering;
 
 use super::rt::{memcpy, memset};
-use super::{at, level_for, name, owned, shared};
+use super::{at, func, level_for, name, owned, shared};
 use crate::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
@@ -120,13 +120,13 @@ pub(super) unsafe fn single(main: usize, slot: u32) -> Option<usize> {
 }
 
 pub(super) unsafe fn get_bool(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<bool> {
-    let get: GetBool = unsafe { core::mem::transmute(main + o.get_bool as usize) };
+    let get: GetBool = unsafe { func(main, o.get_bool) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out & 1 == 1)
 }
 
 unsafe fn get_u64(main: usize, o: &Offsets, gd: usize, hash: u32) -> Option<u64> {
-    let get: GetU64 = unsafe { core::mem::transmute(main + o.get_u64 as usize) };
+    let get: GetU64 = unsafe { func(main, o.get_u64) };
     let mut out = 0;
     (unsafe { get(gd, &mut out, hash) } & 1 == 1).then_some(out)
 }
@@ -138,7 +138,7 @@ pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option
 }
 
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
-    let set: SetBool = unsafe { core::mem::transmute(main + o.set_bool as usize) };
+    let set: SetBool = unsafe { func(main, o.set_bool) };
     unsafe { set(gd, value as u32, hash) }
 }
 
@@ -237,13 +237,12 @@ unsafe fn request_map_change(
         Ok(events) => events,
         Err(busy) => return busy,
     };
-    let call = |f: u32| main + f as usize;
     unsafe {
-        let malloc: Malloc = core::mem::transmute(call(o.malloc));
-        let make: MakeArg = core::mem::transmute(call(o.make_arg));
-        let request: Request = core::mem::transmute(call(o.request));
-        let set_link: SetLink = core::mem::transmute(call(o.set_link));
-        let release: Release = core::mem::transmute(call(o.release_link));
+        let malloc: Malloc = func(main, o.malloc);
+        let make: MakeArg = func(main, o.make_arg);
+        let request: Request = func(main, o.request);
+        let set_link: SetLink = func(main, o.set_link);
+        let release: Release = func(main, o.release_link);
         let block = malloc(BLOCK + texts.len() * NAME);
         if block == 0 {
             return Outcome::NotBuilt;
@@ -273,7 +272,7 @@ unsafe fn request_map_change(
             answer = request(events, block);
         }
         for link in LINKS {
-            *((block + link) as *mut usize) = call(o.link_empty);
+            *((block + link) as *mut usize) = main + o.link_empty as usize;
             release(block + link);
         }
         if !built {
@@ -440,7 +439,7 @@ unsafe fn warp(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcom
     let [x, y, z] = mail.at;
     let point = [x, y, z, 0.0];
     unsafe {
-        let move_to: MoveTo = core::mem::transmute(main + o.move_to as usize);
+        let move_to: MoveTo = func(main, o.move_to);
         move_to(controller, point.as_ptr());
     }
     Outcome::Done
@@ -492,7 +491,7 @@ unsafe fn time(main: usize, o: &Offsets, hour: u32) -> Outcome {
         return Outcome::NoClock;
     };
     unsafe {
-        let set: SetTime = core::mem::transmute(main + o.set_time as usize);
+        let set: SetTime = func(main, o.set_time);
         set(world, hour * 3600);
     }
     Outcome::Done

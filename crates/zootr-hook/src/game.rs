@@ -278,6 +278,16 @@ unsafe fn at(p: usize, off: usize) -> Option<usize> {
     (v != 0).then_some(v)
 }
 
+/// The game's function at `off` in `main`, as the fn pointer type `F`.
+///
+/// # Safety
+/// `off` is a function of type `F` in this build of `main`.
+#[inline(always)]
+unsafe fn func<F: Copy>(main: usize, off: u32) -> F {
+    const { assert!(size_of::<F>() == size_of::<usize>()) };
+    unsafe { core::mem::transmute_copy(&(main + off as usize)) }
+}
+
 /// Called in place of the event argument setter, with its arguments
 /// and the opening node.
 ///
@@ -295,7 +305,7 @@ pub unsafe extern "C" fn content_name(
     let main = main();
     // SAFETY: the offsets were found in this build of `main`.
     unsafe {
-        let setter: Setter = core::mem::transmute(main + OFFSETS.setter as usize);
+        let setter: Setter = func(main, OFFSETS.setter);
         let Some((_, table)) = table else {
             return setter(request, key, value);
         };
@@ -332,7 +342,7 @@ pub unsafe extern "C" fn drop_actor(
         {
             rewrite(main, &table, value);
         }
-        let reader: Reader = core::mem::transmute(main() + OFFSETS.reader as usize);
+        let reader: Reader = func(main(), OFFSETS.reader);
         reader(out, placement, a2, a3)
     }
 }
@@ -368,7 +378,7 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         {
             return seeds;
         }
-        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        let child: Childhood = func(main(), OFFSETS.childhood);
         child(link)
     }
 }
