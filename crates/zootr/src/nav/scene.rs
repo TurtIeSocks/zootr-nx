@@ -26,6 +26,24 @@ const HOLE: f32 = 1.5;
 /// A height under this is level, and isn't said.
 const LEVEL: f32 = 0.5;
 
+/// A navmesh border by what lies past it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BorderKind {
+    Wall,
+    Drop,
+    Step,
+}
+
+impl BorderKind {
+    fn word(self) -> &'static str {
+        match self {
+            BorderKind::Wall => "wall",
+            BorderKind::Drop => "drop",
+            BorderKind::Step => "step",
+        }
+    }
+}
+
 /// One thing around Link.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Entry {
@@ -33,6 +51,9 @@ pub struct Entry {
     /// `wall`, `drop` or `step`, or a thing's kind word, or its own name
     /// when the word table doesn't know it.
     pub what: String,
+    /// The border this is, `None` for a thing.
+    #[serde(skip)]
+    pub border: Option<BorderKind>,
     /// Measured flat.
     pub distance: f32,
     /// A thing's height above Link. For a drop or a step, the floor past it
@@ -101,23 +122,23 @@ pub fn scene(
             link[1],
             link[2] + b.toward[1] * b.distance,
         ];
-        let rise = b.beyond.unwrap_or(0.0);
-        let what = match b.beyond {
-            Some(h) if h <= -DROP_MIN => "drop",
-            Some(h) if (STEP_MIN..=step_up()).contains(&h) => "step",
+        let (border, height) = match b.beyond {
+            Some(h) if h <= -DROP_MIN => (BorderKind::Drop, h),
+            Some(h) if (STEP_MIN..=step_up()).contains(&h) => (BorderKind::Step, h),
             Some(h) if h.abs() < STEP_MIN => continue,
-            _ => "wall",
+            _ => (BorderKind::Wall, 0.0),
         };
-        if what == "wall" {
+        if border == BorderKind::Wall {
             let e = mesh.edges[b.edge];
             walls.push((mesh.vertices[e.a], mesh.vertices[e.b]));
         }
         let named = namer(placed, at, b.toward);
         borders.push(Entry {
             hour: hour(clockwise(yaw, link, at)),
-            what: what.into(),
+            what: border.word().into(),
+            border: Some(border),
             distance: b.distance,
-            height: if what == "wall" { 0.0 } else { rise },
+            height,
             name: named.map(|p| p.name.clone()),
             hash: named.and_then(|p| p.hash),
             behind_wall: false,
@@ -134,6 +155,7 @@ pub fn scene(
         .map(|n| Entry {
             hour: n.hour,
             what: kinds::word(&n.name).map_or_else(|| n.name.clone(), String::from),
+            border: None,
             distance: n.distance,
             height: n.height,
             behind_wall: behind(n.at),
@@ -193,11 +215,11 @@ impl fmt::Display for Entry {
             self.hour, self.what, self.distance
         )?;
         let height = self.height;
-        let border = matches!(self.what.as_str(), "wall" | "drop" | "step");
-        match self.what.as_str() {
-            "drop" => write!(f, " to {:.1} m below", -height)?,
-            "step" => write!(f, " to {height:.1} m up")?,
-            _ if !border && height.abs() >= LEVEL => {
+        let border = self.border.is_some();
+        match self.border {
+            Some(BorderKind::Drop) => write!(f, " to {:.1} m below", -height)?,
+            Some(BorderKind::Step) => write!(f, " to {height:.1} m up")?,
+            None if height.abs() >= LEVEL => {
                 let way = if height > 0.0 { "up" } else { "down" };
                 write!(f, ", {:.1} m {way}", height.abs())?;
             }

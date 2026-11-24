@@ -10,7 +10,7 @@ use serde::Serialize;
 use ounce_formats::Romfs;
 
 use super::Level;
-use super::drive::{Drive, SLIDE, Sense, TAP_MS, lean, millis};
+use super::drive::{Drive, SLIDE, Sense, TAP_MS};
 use super::graph::{Graph, dist};
 use super::kinds::{self, Act, Blow};
 use super::route;
@@ -176,7 +176,7 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
         let map = self.sense.state()?.map;
         let [ux, uz] = toward(from, door);
         let past = [door[0] + ux * PAST, door[1], door[2] + uz * PAST];
-        self.steer(past, millis(lean(self.sense.link()?, past)))?;
+        self.steer_at(past)?;
         let state = self.sense.state()?;
         if state.event {
             return Ok(Touch::Event);
@@ -209,7 +209,7 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
             self.input.hold(buttons, ms)?;
         }
         std::thread::sleep(self.settle);
-        self.steer(at, millis(lean(self.sense.link()?, at)))?;
+        self.steer_at(at)?;
         if !self.sense.state()?.event {
             self.input.press("A")?;
         }
@@ -232,9 +232,10 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
         let hearts = self.sense.hearts()?;
         let link = self.sense.link()?;
         let (side, spot) = stand_from(graph, placement, act, link, self.side, &self.then);
-        let went = match self.here {
-            true => Went::here(),
-            false => self.walk(graph, spot, STAND)?,
+        let went = if self.here {
+            Went::here()
+        } else {
+            self.walk(graph, spot, STAND)?
         };
         // Stopped short of reach but near: slide round what stopped him.
         let near = dist(self.sense.link()?, placement.pose.at);
@@ -258,18 +259,17 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
         let reached = within_reach(&went, short, reach);
         let result = match (went.result, act) {
             (_, Act::Face { stand }) if reached => {
-                match self.here {
+                if self.here {
                     // One tap: the camera the warp left behind him stays
                     // only until he turns. A talks from 30 degrees off.
-                    true => self.steer(placement.pose.at, TAP_MS)?,
+                    self.steer(placement.pose.at, TAP_MS)?;
+                } else {
                     // Again after closing in: a push into a person slides
                     // Link round them, and Anju's "Talk" stayed hidden
                     // with him turned away (other machine, 2026-11-17).
-                    false => {
-                        self.face(placement.pose.at)?;
-                        self.close_in(placement.pose.at, stand)?;
-                        self.face(placement.pose.at)?;
-                    }
+                    self.face(placement.pose.at)?;
+                    self.close_in(placement.pose.at, stand)?;
+                    self.face(placement.pose.at)?;
                 }
                 self.input.press("A")?;
                 self.event()?
@@ -356,7 +356,7 @@ pub fn faced<M: Memory, I: Input>(
     game: &Path,
     target: &str,
 ) -> Result<(bool, f32)> {
-    let at = match crate::warp::point(target) {
+    let at = match warp::point(target) {
         Some(at) => at,
         None => {
             let hash = target.parse().context("a placement hash or a spot x,y,z")?;
@@ -372,25 +372,11 @@ mod tests {
     use super::*;
     use crate::checks::flat;
     use crate::known::actor;
-    use crate::nav::fixture::{mesh, quad};
+    use crate::nav::fixture::{mesh, placed, quad};
     use crate::nav::graph::step_up;
     use crate::nav::kinds::{ROLL, SWORD, THROW};
     use crate::nav::sim::{self, Eyes};
-    use crate::warp::{Pose, Side};
-
-    fn placed(name: &str, hash: u64, at: [f32; 3]) -> Placement {
-        Placement {
-            name: name.into(),
-            hash: Some(hash),
-            label: None,
-            pose: Pose {
-                at,
-                rotate: [0.0; 3],
-                scale: [1.0; 3],
-            },
-            presence: None,
-        }
-    }
+    use crate::warp::Side;
 
     /// Use `thing` in a 20 by 4 m room, from Link at (2, 2) facing +Z,
     /// after `setup` has set the fake game up.
@@ -433,16 +419,16 @@ mod tests {
             quad(-0.5, 0.3, 3.0, 3.0, 0.8),
         ]);
         let graph = Graph::build(&room, &[], step_up());
-        let chest = placed(actor::OBJ_T_BOX_A_01, 1, [0.0; 3]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(1), [0.0; 3]);
         let face = Act::Face { stand: 0.8 };
         let at = stand(&graph, &chest, face, [0.0; 3]);
         assert_eq!(at, warp::landing_at(&chest.pose, Side::Right, 0.8));
         // One in the open is used from its front.
-        let open = placed(actor::OBJ_T_BOX_A_01, 2, [-1.5, 0.0, -1.5]);
+        let open = placed(actor::OBJ_T_BOX_A_01, Some(2), [-1.5, 0.0, -1.5]);
         let at = stand(&graph, &open, face, [0.0; 3]);
         assert_eq!(at, warp::landing_at(&open.pose, Side::Front, 0.8));
         // A big chest turns the other way round.
-        let mut big = placed(actor::OBJ_T_BOX_A_02, 3, [-1.5, 0.0, -1.5]);
+        let mut big = placed(actor::OBJ_T_BOX_A_02, Some(3), [-1.5, 0.0, -1.5]);
         big.pose.rotate = [0.0, 0.7, 0.0];
         let at = stand(&graph, &big, face, [0.0; 3]);
         let faced = warp::facing(&big.name, &big.pose);
@@ -457,7 +443,7 @@ mod tests {
         // them (Death Mountain Crater, Mac, 2026-11-14).
         let stand = 1.4;
         let roll = Act::Break { stand, by: ROLL };
-        let crate_ = placed(actor::OBJ_BROKEN_BOX_A_01, 1, [0.0; 3]);
+        let crate_ = placed(actor::OBJ_BROKEN_BOX_A_01, Some(1), [0.0; 3]);
         let left = warp::landing_at(&crate_.pose, Side::Left, stand);
         let [x, z] = [left[0], left[2]];
         let (x0, x1) = if x < 0.0 {
@@ -478,7 +464,7 @@ mod tests {
     #[test]
     fn a_use_says_how_much_link_was_hurt_on_the_way() {
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         // Something bites him a quarter heart each push, and A opens nothing.
         let (used, _) = touched(&chest, |eyes| {
             eyes.0.borrow_mut().after_push = Some(Box::new(|w| w.hearts -= 1));
@@ -494,7 +480,7 @@ mod tests {
     fn a_keeper_across_a_counter_is_turned_to_with_one_tap_and_no_zl() {
         needs_names!();
         // Warped onto the customer spot, facing away from the keeper.
-        let keeper = placed(actor::NPC_GORON_011_SHOP_CHILD, 77, [2.0, 0.0, 0.0]);
+        let keeper = placed(actor::NPC_GORON_011_SHOP_CHILD, Some(77), [2.0, 0.0, 0.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
         let graph = Graph::build(&room, &[], step_up());
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
@@ -520,7 +506,7 @@ mod tests {
     fn a_chest_is_faced_from_in_front_then_opened_with_a() {
         needs_names!();
         // It faces +Z, so its front is where Link has to stand.
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, answers_to_the_north);
         assert_eq!(used.result, Touch::Event);
         assert_eq!(used.went.result, Done::Arrived);
@@ -536,7 +522,7 @@ mod tests {
     /// Using `name` at (10, 0, 2) holds every one of `by`, then leaves
     /// Link on its spot and presses A there. The buttons pressed.
     fn broken_by(name: &str, by: Blow) -> Vec<String> {
-        let thing = placed(name, 77, [10.0, 0.0, 2.0]);
+        let thing = placed(name, Some(77), [10.0, 0.0, 2.0]);
         let (_, eyes) = touched(&thing, |_| {});
         let world = eyes.0.borrow();
         let presses = &world.presses;
@@ -573,7 +559,7 @@ mod tests {
     #[test]
     fn a_chest_that_answers_nothing_is_nothing_with_a_frame() {
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |_| {});
         assert_eq!(used.result, Touch::Nothing);
         assert_eq!(eyes.0.borrow().shots.len(), 1);
@@ -582,7 +568,7 @@ mod tests {
     #[test]
     fn a_door_is_walked_through_without_a() {
         needs_names!();
-        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
+        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, Some(5), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&door, |_| {});
         assert_eq!(used.result, Touch::Entered);
         let world = eyes.0.borrow();
@@ -597,7 +583,7 @@ mod tests {
     #[test]
     fn a_door_that_stays_shut_is_nothing() {
         needs_names!();
-        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
+        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, Some(5), [10.0, 0.0, 2.0]);
         let (used, _) = touched(&door, |e| {
             e.0.borrow_mut().walls = vec![[9.9, 0.0, 10.1, 4.0]]
         });
@@ -607,7 +593,7 @@ mod tests {
     #[test]
     fn a_door_that_loads_a_map_is_entered() {
         needs_names!();
-        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 5, [10.0, 0.0, 2.0]);
+        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, Some(5), [10.0, 0.0, 2.0]);
         let (used, _) = touched(&door, |e| {
             e.0.borrow_mut().after_push = Some(Box::new(|w| {
                 if w.at[0] > 9.9 {
@@ -620,7 +606,7 @@ mod tests {
 
     #[test]
     fn an_item_is_walked_over_and_its_event_counts() {
-        let item = placed("Item_G", 9, [10.0, 0.0, 2.0]);
+        let item = placed("Item_G", Some(9), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&item, |e| {
             e.0.borrow_mut().after_push = Some(Box::new(|w| {
                 w.event |= (w.at[0] - 10.0).abs() < 0.5;
@@ -633,7 +619,7 @@ mod tests {
     #[test]
     fn a_walk_that_gives_up_presses_nothing_more() {
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             e.0.borrow_mut().walls = vec![[5.0, 0.0, 5.2, 4.0]];
             answers_to_the_north(e);
@@ -647,7 +633,7 @@ mod tests {
     #[test]
     fn a_walk_blocked_within_reach_still_faces_and_presses_a() {
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             e.0.borrow_mut().walls = vec![[9.2, 0.0, 9.4, 4.0]];
         });
@@ -661,7 +647,7 @@ mod tests {
     #[test]
     fn a_walk_stopped_near_slides_round_and_presses_a() {
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             e.0.borrow_mut().walls = vec![[8.0, 0.0, 8.2, 2.8]];
             answers_to_the_north(e);
@@ -679,7 +665,7 @@ mod tests {
         // The Well's key chest shows "Open" only within 0.9 m, and the
         // walk's arrival let Link stop 1.0 m off (Mac, 2026-11-16).
         needs_names!();
-        let chest = placed(actor::OBJ_T_BOX_A_01, 77, [10.0, 0.0, 2.0]);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(77), [10.0, 0.0, 2.0]);
         let (used, eyes) = touched(&chest, |e| {
             // The walk's first push past 1.0 m stops there, short of the
             // 0.8 m spot but within arrival of it.
@@ -707,7 +693,7 @@ mod tests {
         // left him turned away (other machine, 2026-11-17).
         needs_names!();
         let person = [10.0, 0.0, 2.0];
-        let anju = placed(actor::NPC_HYLIA_049_ADULT, 77, person);
+        let anju = placed(actor::NPC_HYLIA_049_ADULT, Some(77), person);
         let (used, eyes) = touched(&anju, |e| {
             let (mut short, mut slid) = (true, false);
             e.0.borrow_mut().after_push = Some(Box::new(move |w| {
@@ -764,7 +750,7 @@ mod tests {
 
     #[test]
     fn a_tree_has_no_use() {
-        let tree = placed("Tree_FakeKokiri", 1, [10.0, 0.0, 2.0]);
+        let tree = placed("Tree_FakeKokiri", Some(1), [10.0, 0.0, 2.0]);
         let room = mesh(&[quad(0.0, 0.0, 20.0, 4.0, 0.0)]);
         let graph = Graph::build(&room, &[], step_up());
         let (eyes, mut hands) = sim::start([2.0, 0.0, 2.0], 0.0);
@@ -779,7 +765,7 @@ mod tests {
         needs_names!();
         let at = [10.0, 0.0, 2.0];
         let near = |a: [f32; 3], b: [f32; 2]| (a[0] - b[0]).hypot(a[2] - b[1]) < 1e-4;
-        let chest = placed(actor::OBJ_T_BOX_A_01, 1, at);
+        let chest = placed(actor::OBJ_T_BOX_A_01, Some(1), at);
         let act = |p: &Placement| kinds::kind_of(&p.name).and_then(|k| k.act).unwrap();
         // With no floor anywhere, a chest keeps its front.
         let bare = mesh(&[]);
@@ -794,7 +780,7 @@ mod tests {
             [10.0, 2.8]
         ));
         // 1 m before a door, on Link's side.
-        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, 2, at);
+        let door = placed(actor::OBJ_KOKIRI_DOOR_A_02, Some(2), at);
         assert!(near(
             stand(&graph, &door, act(&door), [2.0, 0.0, 2.0]),
             [9.0, 2.0]
@@ -804,7 +790,7 @@ mod tests {
             [11.0, 2.0]
         ));
         // On an item.
-        let item = placed("Item_G", 3, at);
+        let item = placed("Item_G", Some(3), at);
         assert!(near(
             stand(&graph, &item, act(&item), [0.0; 3]),
             [10.0, 2.0]

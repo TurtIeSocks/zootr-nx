@@ -101,8 +101,8 @@ pub(super) fn label(
             }
         }
     }
-    for (a, b, from, to) in graph.gaps(GAP) {
-        join(a, b, !blocked(from, to));
+    for hop in graph.gaps(GAP) {
+        join(hop.from, hop.to, !blocked(hop.leave, hop.land));
     }
     let mut best: Vec<Option<(f32, u32)>> = vec![None; n];
     let mut heap = BinaryHeap::new();
