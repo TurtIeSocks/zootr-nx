@@ -87,12 +87,14 @@ impl Book {
         self.locations.get(&spot).copied()
     }
 
-    /// The AP locations of `spots`, skipping any AP didn't place.
-    fn locations<'a>(&self, spots: impl IntoIterator<Item = &'a u64>) -> Vec<i64> {
-        spots
-            .into_iter()
-            .filter_map(|h| self.locations.get(h).copied())
-            .collect()
+    /// What of `spots` to send: each one AP placed whose location the
+    /// server `knows`, with that location. Then the locations it doesn't
+    /// know, which would make it refuse the whole send.
+    fn sendable(&self, spots: &[u64], knows: impl Fn(i64) -> bool) -> (Vec<(u64, i64)>, Vec<i64>) {
+        let (send, unknown): (Vec<_>, Vec<_>) = (spots.iter())
+            .filter_map(|&h| Some((h, self.location(h)?)))
+            .partition(|&(_, id)| knows(id));
+        (send, unknown.into_iter().map(|(_, id)| id).collect())
     }
 }
 
@@ -425,14 +427,23 @@ fn tick(
             return false;
         }
     };
-    let ids = book.locations(&look.send);
-    if !ids.is_empty() {
+    let (send, unknown) = book.sendable(&look.send, |id| client.this_game().has_location(id));
+    if !unknown.is_empty() {
+        // Left in the ledger, so said once and never tried again.
+        note(Note::Trouble(format!(
+            "the room doesn't know locations {unknown:?}: is it another seed's room? Not sent"
+        )));
+    }
+    if !send.is_empty() {
         // The server may have lost them while we were away: always resend.
-        let names = ids.iter().map(|&id| location_name(client, id)).collect();
-        match client.mark_checked(ids) {
+        let names = send
+            .iter()
+            .map(|&(_, id)| location_name(client, id))
+            .collect();
+        match client.mark_checked(send.iter().map(|&(_, id)| id)) {
             Ok(()) => note(Note::Sent(names)),
             Err(e) => {
-                ledger.sent.retain(|s| !look.send.contains(s));
+                ledger.sent.retain(|s| !send.iter().any(|(h, _)| h == s));
                 note(Note::Trouble(e.to_string()));
             }
         }
@@ -715,7 +726,17 @@ pub(super) mod tests {
 
     #[test]
     fn a_spot_ap_didnt_place_has_no_location() {
-        assert_eq!(book().locations(&[10, 30, 20]), [100, 200]);
+        let (send, unknown) = book().sendable(&[10, 30, 20], |_| true);
+        assert_eq!(send, [(10, 100), (20, 200)]);
+        assert!(unknown.is_empty());
+    }
+
+    /// The server checks every id of a send, and refuses the lot for one
+    /// it doesn't know: that one goes nowhere, the rest go.
+    #[test]
+    fn a_location_the_server_doesnt_know_is_kept_out_of_the_send() {
+        let (send, unknown) = book().sendable(&[10, 20], |id| id == 100);
+        assert_eq!((send, unknown), (vec![(10, 100)], vec![200]));
     }
 
     #[test]
