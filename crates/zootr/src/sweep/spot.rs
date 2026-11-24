@@ -71,6 +71,29 @@ const LAP: Duration = Duration::from_secs(45);
 /// How often his passing is read: he crosses the spot in well under a
 /// second.
 const PASSING: Duration = Duration::from_millis(50);
+/// How pressing through a spot's event went. It isn't the verdict, which
+/// comes from what changed in GameData: only a broken event stands over
+/// that.
+pub(super) enum Step {
+    /// The event ended, by landing the item or otherwise.
+    Ended,
+    /// The event broke: a stall, or a bug the judge named.
+    Broke(Verdict),
+    /// Still going: the judge takes over.
+    Unresolved,
+}
+
+impl Step {
+    /// Broke as a stall when the event `still` plays once pressed
+    /// through, else ended.
+    pub(super) fn stalled(still: bool) -> Self {
+        match still {
+            true => Step::Broke(Verdict::Stall),
+            false => Step::Ended,
+        }
+    }
+}
+
 /// What a spot is swept with.
 pub struct Sweeper<'a, I, J> {
     pub dev: &'a Dev,
@@ -194,12 +217,12 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         if broken {
             self.fetch(&landed)?;
         }
-        let mut verdict = match shops::is_holder(&p.spot.holder) {
+        let mut step = match shops::is_holder(&p.spot.holder) {
             true => self.buy(&p.spot.item, &landed, evidence)?,
             false => self.alone(&landed)?,
         };
-        if verdict.is_none() {
-            verdict = self.judged(p, name, &landed, evidence)?;
+        if let Step::Unresolved = step {
+            step = self.judged(p, name, &landed, evidence)?;
         }
         let now = live::snapshot(game, dev.global())?;
         let mut changes = live::changes(self.gd, &was, &now, |_| true);
@@ -211,19 +234,18 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         evidence.changes = cleared_lines
             .chain(changes.iter().map(|c| format!("{} {}", c.name, c.change)))
             .collect();
-        Ok(self.classify(p, &watch, &changes, broken, verdict))
+        Ok(self.classify(p, &watch, &changes, broken, step))
     }
 
-    /// The spot's verdict, from what `changes` show landed. Only a bug or a
-    /// stall `seen` while pressing through the event stands over them: a
-    /// pass there only meant the pressing could stop.
+    /// The spot's verdict, from what `changes` show landed, unless `step`
+    /// broke the event.
     fn classify(
         &self,
         p: &Planned,
         watch: &Watch,
         changes: &[Change],
         broken: bool,
-        seen: Option<Verdict>,
+        step: Step,
     ) -> Verdict {
         let (wanted, items) = (watch.names(self.gd), &watch.items);
         let item_named = named(changes);
@@ -239,8 +261,8 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         };
         let substitute =
             (swap.map(Verdict::Substituted)).or_else(|| next_door.map(Verdict::Neighbour));
-        match (seen, ours, substitute, other) {
-            (Some(v @ (Verdict::Bug(_) | Verdict::Stall)), ..) => v,
+        match (step, ours, substitute, other) {
+            (Step::Broke(v), ..) => v,
             (_, true, ..) => Verdict::Pass,
             (_, _, Some(v), _) => v,
             (_, _, _, Some(c)) => Verdict::WrongItem(c.to_string()),
@@ -564,34 +586,35 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         self.input.press(button)
     }
 
-    /// Press A through the event alone, for [`ALONE`]. A verdict of pass
-    /// when it lands and the event ends, `None` for the judge to go on.
-    fn alone(&mut self, landed: &impl Fn(&Self) -> Result<bool>) -> Result<Option<Verdict>> {
+    /// Press A through the event alone, for [`ALONE`]: ended when it lands
+    /// and the event ends, else unresolved for the judge to go on.
+    fn alone(&mut self, landed: &impl Fn(&Self) -> Result<bool>) -> Result<Step> {
         let start = Instant::now();
         while start.elapsed() < ALONE {
             let s = self.dev.state()?;
             if !s.event && !s.loading && landed(self)? {
-                return Ok(Some(Verdict::Pass));
+                return Ok(Step::Ended);
             }
             if !s.event && start.elapsed() > IDLE {
-                return Ok(None);
+                return Ok(Step::Unresolved);
             }
             if s.event {
                 self.input.press("A")?;
             }
             sleep(BEAT);
         }
-        Ok(None)
+        Ok(Step::Unresolved)
     }
 
-    /// The judge's turns. `None` when it resolved.
+    /// The judge's turns: broke for a bug it names or an event that plays
+    /// on after them, else ended.
     fn judged(
         &mut self,
         p: &Planned,
         name: &str,
         landed: &impl Fn(&Self) -> Result<bool>,
         evidence: &mut Evidence,
-    ) -> Result<Option<Verdict>> {
+    ) -> Result<Step> {
         let mut tried: Vec<String> = Vec::new();
         for turn in 0..TURNS {
             let s = self.dev.state()?;
@@ -613,7 +636,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
                 Answer::Stick { direction, ms, .. } => self.input.stick(direction, *ms)?,
                 Answer::Wait { .. } => sleep(BEAT * 2),
                 Answer::Play { .. } => self.perform(song(p))?,
-                Answer::Bug { why } => return Ok(Some(Verdict::Bug(why.clone()))),
+                Answer::Bug { why } => return Ok(Step::Broke(Verdict::Bug(why.clone()))),
                 Answer::Unreadable(_) => {}
             }
             tried.push(answer.line());
@@ -623,10 +646,10 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
                 let how = tried.join(", then ");
                 self.judge
                     .learn(&format!("{name} ({}): {how} got it", s.map))?;
-                return Ok(None);
+                return Ok(Step::Ended);
             }
         }
-        Ok(self.finish("A", Some(song(p)))?.then_some(Verdict::Stall))
+        Ok(Step::stalled(self.finish("A", Some(song(p)))?))
     }
 
     /// Teleport to `place`, asking again while the game doesn't take it:
