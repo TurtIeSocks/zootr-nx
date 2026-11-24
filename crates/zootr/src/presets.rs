@@ -422,8 +422,8 @@ pub fn parser() -> impl TypedValueParser<Value = String> {
     })
 }
 
-/// The presets an existing save can take: those handing over no items and
-/// moving no quest.
+/// The presets an existing save can take: those handing over no items,
+/// moving no quest and editing none of the seed's maps.
 pub fn for_saves() -> impl Iterator<Item = &'static Preset> {
     PRESETS.iter().filter(|p| !p.new_only())
 }
@@ -482,8 +482,8 @@ pub fn fields(presets: &[String]) -> Result<Vec<String>> {
     Ok(find(presets)?.iter().flat_map(|p| (p.fields)()).collect())
 }
 
-/// [`expand`] for an existing save, which can't be handed items or have its
-/// quests moved.
+/// [`expand`] for an existing save, which can't be handed items, have its
+/// quests moved or have the seed's maps edited.
 pub fn for_save(presets: &[String], edits: &[String]) -> Result<Vec<String>> {
     if let Some(p) = find(presets)?.iter().find(|p| p.new_only()) {
         let what = match p.give.is_empty() {
@@ -522,15 +522,16 @@ pub fn apply(gd: &GameData, root: &mut Byml, edits: &[String]) -> Result<Vec<Str
         let table = gd
             .kind(hash)
             .with_context(|| format!("{name} isn't in {}", flag::GAME_DATA))?;
-        let raw = value::scalar(gd, table, text).context(name.to_owned())?;
+        let raw =
+            value::scalar(gd, table, text).with_context(|| format!("setting {name} to {text}"))?;
         let hash = i64::from(hash);
         let entry = tables
             .get_mut(table)
-            .context(table.to_owned())?
+            .with_context(|| format!("no {table} table"))?
             .as_mut_array()?
             .iter_mut()
             .find(|e| e["Hash"].as_int::<i64>().is_ok_and(|h| h == hash))
-            .context(name.to_owned())?
+            .with_context(|| format!("{name} isn't in the {table} table"))?
             .as_mut_map()?;
         let old = entry
             .get(&**field::DEFAULT_VALUE)
@@ -714,6 +715,12 @@ mod tests {
         let mut doc =
             ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
         apply(&gd, &mut doc.root, &met_zelda()).unwrap();
+        let bad = format!("{}=maybe", flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0020);
+        let err = format!("{:#}", apply(&gd, &mut doc.root, &[bad]).unwrap_err());
+        assert!(
+            err.starts_with("setting ") && err.contains(" to maybe"),
+            "{err}"
+        );
     }
 
     #[test]

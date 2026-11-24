@@ -11,18 +11,12 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result, bail, ensure};
 
 use super::Input;
+use super::input::{check_buttons, gone, stick};
 use crate::config::with_save;
 use crate::{live, platform};
 
-/// The names a control line takes, joined with `+`.
-const BUTTONS: [&str; 24] = [
-    "A", "B", "X", "Y", "L", "R", "ZL", "ZR", "Plus", "Minus", "Left", "Up", "Right", "Down", "LS",
-    "RS", "LLeft", "LUp", "LRight", "LDown", "RLeft", "RUp", "RRight", "RDown",
-];
 /// How long the game gets to write a screenshot.
 const SHOT: Duration = Duration::from_secs(10);
-/// How long the game gets to quit.
-const QUIT: Duration = Duration::from_secs(30);
 const LOOK: Duration = Duration::from_millis(100);
 
 /// The game's front window by owner pid, through the system's own
@@ -102,30 +96,11 @@ impl Mac {
 /// A control line pressing `buttons` (joined with `+`) for `ms`, or for
 /// the game's default when `None`.
 pub fn line(buttons: &str, ms: Option<u64>) -> Result<String> {
-    for b in buttons.split('+') {
-        ensure!(
-            BUTTONS.contains(&b),
-            "{b} isn't a button. Buttons are {}",
-            BUTTONS.join(" ")
-        );
-    }
+    check_buttons(buttons)?;
     Ok(match ms {
         Some(ms) => format!("{buttons}~{}", ms as f64 / 1000.0),
         None => buttons.into(),
     })
-}
-
-/// The left stick's buttons for a direction like `up` or `down-left`.
-/// Other names, like `RUp`, pass through.
-pub fn stick(direction: &str) -> String {
-    let parts = direction.split(['-', '+']).map(|d| match d {
-        "up" => "LUp",
-        "down" => "LDown",
-        "left" => "LLeft",
-        "right" => "LRight",
-        other => other,
-    });
-    parts.collect::<Vec<_>>().join("+")
 }
 
 /// The log a Mac app keeps beside the game's saves at `save`
@@ -187,12 +162,7 @@ impl Input for Mac {
                 .args(pids.iter().map(i32::to_string))
                 .status()?;
         }
-        let start = Instant::now();
-        while self.running() {
-            ensure!(start.elapsed() < QUIT, "the game didn't quit");
-            std::thread::sleep(Duration::from_millis(500));
-        }
-        Ok(())
+        gone(self)
     }
 
     fn keys(&self) -> Result<()> {
