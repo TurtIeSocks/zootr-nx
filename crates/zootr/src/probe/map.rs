@@ -5,14 +5,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use anyhow::{Context, Result};
-use ounce_formats::{NavMesh, Romfs};
+use anyhow::Result;
+use ounce_formats::Romfs;
 use serde::Serialize;
 
-use super::rooms::{LOCK, LOCK_REACH, flat, locked_doors, split};
+use super::rooms::{LOCK, LOCK_REACH, Rooms};
+use crate::checks::flat;
 use crate::key_rooms::{self, RoomKeys};
-use crate::nav::graph::{Graph, step_up};
-use crate::nav::navmesh_file;
 use crate::warp;
 
 #[derive(Serialize)]
@@ -78,12 +77,9 @@ pub(super) fn map(romfs: &Romfs, game: &Path, map: &str) -> Result<()> {
 }
 
 fn plan(romfs: &Romfs, game: &Path, map: &str) -> Result<Plan> {
-    let bytes = navmesh_file(romfs, game, map)?.with_context(|| format!("{map} has no navmesh"))?;
-    let mesh = NavMesh::parse(&bytes)?;
-    let placed = warp::placements_in(romfs, map)?;
-    let graph = Graph::build(&mesh, &placed, step_up());
-    let locked = locked_doors(&placed);
-    let roots = split(&graph, &locked);
+    let level = Rooms::load(romfs, game, map)?;
+    let (mesh, placed) = (&level.mesh, &level.placed);
+    let (graph, _, roots) = level.split();
     let room = |at: [f32; 3]| graph.locate(at).map(|s| roots[s.face]);
     let named = warp::rooms_in(romfs, map)?;
     let marks: Vec<(usize, [f32; 3], u32)> = placed
@@ -260,7 +256,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let plan = plan(&romfs, Path::new("../../dump/oot.nup"), FOREST_TEMPLE).unwrap();
+        let plan = plan(&romfs, Path::new(crate::game::DEV_DUMP), FOREST_TEMPLE).unwrap();
         let locks: Vec<&[u32]> = plan.locks.iter().map(|l| l.rooms.as_slice()).collect();
         assert_eq!(
             locks.len(),

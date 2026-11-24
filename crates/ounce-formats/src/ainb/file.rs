@@ -11,7 +11,7 @@ use std::ops::Range;
 
 use anyhow::{Context, Result, ensure};
 
-use super::{COMMAND_LEN, COMMANDS, MAGIC, MIN_VERSION, NODE_LEN, TYPES};
+use super::{COMMAND_LEN, COMMANDS, NODE_LEN, TYPES, check_header, until_nul};
 use crate::reader::Reader;
 
 /// A node body's property and input/output base and count per type.
@@ -99,6 +99,18 @@ mod slot {
     ];
 }
 
+/// The little-endian word at `at`.
+pub(super) fn word(bytes: &[u8], at: usize) -> u32 {
+    u32::from_le_bytes(bytes[at..at + 4].try_into().unwrap())
+}
+
+pub(super) fn set_word(bytes: &mut [u8], at: usize, v: u32) {
+    bytes[at..at + 4].copy_from_slice(&v.to_le_bytes());
+}
+
+/// A plug record's shortest: the node it points at, then its name.
+const PLUG_MIN: usize = 8;
+
 /// Each kind's plug records, each starting with the node it points at.
 pub(super) type Plugs = [Vec<Vec<u8>>; PLUG_KINDS];
 
@@ -127,13 +139,13 @@ impl Node {
         u16::from_le_bytes([self.entry[at], self.entry[at + 1]])
     }
     pub fn u32_at(&self, at: usize) -> u32 {
-        u32::from_le_bytes(self.entry[at..at + 4].try_into().unwrap())
+        word(&self.entry, at)
     }
     pub fn set_u16(&mut self, at: usize, v: u16) {
         self.entry[at..at + 2].copy_from_slice(&v.to_le_bytes());
     }
     pub fn set_u32(&mut self, at: usize, v: u32) {
-        self.entry[at..at + 4].copy_from_slice(&v.to_le_bytes());
+        set_word(&mut self.entry, at, v);
     }
 
     /// The `[base, base + count)` of type `t`'s properties.
@@ -168,7 +180,10 @@ impl Node {
                     true => r.u32(table + 4 * i)? as usize,
                     false => end,
                 };
-                ensure!(next > start + 4, "a plug record at {start:#x} too short");
+                ensure!(
+                    next >= start + PLUG_MIN,
+                    "a plug record at {start:#x} too short"
+                );
                 plugs[kind].push(r.bytes(start, next - start)?.to_vec());
             }
         }
@@ -196,7 +211,7 @@ impl Node {
 }
 
 fn span(base: u32, count: u32) -> Range<usize> {
-    base as usize..(base + count) as usize
+    base as usize..base as usize + count as usize
 }
 
 /// Attachments and their parameter blocks, with the offsets inside them.
@@ -244,112 +259,30 @@ impl File {
 
     pub fn parse(data: &[u8]) -> Result<Self> {
         let r = Reader(data);
-        ensure!(r.bytes(0, 4)? == MAGIC, "not an AINB file");
-        let version = r.u32(4)?;
+        check_header(&r)?;
+        let slot_at = |s: usize| slot_at(&r, s);
+        ensure!(slot_at(slot::ZERO)? == 0, "an unknown header word set");
+        ensure!(slot_at(slot::OLD)? == 0, "a section only older games use");
         ensure!(
-            version >= MIN_VERSION,
-            "unsupported AINB version {version:#x}"
-        );
-        let at = |slot: usize| -> Result<usize> { Ok(r.u32(slot)? as usize) };
-        ensure!(at(slot::ZERO)? == 0, "an unknown header word set");
-        ensure!(at(slot::OLD)? == 0, "a section only older games use");
-        ensure!(
-            at(slot::JUMPS_AGAIN)? == at(slot::JUMPS)?,
+            slot_at(slot::JUMPS_AGAIN)? == slot_at(slot::JUMPS)?,
             "two jump tables"
         );
-        ensure!(at(slot::REPLACEMENTS)? != 0, "no replacement table");
+        ensure!(slot_at(slot::REPLACEMENTS)? != 0, "no replacement table");
 
-        let commands = COMMANDS..COMMANDS + COMMAND_LEN * at(slot::COMMANDS)?;
-        let count = at(slot::NODES)?;
-        let entries = commands.end;
-        let blackboard = at(slot::BLACKBOARD)?;
-        ensure!(
-            blackboard == entries + NODE_LEN * count,
-            "the blackboard isn't after the nodes"
-        );
-        let slots = at(slot::ATTACHMENT_SLOTS)?;
-        let bodies = (0..count)
-            .map(|n| r.u32(entries + n * NODE_LEN + BODY).map(|b| b as usize))
-            .chain([Ok(slots)])
-            .collect::<Result<Vec<_>>>()?;
-        let mut nodes = Vec::with_capacity(count);
-        for n in 0..count {
-            let at = entries + n * NODE_LEN;
-            let mut entry: [u8; NODE_LEN] = r.bytes(at, NODE_LEN)?.try_into()?;
-            ensure!(r.u16(at + 2)? as usize == n, "node {n} has another index");
-            ensure!(r.u32(at + STATE)? == 0, "node {n} has a state");
-            entry[BODY..BODY + 4].fill(0);
-            let (params, plugs) = Node::parse(&r, bodies[n], bodies[n + 1])?;
-            nodes.push(Node {
-                entry,
-                params,
-                plugs,
-            });
-        }
+        let commands = COMMANDS..COMMANDS + COMMAND_LEN * slot_at(slot::COMMANDS)?;
+        let blackboard = slot_at(slot::BLACKBOARD)?;
+        let (nodes, first_body) = nodes(&r, commands.end, blackboard)?;
+        let blackboard_len =
+            (first_body.checked_sub(blackboard)).context("a node body before the blackboard")?;
 
-        let properties = at(slot::PROPERTIES)?;
-        let list = at(slot::ATTACHMENT_LIST)?;
-        ensure!(
-            (slots..=properties).contains(&list),
-            "attachments out of order"
-        );
-        let blob = r.bytes(slots, properties - slots)?.to_vec();
-        let attachments = Attachments {
-            was: (!blob.is_empty()).then_some(slots),
-            list: list - slots,
-            data: blob,
-        };
-
-        let io = at(slot::IO)?;
-        let table = |at: usize, n: usize| -> Result<Vec<usize>> {
-            (0..n).map(|i| Ok(r.u32(at + 4 * i)? as usize)).collect()
-        };
-        let mut starts = table(properties, 6)?;
-        ensure!(
-            starts[0] == properties + 0x18,
-            "the property table has a gap"
-        );
-        starts.push(io);
-        let props = slices(&r, &starts)?;
-
+        let properties = slot_at(slot::PROPERTIES)?;
+        let io = slot_at(slot::IO)?;
         let late = slot::LATE
             .iter()
-            .map(|&s| at(s))
+            .map(|&s| slot_at(s))
             .collect::<Result<Vec<_>>>()?;
-        let mut starts = table(io, 12)?;
-        ensure!(starts[0] == io + 0x30, "the input/output table has a gap");
-        starts.push(late[0]);
-        let io = slices(&r, &starts)?;
-
-        let mut starts: Vec<usize> = late.iter().copied().filter(|&s| s != 0).collect();
-        starts.push(data.len());
-        let mut late = slices(&r, &starts)?.into_iter();
-        let mut next = || late.next().context("a section missing");
-        let multi = next()?;
-        let jump_table = next()?;
-        let queries = next()?;
-        let exb = match at(slot::EXB)? {
-            0 => None,
-            _ => Some(next()?),
-        };
-        let rest = [next()?, next()?, next()?, next()?, next()?, next()?];
-        let pool = next()?;
-        ensure!(rest[5] == [0; 4], "enum relocations");
-
-        let jumps = match jump_table.is_empty() {
-            true => Vec::new(),
-            false => {
-                let at = at(slot::JUMPS)?;
-                let mut starts = table(at, (r.u32(at)? as usize - at) / 4)?;
-                starts.push(at + jump_table.len());
-                slices(&r, &starts)?
-            }
-        };
-
-        let mut header: [u8; COMMANDS] = r.bytes(0, COMMANDS)?.try_into()?;
-        for s in slot::DERIVED {
-            header[s..s + 4].fill(0);
-        }
+        let props = sections(&r, properties, TYPES.len(), io, "property")?;
+        let io = sections(&r, io, 2 * TYPES.len(), late[0], "input/output")?;
         let (mut inputs, mut outputs): ([Vec<u8>; 6], [Vec<u8>; 6]) = Default::default();
         for (i, v) in io.into_iter().enumerate() {
             match i % 2 {
@@ -357,12 +290,25 @@ impl File {
                 _ => outputs[i / 2] = v,
             }
         }
+        let Late {
+            multi,
+            jumps,
+            queries,
+            exb,
+            rest,
+            pool,
+        } = Late::parse(&r, &late)?;
+
+        let mut header: [u8; COMMANDS] = r.bytes(0, COMMANDS)?.try_into()?;
+        for s in slot::DERIVED {
+            header[s..s + 4].fill(0);
+        }
         let file = Self {
             header,
             commands: r.bytes(commands.start, commands.len())?.to_vec(),
             nodes,
-            blackboard: r.bytes(blackboard, bodies[0] - blackboard)?.to_vec(),
-            attachments,
+            blackboard: r.bytes(blackboard, blackboard_len)?.to_vec(),
+            attachments: Attachments::parse(&r, properties)?,
             properties: props
                 .try_into()
                 .map_err(|_| anyhow::anyhow!("property table"))?,
@@ -453,11 +399,9 @@ impl File {
             .pool
             .get(offset as usize..)
             .context("a string past the pool")?;
-        let len = rest
-            .iter()
-            .position(|&b| b == 0)
-            .context("an unended string")?;
-        Ok(std::str::from_utf8(&rest[..len])?)
+        Ok(std::str::from_utf8(
+            until_nul(rest).context("an unended string")?,
+        )?)
     }
 
     /// `s`'s offset in the pool, added to its end if it isn't there.
@@ -469,6 +413,123 @@ impl File {
     pub(super) fn name(&self) -> Result<&str> {
         let at = slot::FILENAME;
         self.str(u32::from_le_bytes(self.header[at..at + 4].try_into()?))
+    }
+}
+
+/// Header slot `s`'s count or offset.
+fn slot_at(r: &Reader, s: usize) -> Result<usize> {
+    Ok(r.u32(s)? as usize)
+}
+
+/// The `n` words of the offset table at `at`.
+fn offsets(r: &Reader, at: usize, n: usize) -> Result<Vec<usize>> {
+    (0..n).map(|i| Ok(r.u32(at + 4 * i)? as usize)).collect()
+}
+
+/// The node entries starting at `entries`, which the blackboard follows,
+/// each with its body. Also gives where the first body starts.
+fn nodes(r: &Reader, entries: usize, blackboard: usize) -> Result<(Vec<Node>, usize)> {
+    let count = slot_at(r, slot::NODES)?;
+    ensure!(
+        blackboard == entries + NODE_LEN * count,
+        "the blackboard isn't after the nodes"
+    );
+    let bodies = (0..count)
+        .map(|n| r.u32(entries + n * NODE_LEN + BODY).map(|b| b as usize))
+        .chain([slot_at(r, slot::ATTACHMENT_SLOTS)])
+        .collect::<Result<Vec<_>>>()?;
+    let mut nodes = Vec::with_capacity(count);
+    for n in 0..count {
+        let at = entries + n * NODE_LEN;
+        let mut entry: [u8; NODE_LEN] = r.bytes(at, NODE_LEN)?.try_into()?;
+        ensure!(r.u16(at + 2)? as usize == n, "node {n} has another index");
+        ensure!(r.u32(at + STATE)? == 0, "node {n} has a state");
+        entry[BODY..BODY + 4].fill(0);
+        let (params, plugs) = Node::parse(r, bodies[n], bodies[n + 1])?;
+        nodes.push(Node {
+            entry,
+            params,
+            plugs,
+        });
+    }
+    Ok((nodes, bodies[0]))
+}
+
+/// The `n` parts of the `what` table at `at`, the last running to `end`.
+/// Its offsets come first, right before the parts.
+fn sections(r: &Reader, at: usize, n: usize, end: usize, what: &str) -> Result<Vec<Vec<u8>>> {
+    let mut starts = offsets(r, at, n)?;
+    ensure!(starts[0] == at + 4 * n, "the {what} table has a gap");
+    starts.push(end);
+    slices(r, &starts)
+}
+
+impl Attachments {
+    /// The section from the attachment slots to the property table at
+    /// `properties`.
+    fn parse(r: &Reader, properties: usize) -> Result<Self> {
+        let slots = slot_at(r, slot::ATTACHMENT_SLOTS)?;
+        let list = slot_at(r, slot::ATTACHMENT_LIST)?;
+        ensure!(
+            (slots..=properties).contains(&list),
+            "attachments out of order"
+        );
+        let data = r.bytes(slots, properties - slots)?.to_vec();
+        Ok(Self {
+            was: (!data.is_empty()).then_some(slots),
+            list: list - slots,
+            data,
+        })
+    }
+}
+
+/// The sections after the input/output table.
+struct Late {
+    multi: Vec<u8>,
+    jumps: Vec<Vec<u8>>,
+    queries: Vec<u8>,
+    exb: Option<Vec<u8>>,
+    rest: [Vec<u8>; 6],
+    pool: Vec<u8>,
+}
+
+impl Late {
+    /// The sections at `late`, the offsets of `slot::LATE`.
+    fn parse(r: &Reader, late: &[usize]) -> Result<Self> {
+        let mut starts: Vec<usize> = late.iter().copied().filter(|&s| s != 0).collect();
+        starts.push(r.0.len());
+        let mut late = slices(r, &starts)?.into_iter();
+        let mut next = || late.next().context("a section missing");
+        let multi = next()?;
+        let jump_table = next()?;
+        let queries = next()?;
+        let exb = match slot_at(r, slot::EXB)? {
+            0 => None,
+            _ => Some(next()?),
+        };
+        let rest = [next()?, next()?, next()?, next()?, next()?, next()?];
+        let pool = next()?;
+        ensure!(rest[5] == [0; 4], "enum relocations");
+
+        let jumps = match jump_table.is_empty() {
+            true => Vec::new(),
+            false => {
+                let jumps_at = slot_at(r, slot::JUMPS)?;
+                let first = r.u32(jumps_at)? as usize;
+                let len = (first.checked_sub(jumps_at)).context("a jump before its table")?;
+                let mut starts = offsets(r, jumps_at, len / 4)?;
+                starts.push(jumps_at + jump_table.len());
+                slices(r, &starts)?
+            }
+        };
+        Ok(Self {
+            multi,
+            jumps,
+            queries,
+            exb,
+            rest,
+            pool,
+        })
     }
 }
 
@@ -506,14 +567,14 @@ fn table<'a>(out: &mut Vec<u8>, parts: impl Iterator<Item = &'a Vec<u8>> + Clone
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
-    use crate::ainb::ParamType;
+    use crate::ainb::{MAGIC, ParamType};
+
+    /// An input's type, name, and the node and output feeding it.
+    pub type FakeInput = (ParamType, &'static str, Option<(i16, i16)>);
 
     /// A made-up node: its kind, flags (1 for a query), class name,
     /// properties, inputs (unlinked, or fed by a node's output), outputs,
     /// plugs (kind, target, name, length) and query places.
-    /// An input's type, name, and the node and output feeding it.
-    pub type FakeInput = (ParamType, &'static str, Option<(i16, i16)>);
-
     #[derive(Default)]
     pub struct Fake {
         pub kind: u16,
@@ -526,7 +587,7 @@ pub(super) mod tests {
         pub queries: Vec<u16>,
     }
 
-    fn le(words: &[u32]) -> Vec<u8> {
+    pub fn le(words: &[u32]) -> Vec<u8> {
         words.iter().flat_map(|w| w.to_le_bytes()).collect()
     }
 

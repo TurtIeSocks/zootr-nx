@@ -6,8 +6,11 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 export async function installable(version: string): Promise<Update | null> {
   try {
     const update = await check();
-    return update?.version === version ? update : null;
-  } catch {
+    if (update?.version === version) return update;
+    await update?.close().catch(() => {});
+    return null;
+  } catch (e) {
+    console.debug("Couldn't check for an installable update", e);
     return null;
   }
 }

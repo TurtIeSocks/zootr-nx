@@ -211,17 +211,21 @@ impl<M: Memory> Dev<M> {
     /// never dies gets its Life back, so it isn't left alive at 0.
     fn beat(&self, a: &Actor, mut life: Life) -> Result<Fate> {
         let zero = 0_i32.to_le_bytes();
+        let put_back = |life: &Life| self.game.write(life.left_at(), &life.most.to_le_bytes());
         self.game.write(life.left_at(), &zero)?;
         let start = Instant::now();
         while start.elapsed() < PATIENCE {
             std::thread::sleep(TICK);
             let table = actors::actors(&self.game, self.main)?;
             let alive = table.iter().any(|b| b.at == a.at && b.name == a.name);
+            // A failed read isn't a death: the Life goes back before the error.
             let now = match alive {
-                true => a.life(&self.game, self.main).ok().flatten(),
+                true => a
+                    .life(&self.game, self.main)
+                    .or_else(|e| put_back(&life).and(Err(e)))?,
                 false => None,
             };
-            match look(alive, self.state()?.event, now) {
+            match look(alive, self.event()?, now) {
                 Look::Gone => return Ok(Fate::Died),
                 Look::Reset(reset) => {
                     life = reset;
@@ -230,7 +234,7 @@ impl<M: Memory> Dev<M> {
                 Look::Waiting => {}
             }
         }
-        self.game.write(life.left_at(), &life.most.to_le_bytes())?;
+        put_back(&life)?;
         Ok(Fate::NeverWoke)
     }
 }

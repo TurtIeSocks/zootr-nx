@@ -12,7 +12,7 @@ use serde::Serialize;
 use crate::checks::flat;
 use crate::dev::Dev;
 use crate::live::Memory;
-use crate::play::{Input, PRESS, line};
+use crate::play::{Input, PRESS, check_buttons, line};
 
 /// Link has left his start height once he's this far below it, in m.
 pub const OFF: f32 = 0.3;
@@ -52,7 +52,7 @@ impl Step {
             "shot" => bail!("{text}: a shot takes no time"),
             "wait" => Ok(Step::Wait(secs.context("wait takes ~SECS")?)),
             buttons => {
-                line(buttons, None)?;
+                check_buttons(buttons)?;
                 let secs = secs.unwrap_or(PRESS as f32 / 1000.0);
                 Ok(Step::Hold(buttons.into(), secs))
             }

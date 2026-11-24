@@ -8,7 +8,7 @@ use clap::ValueEnum;
 use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
-use super::rule::{Rules, all, any};
+use super::rule::{self, Rules, all, any};
 use super::seed::{Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Variant, steps, word};
 use super::{OPTIONS, described, ids::Ids, names, offers};
@@ -17,7 +17,7 @@ use crate::fill;
 use crate::ice_traps;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{IceTraps, Kind, NewGame, Settings, choice_id, schema};
+use crate::settings::{IceTraps, Kind, NewGame, PROGRESSIVE, Settings, choice_id, schema};
 use crate::starter_bags;
 use crate::world::Era;
 
@@ -114,6 +114,16 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         g.sort();
         g.dedup();
     }
+    // Each line's levels with the events that give them (`rule::lined`).
+    let levels: Vec<rule::Line> = (names::levels()?.into_iter())
+        .map(|(line, steps)| {
+            let given = |(actor, name): (&str, &str)| {
+                let events = givers.get(actor).into_iter().flatten().cloned();
+                [name.to_owned()].into_iter().chain(events).collect()
+            };
+            (line.to_owned(), steps.into_iter().map(given).collect())
+        })
+        .collect();
     let mut rules = Rules {
         start: &base_seed.start,
         pooled: &pooled,
@@ -122,6 +132,8 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         item_settings: &item_settings,
         givers: &givers,
         used: BTreeSet::new(),
+        form: None,
+        levels: &levels,
     };
     let reach = Everything::union(&set);
     let era = |i: usize| w.places[i].1;
@@ -196,10 +208,10 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         for l in &seed.world.locations {
             by_hash.entry(l.hash).or_default().push((l.place, &l.need));
         }
-        for (&hash, spots) in &by_hash {
+        for (&hash, found) in &by_hash {
             if seed.dealt.kept.contains_key(&hash) {
                 if reach.checks.contains(&hash) {
-                    let at = at(&mut rules, spots.clone());
+                    let at = at(&mut rules, found.clone());
                     let row = json!({ "name": vanilla(hash) });
                     Row::add(&mut events, vanilla(hash), (n, seeds.len()), row, at)?;
                 }
@@ -210,12 +222,12 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             }
             let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
                 .with_context(|| format!("no check {hash}"))?;
+            // In either form, since a row holds for both.
             let mut forbid = BTreeSet::new();
-            for actor in pooled
-                .iter()
-                .filter(|a| !allowed(check, a, seed.dealt.new_game.progressive))
-            {
-                forbid.insert(names.item(actor)?);
+            for form in [true, false] {
+                for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
+                    forbid.insert(names.item_in(actor, Some(form))?);
+                }
             }
             let row = json!({
                 "id": ids.location(hash),
@@ -224,7 +236,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
                 "unprovable": !reach.checks.contains(&hash),
                 "forbid": forbid,
             });
-            let at = at(&mut rules, spots.clone());
+            let at = at(&mut rules, found.clone());
             Row::add(&mut checks, hash, (n, seeds.len()), row, at)?;
         }
         let sources = seed.world.sources.iter();
@@ -292,17 +304,30 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let junk_actor = |a: &str| starter_bags::JUNK.iter().any(|j| j.get() == a);
     // In `starter_bags::added`'s order, the order the world trades them.
     let mut added: Vec<(&str, (Vec<u32>, &str))> = Vec::new();
-    for (n, seed) in seeds.iter().enumerate() {
+    // A seed with progressive items on deals each line's first level, so
+    // its pool reads from its twin with them off, which deals each check's
+    // own item: the world names a line by it (`names::line`).
+    let twin = |n: usize| -> Result<&Seed> {
+        if !seeds[n].dealt.new_game.progressive {
+            return Ok(seeds[n]);
+        }
+        let mut off = settings[n].clone();
+        off.insert(PROGRESSIVE.into(), false.into());
+        let at = settings.iter().position(|s| *s == off);
+        Ok(seeds[at.with_context(|| format!("no seed {off:?}"))?])
+    };
+    for n in 0..seeds.len() {
+        let seed = twin(n)?;
         for raw in &seed.dealt.before {
             let actor = names::same(raw);
-            let name = names.item(actor)?;
+            let name = names::item(actor, false)?;
             let key = (name, junk_actor(raw), seed.trappable.contains(raw));
             let row = counts.entry(key).or_insert((vec![0; seeds.len()], actor));
             ensure!(row.1 == actor, "{name} names two items");
             row.0[n] += 1;
         }
         for actor in seed.dealt.added.iter().map(|a| names::same(a)) {
-            let name = names.item(actor)?;
+            let name = names::item(actor, false)?;
             let at = match added.iter().position(|(n, _)| *n == name) {
                 Some(at) => at,
                 None => {
@@ -319,14 +344,24 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         .iter()
         .map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
     let added_rows = added.iter().map(|(n, c)| (*n, c, false, false, true));
+    let mut firsts: BTreeMap<&str, &str> = BTreeMap::new();
+    let class = |name: &str| match () {
+        _ if rules.used.contains(name) => "progression",
+        _ if USEFUL.contains(&name) => "useful",
+        _ => "filler",
+    };
     for (name, (count, actor), is_junk, is_trappable, is_added) in rows.chain(added_rows) {
-        let class = match () {
-            _ if rules.used.contains(name) => "progression",
-            _ if USEFUL.contains(&name) => "useful",
-            _ => "filler",
-        };
         if !items.iter().any(|i| i["name"] == name) {
-            items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
+            // A line's first level keeps its first id for the line's name,
+            // unless the line goes by it.
+            let line = names::line(actor)?;
+            let plain = line.is_some_and(|(l, first)| first == *actor && l != name);
+            items.push(
+                json!({ "id": ids.item_as(actor, plain), "name": name, "class": class(name) }),
+            );
+            if let Some((line, first)) = line {
+                firsts.insert(line, first);
+            }
         }
         let counts = Counts {
             base: count[0],
@@ -349,6 +384,20 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             pool.push(row);
         }
     }
+    // With progressive items on, each line's levels go by its name, under
+    // its first level's id.
+    // The Magic Meter's goes by its first level's, already there.
+    for (line, first) in firsts {
+        if !items.iter().any(|i| i["name"] == line) {
+            items.push(json!({ "id": ids.item(first), "name": line, "class": class(line) }));
+        }
+    }
+    // Each line's levels by its name, each its own name then its events:
+    // with progressive items on, the world deals each as the line and reads
+    // its rules as `rule::lined` does.
+    let levels_json: serde_json::Map<String, Value> = (levels.iter())
+        .map(|(line, steps)| (line.clone(), json!(steps)))
+        .collect();
     // The traps the world swaps in for its trappable items, a share of
     // them by Ice Traps' value (`IceTraps::of`).
     let trap = ice_traps::POOLED;
@@ -388,7 +437,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares });
+    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares, "levels": levels_json });
     out.insert("pool.json", pretty(&pool)?);
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
@@ -526,7 +575,18 @@ impl Namer {
     }
 
     pub fn item(&self, actor: &str) -> Result<&'static str> {
-        names::item(actor, self.progressive)
+        self.item_in(actor, None)
+    }
+
+    /// Whether the base has progressive items on.
+    pub fn progressive(&self) -> bool {
+        self.progressive
+    }
+
+    /// `actor`'s name in `form` (progressive items on or off), the base's
+    /// without one.
+    pub fn item_in(&self, actor: &str, form: Option<bool>) -> Result<&'static str> {
+        names::item(actor, form.unwrap_or(self.progressive))
     }
 
     pub fn location(&self, hash: u64) -> Result<&str> {
@@ -616,7 +676,10 @@ mod tests {
         let junk: Vec<&str> = (pool["junk"].as_array().unwrap().iter())
             .map(|j| j.as_str().unwrap())
             .collect();
-        let (got_pool, trappable) = traded(&held, &junk);
+        let (mut got_pool, trappable) = traded(&held, &junk);
+        if seed.dealt.new_game.progressive {
+            got_pool = lined(got_pool, &pool["levels"]);
+        }
         // The world's traps, from the share the export writes for the
         // seed's Ice Traps.
         let value = options
@@ -692,6 +755,22 @@ mod tests {
         (pool, trappable)
     }
 
+    /// `pool` with each line's levels named by the line, as the world
+    /// names them with progressive items on.
+    fn lined(pool: BTreeMap<String, u64>, levels: &Value) -> BTreeMap<String, u64> {
+        let line = |item: &str| {
+            let mut lines = levels.as_object().unwrap().iter();
+            let found =
+                lines.find(|(_, steps)| steps.as_array().unwrap().iter().any(|s| s[0] == item));
+            found.map(|(line, _)| line.clone())
+        };
+        let mut out = BTreeMap::new();
+        for (item, n) in pool {
+            *out.entry(line(&item).unwrap_or(item)).or_default() += n;
+        }
+        out
+    }
+
     /// Each case's seed fills on its own, so the cases run in parallel.
     fn assert_rows_match(romfs: &Romfs, cases: impl IntoIterator<Item = Settings>) {
         let cases: Vec<Settings> = cases.into_iter().collect();
@@ -730,7 +809,12 @@ mod tests {
         for d in domains().unwrap() {
             settings.insert(d.id, d.values.last().unwrap().clone());
         }
-        assert_rows_match(&romfs, [settings]);
+        // And with progressive items the other way, whose names each
+        // option's rows hold in one form.
+        let mut flipped = settings.clone();
+        let on = settings.get(PROGRESSIVE).and_then(Value::as_bool) == Some(true);
+        flipped.insert(PROGRESSIVE.into(), Value::Bool(!on));
+        assert_rows_match(&romfs, [settings, flipped]);
     }
 
     /// Each pair of options at each pair of other values. About 330 CPU
@@ -759,6 +843,42 @@ mod tests {
             }
         }
         assert_rows_match(&romfs, cases);
+    }
+
+    /// Every `items` rule in `rule`.
+    fn items(rule: &Value, out: &mut Vec<Value>) {
+        match rule {
+            Value::Object(o) if o.contains_key("items") => out.push(rule.clone()),
+            Value::Object(o) => o.values().for_each(|v| items(v, out)),
+            Value::Array(a) => a.iter().for_each(|v| items(v, out)),
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn every_progressive_fork_collapses_to_its_off_form() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        // A rule the world can't rebuild from its off form keeps both forms
+        // (`Rules::collapse`): correct, but a sign `rule::lined` and
+        // `rules::item` have drifted apart, and the world grows with it.
+        let world = &exported(&romfs)["world.json"];
+        let off = crate::settings::value_word(PROGRESSIVE, "off");
+        assert!(
+            !world.contains(&format!("\"{off}\"")),
+            "a rule kept both progressive forms"
+        );
+        let world: Value = serde_json::from_str(world).unwrap();
+        let mut rules = Vec::new();
+        items(&world, &mut rules);
+        let longshot = json!({ "items": ["Longshot"], "count": 1 });
+        assert!(
+            rules.contains(&longshot)
+                && !rules
+                    .iter()
+                    .any(|r| r["items"][0] == "Progressive Hookshot")
+        );
     }
 
     #[test]

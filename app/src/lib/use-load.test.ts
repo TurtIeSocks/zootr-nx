@@ -48,3 +48,26 @@ test("with keep, the last answer stays up while the next loads", async () => {
   await act(async () => answers.get(2)?.(20));
   expect(result.current).toEqual({ status: "ok", data: 20 });
 });
+
+test("never draws the old key's answer once the key changes", async () => {
+  const load = async (key: string) => `${key} data`;
+  const drawn: unknown[] = [];
+  const { rerender } = renderHook(
+    ({ key }) => {
+      const loaded = useLoad(load, key);
+      drawn.push(loaded);
+      return loaded;
+    },
+    { initialProps: { key: "old" } },
+  );
+  await waitFor(() =>
+    expect(drawn.at(-1)).toEqual({ status: "ok", data: "old data" }),
+  );
+  drawn.length = 0;
+  rerender({ key: "new" });
+  expect(drawn[0]).toEqual({ status: "loading" });
+  await waitFor(() =>
+    expect(drawn.at(-1)).toEqual({ status: "ok", data: "new data" }),
+  );
+  expect(drawn).not.toContainEqual({ status: "ok", data: "old data" });
+});

@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use ounce_formats::Romfs;
 
+use super::{root, xyz};
 use crate::nav::Level;
 use crate::nav::graph::{Graph, step_up};
 use crate::nav::water::{NoSwim, bodies};
@@ -24,7 +25,6 @@ pub fn water(
 ) -> Result<()> {
     let level = Level::of(romfs, game, map)?;
     let graph = level.graph();
-    let xyz = |p: [f32; 3]| format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2]);
     let crossings = graph.crossings();
     let shores = &graph.shores;
     for (n, body) in bodies(&level.waters).iter().enumerate() {
@@ -62,7 +62,7 @@ pub fn water(
     println!("{swum} of {} crossings swim", crossings.len());
     let dry = Graph::build(&level.mesh, &level.placed, step_up()).with_climbs(&level.climbs);
     println!(
-        "islands of 20 faces or more: {} without swims, {} with",
+        "islands of {ISLAND} faces or more: {} without swims, {} with",
         islands(&dry),
         islands(&graph)
     );
@@ -191,7 +191,7 @@ pub fn route(romfs: &Romfs, game: &Path, map: &str, from: [f32; 3], to: [f32; 3]
         }
     };
     for w in &route.waypoints {
-        println!("{:.1},{:.1},{:.1} {}", w.at[0], w.at[1], w.at[2], w.via);
+        println!("{} {}", xyz(w.at), w.via);
     }
     println!("{:.1} m", route.length);
     Ok(())
@@ -211,18 +211,14 @@ fn reached(graph: &Graph, face: usize) -> std::collections::HashSet<usize> {
     seen
 }
 
-/// How many parts of the graph, of at least 20 faces each, Link gets
-/// round within, going any way across every arc.
+/// The fewest faces an island `islands` counts has.
+const ISLAND: usize = 20;
+
+/// How many parts of the graph, of at least [`ISLAND`] faces each, Link
+/// gets round within, going any way across every arc.
 fn islands(graph: &Graph) -> usize {
     let n = graph.arcs.len();
     let mut of: Vec<usize> = (0..n).collect();
-    fn root(of: &mut [usize], mut i: usize) -> usize {
-        while of[i] != i {
-            of[i] = of[of[i]];
-            i = of[i];
-        }
-        i
-    }
     for (from, arcs) in graph.arcs.iter().enumerate() {
         for a in arcs {
             let (r, s) = (root(&mut of, from), root(&mut of, a.to));
@@ -233,5 +229,5 @@ fn islands(graph: &Graph) -> usize {
     for f in 0..n {
         *sizes.entry(root(&mut of, f)).or_insert(0) += 1;
     }
-    sizes.values().filter(|&&s| s >= 20).count()
+    sizes.values().filter(|&&s| s >= ISLAND).count()
 }

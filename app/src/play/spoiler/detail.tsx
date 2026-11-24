@@ -1,7 +1,7 @@
 import { Tip } from "@/components/tip";
 import { GivenAtStart, HeroStar } from "@/play/spoiler/icons";
 import { PickButton } from "@/play/spoiler/pick-button";
-import { areaOf, itemOf, placeOf, rule } from "@/play/spoiler/rows";
+import { itemOf, rule, whereOf } from "@/play/spoiler/rows";
 import { useSpoiler } from "@/play/spoiler/spoiler-context";
 
 /** The picked check and its rule, each item it names linked to the round
@@ -17,7 +17,7 @@ export function Detail() {
       className="border-line border-t bg-surface px-5 py-3 text-[13px]"
     >
       <p className="flex items-center gap-1.5 font-medium">
-        {areaOf(spot)} · {placeOf(spot)} → {itemOf(spot)}
+        {whereOf(spot)} → {itemOf(spot)}
         {spot.given && <GivenAtStart />}
         {spot.hero && <HeroStar />}
       </p>
@@ -33,7 +33,7 @@ export function Detail() {
                 <Tip
                   // biome-ignore lint/suspicious/noArrayIndexKey: an item can repeat
                   key={i}
-                  tip={`${areaOf(p.giver)} · ${placeOf(p.giver)}`}
+                  tip={whereOf(p.giver)}
                 >
                   <PickButton
                     hash={p.giver.hash}

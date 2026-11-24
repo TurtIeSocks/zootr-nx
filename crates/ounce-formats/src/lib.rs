@@ -1,10 +1,17 @@
 //! Readers and writers for the Ounce engine's romfs formats.
 //!
-//! The engine is the one Tears of the Kingdom ships on: files are zstd
-//! frames compressed against one of four dictionaries, BYML v7 documents,
-//! BFEVFL event flows, AINB node graphs, SARC actor packs, MSBT text, BNTX
-//! textures, Havok tagfiles inside Phive physics files (navmeshes and shape meshes), a RESTBL size table that must cover every file the game
-//! loads, and the save files GameData describes.
+//! The engine is the one Tears of the Kingdom ships on. The crate handles:
+//!
+//! - zstd frames compressed against one of four dictionaries
+//! - BYML v7 documents and SARC actor packs
+//! - BFEVFL event flows, AINB node graphs, ASB animation graphs and XLink
+//!   sound and effect files
+//! - MSBT text
+//! - BFRES models, their materials and skeletal animations, and BNTX
+//!   textures
+//! - Havok tagfiles inside Phive physics files (navmeshes and shape meshes)
+//! - the RESTBL size table, which must cover every file the game loads
+//! - the save files GameData describes
 
 pub mod ainb;
 pub mod asb;

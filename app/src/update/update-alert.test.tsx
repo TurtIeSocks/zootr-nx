@@ -35,7 +35,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  useUpdate.setState({ latest: null, current: null });
   useUi.setPath("update.skipped", null);
   useSeeds.setPath("running", false);
   vi.clearAllMocks();

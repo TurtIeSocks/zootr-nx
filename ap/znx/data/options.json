@@ -395,5 +395,12 @@
         "label": "Mayhem (all junk)"
       }
     ]
+  },
+  {
+    "default": true,
+    "description": "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
+    "id": "progressive-items",
+    "kind": "toggle",
+    "label": "Progressive Items"
   }
 ]

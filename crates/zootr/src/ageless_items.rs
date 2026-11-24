@@ -1,7 +1,8 @@
 //! Items for both ages: each Link uses items only the other uses in the
 //! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow,
-//! magic arrows and the two-handed swords, adult Link the Deku Sticks and the Boomerang. The rest of the spec's items
-//! join once they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
+//! magic arrows and the two-handed swords, adult Link the Deku Sticks, the
+//! Slingshot and the Boomerang. The rest of the spec's items join once
+//! they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
@@ -155,7 +156,8 @@ const CHILD: Link = Link {
     ],
 };
 
-/// The Boomerang is a projectile, so only the Deku Stick is held.
+/// The Deku Stick and the Slingshot are held. The Boomerang is a
+/// projectile, so it isn't.
 const ADULT: Link = Link {
     who: actor::PLAYER_ADULT,
     from: actor::PLAYER_CHILD,
@@ -270,7 +272,7 @@ impl Own {
 }
 
 /// Write the setting's files: the pause menu's table, both Links' packs,
-/// the borrowed archives, the child's graph and his sounds.
+/// the borrowed archives, both Links' graphs and the sounds.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let table = opened(&builder.read(POUCH_TABLE)?)?;
     let table = crate::ageless::two_handed_opened(romfs, &table)?;
@@ -314,7 +316,7 @@ fn own_archives(pack: &ActorPack) -> Result<Vec<String>> {
 /// ages.
 fn opened(bytes: &[u8]) -> Result<Vec<u8>> {
     let mut doc = BymlDoc::parse(bytes)?;
-    let mut found = 0;
+    let mut found = [false; ITEMS.len()];
     for slots in doc.root.as_mut_map()?.values_mut() {
         let Byml::Array(slots) = slots else { continue };
         let actors = slots.iter_mut().filter_map(|slot| {
@@ -327,18 +329,24 @@ fn opened(bytes: &[u8]) -> Result<Vec<u8>> {
             let short = actor
                 .get(field::ACTOR_SHORT.get())
                 .and_then(|s| s.as_string().ok());
-            if !short.is_some_and(|s| ITEMS.iter().any(|i| i.get() == s.as_str())) {
+            let Some(i) = short.and_then(|s| ITEMS.iter().position(|i| i.get() == s.as_str()))
+            else {
                 continue;
-            }
+            };
             for flag in [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT] {
                 actor.insert(flag.get().into(), Byml::Bool(true));
             }
-            found += 1;
+            found[i] = true;
         }
     }
+    let missing: Vec<&str> = (ITEMS.iter().zip(found))
+        .filter(|(_, found)| !found)
+        .map(|(i, _)| i.get())
+        .collect();
     ensure!(
-        found >= ITEMS.len(),
-        "the pause menu lacks some of the items"
+        missing.is_empty(),
+        "the pause menu lacks {}",
+        missing.join(", ")
     );
     Ok(doc.to_binary())
 }
@@ -511,6 +519,38 @@ mod tests {
             }
         }
         assert_eq!(opened.len(), ITEMS.len());
+    }
+
+    #[test]
+    fn the_menu_check_counts_items_not_rows() {
+        let Some(romfs) = dev_dump() else { return };
+        // Every row of the first item renamed to the second: as many rows
+        // match as before, but the first item is gone.
+        let mut doc = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap()).unwrap();
+        let mut renamed = 0;
+        for slots in doc.root.as_mut_map().unwrap().values_mut() {
+            let Byml::Array(slots) = slots else { continue };
+            for slot in slots.iter_mut().filter_map(|s| s.as_mut_map().ok()) {
+                let Some(Byml::Array(actors)) = slot.get_mut(field::ACTOR.get()) else {
+                    continue;
+                };
+                for actor in actors.iter_mut().filter_map(|a| a.as_mut_map().ok()) {
+                    let short = actor.get(field::ACTOR_SHORT.get());
+                    if short.and_then(|s| s.as_string().ok()).map(|s| s.as_str())
+                        == Some(ITEMS[0].get())
+                    {
+                        actor.insert(
+                            field::ACTOR_SHORT.get().into(),
+                            Byml::String(ITEMS[1].get().into()),
+                        );
+                        renamed += 1;
+                    }
+                }
+            }
+        }
+        assert!(renamed > 0);
+        let error = opened(&doc.to_binary()).unwrap_err().to_string();
+        assert!(error.contains(ITEMS[0].get()), "{error}");
     }
 
     #[test]

@@ -2,7 +2,8 @@
 
 use anyhow::{Context, Result};
 
-use crate::bfres::{pool_string, u32_at, u64_at};
+use crate::bfres::{find_magic, name_at};
+use crate::reader::Reader;
 
 const MAGIC: &[u8; 4] = b"FSKA";
 const NAME: usize = 0x08;
@@ -34,41 +35,46 @@ pub fn bases(data: &[u8], anim: &str) -> Result<Option<Vec<(String, Base)>>> {
     else {
         return Ok(None);
     };
-    let bones = u64_at(data, at + BONES)?;
-    let count = u32_at(data, at + BONE_COUNT)? & 0xffff;
+    let r = Reader(data);
+    let bones = r.ptr(at + BONES)?;
+    let count = r.u16(at + BONE_COUNT)? as usize;
     let mut out = Vec::new();
     for b in (0..count).map(|i| bones + i * BONE_SIZE) {
         let name = name_at(data, b + BONE_NAME).context("a bone without a name")?;
         let name = String::from_utf8_lossy(name).into_owned();
-        let flags = u32_at(data, b + BONE_FLAGS)?;
-        let mut at = u64_at(data, b + BONE_BASE)?;
-        if at == 0 {
+        let flags = r.offset(b + BONE_FLAGS)?;
+        let mut cursor = r.ptr(b + BONE_BASE)?;
+        if cursor == 0 {
             out.push((name, Base::default()));
             continue;
         }
-        let mut take = |has: usize, n: usize| -> Result<Option<Vec<f32>>> {
-            if flags & has == 0 {
-                return Ok(None);
-            }
-            let v = (0..n)
-                .map(|i| Ok(f32::from_bits(u32_at(data, at + i * 4)? as u32)))
-                .collect::<Result<Vec<_>>>()?;
-            at += n * 4;
-            Ok(Some(v))
+        let base = Base {
+            scale: take(&r, flags, HAS_SCALE, &mut cursor)?,
+            rotate: take(&r, flags, HAS_ROTATE, &mut cursor)?,
+            translate: take(&r, flags, HAS_TRANSLATE, &mut cursor)?,
         };
-        let scale = take(HAS_SCALE, 3)?;
-        let rotate = take(HAS_ROTATE, 4)?;
-        let translate = take(HAS_TRANSLATE, 3)?;
-        out.push((
-            name,
-            Base {
-                scale: scale.map(|v| [v[0], v[1], v[2]]),
-                rotate: rotate.map(|v| [v[0], v[1], v[2], v[3]]),
-                translate: translate.map(|v| [v[0], v[1], v[2]]),
-            },
-        ));
+        out.push((name, base));
     }
     Ok(Some(out))
+}
+
+/// The `N` floats at `cursor`, moving it past them, when `flags` has
+/// `has`.
+fn take<const N: usize>(
+    r: &Reader,
+    flags: usize,
+    has: usize,
+    cursor: &mut usize,
+) -> Result<Option<[f32; N]>> {
+    if flags & has == 0 {
+        return Ok(None);
+    }
+    let mut v = [0.0; N];
+    for (i, f) in v.iter_mut().enumerate() {
+        *f = r.f32(*cursor + i * 4)?;
+    }
+    *cursor += N * 4;
+    Ok(Some(v))
 }
 
 /// Every skeletal animation's name.
@@ -81,13 +87,7 @@ pub fn names(data: &[u8]) -> Vec<String> {
 
 /// Every skeletal animation header's offset.
 fn animations(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
-    (0..data.len().saturating_sub(BONE_COUNT + 4))
-        .step_by(8)
-        .filter(|&at| &data[at..at + 4] == MAGIC)
-}
-
-fn name_at(data: &[u8], at: usize) -> Option<&[u8]> {
-    pool_string(data, u64_at(data, at).ok()?)
+    find_magic(data, MAGIC, BONE_COUNT + 4, 8)
 }
 
 #[cfg(test)]

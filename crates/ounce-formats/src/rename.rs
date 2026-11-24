@@ -47,9 +47,9 @@ fn u32_at(data: &[u8], at: usize) -> u32 {
 
 /// The bytes of the length-prefixed, zero-ended name at `at`.
 fn key(data: &[u8], at: usize) -> Option<std::ops::Range<usize>> {
-    let len = u16::from_le_bytes(data.get(at..at + 2)?.try_into().ok()?) as usize;
-    let range = at + 2..at + 2 + len;
-    (data.get(range.end) == Some(&0)).then_some(range)
+    let rest = data.get(at..)?;
+    let len = u16::from_le_bytes(rest.get(..2)?.try_into().ok()?) as usize;
+    (rest.get(2 + len) == Some(&0)).then_some(at + 2..at + 2 + len)
 }
 
 /// Every dictionary: a magic (`_DIC`, or zero in newer models), a count,
@@ -217,6 +217,15 @@ mod tests {
                 };
             }
             assert_eq!(q, i + 1, "{name}");
+        }
+    }
+
+    #[test]
+    fn a_name_offset_near_the_top_of_memory_is_no_key() {
+        let data = [2, 0, b'a', b'b', 0];
+        assert_eq!(key(&data, 0), Some(2..4));
+        for at in [usize::MAX, usize::MAX - 1, 5] {
+            assert_eq!(key(&data, at), None);
         }
     }
 }

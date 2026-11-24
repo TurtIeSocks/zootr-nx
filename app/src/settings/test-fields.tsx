@@ -289,18 +289,19 @@ export function QuestStepsField() {
   const whole = typed.includes("=");
   const step = stepOf(quests, pick);
   const line = whole ? typed : `${typed}=${step}`;
-  const add = useAddRow("progress", line, whole || !!step, () =>
+  const ok = whole || !!step;
+  const add = useAddRow("progress", line, ok, () =>
     setPick({ challenge: "", step: "" }),
   );
   const label = "Quest Steps";
-  const known = Object.keys(quests);
+  const hasQuests = Object.keys(quests).length > 0;
   return (
     <Field
       id="test-progress"
       label={label}
       hint="Run in order. A new game runs them in its opening and Apply runs them live. The names are checked when you save"
       warn={
-        typed && !whole && known.length > 0 && !quests[typed]
+        typed && !whole && hasQuests && !quests[typed]
           ? "The game has no quest by that name"
           : undefined
       }
@@ -319,7 +320,7 @@ export function QuestStepsField() {
           variant="secondary"
           aria-label="Add quest step"
           onClick={add}
-          disabled={!(whole || step)}
+          disabled={!ok}
         >
           Add
         </Button>

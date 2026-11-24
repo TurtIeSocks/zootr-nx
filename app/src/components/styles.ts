@@ -14,3 +14,6 @@ export const fieldClass =
 /** A button that reads as a link, inside running text. */
 export const linkClass =
   "cursor-pointer font-medium text-primary-ink underline-offset-3 hover:underline";
+
+/** What every cell in a check's or a door's row shares. */
+export const cellClass = "h-8.5 border-line border-t px-3 align-middle";

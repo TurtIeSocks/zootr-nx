@@ -318,12 +318,12 @@ impl Target {
     fn import_at(text: &str, home: Option<&Path>) -> Result<Self> {
         let json: serde_json::Value = serde_json::from_str(text).context("not JSON")?;
         let mut target: Target = serde_json::from_value(json.clone())?;
-        reject_unknown(&json, &Self::keys(), "target")?;
+        reject_unknown(&json, &Self::KEYS, "target")?;
         if let Some(file) = json.get("settings_file").or(json.get("settings_line")) {
-            reject_unknown(file, &["file", "lines", "line"], "settings_file")?;
+            reject_unknown(file, &Self::SETTINGS_FILE_KEYS, "settings_file")?;
         }
         if let Some(rebuild) = json.get("rebuild") {
-            reject_unknown(rebuild, &["command", "manifest"], "rebuild")?;
+            reject_unknown(rebuild, &Self::REBUILD_KEYS, "rebuild")?;
         }
         if target.name.trim().is_empty() {
             bail!("the target needs a name");
@@ -345,66 +345,27 @@ impl Target {
         serde_json::to_string_pretty(&target).expect("a target is JSON")
     }
 
-    /// Every key a target's JSON takes, aliases too. Built from a full
-    /// target, so a new field has to be named here to compile.
-    fn keys() -> Vec<&'static str> {
-        let Target {
-            name,
-            app,
-            mod_dir,
-            settings_file,
-            save_dir,
-            args,
-            control,
-            bridge,
-            env,
-            harness_env,
-            rebuild,
-            game,
-        } = Target {
-            name: String::new(),
-            app: PathBuf::new(),
-            mod_dir: PathBuf::new(),
-            settings_file: None,
-            save_dir: None,
-            args: vec![],
-            control: None,
-            bridge: None,
-            env: vec![],
-            harness_env: vec![],
-            rebuild: None,
-            game: None,
-        };
-        let _ = (
-            name,
-            app,
-            mod_dir,
-            settings_file,
-            save_dir,
-            args,
-            control,
-            bridge,
-            env,
-            harness_env,
-            rebuild,
-            game,
-        );
-        vec![
-            "name",
-            "app",
-            "mod_dir",
-            "settings_file",
-            "settings_line",
-            "save_dir",
-            "args",
-            "control",
-            "bridge",
-            "env",
-            "harness_env",
-            "rebuild",
-            "game",
-        ]
-    }
+    /// Every key a target's JSON takes, aliases too.
+    /// `every_key_a_target_writes_is_known` keeps it in step with the fields.
+    const KEYS: [&str; 13] = [
+        "name",
+        "app",
+        "mod_dir",
+        "settings_file",
+        "settings_line",
+        "save_dir",
+        "args",
+        "control",
+        "bridge",
+        "env",
+        "harness_env",
+        "rebuild",
+        "game",
+    ];
+    /// [`Target::KEYS`] for a settings file.
+    const SETTINGS_FILE_KEYS: [&str; 3] = ["file", "lines", "line"];
+    /// [`Target::KEYS`] for a rebuild.
+    const REBUILD_KEYS: [&str; 2] = ["command", "manifest"];
 
     fn paths(&self) -> impl Iterator<Item = &PathBuf> {
         let file = self.settings_file.iter().map(|s| &s.file);
@@ -527,20 +488,28 @@ impl Config {
         Ok(config)
     }
 
-    /// Add an imported target under a name no other target has.
-    pub fn add_imported(&mut self, mut target: Target) -> String {
-        target.name = target.unique_name(&self.targets);
+    /// Add an imported target under a name no other target has, `saved`'s
+    /// other games' included: [`Config::save`] drops another game's target
+    /// that shares a name with one of this config's.
+    pub fn add_imported(&mut self, mut target: Target, saved: &Config) -> String {
+        let taken: Vec<Target> = (self.targets.iter().chain(&saved.targets))
+            .cloned()
+            .collect();
+        target.name = target.unique_name(&taken);
         let name = target.name.clone();
         self.targets.push(target);
         name
     }
 
-    /// Saves, keeping the other games' targets as they are.
+    /// Saves, keeping the other games' targets as they are, through a
+    /// temporary file so a crash never leaves half a config.
     pub fn save(&self) -> Result<()> {
         let path = Self::path()?;
         std::fs::create_dir_all(path.parent().context("config path has no folder")?)?;
         let all = self.with_others(Self::load_all()?, &crate::turn::playing(&self.turn));
-        std::fs::write(&path, serde_json::to_vec_pretty(&all)?)
+        let part = path.with_extension(format!("{}.part", std::process::id()));
+        std::fs::write(&part, serde_json::to_vec_pretty(&all)?)
+            .and_then(|()| std::fs::rename(&part, &path))
             .with_context(|| format!("writing {}", path.display()))
     }
 
@@ -825,6 +794,44 @@ mod tests {
     }
 
     #[test]
+    fn every_key_a_target_writes_is_known() {
+        let full = Target {
+            name: "a".into(),
+            app: "/a".into(),
+            mod_dir: "/m".into(),
+            settings_file: Some(SettingsFile {
+                file: "/f".into(),
+                lines: vec!["K=V".into()],
+            }),
+            save_dir: Some("/s".into()),
+            args: vec!["-g".into()],
+            control: Some("/c".into()),
+            bridge: Some("/b".into()),
+            env: vec!["A=1".into()],
+            harness_env: vec!["B=1".into()],
+            rebuild: Some(Rebuild {
+                command: vec!["make".into()],
+                manifest: Some("/p".into()),
+            }),
+            game: Some("FakeHost".into()),
+        };
+        let json = serde_json::to_value(&full).unwrap();
+        let keys = |v: &serde_json::Value| -> Vec<String> {
+            v.as_object().unwrap().keys().cloned().collect()
+        };
+        for (value, known) in [
+            (&json, &Target::KEYS[..]),
+            (&json["settings_file"], &Target::SETTINGS_FILE_KEYS[..]),
+            (&json["rebuild"], &Target::REBUILD_KEYS[..]),
+        ] {
+            for key in keys(value) {
+                assert!(known.contains(&key.as_str()), "{key} isn't in {known:?}");
+            }
+        }
+        assert_eq!(keys(&json).len(), 12, "a field went unwritten");
+    }
+
+    #[test]
     fn import_names_a_misspelled_key() {
         let text = r#"{"name":"a","app":"/a","mod_dir":"/m","save_dri":"/s"}"#;
         let err = Target::import_at(text, None).unwrap_err().to_string();
@@ -953,11 +960,11 @@ mod tests {
 
     #[test]
     fn a_taken_name_gets_a_number() {
-        let mut config = Config::default();
+        let (mut config, saved) = (Config::default(), Config::default());
         let t = target("FakeTarget", None);
-        assert_eq!(config.add_imported(t.clone()), "FakeTarget");
-        assert_eq!(config.add_imported(t.clone()), "FakeTarget 2");
-        assert_eq!(config.add_imported(t), "FakeTarget 3");
+        assert_eq!(config.add_imported(t.clone(), &saved), "FakeTarget");
+        assert_eq!(config.add_imported(t.clone(), &saved), "FakeTarget 2");
+        assert_eq!(config.add_imported(t, &saved), "FakeTarget 3");
         assert_eq!(config.targets.len(), 3);
     }
 }

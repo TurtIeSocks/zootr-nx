@@ -11,3 +11,11 @@ export function tag<T extends Placed>(list: T[], placed: T): string | null {
   if (same.length === 1) return null;
   return placed.label ?? `#${same.indexOf(placed) + 1}`;
 }
+
+/** Whether `placed`'s actor or own name holds `query`, any case. */
+export function matches(placed: Placed, query: string): boolean {
+  const q = query.toLowerCase().trim();
+  return [placed.actor, placed.label ?? ""].some((t) =>
+    t.toLowerCase().includes(q),
+  );
+}

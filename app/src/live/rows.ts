@@ -161,8 +161,9 @@ export function visible(
     const c = i.change;
     if (quiet && unnamed(c) && !c.label) return false;
     if (hidden.includes(c.kind)) return false;
+    if (!g) return true;
     const fields = [c.name, c.label ?? "", hex(c.hash), c.kind];
-    return !g || fields.some((f) => f.toLowerCase().includes(g));
+    return fields.some((f) => f.toLowerCase().includes(g));
   });
 }
 

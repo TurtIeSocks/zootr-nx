@@ -22,10 +22,11 @@
 //! A seed with the Bunny Hood setting takes the run's speed request too:
 //! `run_speed` makes it half again as fast while Link wears the hood.
 //!
-//! Dev builds hook Link's update too, to run the request the app leaves in
-//! the [`Mailbox`]: a teleport, an age switch, the time of day, a quest
-//! step, an item to give or an event to start. It also holds what the dev
-//! [`switches`] the app turns on keep full.
+//! Link's update is hooked too. A seed with ice traps fits a trap's look
+//! there and freezes Link when one springs. Dev builds also run the request
+//! the app leaves in the [`Mailbox`] there: a teleport, an age switch, the
+//! time of day, a quest step, an item to give or an event to start. It also
+//! holds what the dev [`switches`] the app turns on keep full.
 
 #![cfg_attr(target_os = "none", no_std, no_main)]
 
@@ -73,8 +74,9 @@ const BSS_END: u32 = 0x4e9_a4d0;
 /// down as [`Shared`] grows.
 pub const LIST: u32 = (PANIC - size_of::<Shared>() as u32) & !15;
 const _: () = assert!(LIST >= BSS_END + 16, "the list reaches sloperinaGZ's slots");
-/// Where a panic in the hook leaves its line and file, in the list page's
-/// last 16 bytes, for reading from outside when the game hangs.
+/// Where the hook leaves an 8 byte mark (`PANICKED`, `BADTABLE`) and the
+/// return address of its stop, in the list page's last 16 bytes, for
+/// reading from outside when the game hangs.
 pub const PANIC: u32 = 0x4e9_aff0;
 /// Where the hook's branch slots sit, one word each right after the
 /// entries: each function hook's resume, in the order the hooks are

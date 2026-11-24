@@ -129,9 +129,11 @@ export function useDivider(col: Column) {
       const up = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
     },
     onKeyDown: (e: KeyboardEvent) => {
       const by = { ArrowLeft: -STEP, ArrowRight: STEP }[e.key];

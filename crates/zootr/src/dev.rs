@@ -784,9 +784,24 @@ mod tests {
 
     #[test]
     fn a_give_request_names_its_actor_and_flags_the_equip() {
-        let bytes = names([item::SWORD_KOKIRI, "", ""]).unwrap();
-        assert!(bytes.starts_with(format!("{}\0", item::SWORD_KOKIRI).as_bytes()));
-        assert!(bytes[NAME..].iter().all(|&b| b == 0));
+        let main = 0x10_0000;
+        let mail = main + u64::from(MAILBOX);
+        let fake = Fake::new(vec![(mail, vec![0; size_of::<Mailbox>()])]);
+        let dev = Dev {
+            game: Hook(fake, mail, Default::default()),
+            global: main + u64::from(patch::OFFSETS.gamedata),
+            main,
+        };
+        let give = Request::Give(item::SWORD_KOKIRI.to_string(), true);
+        assert_eq!(dev.send(&give).unwrap(), Outcome::Done);
+        let named = dev
+            .game
+            .read(mail + offset_of!(Mailbox, map) as u64, NAME)
+            .unwrap();
+        assert!(named.starts_with(format!("{}\0", item::SWORD_KOKIRI).as_bytes()));
+        // The equip flag rides in the hour's word.
+        let equip = mail + offset_of!(Mailbox, hour) as u64;
+        assert_eq!(dev.game.u32(equip).unwrap(), 1);
     }
 
     #[test]

@@ -3,7 +3,8 @@
 
 use anyhow::{Context, Result, ensure};
 
-use crate::bfres::u64_at;
+use crate::bfres::find_magic;
+use crate::reader::Reader;
 
 const MAGIC: &[u8; 4] = b"FMAT";
 /// Where a material points at its shader info and its parameters' values,
@@ -22,21 +23,22 @@ const FLOAT4: u8 = 0x0f;
 /// Where the value of the parameter whose name hashes to `hash` is, in a
 /// model of one material. Only four floats are read and written.
 fn locate(data: &[u8], hash: u64) -> Result<usize> {
-    let mut found = data.windows(4).enumerate().filter(|(_, w)| w == MAGIC);
-    let (material, _) = found.next().context("no material")?;
+    let r = Reader(data);
+    // At any byte: whether a material is aligned isn't checked.
+    let mut found = find_magic(data, MAGIC, MAGIC.len() - 1, 1);
+    let material = found.next().context("no material")?;
     ensure!(found.next().is_none(), "more than one material");
-    let shader = u64_at(data, u64_at(data, material + SHADER)?)?;
-    let table = u64_at(data, shader + TABLE)?;
-    let values = u64_at(data, material + VALUES)?;
+    let shader = r.ptr(r.ptr(material + SHADER)?)?;
+    let table = r.ptr(shader + TABLE)?;
+    let values = r.ptr(material + VALUES)?;
     let hash = hash.to_le_bytes();
     // The table ends where an entry stops looking like one: its first
     // eight bytes are zero.
     let mut at = table;
     while data.get(at..at + 8) == Some(&[0; 8]) {
         if data.get(at + HASH..at + HASH + 8) == Some(&hash) {
-            ensure!(data[at + KIND] == FLOAT4, "not four floats");
-            let offset = u16::from_le_bytes([data[at + OFFSET], data[at + OFFSET + 1]]);
-            return Ok(values + offset as usize);
+            ensure!(r.u8(at + KIND)? == FLOAT4, "not four floats");
+            return Ok(values + r.u16(at + OFFSET)? as usize);
         }
         at += ENTRY;
     }

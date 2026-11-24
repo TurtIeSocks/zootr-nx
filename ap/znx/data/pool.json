@@ -5,7 +5,129 @@
     "Red Rupee (20)",
     "Purple Rupee (50)"
   ],
+  "levels": {
+    "Magic Meter": [
+      [
+        "Magic Meter"
+      ],
+      [
+        "Double Magic"
+      ]
+    ],
+    "Progressive Bomb Bag": [
+      [
+        "Bomb Bag"
+      ],
+      [
+        "Big Bomb Bag"
+      ],
+      [
+        "Biggest Bomb Bag"
+      ]
+    ],
+    "Progressive Bombchu Bag": [
+      [
+        "Bombchu Bag (20)"
+      ],
+      [
+        "Bombchu Bag (30)"
+      ],
+      [
+        "Bombchu Bag (40)"
+      ]
+    ],
+    "Progressive Bow": [
+      [
+        "Fairy Bow"
+      ],
+      [
+        "Big Quiver"
+      ],
+      [
+        "Biggest Quiver"
+      ]
+    ],
+    "Progressive Deku Nut Bag": [
+      [
+        "Deku Nut Bag (30)"
+      ],
+      [
+        "Deku Nut Bag (40)"
+      ]
+    ],
+    "Progressive Deku Stick Bag": [
+      [
+        "Deku Stick Bag (20)"
+      ],
+      [
+        "Deku Stick Bag (30)"
+      ]
+    ],
+    "Progressive Hookshot": [
+      [
+        "Hookshot"
+      ],
+      [
+        "Longshot"
+      ]
+    ],
+    "Progressive Ocarina": [
+      [
+        "Fairy Ocarina"
+      ],
+      [
+        "Ocarina of Time"
+      ]
+    ],
+    "Progressive Scale": [
+      [
+        "Silver Scale",
+        "Silver Scale"
+      ],
+      [
+        "Golden Scale"
+      ]
+    ],
+    "Progressive Slingshot": [
+      [
+        "Fairy Slingshot"
+      ],
+      [
+        "Big Bullet Bag"
+      ],
+      [
+        "Biggest Bullet Bag"
+      ]
+    ],
+    "Progressive Strength Upgrade": [
+      [
+        "Goron's Bracelet",
+        "Goron Bracelet"
+      ],
+      [
+        "Silver Gauntlets"
+      ],
+      [
+        "Golden Gauntlets"
+      ]
+    ],
+    "Progressive Wallet": [
+      [
+        "Adult's Wallet"
+      ],
+      [
+        "Giant's Wallet"
+      ]
+    ]
+  },
   "rows": [
+    {
+      "count": 1,
+      "item": "Adult's Wallet",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
     {
       "count": 1,
       "item": "Arrows (10)",
@@ -145,6 +267,27 @@
       "count": 2,
       "item": "Arrows (5)",
       "trappable": true
+    },
+    {
+      "count": 2,
+      "item": "Big Bomb Bag",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
+      "count": 2,
+      "item": "Big Bullet Bag",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
+      "count": 2,
+      "item": "Big Quiver",
+      "when": {
+        "setting": "npc-gifts"
+      }
     },
     {
       "count": 1,
@@ -2095,6 +2238,10 @@
     },
     {
       "count": 1,
+      "item": "Bomb Bag"
+    },
+    {
+      "count": 1,
       "item": "Bombchus (10)",
       "when": {
         "any": [
@@ -2215,6 +2362,34 @@
       }
     },
     {
+      "count": 1,
+      "item": "Deku Nut Bag (30)",
+      "when": {
+        "any": [
+          {
+            "setting": "scrubs"
+          },
+          {
+            "setting": "npc-gifts"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Nut Bag (30)",
+      "when": {
+        "all": [
+          {
+            "setting": "npc-gifts"
+          },
+          {
+            "setting": "scrubs"
+          }
+        ]
+      }
+    },
+    {
       "count": 2,
       "item": "Deku Nuts (3)"
     },
@@ -2311,6 +2486,41 @@
     },
     {
       "count": 1,
+      "item": "Deku Stick Bag (20)",
+      "when": {
+        "any": [
+          {
+            "setting": "scrubs"
+          },
+          {
+            "setting": "npc-gifts"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Stick Bag (20)",
+      "when": {
+        "setting": "scrubs"
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Stick Bag (20)",
+      "when": {
+        "all": [
+          {
+            "setting": "npc-gifts"
+          },
+          {
+            "setting": "scrubs"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
       "item": "Deku Sticks (3)"
     },
     {
@@ -2357,6 +2567,13 @@
     },
     {
       "count": 1,
+      "item": "Double Magic",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
+      "count": 1,
       "item": "Epona's Song",
       "when": {
         "setting": "songs"
@@ -2383,6 +2600,18 @@
       "when": {
         "setting": "pots"
       }
+    },
+    {
+      "count": 1,
+      "item": "Fairy Bow"
+    },
+    {
+      "count": 1,
+      "item": "Fairy Ocarina"
+    },
+    {
+      "count": 1,
+      "item": "Fairy Slingshot"
     },
     {
       "count": 1,
@@ -2476,6 +2705,13 @@
       }
     },
     {
+      "count": 1,
+      "item": "Giant's Wallet",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
       "count": 10,
       "item": "Gold Rupee (200)",
       "trappable": true
@@ -2512,7 +2748,25 @@
     },
     {
       "count": 1,
+      "item": "Golden Gauntlets"
+    },
+    {
+      "count": 1,
+      "item": "Golden Scale",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
+      "count": 1,
       "item": "Goron Tunic",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
+      "count": 1,
+      "item": "Goron's Bracelet",
       "when": {
         "setting": "npc-gifts"
       }
@@ -2675,6 +2929,10 @@
     },
     {
       "count": 1,
+      "item": "Hookshot"
+    },
+    {
+      "count": 1,
       "item": "Hover Boots"
     },
     {
@@ -2755,6 +3013,10 @@
     },
     {
       "count": 1,
+      "item": "Longshot"
+    },
+    {
+      "count": 1,
       "item": "Magic Bean",
       "when": {
         "setting": "merchants"
@@ -2764,13 +3026,6 @@
       "count": 1,
       "item": "Magic Jar",
       "trappable": true
-    },
-    {
-      "count": 1,
-      "item": "Magic Meter",
-      "when": {
-        "setting": "npc-gifts"
-      }
     },
     {
       "count": 1,
@@ -2807,6 +3062,10 @@
       "when": {
         "setting": "songs"
       }
+    },
+    {
+      "count": 1,
+      "item": "Ocarina of Time"
     },
     {
       "count": 1,
@@ -2970,135 +3229,6 @@
       "item": "Prescription",
       "when": {
         "setting": "trade-chain"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Bomb Bag"
-    },
-    {
-      "count": 2,
-      "item": "Progressive Bomb Bag",
-      "when": {
-        "setting": "npc-gifts"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Bow"
-    },
-    {
-      "count": 2,
-      "item": "Progressive Bow",
-      "when": {
-        "setting": "npc-gifts"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Deku Nut Bag",
-      "when": {
-        "any": [
-          {
-            "setting": "scrubs"
-          },
-          {
-            "setting": "npc-gifts"
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Deku Nut Bag",
-      "when": {
-        "all": [
-          {
-            "setting": "npc-gifts"
-          },
-          {
-            "setting": "scrubs"
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Deku Stick Bag",
-      "when": {
-        "any": [
-          {
-            "setting": "scrubs"
-          },
-          {
-            "setting": "npc-gifts"
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Deku Stick Bag",
-      "when": {
-        "setting": "scrubs"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Deku Stick Bag",
-      "when": {
-        "all": [
-          {
-            "setting": "npc-gifts"
-          },
-          {
-            "setting": "scrubs"
-          }
-        ]
-      }
-    },
-    {
-      "count": 2,
-      "item": "Progressive Hookshot"
-    },
-    {
-      "count": 2,
-      "item": "Progressive Ocarina"
-    },
-    {
-      "count": 2,
-      "item": "Progressive Scale",
-      "when": {
-        "setting": "npc-gifts"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Progressive Slingshot"
-    },
-    {
-      "count": 2,
-      "item": "Progressive Slingshot",
-      "when": {
-        "setting": "npc-gifts"
-      }
-    },
-    {
-      "count": 2,
-      "item": "Progressive Strength Upgrade"
-    },
-    {
-      "count": 1,
-      "item": "Progressive Strength Upgrade",
-      "when": {
-        "setting": "npc-gifts"
-      }
-    },
-    {
-      "count": 2,
-      "item": "Progressive Wallet",
-      "when": {
-        "setting": "npc-gifts"
       }
     },
     {
@@ -30032,6 +30162,17 @@
       }
     },
     {
+      "count": 1,
+      "item": "Silver Gauntlets"
+    },
+    {
+      "count": 1,
+      "item": "Silver Scale",
+      "when": {
+        "setting": "npc-gifts"
+      }
+    },
+    {
       "count": 60,
       "item": "Small Magic Jar",
       "trappable": true,
@@ -30165,8 +30306,24 @@
     },
     {
       "added": true,
-      "count": 3,
-      "item": "Progressive Bombchu Bag",
+      "count": 1,
+      "item": "Bombchu Bag (20)",
+      "when": {
+        "setting": "bombchus=bag"
+      }
+    },
+    {
+      "added": true,
+      "count": 1,
+      "item": "Bombchu Bag (30)",
+      "when": {
+        "setting": "bombchus=bag"
+      }
+    },
+    {
+      "added": true,
+      "count": 1,
+      "item": "Bombchu Bag (40)",
       "when": {
         "setting": "bombchus=bag"
       }

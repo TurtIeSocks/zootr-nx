@@ -3,13 +3,9 @@ what Rust reached for each option and item set."""
 
 from BaseClasses import CollectionState, LocationProgressType
 
-from ..exported import OPTIONS, load
+from ..exported import load
 from ..options import attr
-from . import ZnxTestBase
-
-def ap_value(setting: str, value):
-    entry = next(e for e in OPTIONS if e["id"] == setting)
-    return value if entry["kind"] == "toggle" else attr(value)
+from . import ZnxTestBase, ap_value
 
 
 class TestGolden(ZnxTestBase):

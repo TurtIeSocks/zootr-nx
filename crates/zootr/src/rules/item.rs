@@ -22,12 +22,19 @@ pub(super) fn held(word: &str) -> bool {
         .any(|p| word.len() > p.len() && word.starts_with(p))
 }
 
-/// What `word` needs, if it names an item, a boss defeat or a story event.
-pub(super) fn word(word: &str, progressive: bool, lines: Lines) -> Option<Result<Need>> {
-    if ITEM_PREFIXES.iter().any(|p| word.starts_with(p)) {
-        return Some(item(word, progressive, lines));
-    }
-    held(word).then(|| item(word, false, lines))
+/// Whether `word` names an item, a boss defeat or a story event.
+pub(super) fn names(word: &str) -> bool {
+    is_item(word) || held(word)
+}
+
+fn is_item(word: &str) -> bool {
+    ITEM_PREFIXES.iter().any(|p| word.starts_with(p))
+}
+
+/// What `word`, which [`names`] one, needs. Only an item's line follows
+/// `progressive`.
+pub(super) fn word(word: &str, progressive: bool, lines: Lines) -> Result<Need> {
+    item(word, progressive && is_item(word), lines)
 }
 
 /// An item's name or `name*n`. In an upgrade line, `n` counts levels from
@@ -84,7 +91,6 @@ mod tests {
                 progressive,
                 Lines::default(),
             )
-            .unwrap()
         };
         let longshot = |progressive| at(2, progressive).unwrap();
 
@@ -93,9 +99,7 @@ mod tests {
         assert!(longshot(true).met(&have(&[item::LONGSHOT, item::LONGSHOT]), Era::Adult));
         assert_eq!(
             longshot(true),
-            word(item::LONGSHOT, true, Lines::default())
-                .unwrap()
-                .unwrap()
+            word(item::LONGSHOT, true, Lines::default()).unwrap()
         );
 
         assert!(!longshot(false).met(&have(&[item::HOOKSHOT, item::HOOKSHOT]), Era::Adult));
@@ -107,8 +111,8 @@ mod tests {
 
     #[test]
     fn a_boss_defeat_is_held_like_an_item_and_other_words_are_not_items() {
-        assert!(word("Beat_FakeBoss", true, Lines::default()).is_some());
-        assert!(word(BEAT, true, Lines::default()).is_none());
-        assert!(word("always", true, Lines::default()).is_none());
+        assert!(names("Beat_FakeBoss"));
+        assert!(!names(BEAT));
+        assert!(!names("always"));
     }
 }

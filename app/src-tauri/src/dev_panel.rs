@@ -14,7 +14,7 @@ use zootr::live::actors::Hidden;
 use zootr::live::{self, Memory};
 use zootr::warp::{self, Side};
 
-use crate::{Live, Res, blocking, romfs};
+use crate::{Live, Res, blocking, cached, romfs};
 
 /// What the dev panel, the test setup and plando pick from.
 #[derive(Serialize, Type)]
@@ -37,11 +37,7 @@ pub(crate) struct Places(Mutex<Option<Arc<BTreeSet<Place>>>>);
 
 impl Places {
     fn get(&self, config: &Config) -> anyhow::Result<Arc<BTreeSet<Place>>> {
-        let mut places = self.0.lock().unwrap();
-        if places.is_none() {
-            *places = Some(Arc::new(dev::places(&romfs(config)?)?));
-        }
-        Ok(places.clone().expect("just loaded"))
+        cached(&self.0, || dev::places(&romfs(config)?))
     }
 }
 

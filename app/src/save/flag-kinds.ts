@@ -16,14 +16,23 @@ const WORDS: Record<string, string> = {
   Binary: "Data",
 };
 
+/** The suffix that makes a raw type a list of its element type. */
+const ARRAY = "Array";
+
+/** Whether a raw type is a list. */
+export const isArray = (kind: string) => kind.endsWith(ARRAY);
+
+/** A raw type's element type: itself, or a list's without `Array`. */
+export const elementKind = (kind: string) =>
+  isArray(kind) ? kind.slice(0, -ARRAY.length) : kind;
+
 /** What the Flags tab calls a raw type: its plain word, "<word> List" for
  * an array, or the raw name itself with developer tools on. */
 export function kindWord(kind: string, dev: boolean): string {
   if (dev) return kind;
-  const array = kind.endsWith("Array");
-  const base = array ? kind.slice(0, -"Array".length) : kind;
+  const base = elementKind(kind);
   const word = WORDS[base] ?? base;
-  return array ? `${word} List` : word;
+  return isArray(kind) ? `${word} List` : word;
 }
 
 /** The type filter's options: each word once, with the raw types it

@@ -23,10 +23,9 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::ainb::{File, Graph, ParamType, Value};
 use ounce_formats::{Byml, ModBuilder, Romfs, files_with_suffix};
 
+use super::groups::{REFERENCE, REFERENCES, reference};
 use crate::known::field;
 
-const REFERENCES: &str = "References";
-const REFERENCE: &str = "Reference";
 const ID: &str = "Id";
 const PATH: &str = "Path";
 const LOGIC: &str = "Logic";
@@ -132,10 +131,6 @@ pub fn creators(romfs: &Romfs) -> Result<HashMap<u64, Vec<(String, usize)>>> {
         out.entry(c.hash).or_default().push((c.graph, c.node));
     }
     Ok(out)
-}
-
-fn reference(r: &Byml) -> Option<u64> {
-    r.as_map().ok()?.get(REFERENCE)?.as_int().ok()
 }
 
 /// Whether reference `r` names an actor of a module nested in the group's

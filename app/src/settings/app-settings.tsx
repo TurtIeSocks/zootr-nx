@@ -40,31 +40,13 @@ export function AppSettings() {
 function GameAssets() {
   const [checked] = useConfig.usePath("config.game_assets");
   const dump = useConfig((s) => s.config.game !== null);
-  const save = useRequestState();
   return (
-    <SettingsSection>
-      <Row
-        {...APP_FIELDS.gameAssets}
-        under={<InlineError error={save.error} />}
-      >
-        <Tooltip open={dump ? false : undefined}>
-          <TooltipTrigger asChild>
-            {/* A disabled switch takes no hover, so its wrapper says why. */}
-            <span tabIndex={dump ? undefined : 0}>
-              <Switch
-                id={APP_FIELDS.gameAssets.id}
-                checked={checked}
-                disabled={!dump || save.busy}
-                onCheckedChange={(on) =>
-                  save.run(() => saveConfig({ game_assets: on }))
-                }
-              />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>Set the game dump first</TooltipContent>
-        </Tooltip>
-      </Row>
-    </SettingsSection>
+    <SwitchRow
+      field={APP_FIELDS.gameAssets}
+      checked={checked}
+      change={(on) => ({ game_assets: on })}
+      blocked={dump ? undefined : "Set the game dump first"}
+    />
   );
 }
 
@@ -74,20 +56,31 @@ interface SwitchRowProps {
   checked: boolean;
   /** The config change turning it `on` or off saves. */
   change: (on: boolean) => Partial<FullConfig>;
+  /** Why it can't change now, if it can't: the switch is off limits and
+   * says so on hover. */
+  blocked?: string;
 }
 
 /** A row whose switch saves one app setting, saying why if it can't. */
-function SwitchRow({ field, checked, change }: SwitchRowProps) {
+function SwitchRow({ field, checked, change, blocked }: SwitchRowProps) {
   const save = useRequestState();
   return (
     <SettingsSection>
       <Row {...field} under={<InlineError error={save.error} />}>
-        <Switch
-          id={field.id}
-          checked={checked}
-          disabled={save.busy}
-          onCheckedChange={(on) => save.run(() => saveConfig(change(on)))}
-        />
+        <Tooltip open={blocked ? undefined : false}>
+          <TooltipTrigger asChild>
+            {/* A disabled switch takes no hover, so its wrapper says why. */}
+            <span tabIndex={blocked ? 0 : undefined}>
+              <Switch
+                id={field.id}
+                checked={checked}
+                disabled={!!blocked || save.busy}
+                onCheckedChange={(on) => save.run(() => saveConfig(change(on)))}
+              />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{blocked}</TooltipContent>
+        </Tooltip>
       </Row>
     </SettingsSection>
   );

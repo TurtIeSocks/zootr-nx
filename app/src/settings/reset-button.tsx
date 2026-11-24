@@ -72,7 +72,7 @@ export function ResetButton({ defs }: ResetButtonProps) {
         : "No seed built yet",
     },
   };
-  const use = (to: ResetTo) => {
+  const reset = (to: ResetTo) => {
     setLead(to);
     run(() => changeSettings(resets[to].patch));
   };
@@ -82,7 +82,7 @@ export function ResetButton({ defs }: ResetButtonProps) {
   const led = resets[shown];
   return (
     <ButtonGroup>
-      <WhyButton variant="ghost" why={led.why} onClick={() => use(shown)}>
+      <WhyButton variant="ghost" why={led.why} onClick={() => reset(shown)}>
         <led.icon />
         {led.label}
       </WhyButton>
@@ -105,7 +105,7 @@ export function ResetButton({ defs }: ResetButtonProps) {
                 key={to}
                 className="h-auto items-start py-2"
                 disabled={why !== false}
-                onSelect={() => use(to)}
+                onSelect={() => reset(to)}
               >
                 <Icon className="mt-0.5" />
                 <span className="flex min-w-0 flex-1 flex-col">

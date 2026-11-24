@@ -12,15 +12,15 @@ use crate::config::Config;
 use crate::inventory::{Inventory, Pouch};
 use crate::{kept, presets, recorder, savefile, starting};
 
-/// An entry's values as one column, `?` for types this tool can't read.
+/// `zootr save`: a save slot read, compared, watched or edited.
 pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
     let gd = recorder::gamedata(romfs)?;
-    let wanted = |grep: &Option<String>, e: ounce_formats::SaveEntry| named(&gd, grep, e.hash);
+    let wanted = |grep: Option<&str>, e: ounce_formats::SaveEntry| named(&gd, grep, e.hash);
     match cmd {
         SaveCommand::Show { slot, grep, all } => {
             let save = savefile::load(&savefile::path(&slot)?)?;
             for &e in save.entries() {
-                if wanted(&grep, e) && (all || savefile::changed(&gd, &save, e)) {
+                if wanted(grep.as_deref(), e) && (all || savefile::changed(&gd, &save, e)) {
                     println!(
                         "{}",
                         savefile::line(&gd, e.hash, e.kind, &savefile::shown(&gd, &save, e))
@@ -31,7 +31,7 @@ pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
         SaveCommand::Diff { a, b, grep } => {
             let a = savefile::load(&savefile::path(&a)?)?;
             let b = savefile::load(&savefile::path(&b)?)?;
-            for c in savefile::diff(&gd, &a, &b, |e| wanted(&grep, e)) {
+            for c in savefile::diff(&gd, &a, &b, |e| wanted(grep.as_deref(), e)) {
                 println!("{c}");
             }
         }
@@ -41,7 +41,7 @@ pub(super) fn save_command(romfs: &Romfs, cmd: SaveCommand) -> Result<()> {
             println!("watching, Ctrl-C stops");
             loop {
                 let paths = savefile::watched(slot.as_deref())?;
-                for (path, lines) in watcher.look(&gd, &paths, |e| wanted(&grep, e)) {
+                for (path, lines) in watcher.look(&gd, &paths, |e| wanted(grep.as_deref(), e)) {
                     let name = path.parent().and_then(Path::file_name).unwrap_or_default();
                     println!("{} {} changed", stamp(start), name.display());
                     lines.iter().for_each(|c| println!("  {c}"));

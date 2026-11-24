@@ -1,5 +1,6 @@
 import { FlaskConical, Globe, type LucideIcon, Pin } from "lucide-react";
 import type { Summary } from "@/bindings";
+import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -26,19 +27,16 @@ interface TipBadgeProps {
 /** A small badge that says more on hover. */
 function TipBadge({ icon: Icon, label, tip, variant = "info" }: TipBadgeProps) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild tabIndex={0}>
-        <Badge variant={variant}>
-          <Icon />
-          {label}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{tip}</TooltipContent>
-    </Tooltip>
+    <Tip focusable tip={tip}>
+      <Badge variant={variant}>
+        <Icon />
+        {label}
+      </Badge>
+    </Tip>
   );
 }
 
-/** Marks a seed built with a plando or a test setup. */
+/** Marks an Archipelago slot, a plando or a test setup. */
 export function ExtrasBadges({ entry }: SeedProps) {
   return (
     <>

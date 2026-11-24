@@ -6,19 +6,15 @@ import {
   Pin,
   Share2,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { commands, type SharedBuild } from "@/bindings";
+import type { ReactNode } from "react";
+import { commands } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { DriftReview } from "@/components/drift-review";
 import { Help } from "@/components/help";
 import { linkClass } from "@/components/styles";
+import { Tip } from "@/components/tip";
 import { ChangedDot } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { call, message } from "@/lib/api";
+import { call } from "@/lib/api";
 import {
   type FullTest,
   fullTest,
@@ -29,6 +25,7 @@ import {
 import { count, isShareCode } from "@/lib/format";
 import { savedAs } from "@/lib/plando";
 import { type MarkedChip, markedChips } from "@/lib/settings";
+import { useLoad } from "@/lib/use-load";
 import { cn } from "@/lib/utils";
 import { groupIcon, type Section, shows } from "@/shell/nav";
 import { useConfig, useDevTools } from "@/stores/config";
@@ -86,7 +83,7 @@ interface CodeOverviewProps {
 
 /** A share code's settings and extras, which leave the person's alone. */
 function CodeOverview({ code }: CodeOverviewProps) {
-  const read = useShared(code);
+  const read = useLoad(readShare, code);
   return (
     <div className="flex flex-col gap-2.5">
       <Callout
@@ -105,45 +102,25 @@ function CodeOverview({ code }: CodeOverviewProps) {
         <b className="font-semibold">Building from the share code.</b> It brings
         its own settings and extras; yours stay as they are
       </Callout>
-      {"error" in read ? (
-        <InlineError error={read.error} />
-      ) : (
-        read.build && (
-          <>
-            <p className="type-overline">The Code Builds With</p>
-            <Tiles
-              settings={read.build.settings}
-              base={null}
-              plando={plandoView(read.build.pins, null)}
-              test={testView(fullTest(read.build.test))}
-              off="Not in this code"
-            />
-          </>
-        )
+      {read.status === "error" && <InlineError error={read.error} />}
+      {read.status === "ok" && (
+        <>
+          <p className="type-overline">The Code Builds With</p>
+          <Tiles
+            settings={read.data.settings}
+            base={null}
+            plando={plandoView(read.data.pins, null)}
+            test={testView(fullTest(read.data.test))}
+            offText="Not in this code"
+          />
+        </>
       )}
     </div>
   );
 }
 
-/** A share code read into what it builds with, or why it couldn't be. */
-type Read = { build?: SharedBuild } | { error: string };
-
-/** Reads `code` whenever it changes. */
-function useShared(code: string): Read {
-  const [read, setRead] = useState<Read>({});
-  useEffect(() => {
-    let live = true;
-    setRead({});
-    call(commands.shareSettings(code)).then(
-      (build) => live && setRead({ build }),
-      (e: unknown) => live && setRead({ error: message(e) }),
-    );
-    return () => {
-      live = false;
-    };
-  }, [code]);
-  return read;
-}
+/** Reads a share code into what it builds with. */
+const readShare = (code: string) => call(commands.shareSettings(code));
 
 /** An extra that's on: its tile's count and chips. */
 interface ExtraView {
@@ -179,11 +156,11 @@ interface TilesProps {
   plando: ExtraView | null;
   test: ExtraView | null;
   /** What an extra that's off says under its name. */
-  off?: string;
+  offText?: string;
 }
 
 /** A tile per settings group, in schema order, then the extras. */
-function Tiles({ settings, base, plando, test, off }: TilesProps) {
+function Tiles({ settings, base, plando, test, offText }: TilesProps) {
   const [schema] = useConfig.usePath("schema");
   const [groups] = useConfig.usePath("groups");
   const devTools = useDevTools();
@@ -229,7 +206,7 @@ function Tiles({ settings, base, plando, test, off }: TilesProps) {
           {view ? (
             <Chips chips={view.chips.map((label) => ({ id: label, label }))} />
           ) : (
-            off && <Empty>{off}</Empty>
+            offText && <Empty>{offText}</Empty>
           )}
         </Tile>
       ))}
@@ -311,49 +288,39 @@ function Chips({ chips }: ChipsProps) {
   );
 }
 
-/** How each mark reads, for those who can't see its colour. */
-const MARK_WORDS = { new: "new", gone: "gone" } as const;
-
 /** A chip: gold with a dot when new, outlined and struck through when
  * gone. A changed choice says on hover what it was. */
 function ChipView({ chip }: { chip: MarkedChip }) {
   const { label, value, mark, was } = chip;
-  const body = (
-    <span
-      data-mark={mark}
-      className={cn(
-        "inline-flex min-h-[22px] max-w-full items-center gap-[5px] rounded-sm bg-surface-sunken px-2 py-[5px] text-[12px] text-ink leading-[14px]",
-        mark === "new" && "bg-gold-soft text-gold-ink",
-        mark === "gone" &&
-          "bg-transparent text-ink-faint line-through decoration-ink-faint shadow-[inset_0_0_0_1px_var(--line-strong)]",
-      )}
-    >
-      {mark === "new" && <ChangedDot className="size-[5px] shrink-0" />}
-      <span>
-        {label}
-        {value !== undefined && ":"}
-      </span>
-      {value !== undefined && (
-        <b
-          className={cn(
-            "font-medium",
-            mark === "new" ? "text-gold-ink" : "text-ink-muted",
-          )}
-        >
-          {value}
-        </b>
-      )}
-      {mark && <span className="sr-only"> ({MARK_WORDS[mark]})</span>}
-    </span>
-  );
-  if (was === undefined) return body;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild tabIndex={0}>
-        {body}
-      </TooltipTrigger>
-      <TooltipContent>Was {was}</TooltipContent>
-    </Tooltip>
+    <Tip focusable tip={was !== undefined && `Was ${was}`}>
+      <span
+        data-mark={mark}
+        className={cn(
+          "inline-flex min-h-[22px] max-w-full items-center gap-[5px] rounded-sm bg-surface-sunken px-2 py-[5px] text-[12px] text-ink leading-[14px]",
+          mark === "new" && "bg-gold-soft text-gold-ink",
+          mark === "gone" &&
+            "bg-transparent text-ink-faint line-through decoration-ink-faint shadow-[inset_0_0_0_1px_var(--line-strong)]",
+        )}
+      >
+        {mark === "new" && <ChangedDot className="size-[5px] shrink-0" />}
+        <span>
+          {label}
+          {value !== undefined && ":"}
+        </span>
+        {value !== undefined && (
+          <b
+            className={cn(
+              "font-medium",
+              mark === "new" ? "text-gold-ink" : "text-ink-muted",
+            )}
+          >
+            {value}
+          </b>
+        )}
+        {mark && <span className="sr-only"> ({mark})</span>}
+      </span>
+    </Tip>
   );
 }
 

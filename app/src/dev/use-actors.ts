@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { commands, type DevActor } from "@/bindings";
+import { matches, tag } from "@/dev/tag";
 import { call, message } from "@/lib/api";
 import { useDev } from "@/stores/dev";
 import { useUi } from "@/stores/ui";
@@ -17,15 +18,29 @@ type Actors = (
 ) &
   Base;
 
+/** A row of the list: the placement and what tells it from its actor's
+ * other placements. */
+export interface ActorRow {
+  placed: DevActor;
+  tag: string | null;
+}
+
+/** The map's rows matching the search, why they couldn't be read, or
+ * still reading. */
+type Rows =
+  | { status: "ok"; rows: ActorRow[] }
+  | Exclude<Actors, { status: "ok" }>;
+
 /** Before any map's actors are read. */
-const DEFAULT_ACTORS: Actors = {
+const DEFAULT_ACTORS: Extract<Actors, { status: "loading" }> = {
   status: "loading",
   of: null,
 };
 
 /** The current map's actors matching Teleport's search, read again when the
- * map changes, or why they couldn't be. */
-export function useActors(): Actors {
+ * map changes, or why they couldn't be. Tags count over every placement,
+ * so a search keeps each one's `#n` and label. */
+export function useActors(): Rows {
   const [map] = useDev.usePath("game.state.map");
   const [query] = useUi.usePath("dev.teleport.actors");
   const [actors, setActors] = useState<Actors>(DEFAULT_ACTORS);
@@ -48,16 +63,12 @@ export function useActors(): Actors {
     };
   }, [map]);
 
-  return React.useMemo(() => {
-    const q = query.toLowerCase().trim();
+  return useMemo(() => {
     if (actors.of !== map) return DEFAULT_ACTORS;
-    if (actors.status === "ok")
-      return {
-        ...actors,
-        list: actors.list.filter((p) =>
-          [p.actor, p.label ?? ""].some((t) => t.toLowerCase().includes(q)),
-        ),
-      };
-    return actors;
+    if (actors.status !== "ok") return actors;
+    const rows = actors.list
+      .map((placed) => ({ placed, tag: tag(actors.list, placed) }))
+      .filter(({ placed }) => matches(placed, query));
+    return { status: "ok", rows };
   }, [query, actors, map]);
 }

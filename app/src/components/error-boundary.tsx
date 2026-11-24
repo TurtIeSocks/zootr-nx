@@ -1,6 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { useCopied } from "@/lib/use-copied";
 import { cn } from "@/lib/utils";
 
 /** Props for {@link ErrorBoundary}. */
@@ -38,8 +39,11 @@ export class ErrorBoundary extends Component<
 
   componentDidUpdate(before: ErrorBoundaryProps) {
     if (this.state.error && before.resetKey !== this.props.resetKey)
-      this.setState({ error: undefined, where: undefined });
+      this.reset();
   }
+
+  /** Clears the problem, so the view draws again. */
+  reset = () => this.setState({ error: undefined, where: undefined });
 
   render() {
     const { error, where } = this.state;
@@ -50,7 +54,7 @@ export class ErrorBoundary extends Component<
         error={error}
         where={where}
         className={this.props.className}
-        onRetry={() => this.setState({ error: undefined, where: undefined })}
+        onRetry={this.reset}
       />
     );
   }
@@ -76,6 +80,15 @@ function CrashNotice({
   const details = [`${label}: ${error}`, error.stack, where]
     .filter(Boolean)
     .join("\n\n");
+  const { copied, flash } = useCopied();
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(details);
+      flash("details");
+    } catch {
+      // No clipboard to write to.
+    }
+  };
   return (
     <div
       role="alert"
@@ -99,12 +112,8 @@ function CrashNotice({
         <Button size="sm" onClick={onRetry}>
           Try Again
         </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => void navigator.clipboard?.writeText(details)}
-        >
-          Copy Details
+        <Button size="sm" variant="secondary" onClick={() => void copy()}>
+          {copied ? "Copied" : "Copy Details"}
         </Button>
       </div>
     </div>

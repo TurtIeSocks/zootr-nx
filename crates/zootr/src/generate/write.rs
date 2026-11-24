@@ -533,7 +533,7 @@ pub fn write_mod(
     jabu_mood::write(romfs, &mut builder, new_game.adult_jabu)?;
     wiring.write(romfs, &mut builder)?;
     for f in &fields {
-        let (hash, ..) = checks::field(f)?;
+        let hash = checks::parse_field(f)?.hash;
         ensure!(found.contains(&hash), "no actor with hash {hash} for {f}");
     }
     // Checks that aren't a placed actor's drop.
