@@ -386,7 +386,7 @@ impl File {
     }
 
     /// `source`'s type `t` `output`, marked read by `reader`: its place
-    /// among the node's outputs of that type.
+    /// among the node's outputs of that type. Fails before any write.
     pub(super) fn mark_read(
         &mut self,
         reader: usize,
@@ -396,12 +396,12 @@ impl File {
     ) -> Result<i16> {
         let (k, o) = self.output(source, t, output)?;
         let k = i16::try_from(k)?;
-        let at = o * TYPES[t].output_len();
-        let read = word(&self.outputs[t], at) | READ;
-        set_word(&mut self.outputs[t], at, read);
         if self.nodes[source].is_query() {
             self.add_query(reader, source)?;
         }
+        let at = o * TYPES[t].output_len();
+        let read = word(&self.outputs[t], at) | READ;
+        set_word(&mut self.outputs[t], at, read);
         Ok(k)
     }
 
@@ -558,7 +558,7 @@ impl File {
 
     /// Adds `source` to the query nodes `reader` waits on, inserting it
     /// after the reader's own and moving the ones behind, so the game's
-    /// order stays.
+    /// order stays. Fails before any write.
     pub(super) fn add_query(&mut self, reader: usize, source: usize) -> Result<()> {
         let place = self.nodes[..source].iter().filter(|n| n.is_query()).count();
         let place = u16::try_from(place)?;
@@ -573,6 +573,7 @@ impl File {
             0 => self.queries.len() / 4,
             _ => base + count as usize,
         };
+        let new_base = u16::try_from(at - count as usize)?;
         let entry = [place.to_le_bytes(), [0, 0]].concat();
         self.queries.splice(at * 4..at * 4, entry);
         for (i, n) in self.nodes.iter_mut().enumerate() {
@@ -582,7 +583,7 @@ impl File {
             }
         }
         let node = &mut self.nodes[reader];
-        node.set_u16(QUERY_BASE, u16::try_from(at - count as usize)?);
+        node.set_u16(QUERY_BASE, new_base);
         node.set_u16(QUERY_COUNT, count + 1);
         Ok(())
     }
@@ -896,10 +897,19 @@ mod tests {
     }
 
     #[test]
-    fn a_new_query_keeps_the_others_in_place() {
+    fn a_new_query_keeps_the_others_in_place_and_fails_first() {
         let mut f = game();
         let before = [f.queries(4).unwrap(), f.queries(5).unwrap()];
+        let (base, outputs) = (f.nodes[2].u16_at(QUERY_BASE), f.outputs.clone());
+        f.nodes[2].set_u16(QUERY_BASE, 0xfff);
+        assert!(
+            f.link(2, "Other", 7, "Name").is_err(),
+            "queries past the table"
+        );
+        assert_eq!(f.outputs, outputs, "a failed link marks no output read");
+        f.nodes[2].set_u16(QUERY_BASE, base);
         f.link(2, "Other", 7, "Name").unwrap();
+        assert_ne!(f.outputs, outputs);
         assert_eq!(f.queries(2).unwrap(), [1, 7]);
         assert_eq!([f.queries(4).unwrap(), f.queries(5).unwrap()], before);
         let base = |n: usize| f.nodes[n].u16_at(QUERY_BASE);

@@ -213,12 +213,16 @@ pub fn build(packages: &[Package]) -> Vec<u8> {
     out
 }
 
+/// Where directory `i`'s record starts, for tests that edit it.
+pub fn dir_record(nup: &[u8], i: usize) -> usize {
+    let packages = u32::from_le_bytes(nup[HEADER + 4..HEADER + 8].try_into().unwrap()) as usize;
+    HEADER + TOC_HEAD + packages * PACKAGE + i * DIR
+}
+
 /// Where file `i`'s record starts, for tests that edit it.
 pub fn file_record(nup: &[u8], i: usize) -> usize {
-    let toc = &nup[HEADER..];
-    let packages = u32::from_le_bytes(toc[4..8].try_into().unwrap()) as usize;
-    let dirs = u64::from_le_bytes(toc[8..16].try_into().unwrap()) as usize;
-    HEADER + TOC_HEAD + packages * PACKAGE + dirs * DIR + i * FILE
+    let dirs = u64::from_le_bytes(nup[HEADER + 8..HEADER + 16].try_into().unwrap()) as usize;
+    dir_record(nup, dirs) + i * FILE
 }
 
 /// Recompute the TOC hash after a test edited the TOC.
