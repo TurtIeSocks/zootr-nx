@@ -2,6 +2,7 @@
 //! abilities inlined, eras resolved per place and start flags folded in.
 
 mod pool;
+mod shrink;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -120,7 +121,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             }
         }
     }
-    let world = json!({
+    let mut world = json!({
         "start": names.place(w.start()),
         "starts": starts,
         "places": places,
@@ -129,6 +130,14 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         "events": events,
         "goal": VICTORY,
     });
+    // Every name `rules.lined` reads as a line's level, which stays a rule
+    // of its own.
+    let lined: BTreeSet<&str> = (levels.iter())
+        .flat_map(|(_, steps)| steps.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    shrink::merge(&mut world, &lined);
+    shrink::share(&mut world);
     let golden = super::golden::golden(&settings, &set, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
@@ -590,7 +599,7 @@ mod tests {
     /// them: the same checks, events and pool, and one item a check.
     fn rows_match(romfs: &Romfs, settings: &Settings) -> std::result::Result<(), String> {
         let files = exported(romfs);
-        let world: Value = serde_json::from_str(&files["world.json"]).unwrap();
+        let world = shrink::expand(&serde_json::from_str(&files["world.json"]).unwrap());
         let pool: Value = serde_json::from_str(&files["pool.json"]).unwrap();
         // Every offered option's value, as the world reads them.
         let mut options = Settings::new();

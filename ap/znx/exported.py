@@ -8,7 +8,23 @@ def load(name: str):
     return json.loads(pkgutil.get_data(__name__, f"data/{name}.json"))
 
 
-WORLD = load("world")
+def shared(world: dict) -> dict:
+    """`world` with each `{"ref": n}` as the rule it names: the export
+    writes a rule many places hold once, in `rules`, each after the rules
+    it holds."""
+    rules = []
+
+    def expand(tree):
+        if isinstance(tree, dict):
+            return rules[tree["ref"]] if "ref" in tree else {k: expand(v) for k, v in tree.items()}
+        return [expand(v) for v in tree] if isinstance(tree, list) else tree
+
+    for rule in world.pop("rules"):
+        rules.append(expand(rule))
+    return expand(world)
+
+
+WORLD = shared(load("world"))
 ITEMS = load("items")
 _POOL = load("pool")
 # Rows of the pool before the trade; an `added` row's item takes the place
