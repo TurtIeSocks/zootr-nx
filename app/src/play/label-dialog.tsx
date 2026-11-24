@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react";
-import type { Summary } from "@/bindings";
+import { type FormEvent, type ReactNode, useState } from "react";
+import type { Label } from "@/bindings";
 import { SaveFooter } from "@/components/save-footer";
 import {
   Dialog,
@@ -22,44 +22,78 @@ export function LabelDialog() {
   // The form keeps its seed while the dialog fades out.
   const entry = useKept(labeling);
   return (
-    <Dialog
+    <NameDialog
       open={labeling !== undefined}
-      onOpenChange={(open) => !open && closeLabel()}
-    >
+      onClose={closeLabel}
+      heading="Label Seed"
+      description={
+        <>
+          Seed <span className="font-mono text-ink">{entry?.seed}</span>
+        </>
+      }
+      formKey={entry?.id}
+      label={entry?.label}
+      onSave={(l) => (entry ? label(entry.id, l) : Promise.resolve())}
+    />
+  );
+}
+
+/** Props for {@link NameDialog}. */
+export interface NameDialogProps {
+  open: boolean;
+  onClose: () => void;
+  heading: string;
+  description: ReactNode;
+  /** What the form starts from. A new key starts a fresh form. */
+  formKey: string | number | undefined;
+  label: Label | undefined;
+  /** Saves the trimmed name and note, throwing why it couldn't. */
+  onSave: (label: Label) => Promise<void>;
+}
+
+/** A dialog that asks for a name and a note, and closes once they save. */
+export function NameDialog({
+  open,
+  onClose,
+  heading,
+  description,
+  formKey,
+  label,
+  onSave,
+}: NameDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Label Seed</DialogTitle>
-          <DialogDescription>
-            Seed <span className="font-mono text-ink">{entry?.seed}</span>
-          </DialogDescription>
+          <DialogTitle>{heading}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        {/* Another seed starts a fresh form and request. */}
-        <RequestProvider key={entry?.id}>
-          <LabelForm entry={entry} />
+        <RequestProvider key={formKey}>
+          <NameForm label={label} onSave={onSave} onSaved={onClose} />
         </RequestProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-/** Props for {@link LabelForm}. */
-interface LabelFormProps {
-  /** The seed being labelled, kept while the dialog closes. */
-  entry: Summary | undefined;
+/** Props for {@link NameForm}. */
+interface NameFormProps {
+  label: Label | undefined;
+  onSave: (label: Label) => Promise<void>;
+  onSaved: () => void;
 }
 
-/** The label dialog's form, saving through the request around it. */
-function LabelForm({ entry }: LabelFormProps) {
-  const [name, setName] = useState(entry?.label.name ?? "");
-  const [note, setNote] = useState(entry?.label.note ?? "");
+/** The name dialog's form, saving through the request around it. */
+function NameForm({ label, onSave, onSaved }: NameFormProps) {
+  const [name, setName] = useState(label?.name ?? "");
+  const [note, setNote] = useState(label?.note ?? "");
   const save = useRequest();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!entry) return;
     save.run(async () => {
-      await label(entry.id, { name: name.trim(), note: note.trim() });
-      closeLabel();
+      await onSave({ name: name.trim(), note: note.trim() });
+      onSaved();
     });
   };
 

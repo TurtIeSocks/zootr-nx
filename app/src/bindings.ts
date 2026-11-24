@@ -10,6 +10,8 @@ export const commands = {
 	status: () => typedError<Status, string>(__TAURI_INVOKE("status")),
 	buildInfo: () => __TAURI_INVOKE<BuildInfo>("build_info"),
 	schema: () => __TAURI_INVOKE<SettingDef[]>("schema"),
+	/**  The favorites that come with the app, as the Favorites list shows them. */
+	builtInFavorites: () => __TAURI_INVOKE<BuiltIn[]>("built_in_favorites"),
 	config: () => typedError<Config, string>(__TAURI_INVOKE("config")),
 	/**
 	 *  Saves the config, and says which targets' mod folders it moved out of
@@ -285,6 +287,19 @@ export type BuildStatus =
 /**  The build lists no patches, so it may not load them. */
 { kind: "unrecorded" };
 
+/**
+ *  A favorite that comes with the app: never stored, renamed, updated or
+ *  deleted.
+ */
+export type BuiltIn = {
+	/**  What `--favorite` takes, beside the name. */
+	id: string,
+	name: string,
+	note: string,
+	/**  Values over the defaults. */
+	settings: { [key in string]: Value },
+};
+
 /**  One drawn cell. */
 export type Cell = {
 	section: Section,
@@ -365,6 +380,8 @@ export type Config = {
 	place?: { [key in string]: string },
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
+	/**  Setting sets kept by name, newest first. */
+	favorites?: Favorite[],
 	/**
 	 *  The app shows its developer tools: the dev panel, Test setup, and
 	 *  the targets' scripted-play fields. Off, a hidden test setup leaves
@@ -505,6 +522,18 @@ export type Event = { type: "Started"; session: Session } |
 { type: "Muted"; hash: number; name: string; manual: boolean } | 
 /**  A marker `at` seconds into the session, saying what happened. */
 { type: "Marked"; at: number; text: string } | { type: "Unsaved"; reason: string } | { type: "Ended"; reason: string } | { type: "Status"; status: LiveStatus };
+
+/**
+ *  A setting set the player keeps by name: settings only, never a plando,
+ *  a test setup or flag edits.
+ */
+export type Favorite = {
+	name: string,
+	note?: string,
+	/**  When it was saved or last updated, in seconds as History's times. */
+	time: number,
+	settings: { [key in string]: Value },
+};
 
 /**  One group's header, with its rows when it's open. */
 export type FlagGroup = {

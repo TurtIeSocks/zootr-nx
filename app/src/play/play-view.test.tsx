@@ -497,12 +497,13 @@ test("a blocked Generate stays hoverable, says why, and generates nothing", () =
   expect(card("New Seed").getByText("Add a Target first")).toBeTruthy();
 });
 
-test("Standard, Archipelago and History each open their folder", () => {
+test("Standard, Archipelago, History and Favorites each open their folder", () => {
   show(seed);
   expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
     "Standard",
     "Archipelago",
     "History1",
+    "Favorites",
   ]);
   expect(screen.getByRole("heading", { name: "New Seed" })).toBeTruthy();
   openTab("History");
@@ -534,7 +535,7 @@ test("arrow keys move between the tabs", async () => {
   fireEvent.keyDown(standard, { key: "ArrowRight" });
   await waitFor(() => expect(selected().textContent).toBe("Archipelago"));
   fireEvent.keyDown(selected(), { key: "End" });
-  await waitFor(() => expect(selected().textContent).toMatch(/^History/));
+  await waitFor(() => expect(selected().textContent).toBe("Favorites"));
 });
 
 test("an installed AP slot is named by its slot, badged, and shows its room", () => {

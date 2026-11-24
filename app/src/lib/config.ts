@@ -41,6 +41,7 @@ export const full = (c: Config): FullConfig => ({
   saved_tests: c.saved_tests ?? {},
   place: c.place ?? {},
   plandos: c.plandos ?? {},
+  favorites: c.favorites ?? [],
 });
 
 /** Whether a test setup changes anything. */
