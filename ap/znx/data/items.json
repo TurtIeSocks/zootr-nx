@@ -240,7 +240,7 @@
     "name": "Fire Arrows"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 89,
     "name": "Fire Medallion"
   },
@@ -255,7 +255,7 @@
     "name": "Fire Temple Map"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 92,
     "name": "Forest Medallion"
   },
@@ -405,7 +405,7 @@
     "name": "Light Arrows"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 102,
     "name": "Light Medallion"
   },
@@ -530,7 +530,7 @@
     "name": "Serenade of Water"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 103,
     "name": "Shadow Medallion"
   },
@@ -570,7 +570,7 @@
     "name": "Song of Time"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 106,
     "name": "Spirit Medallion"
   },
@@ -595,7 +595,7 @@
     "name": "Sun's Song"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 109,
     "name": "Water Medallion"
   },

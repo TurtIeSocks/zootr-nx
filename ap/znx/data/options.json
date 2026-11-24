@@ -28,10 +28,12 @@
     "label": "Door of Time",
     "options": [
       {
+        "forces": [],
         "id": "closed",
         "label": "Closed"
       },
       {
+        "forces": [],
         "id": "open",
         "label": "Open"
       }
@@ -66,14 +68,17 @@
     "label": "Gerudo Fortress",
     "options": [
       {
+        "forces": [],
         "id": "normal",
         "label": "Normal"
       },
       {
+        "forces": [],
         "id": "fast",
         "label": "Fast"
       },
       {
+        "forces": [],
         "id": "freed",
         "label": "Freed"
       }
@@ -136,34 +141,42 @@
     "label": "Shop Slots",
     "options": [
       {
+        "forces": [],
         "id": "1",
         "label": "1"
       },
       {
+        "forces": [],
         "id": "2",
         "label": "2"
       },
       {
+        "forces": [],
         "id": "3",
         "label": "3"
       },
       {
+        "forces": [],
         "id": "4",
         "label": "4"
       },
       {
+        "forces": [],
         "id": "5",
         "label": "5"
       },
       {
+        "forces": [],
         "id": "6",
         "label": "6"
       },
       {
+        "forces": [],
         "id": "7",
         "label": "7"
       },
       {
+        "forces": [],
         "id": "8",
         "label": "8 (every slot)"
       }
@@ -219,10 +232,12 @@
     "label": "Keys",
     "options": [
       {
+        "forces": [],
         "id": "vanilla",
         "label": "Vanilla"
       },
       {
+        "forces": [],
         "id": "start",
         "label": "Start with them"
       }
@@ -236,14 +251,17 @@
     "label": "Fortress Keys",
     "options": [
       {
+        "forces": [],
         "id": "vanilla",
         "label": "Vanilla"
       },
       {
+        "forces": [],
         "id": "start",
         "label": "Start with them"
       },
       {
+        "forces": [],
         "id": "singles",
         "label": "Keysanity"
       }
@@ -257,14 +275,17 @@
     "label": "Bombchus",
     "options": [
       {
+        "forces": [],
         "id": "bomb-bag",
         "label": "The bomb bag's"
       },
       {
+        "forces": [],
         "id": "free",
         "label": "Their own, 40"
       },
       {
+        "forces": [],
         "id": "bag",
         "label": "Bombchu Bags"
       }
@@ -285,10 +306,12 @@
     "label": "Chest Size",
     "options": [
       {
+        "forces": [],
         "id": "vanilla",
         "label": "Vanilla"
       },
       {
+        "forces": [],
         "id": "small",
         "label": "All small"
       }
@@ -379,18 +402,22 @@
     "label": "Ice Traps",
     "options": [
       {
+        "forces": [],
         "id": "off",
         "label": "Off"
       },
       {
+        "forces": [],
         "id": "some",
         "label": "Some (1 in 10)"
       },
       {
+        "forces": [],
         "id": "lots",
         "label": "Lots (half)"
       },
       {
+        "forces": [],
         "id": "mayhem",
         "label": "Mayhem (all junk)"
       }
@@ -402,5 +429,127 @@
     "id": "progressive-items",
     "kind": "toggle",
     "label": "Progressive Items"
+  },
+  {
+    "default": "glitchless",
+    "description": "Glitchless places each item where Link can reach it without that item, so a seed can always be beaten. No logic places items anywhere, so a seed may not be",
+    "id": "logic",
+    "kind": "choice",
+    "label": "Logic",
+    "options": [
+      {
+        "forces": [],
+        "id": "glitchless",
+        "label": "Glitchless"
+      },
+      {
+        "forces": [],
+        "id": "no-logic",
+        "label": "No logic"
+      }
+    ]
+  },
+  {
+    "default": "child",
+    "description": "How old Link is on a new file. Adult wakes in the Temple of Time, and opens the Door of Time and the forest, so he can go back to child and walk out. He holds the Master Sword only when the start inventory does: otherwise the pedestal gives its check on his first pull back to adult.",
+    "id": "starting-age",
+    "kind": "choice",
+    "label": "Starting Age",
+    "options": [
+      {
+        "forces": [],
+        "id": "child",
+        "label": "Child"
+      },
+      {
+        "forces": [
+          "door-of-time=open",
+          "open-forest"
+        ],
+        "id": "adult",
+        "label": "Adult"
+      }
+    ]
+  },
+  {
+    "default": "vanilla",
+    "description": "What raises the bridge to Ganon's Castle. With Vanilla, Link walks onto the ledge once Zelda has given him the Light Arrows, as in the game. With Six Medallions, it rises once he holds all six, without the Light Arrows first. With Open, the bridge stands from the start",
+    "id": "rainbow-bridge",
+    "kind": "choice",
+    "label": "Rainbow Bridge",
+    "options": [
+      {
+        "forces": [],
+        "id": "vanilla",
+        "label": "Vanilla"
+      },
+      {
+        "forces": [],
+        "id": "six-medallions",
+        "label": "Six Medallions"
+      },
+      {
+        "forces": [],
+        "id": "open",
+        "label": "Open"
+      }
+    ]
+  },
+  {
+    "default": "all-six",
+    "description": "With All Six, the barrier to Ganon's tower comes down once Link clears the castle's six trials, as in the game. With Done, all six barriers are down from the start",
+    "id": "ganons-trials",
+    "kind": "choice",
+    "label": "Ganon's Trials",
+    "options": [
+      {
+        "forces": [],
+        "id": "all-six",
+        "label": "All Six"
+      },
+      {
+        "forces": [],
+        "id": "done",
+        "label": "Done"
+      }
+    ]
+  },
+  {
+    "default": false,
+    "description": "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
+    "id": "king-zora-moved",
+    "kind": "toggle",
+    "label": "King Zora Moved"
+  },
+  {
+    "default": "off",
+    "description": "Jabu-Jabu waits in the frozen fountain for adult Link too, from the start or once the Water sage is done. Adult Link walks in when his mouth is open (the Jabu-Jabu open preset), but only child Link's Boomerang beats the tentacles and Barinade. With dungeon entrances shuffled, his door leads wherever it leads for child Link",
+    "id": "adult-jabu-jabu",
+    "kind": "choice",
+    "label": "Adult Jabu-Jabu",
+    "options": [
+      {
+        "forces": [],
+        "id": "off",
+        "label": "Off"
+      },
+      {
+        "forces": [],
+        "id": "always",
+        "label": "Always"
+      },
+      {
+        "forces": [],
+        "id": "after-morpha",
+        "label": "After Morpha"
+      }
+    ]
+  },
+  {
+    "default": false,
+    "description": "Gold Skulltulas that only come out at night show at any hour",
+    "id": "day-skulltulas",
+    "kind": "toggle",
+    "label": "Gold Skulltulas by Day"
   }
 ]
