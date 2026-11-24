@@ -1,4 +1,5 @@
 import type { PlandoCheck, PlandoItem } from "@/bindings";
+import { sameEntries } from "@/lib/api";
 import type { FullConfig } from "@/lib/config";
 
 /** One plando: chest hash to the item actor it must hold. */
@@ -30,12 +31,7 @@ export const itemLabels = (items: PlandoItem[]) => unique(items, (i) => i.name);
 
 /** Whether two plandos pin the same items, whatever order their keys came
  * in. */
-export const samePins = (a: Plando, b: Plando) => {
-  const keys = Object.keys(a);
-  return (
-    keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k])
-  );
-};
+export const samePins = (a: Plando, b: Plando) => sameEntries(a, b);
 
 /** The saved plando the draft matches, if any. An empty draft matches
  * none. */
