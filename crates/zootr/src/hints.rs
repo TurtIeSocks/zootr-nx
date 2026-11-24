@@ -115,7 +115,8 @@ pub(crate) fn language(
             .get(hint.item.as_str())
             .and_then(|l| named(&pouch, l));
         let item = item.unwrap_or_else(|| pretty(&hint.item));
-        msbt.set(stone, &[Part::Text(line(rel, &area, &item))])?;
+        let parts = paged(&msbt, &line(rel, &area, &item));
+        msbt.set(stone, &parts)?;
     }
     replace_file(data, &path, &msbt.to_binary())
 }
@@ -126,6 +127,46 @@ fn line(rel: &str, area: &str, item: &str) -> String {
         true => format!("They say that {area}\nhides {item}."),
         false => format!("{area}:\n{item}"),
     }
+}
+
+/// The most characters a stone's box shows on a line: the longest read
+/// whole, live (`research/hints.md`).
+const WIDEST: usize = 67;
+/// The lines a stone's box shows at once.
+const PER_PAGE: usize = 2;
+/// The tag vanilla stones turn the page with (`GOSSIP_LOST_WOOD_01`).
+const PAGE: (u16, u16) = (0, 4);
+
+/// `text`'s lines wrapped to [`WIDEST`], [`PER_PAGE`] to a page, a page
+/// break between pages. A line that fits keeps its one page.
+fn paged(msbt: &Msbt, text: &str) -> Vec<Part> {
+    let lines: Vec<String> = text.lines().flat_map(wrapped).collect();
+    let pages = lines.chunks(PER_PAGE).map(|p| Part::Text(p.join("\n")));
+    let page = msbt.tag(PAGE.0, PAGE.1);
+    let mut parts = Vec::new();
+    for p in pages {
+        if !parts.is_empty() {
+            parts.push(page.clone());
+        }
+        parts.push(p);
+    }
+    parts
+}
+
+/// `line` broken at spaces into lines of at most [`WIDEST`] characters. A
+/// word longer than that keeps a line of its own.
+fn wrapped(line: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in line.split(' ') {
+        match out.last_mut() {
+            Some(last) if last.chars().count() + 1 + word.chars().count() <= WIDEST => {
+                last.push(' ');
+                last.push_str(word);
+            }
+            _ => out.push(word.to_owned()),
+        }
+    }
+    out
 }
 
 /// The stones' labels, sorted.
@@ -205,6 +246,41 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_long_line_wraps_at_spaces() {
+        let long = format!("They say that {} (FakePlayer)", "Fake Location ".repeat(6));
+        let lines = wrapped(&long);
+        assert!(
+            lines.iter().all(|l| l.chars().count() <= WIDEST),
+            "{lines:?}"
+        );
+        assert_eq!(lines.join(" "), long);
+        assert_eq!(wrapped("hides Megaton Hammer."), ["hides Megaton Hammer."]);
+    }
+
+    #[test]
+    fn a_stone_too_long_for_its_box_turns_the_page() {
+        let Some(romfs) = dev_dump() else { return };
+        let place = format!("{}(FakePlayer)", "Fake Location ".repeat(6));
+        let hints = [Hint {
+            place: Place::Words(place.clone()),
+            item: item::HAMMER.to_string(),
+        }];
+        let item = crate::names::name_label(&romfs, item::HAMMER).unwrap();
+        let labels = HashMap::from([(item::HAMMER.get(), item.unwrap())]);
+        let rel = (text::archives(&romfs).unwrap().into_iter())
+            .find(|r| r.contains("USen"))
+            .unwrap();
+        let data = language(&romfs.read(&rel).unwrap(), &rel, &hints, &labels).unwrap();
+        let sarc = Sarc::new(&data).unwrap();
+        let msbt = Msbt::parse(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
+        let lines = messages(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
+        let parts = msbt.get(stones(&lines)[0]).unwrap().unwrap();
+        let first = wrapped(&format!("They say that {place}")).join("\n");
+        let hides = Part::Text("hides Megaton Hammer.".into());
+        assert_eq!(parts, [Part::Text(first), msbt.tag(PAGE.0, PAGE.1), hides]);
     }
 
     #[test]

@@ -136,12 +136,18 @@ const LONGEST: usize = 32;
 
 /// `name` without control characters, cut to [`LONGEST`].
 pub(crate) fn clean(name: &str) -> String {
-    let kept: String = name.chars().filter(|c| !c.is_control()).collect();
-    let kept = kept.trim();
+    let kept = printable(name);
     match kept.chars().count() > LONGEST {
         true => format!("{}…", kept.chars().take(LONGEST - 1).collect::<String>()),
-        false => kept.to_owned(),
+        false => kept,
     }
+}
+
+/// `name` without control characters, which the game's text reads as
+/// tags, or the spaces around it.
+pub(crate) fn printable(name: &str) -> String {
+    let kept: String = name.chars().filter(|c| !c.is_control()).collect();
+    kept.trim().to_owned()
 }
 
 impl Foreign {
