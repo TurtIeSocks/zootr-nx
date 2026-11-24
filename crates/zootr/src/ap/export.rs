@@ -19,7 +19,7 @@ use crate::fill;
 use crate::logic::World;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, SettingDef, Settings, schema};
+use crate::settings::{Kind, NewGame, PROGRESSIVE, SettingDef, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -137,7 +137,24 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
         .collect();
     shrink::merge(&mut world, &lined);
     shrink::share(&mut world);
-    let golden = super::golden::golden(&settings, &set, &names, &ids)?;
+    // The golden pairs Progressive Items on with each other case's options
+    // too: the base holds it off, and so would every case but the joint
+    // group's.
+    let on = |s: &Settings| {
+        let mut on = s.clone();
+        on.insert(PROGRESSIVE.into(), true.into());
+        on
+    };
+    let twins: Vec<Settings> = settings
+        .iter()
+        .map(&on)
+        .filter(|t| !settings.contains(t))
+        .collect();
+    let twin_seeds: Vec<Seed> = par_map(&twins, |s| Seed::build_in(&dump, s, &Default::default()))
+        .into_iter()
+        .collect::<Result<_>>()?;
+    let cases = (settings.iter().chain(&twins)).zip(set.iter().chain(&twin_seeds));
+    let golden = super::golden::golden(cases, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
