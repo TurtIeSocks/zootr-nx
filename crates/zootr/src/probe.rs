@@ -18,6 +18,7 @@ mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
+mod filter;
 mod formats;
 mod hurts;
 mod logic;
@@ -30,7 +31,8 @@ mod shapes;
 mod uvs;
 mod water;
 
-use actors::{hits, print_actors};
+use actors::print_actors;
+pub use filter::Filter;
 use formats::{ainb, ainbs, byml, files, grep, pool, restbl, strings, unpack, unpacked};
 use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
 use navmesh::{nav, print_types};
@@ -389,33 +391,6 @@ pub enum Probe {
         #[arg(long, default_value = "")]
         logic: String,
     },
-}
-
-#[derive(clap::Args, Default)]
-pub struct Filter {
-    /// Actor names containing this.
-    #[arg(long)]
-    gyaml: Option<String>,
-    /// Banc paths containing this, like an area or `_Child_`.
-    #[arg(long)]
-    file: Option<String>,
-    /// One placement hash.
-    #[arg(long)]
-    hash: Option<u64>,
-    /// Only actors within `--within` of X,Y,Z, measured flat.
-    #[arg(long, value_parser = point, allow_hyphen_values = true)]
-    near: Option<[f32; 3]>,
-    #[arg(long, default_value_t = 10.0)]
-    within: f32,
-    /// Each placement once, though child and adult files repeat it.
-    #[arg(long)]
-    dedupe: bool,
-    /// Every field, not only the position.
-    #[arg(long)]
-    fields: bool,
-    /// Placements and unique hashes per actor name, instead of each one.
-    #[arg(long)]
-    count: bool,
 }
 
 /// `game` is the dump, for the probes that read past the extracted romfs.

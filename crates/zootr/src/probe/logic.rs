@@ -6,7 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::Result;
 use ounce_formats::{Romfs, murmur3};
 
-use super::{Filter, actor_names, hits, show};
+use super::filter::{Filter, hits};
+use super::{actor_names, show};
 use crate::checks::{banc_files, load_banc, str_field};
 use crate::gamedata::GameData;
 use crate::known::field;
