@@ -83,6 +83,21 @@ pub fn eighths(yaw: f32, from: [f32; 3], to: [f32; 3]) -> i32 {
     (crate::around::clockwise(yaw, from, to) / std::f32::consts::FRAC_PI_4).round() as i32
 }
 
+/// The shortest flat length a direction is divided by, so one of no
+/// length comes out zero rather than not a number.
+const FLAT_MIN: f32 = f32::EPSILON;
+
+/// `[x, z]` at length 1, or zero when it has no length.
+pub fn flat_unit([x, z]: [f32; 2]) -> [f32; 2] {
+    let n = x.hypot(z).max(FLAT_MIN);
+    [x / n, z / n]
+}
+
+/// The unit vector from `a` to `b`, measured flat.
+pub fn flat_dir(a: [f32; 3], b: [f32; 3]) -> [f32; 2] {
+    flat_unit([b[0] - a[0], b[2] - a[2]])
+}
+
 /// A map's navmesh file, decompressed, or `None` for a map whose mesh
 /// comes in tiles instead (Hyrule Field, under `Phive/StitchedNavMesh`).
 pub fn navmesh_file(romfs: &Romfs, game: &Path, map: &str) -> Result<Option<Vec<u8>>> {
@@ -388,6 +403,16 @@ pub(crate) mod fixture {
 mod tests {
     use super::*;
     use crate::known::actor;
+
+    #[test]
+    fn a_flat_direction_has_length_one_however_short_its_way() {
+        for far in [3.0, 1e-4] {
+            let [x, z] = flat_dir([1.0, 5.0, 1.0], [1.0 + far, -2.0, 1.0 + far]);
+            assert!((x.hypot(z) - 1.0).abs() < 1e-5, "{far}: {x}, {z}");
+            assert!((x - z).abs() < 1e-6);
+        }
+        assert_eq!(flat_dir([1.0, 0.0, 1.0], [1.0, 9.0, 1.0]), [0.0, 0.0]);
+    }
 
     #[test]
     fn link_turns_toward_the_holder_by_one_tap() {
