@@ -64,6 +64,14 @@ pub(crate) fn met_zelda() -> Vec<String> {
     ]
 }
 
+/// Rooms every new game starts solved, since Link couldn't leave them
+/// otherwise: this game loads a save in place, not at the dungeon's door.
+pub(crate) fn softlocks() -> Vec<String> {
+    // The Deku Tree's slingshot room: the plank back over its gap drops
+    // only to the eye switch, which takes a slingshot or bow.
+    all([flag::INSIDE_THE_DEKU_TREE_ROOM_C_CLEARED], "true")
+}
+
 /// The guide pop-ups a menu page opens the first time it fills, all off.
 fn page_guides() -> Vec<String> {
     let pages = [
