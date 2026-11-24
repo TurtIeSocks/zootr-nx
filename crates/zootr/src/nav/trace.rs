@@ -184,7 +184,8 @@ fn end(steps: &[Step], settle: f32) -> Result<f32> {
         settle.is_finite() && settle >= 0.0,
         "--settle {settle} isn't a time of 0 s or more"
     );
-    let last = starts(steps).last().zip(steps.last());
+    let starts = starts(steps);
+    let last = starts.last().zip(steps.last());
     Ok(last.map_or(0.0, |(t, s)| t + s.secs()) + settle)
 }
 
