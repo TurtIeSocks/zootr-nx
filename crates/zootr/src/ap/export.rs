@@ -8,7 +8,7 @@ use clap::ValueEnum;
 use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
-use super::rule::{Rules, all, any};
+use super::rule::{self, Rules, all, any};
 use super::seed::{Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Variant, steps, word};
 use super::{OPTIONS, described, ids::Ids, names, offers};
@@ -114,6 +114,16 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         g.sort();
         g.dedup();
     }
+    // Each line's levels with the events that give them (`rule::lined`).
+    let levels: Vec<rule::Line> = (names::levels()?.into_iter())
+        .map(|(line, steps)| {
+            let given = |(actor, name): (&str, &str)| {
+                let events = givers.get(actor).into_iter().flatten().cloned();
+                [name.to_owned()].into_iter().chain(events).collect()
+            };
+            (line.to_owned(), steps.into_iter().map(given).collect())
+        })
+        .collect();
     let mut rules = Rules {
         start: &base_seed.start,
         pooled: &pooled,
@@ -123,6 +133,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         givers: &givers,
         used: BTreeSet::new(),
         form: None,
+        levels: &levels,
     };
     let reach = Everything::union(&set);
     let era = |i: usize| w.places[i].1;
@@ -333,7 +344,6 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         .iter()
         .map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
     let added_rows = added.iter().map(|(n, c)| (*n, c, false, false, true));
-    let mut lines = serde_json::Map::new();
     let mut firsts: BTreeMap<&str, &str> = BTreeMap::new();
     let class = |name: &str| match () {
         _ if rules.used.contains(name) => "progression",
@@ -350,7 +360,6 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
                 json!({ "id": ids.item_as(actor, plain), "name": name, "class": class(name) }),
             );
             if let Some((line, first)) = line {
-                lines.insert(name.into(), line.into());
                 firsts.insert(line, first);
             }
         }
@@ -383,6 +392,12 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             items.push(json!({ "id": ids.item(first), "name": line, "class": class(line) }));
         }
     }
+    // Each line's levels by its name, each its own name then its events:
+    // with progressive items on, the world deals each as the line and reads
+    // its rules as `rule::lined` does.
+    let levels_json: serde_json::Map<String, Value> = (levels.iter())
+        .map(|(line, steps)| (line.clone(), json!(steps)))
+        .collect();
     // The traps the world swaps in for its trappable items, a share of
     // them by Ice Traps' value (`IceTraps::of`).
     let trap = ice_traps::POOLED;
@@ -422,7 +437,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
-    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares, "lines": lines });
+    let pool = json!({ "junk": junk, "rows": pool, "trap": names.item(trap)?, "shares": shares, "levels": levels_json });
     out.insert("pool.json", pretty(&pool)?);
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
@@ -663,7 +678,7 @@ mod tests {
             .collect();
         let (mut got_pool, trappable) = traded(&held, &junk);
         if seed.dealt.new_game.progressive {
-            got_pool = lined(got_pool, &pool["lines"]);
+            got_pool = lined(got_pool, &pool["levels"]);
         }
         // The world's traps, from the share the export writes for the
         // seed's Ice Traps.
@@ -742,14 +757,16 @@ mod tests {
 
     /// `pool` with each line's levels named by the line, as the world
     /// names them with progressive items on.
-    fn lined(pool: BTreeMap<String, u64>, lines: &Value) -> BTreeMap<String, u64> {
+    fn lined(pool: BTreeMap<String, u64>, levels: &Value) -> BTreeMap<String, u64> {
+        let line = |item: &str| {
+            let mut lines = levels.as_object().unwrap().iter();
+            let found =
+                lines.find(|(_, steps)| steps.as_array().unwrap().iter().any(|s| s[0] == item));
+            found.map(|(line, _)| line.clone())
+        };
         let mut out = BTreeMap::new();
         for (item, n) in pool {
-            let name = lines
-                .get(&item)
-                .and_then(Value::as_str)
-                .map_or(item, str::to_owned);
-            *out.entry(name).or_default() += n;
+            *out.entry(line(&item).unwrap_or(item)).or_default() += n;
         }
         out
     }
@@ -828,39 +845,40 @@ mod tests {
         assert_rows_match(&romfs, cases);
     }
 
-    /// Each `items` rule under an `all` with `setting`'s word.
-    fn under(rule: &Value, setting: &str, out: &mut Vec<Value>) {
+    /// Every `items` rule in `rule`.
+    fn items(rule: &Value, out: &mut Vec<Value>) {
         match rule {
-            Value::Object(o) if o.get("all").is_some() => {
-                let all = o["all"].as_array().unwrap();
-                if all.contains(&json!({ "setting": setting })) {
-                    out.extend(all.iter().filter(|r| r.get("items").is_some()).cloned());
-                }
-                all.iter().for_each(|r| under(r, setting, out));
-            }
-            Value::Object(o) => o.values().for_each(|v| under(v, setting, out)),
-            Value::Array(a) => a.iter().for_each(|v| under(v, setting, out)),
+            Value::Object(o) if o.contains_key("items") => out.push(rule.clone()),
+            Value::Object(o) => o.values().for_each(|v| items(v, out)),
+            Value::Array(a) => a.iter().for_each(|v| items(v, out)),
             _ => {}
         }
     }
 
     #[test]
-    fn each_progressive_form_names_its_own_items() {
+    fn every_progressive_fork_collapses_to_its_off_form() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let world: Value = serde_json::from_str(&exported(&romfs)["world.json"]).unwrap();
-        let (mut on, mut off) = (Vec::new(), Vec::new());
-        under(&world, PROGRESSIVE, &mut on);
-        under(
-            &world,
-            &crate::settings::value_word(PROGRESSIVE, "off"),
-            &mut off,
+        // A rule the world can't rebuild from its off form keeps both forms
+        // (`Rules::collapse`): correct, but a sign `rule::lined` and
+        // `rules::item` have drifted apart, and the world grows with it.
+        let world = &exported(&romfs)["world.json"];
+        let off = crate::settings::value_word(PROGRESSIVE, "off");
+        assert!(
+            !world.contains(&format!("\"{off}\"")),
+            "a rule kept both progressive forms"
         );
+        let world: Value = serde_json::from_str(world).unwrap();
+        let mut rules = Vec::new();
+        items(&world, &mut rules);
         let longshot = json!({ "items": ["Longshot"], "count": 1 });
-        let line = json!({ "items": ["Progressive Hookshot"], "count": 2 });
-        assert!(on.contains(&line) && !on.contains(&longshot));
-        assert!(off.contains(&longshot) && !off.contains(&line));
+        assert!(
+            rules.contains(&longshot)
+                && !rules
+                    .iter()
+                    .any(|r| r["items"][0] == "Progressive Hookshot")
+        );
     }
 
     #[test]

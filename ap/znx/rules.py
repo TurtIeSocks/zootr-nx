@@ -40,6 +40,24 @@ def fold(tree, settings: dict):
     return tree
 
 
+def lined(tree, levels: dict):
+    """`tree` read with progressive items on: one of some levels of a line,
+    the lowest the nth, is n of the line or its levels' events, as the
+    export checks (`ap::rule::lined`)."""
+    if isinstance(tree, bool):
+        return tree
+    for key in ("all", "any"):
+        if key in tree:
+            return {key: [lined(part, levels) for part in tree[key]]}
+    if tree["count"] == 1:
+        for line, steps in levels.items():
+            at = [next((i for i, s in enumerate(steps) if name in s), None) for name in tree["items"]]
+            if None not in at:
+                events = {e for step in steps for e in step[1:]}
+                return {"items": sorted(events | {line}), "count": min(at) + 1}
+    return tree
+
+
 def closure(tree, player: int) -> Rule:
     if isinstance(tree, bool):
         return lambda state: tree

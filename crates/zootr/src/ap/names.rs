@@ -291,6 +291,21 @@ fn lines() -> impl Iterator<Item = &'static [Level]> {
     lines.all().filter(|l| l.len() > 1)
 }
 
+/// A line's name and its levels, lowest first: each level's actor and own
+/// name.
+pub type Levels = (&'static str, Vec<(&'static str, &'static str)>);
+
+/// Each line's [`Levels`].
+pub fn levels() -> Result<Vec<Levels>> {
+    let named = |l: &[Level]| -> Result<_> {
+        let steps = l
+            .iter()
+            .map(|level| Ok((level.0.get(), item(level.0.get(), false)?)));
+        Ok((item(l[0].0.get(), true)?, steps.collect::<Result<_>>()?))
+    };
+    lines().map(named).collect()
+}
+
 /// The name and first level of the line `actor` is any level of, if it
 /// climbs: with progressive items on, the world gives the line's name to
 /// each check's own item, which the pool names.

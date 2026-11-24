@@ -19,9 +19,11 @@ JUNK = _POOL["junk"]
 # Ice Traps' value, as the app's `ice_traps::swap` does.
 TRAP = _POOL["trap"]
 SHARES = _POOL["shares"]
-# Each level of an upgrade line, as the pool names it, by its line's name:
-# with progressive items on, the world deals the line in its place.
-LINES = _POOL["lines"]
+# Each upgrade line's levels by its name, lowest first, each its own name
+# then the events that give it: with progressive items on, the world deals
+# each level as its line and reads rules that way (`rules.lined`).
+LEVELS = _POOL["levels"]
+LINES = {step[0]: line for line, steps in LEVELS.items() for step in steps}
 OPTIONS = load("options")
 
 ITEM_NAME_TO_ID = {item["name"]: item["id"] for item in ITEMS}

@@ -5,31 +5,120 @@
     "Red Rupee (20)",
     "Purple Rupee (50)"
   ],
-  "lines": {
-    "Adult's Wallet": "Progressive Wallet",
-    "Big Bomb Bag": "Progressive Bomb Bag",
-    "Big Bullet Bag": "Progressive Slingshot",
-    "Big Quiver": "Progressive Bow",
-    "Bomb Bag": "Progressive Bomb Bag",
-    "Bombchu Bag (20)": "Progressive Bombchu Bag",
-    "Bombchu Bag (30)": "Progressive Bombchu Bag",
-    "Bombchu Bag (40)": "Progressive Bombchu Bag",
-    "Deku Nut Bag (30)": "Progressive Deku Nut Bag",
-    "Deku Stick Bag (20)": "Progressive Deku Stick Bag",
-    "Double Magic": "Magic Meter",
-    "Fairy Bow": "Progressive Bow",
-    "Fairy Ocarina": "Progressive Ocarina",
-    "Fairy Slingshot": "Progressive Slingshot",
-    "Giant's Wallet": "Progressive Wallet",
-    "Golden Gauntlets": "Progressive Strength Upgrade",
-    "Golden Scale": "Progressive Scale",
-    "Goron's Bracelet": "Progressive Strength Upgrade",
-    "Hookshot": "Progressive Hookshot",
-    "Longshot": "Progressive Hookshot",
-    "Magic Meter": "Magic Meter",
-    "Ocarina of Time": "Progressive Ocarina",
-    "Silver Gauntlets": "Progressive Strength Upgrade",
-    "Silver Scale": "Progressive Scale"
+  "levels": {
+    "Magic Meter": [
+      [
+        "Magic Meter"
+      ],
+      [
+        "Double Magic"
+      ]
+    ],
+    "Progressive Bomb Bag": [
+      [
+        "Bomb Bag"
+      ],
+      [
+        "Big Bomb Bag"
+      ],
+      [
+        "Biggest Bomb Bag"
+      ]
+    ],
+    "Progressive Bombchu Bag": [
+      [
+        "Bombchu Bag (20)"
+      ],
+      [
+        "Bombchu Bag (30)"
+      ],
+      [
+        "Bombchu Bag (40)"
+      ]
+    ],
+    "Progressive Bow": [
+      [
+        "Fairy Bow"
+      ],
+      [
+        "Big Quiver"
+      ],
+      [
+        "Biggest Quiver"
+      ]
+    ],
+    "Progressive Deku Nut Bag": [
+      [
+        "Deku Nut Bag (30)"
+      ],
+      [
+        "Deku Nut Bag (40)"
+      ]
+    ],
+    "Progressive Deku Stick Bag": [
+      [
+        "Deku Stick Bag (20)"
+      ],
+      [
+        "Deku Stick Bag (30)"
+      ]
+    ],
+    "Progressive Hookshot": [
+      [
+        "Hookshot"
+      ],
+      [
+        "Longshot"
+      ]
+    ],
+    "Progressive Ocarina": [
+      [
+        "Fairy Ocarina"
+      ],
+      [
+        "Ocarina of Time"
+      ]
+    ],
+    "Progressive Scale": [
+      [
+        "Silver Scale",
+        "Silver Scale"
+      ],
+      [
+        "Golden Scale"
+      ]
+    ],
+    "Progressive Slingshot": [
+      [
+        "Fairy Slingshot"
+      ],
+      [
+        "Big Bullet Bag"
+      ],
+      [
+        "Biggest Bullet Bag"
+      ]
+    ],
+    "Progressive Strength Upgrade": [
+      [
+        "Goron's Bracelet",
+        "Goron Bracelet"
+      ],
+      [
+        "Silver Gauntlets"
+      ],
+      [
+        "Golden Gauntlets"
+      ]
+    ],
+    "Progressive Wallet": [
+      [
+        "Adult's Wallet"
+      ],
+      [
+        "Giant's Wallet"
+      ]
+    ]
   },
   "rows": [
     {

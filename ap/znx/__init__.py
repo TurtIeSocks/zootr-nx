@@ -17,6 +17,7 @@ from .exported import (
     HASHES,
     ITEM_NAME_TO_ID,
     JUNK,
+    LEVELS,
     LINES,
     LOCATION_NAME_TO_ID,
     OPTIONS,
@@ -149,6 +150,8 @@ class ZnxWorld(World):
 
     def rule(self, tree) -> rules.Rule | None:
         tree = rules.fold(tree, self.setting_values)
+        if self.setting_values[PROGRESSIVE]:
+            tree = rules.lined(tree, LEVELS)
         return None if tree is True else rules.closure(tree, self.player)
 
     def live_places(self, exits: list) -> set[str]:
