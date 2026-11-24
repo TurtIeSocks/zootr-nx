@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 
 use crate::settings::Archipelago::{self, AlwaysOn, Later, Never, Offered, OnUntil};
-use crate::settings::{Kind, SKIP_ALL, SettingDef, schema};
+use crate::settings::{Kind, Place, SKIP_ALL, SettingDef, place, schema};
 
 pub mod bench;
 pub mod bench_live;
@@ -75,7 +75,6 @@ pub const OPTIONS: &[&str] = &[
     "chest-size",
     "quiet-navi",
     "bunny-hood",
-    "ageless-weapons",
     "scrubs",
     "running-race",
     "pots",
@@ -97,7 +96,6 @@ pub const OPTIONS: &[&str] = &[
     "adult-jabu-jabu",
     "day-skulltulas",
     "scrub-price",
-    "ageless-items",
     "quiet-enemies",
     "menus",
     "clock",
@@ -106,30 +104,57 @@ pub const OPTIONS: &[&str] = &[
     "hints",
 ];
 
-/// Settings the world offers together as one AP option, a list of the
-/// children of one parent setting, which turns them all on.
+/// Settings the world offers together as one AP option, a list.
 pub struct Set {
     pub id: &'static str,
     pub label: &'static str,
-    pub parent: &'static str,
+    pub of: Of,
     pub description: &'static str,
 }
 
-pub const SETS: &[Set] = &[Set {
-    id: "skipped-cutscenes",
-    label: "Skipped Cutscenes",
-    parent: SKIP_ALL,
-    description: "Each cutscene skipped, with Skip Cutscenes off. On, it skips them all",
-}];
+/// What a set lists.
+pub enum Of {
+    /// The children of one parent setting, which turns them all on.
+    Parent(&'static str),
+    /// Every setting in one section.
+    Section(Place),
+}
+
+pub const SETS: &[Set] = &[
+    Set {
+        id: "skipped-cutscenes",
+        label: "Skipped Cutscenes",
+        of: Of::Parent(SKIP_ALL),
+        description: "Each cutscene skipped, with Skip Cutscenes off. On, it skips them all",
+    },
+    Set {
+        id: "both-ages",
+        label: "Both Ages",
+        of: Of::Section(place::BOTH_AGES),
+        description: "Each item either Link can use: child Link the adult's, adult Link the child's",
+    },
+];
 
 impl Set {
+    /// Whether this set lists `def`.
+    fn holds(&self, def: &SettingDef) -> bool {
+        match self.of {
+            Of::Parent(parent) => def.parent == Some(parent),
+            Of::Section(place) => (def.group, def.section) == (place.group, place.section),
+        }
+    }
+
+    /// The parent setting that turns every member on, if any.
+    pub fn parent(&self) -> Option<&'static str> {
+        match self.of {
+            Of::Parent(parent) => Some(parent),
+            Of::Section(_) => None,
+        }
+    }
+
     /// The settings this set lists.
     pub fn members(&self) -> Vec<SettingDef> {
-        let parent = Some(self.parent);
-        schema()
-            .into_iter()
-            .filter(|d| d.parent == parent)
-            .collect()
+        schema().into_iter().filter(|d| self.holds(d)).collect()
     }
 }
 
@@ -153,7 +178,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
     ("shuffle-dungeon-entrances", Later(RULES)),
-    ("ageless-gear", Later(RULES)),
     (
         "shuffle-items",
         Never("off, every check holds what it always does, which leaves nothing to share"),
@@ -173,7 +197,7 @@ const KEYS: &str = "keys";
 /// but on in every Archipelago seed (its default, or pinned like Chests)
 /// says so. The schema calls it, so it reads `def` alone.
 pub fn archipelago(def: &SettingDef) -> Option<Archipelago> {
-    let in_set = SETS.iter().any(|s| def.parent == Some(s.parent));
+    let in_set = SETS.iter().any(|s| s.holds(def));
     if in_set || OPTIONS.contains(&def.id.as_str()) {
         return Some(Offered);
     }

@@ -65,11 +65,17 @@ pub const GROUPS: [(&Name, &[&Name]); 2] = [
 /// vest's brown patch keeps its colour.
 const GREEN: Hues = (0.15, 0.5);
 
-/// Write each child armor, its model and textures, and its rows in
-/// `tables`.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+/// Write the child armor of each of `worn`, the adult tunic armor, with its
+/// model, textures and rows in `tables`, and his Kokiri Tunic's always: the
+/// hook makes it for him whenever the seed carries `CHILD_GEAR`.
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    tables: &mut Tables,
+    worn: &[&Name],
+) -> Result<()> {
     let child = builder.read(MODEL)?;
-    for (adult, mark, colours) in &TUNICS {
+    for (adult, mark, colours) in TUNICS.iter().filter(|(a, ..)| worn.contains(a)) {
         let name = child_name(adult)?;
         let model = format!("Model/{name}.{}.bfres.zs", actor::PLAYER_CHILD);
         builder.add(&model, &cloth_only(&child, *mark)?, MODEL)?;
@@ -256,15 +262,30 @@ mod tests {
         );
     }
 
+    /// The mod `write` makes with `worn` on, and its folder.
+    fn written(romfs: &Romfs, worn: &[&Name], tag: &str) -> (Tables, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!("zootr-tunics-{tag}-{}", std::process::id()));
+        let mut builder = ModBuilder::new(romfs, &dir).unwrap();
+        let mut tables = Tables::load(romfs).unwrap();
+        write(romfs, &mut builder, &mut tables, worn).unwrap();
+        tables.write(&mut builder).unwrap();
+        builder.finish().unwrap();
+        (tables, dir)
+    }
+
+    fn has_pack(dir: &std::path::Path, name: &str) -> bool {
+        dir.join("romfs")
+            .join(ounce_formats::pack_file(name))
+            .exists()
+    }
+
     #[test]
     fn a_seed_writes_every_child_armor() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let dir = std::env::temp_dir().join(format!("zootr-tunics-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let mut tables = Tables::load(&romfs).unwrap();
-        write(&romfs, &mut builder, &mut tables).unwrap();
+        let worn = TUNICS.map(|(adult, ..)| adult);
+        let (tables, dir) = written(&romfs, &worn, "all");
         // His Kokiri row equips through the pouch as the adult's does.
         let deal = |name: &Name| {
             let row = crate::standins::row(&tables.pouch, name).unwrap();
@@ -272,12 +293,9 @@ mod tests {
         };
         let adult = deal(actor::ARMOR_ADULT_NORMAL);
         assert_eq!(deal(actor::OBJ_ARMOR_CHILD_NORMAL), adult);
-        tables.write(&mut builder).unwrap();
-        builder.finish().unwrap();
         for armor in &CHILD_ARMOR {
             let name = armor.name().to_str().unwrap();
-            let pack = dir.join("romfs").join(ounce_formats::pack_file(name));
-            assert!(pack.exists(), "{name}");
+            assert!(has_pack(&dir, name), "{name}");
         }
         for (_, mark, _) in &TUNICS {
             for path in CLOTH.iter().chain([&VEST]) {
@@ -290,5 +308,22 @@ mod tests {
             }
         }
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn a_seed_writes_only_the_tunics_on_and_always_his_kokiri() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        for (tag, worn) in [("none", &[][..]), ("zora", &[actor::ARMOR_ADULT_ZORA][..])] {
+            let (_, dir) = written(&romfs, worn, tag);
+            let kokiri = child_name(actor::OBJ_ARMOR_CHILD_NORMAL).unwrap();
+            assert!(has_pack(&dir, &kokiri), "{tag}: {kokiri}");
+            for (adult, ..) in &TUNICS {
+                let name = child_name(adult).unwrap();
+                assert_eq!(has_pack(&dir, &name), worn.contains(adult), "{tag}: {name}");
+            }
+            std::fs::remove_dir_all(dir).ok();
+        }
     }
 }

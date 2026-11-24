@@ -10,11 +10,6 @@ bombs = "item:bomb-bag"
 # Bombchu Bag found in the pool.
 bombchus = "(item:bombchus-small or item:bombchus-medium or item:bombchus-large) and (setting:bombchus=free or (setting:bombchus=bomb-bag and bombs) or item:bombchu-bag)"
 
-# The child swords and shield, for either age with ageless-weapons. The
-# adult ones need no word: the Mirror Shield reflects light only for adult
-# Link (a child can't aim it), and logic asks for the swords only as melee.
-child-weapon = "child or setting:ageless-weapons"
-
 hammer = "adult and item:megaton-hammer"
 goron-bracelet = "item:goron-bracelet"
 silver-gauntlets = "adult and item:silver-gauntlets"
@@ -39,8 +34,8 @@ blue-fire = "adult and bottle"
 light = "mirror-shield or (magic and bow and item:light-arrows)"
 lens = "magic and item:lens-of-truth"
 
-kokiri-sword = "child-weapon and item:kokiri-sword"
-deku-shield = "child-weapon and item:deku-shield-chest"
+kokiri-sword = "child and item:kokiri-sword"
+deku-shield = "child and item:deku-shield-chest"
 hylian-shield = "adult and item:hylian-shield-chest"
 # Deku Babas drop them and the Kokiri shop sells them. Only child Link
 # holds them, and they carry fire from a lit torch. A shuffled stick bag
@@ -50,11 +45,11 @@ silver-scale = "item:silver-scale"
 # Past the two boulders at Zora River's mouth: blown up, broken by the
 # hammer, or skipped down the Lost Woods shortcut, which lands upriver.
 zora-river = "explosives or hammer or silver-scale"
-# The boots, for either age with ageless-gear. Each use was audited for a
-# child: only the Hyrule Field grotto's child crates and Dodongo's Cavern's
-# eye targets open to him, the rest lie in adult places.
-iron-boots = "(adult or setting:ageless-gear) and item:iron-boots"
-hover-boots = "(adult or setting:ageless-gear) and item:hover-boots"
+# Each boots use was audited for a child, for when the Both Ages toggles
+# join logic: only the Hyrule Field grotto's child crates and Dodongo's
+# Cavern's eye targets open to him, the rest lie in adult places.
+iron-boots = "adult and item:iron-boots"
+hover-boots = "adult and item:hover-boots"
 # Shops sell the pouch item, the givers hand over the pickup actor.
 zora-tunic = "adult and (item:zora-tunic or item:zora-tunic-pickup)"
 goron-tunic = "adult and (item:goron-tunic or item:goron-tunic-pickup)"

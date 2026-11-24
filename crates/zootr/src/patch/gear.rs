@@ -1,5 +1,5 @@
 //! The game's own age checks that keep boots and tunics off a child,
-//! opened so they reach him in a seed with ageless gear.
+//! opened so they reach him in a seed with a boots or tunic toggle on.
 
 use zootr_hook::Build;
 use zootr_hook::entry::{GEAR_CHILD, GEAR_CREATE, GEAR_HUD, GEAR_MARK, GEAR_MENU, GEAR_WORN};

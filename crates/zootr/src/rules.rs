@@ -293,7 +293,6 @@ mod tests {
     use super::files::ABILITIES;
     use super::*;
     use crate::known::{actor, item, map};
-    use crate::settings;
 
     /// The id of a boss defeat, by its word.
     fn beat(word: &str) -> String {
@@ -455,70 +454,46 @@ mod tests {
         assert!(Book::from_files(&[ok, ("a.toml", rule), ("b.toml", rule)]).is_err());
     }
 
+    /// The Both Ages toggles stay out of logic for now: each item at its
+    /// own age, whatever the seed opens.
     #[test]
-    fn ageless_weapons_let_the_other_age_use_swords_and_shields() {
+    fn each_sword_shield_and_boots_needs_its_own_age() {
         needs_names!();
         let book = Book::load().unwrap();
-        // Whether the other age may use it with the setting on. Live: the
-        // tunics do nothing on a child, the boots are ageless-gear's, and
-        // a child can't aim the Mirror Shield's reflection.
+        let every: Vec<&str> = crate::ageless::toggles::TOGGLES.map(|t| t.id).to_vec();
         let cases = [
-            ("mirror-shield", "mirror-shield", Era::Adult, false),
-            ("kokiri-sword", "kokiri-sword", Era::Child, true),
-            ("deku-shield", "deku-shield-chest", Era::Child, true),
-            ("hover-boots", "hover-boots", Era::Adult, false),
-            ("iron-boots", "iron-boots", Era::Adult, false),
-            ("zora-tunic", "zora-tunic", Era::Adult, false),
-            ("goron-tunic", "goron-tunic", Era::Adult, false),
+            ("kokiri-sword", "kokiri-sword", Era::Child),
+            ("deku-shield", "deku-shield-chest", Era::Child),
+            ("mirror-shield", "mirror-shield", Era::Adult),
+            ("iron-boots", "iron-boots", Era::Adult),
+            ("hover-boots", "hover-boots", Era::Adult),
+            ("zora-tunic", "zora-tunic", Era::Adult),
+            ("goron-tunic", "goron-tunic", Era::Adult),
         ];
-        for (word, item, home, shared) in cases {
+        for (word, item, home) in cases {
             let other = match home {
                 Era::Adult => Era::Child,
                 Era::Child => Era::Adult,
             };
             let held = have(&[&vocab::id(&format!("item:{item}")).unwrap()]);
-            let met =
-                |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
-            assert!(met(&[], home) && !met(&[], other), "{word} off");
-            let on = [settings::AGELESS_WEAPONS];
-            assert!(met(&on, home), "{word} on, at its own age");
-            assert_eq!(met(&on, other), shared, "{word} on, at the other age");
+            for on in [&[][..], &every[..]] {
+                let met = |era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
+                assert!(met(home) && !met(other), "{word}, {} on", on.len());
+            }
         }
     }
 
     #[test]
-    fn ageless_gear_lets_a_child_wear_the_boots_and_nothing_else() {
-        needs_names!();
-        let book = Book::load().unwrap();
-        let cases = [
-            ("iron-boots", "iron-boots", true),
-            ("hover-boots", "hover-boots", true),
-            ("zora-tunic", "zora-tunic", false),
-            ("goron-tunic", "goron-tunic", false),
-        ];
-        for (word, item, shared) in cases {
-            let held = have(&[&vocab::id(&format!("item:{item}")).unwrap()]);
-            let met =
-                |on: &[&str], era| book.resolve(word, &ctx(true, on)).unwrap().met(&held, era);
-            let on = [settings::AGELESS_GEAR];
-            assert!(met(&[], Era::Adult) && !met(&[], Era::Child), "{word} off");
-            assert!(met(&on, Era::Adult), "{word} on, as an adult");
-            assert_eq!(met(&on, Era::Child), shared, "{word} on, as a child");
-        }
-    }
-
-    #[test]
-    fn light_needs_an_adult_with_the_mirror_shield_even_with_ageless_weapons() {
+    fn light_needs_an_adult_with_the_mirror_shield() {
         needs_names!();
         let book = Book::load().unwrap();
         let held = have(&[item::SHIELD_MIRROR]);
-        let met = |on: &[&str], era| {
-            book.resolve("light", &ctx(true, on))
+        let met = |era| {
+            book.resolve("light", &ctx(true, &[]))
                 .unwrap()
                 .met(&held, era)
         };
-        assert!(met(&[], Era::Adult) && !met(&[], Era::Child));
-        assert!(!met(&[settings::AGELESS_WEAPONS], Era::Child));
+        assert!(met(Era::Adult) && !met(Era::Child));
     }
 
     #[test]

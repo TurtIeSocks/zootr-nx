@@ -1,26 +1,18 @@
-//! Boots and tunics for a child. The menu's table greys them out for him,
-//! and his model had no group for their armor to hide, so his own fur
-//! boots and green cloth showed through. The seed's `CHILD_GEAR` flag lets
-//! the hook make them on him and the boots' state reach him
-//! (`patch/gear.rs`), his steps in boots are the adult's clips, lent
-//! ([`crate::ageless_items`]), and his tunics are his own ([`tunics`]).
-//! See `superpowers/specs/2026-11-23-child-gear-design.md`.
+//! Boots and tunics for a child. The menu's table greys them out for him
+//! ([`super::toggles`] opens each), and his model had no group for their
+//! armor to hide, so his own fur boots and green cloth showed through. The
+//! seed's `CHILD_GEAR` flag lets the hook make them on him and the boots'
+//! state reach him (`patch/gear.rs`), his steps in boots are the adult's
+//! clips, lent ([`crate::ageless_items`]), and his tunics are his own
+//! ([`tunics`]). See `superpowers/specs/2026-11-23-child-gear-design.md`.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
 
 use super::tunics;
-use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, field};
 use crate::standins;
 
-/// The boots' and tunics' armor actors, as the table names them.
-const GEAR: [&Name; 4] = [
-    actor::ARMOR_ADULT_HEAVY_BOOT,
-    actor::ARMOR_ADULT_HOVER_BOOT,
-    actor::ARMOR_ADULT_ZORA,
-    actor::ARMOR_ADULT_GORON,
-];
 /// The child's packs that carry his base equipment user file: his own and
 /// the menu's model of him.
 const PACKS: [&Name; 2] = [actor::PLAYER_CHILD, actor::POUCH_PLAYER_CHILD];
@@ -42,17 +34,6 @@ fn user_path() -> String {
         "Component/{param}/{}.game__component__{param}.bgyml",
         actor::PLAYER
     )
-}
-
-/// The pause menu's table at `table` with the boots and tunics open to
-/// both ages.
-fn gear_opened(table: &[u8]) -> Result<Vec<u8>> {
-    let (table, changed) = super::unlock(table, |name| GEAR.iter().any(|b| b.get() == name))?;
-    ensure!(
-        changed == GEAR.len(),
-        "the pause menu's table has {changed} of the boots and tunics limited to one age"
-    );
-    Ok(table)
 }
 
 /// The equipment user file at `param` with `GROUPS` added to its hidden
@@ -88,29 +69,41 @@ fn grouped(param: &[u8]) -> Result<Vec<u8>> {
     Ok(doc.to_binary())
 }
 
-/// Give each boots item's row of the pouch table the adult's armor for a
-/// child too, so the D-pad's boots shortcut offers them to him. Returns how many
-/// rows changed.
-pub fn shortcut(tables: &mut standins::Tables) -> Result<usize> {
+/// Give the pouch table's row of each of `boots` the adult's armor for a
+/// child too, so the D-pad's boots shortcut offers them to him. Returns how
+/// many rows changed.
+pub fn shortcut(tables: &mut standins::Tables, boots: &[&Name]) -> Result<usize> {
     let changed = tables.edit_pouch(|row| {
         let text = |key: &Name| row.get(key.get()).and_then(|v| v.as_string().ok());
-        let boots = text(field::ACTION_GUIDE_TYPE).is_some_and(|t| t == field::BOOT_SHORTCUT.get());
+        let id = row
+            .get(crate::rsdb::ROW_ID)
+            .and_then(|v| v.as_string().ok());
+        let wanted = id.is_some_and(|id| boots.iter().any(|b| b.get() == id));
+        let boots = wanted
+            && text(field::ACTION_GUIDE_TYPE).is_some_and(|t| t == field::BOOT_SHORTCUT.get());
         let Some(adult) = text(field::ADULT_EQUIPMENT).cloned().filter(|_| boots) else {
             return false;
         };
         row.insert(field::CHILD_EQUIPMENT.get().into(), Byml::String(adult));
         true
     })?;
-    ensure!(changed > 0, "no boots row in the pouch table");
+    ensure!(
+        changed == boots.len(),
+        "the pouch table has {changed} of {} boots rows",
+        boots.len()
+    );
     Ok(changed)
 }
 
-/// Write the setting's files: the table with the boots and tunics open to
-/// a child, his packs with the groups their armor hides, and his tunics'
-/// armor, with its rows in `tables`.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut standins::Tables) -> Result<()> {
-    let table = gear_opened(&builder.read(POUCH_TABLE)?)?;
-    builder.write(POUCH_TABLE, &table)?;
+/// Write what a child's boots and tunics need: his packs with the groups
+/// their armor hides, and the armor of his Kokiri Tunic and of each of
+/// `tunics`, with its rows in `tables`.
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    tables: &mut standins::Tables,
+    tunics: &[&Name],
+) -> Result<()> {
     let path = user_path();
     let mut sizes = None;
     for name in PACKS {
@@ -126,7 +119,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut standins::Tab
     // the Mac build crashed loading it at New Game.
     let (old, new) = sizes.context("no child pack")?;
     builder.scale(&path, old, new)?;
-    tunics::write(romfs, builder, tables)
+    tunics::write(romfs, builder, tables, tunics)
 }
 
 #[cfg(test)]
@@ -135,19 +128,22 @@ mod tests {
     use crate::known::{actor, item};
 
     #[test]
-    fn every_boots_row_gives_a_child_the_adults_armor() {
+    fn each_boots_row_on_gives_a_child_the_adults_armor_and_no_other() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let mut tables = standins::Tables::load(&romfs).unwrap();
-        // The armor rows name no armor for either age.
-        assert_eq!(shortcut(&mut tables).unwrap(), 2);
-        for id in [item::HEAVY_BOOT, item::HOVER_BOOT] {
-            let row = standins::row(&tables.pouch, id.get()).unwrap();
+        let both = [item::HEAVY_BOOT, item::HOVER_BOOT];
+        for (on, off) in [(both[0], both[1]), (both[1], both[0])] {
+            let mut tables = standins::Tables::load(&romfs).unwrap();
+            let vanilla = standins::row(&tables.pouch, off.get()).unwrap();
+            assert_eq!(shortcut(&mut tables, &[on]).unwrap(), 1);
+            let row = standins::row(&tables.pouch, on.get()).unwrap();
             assert_eq!(
                 row[field::CHILD_EQUIPMENT.get()],
                 row[field::ADULT_EQUIPMENT.get()]
             );
+            let other = standins::row(&tables.pouch, off.get()).unwrap();
+            assert_eq!(other, vanilla, "{off} stays as it was");
         }
     }
 
@@ -169,40 +165,6 @@ mod tests {
                 )
             })
             .collect()
-    }
-
-    /// Each Equipment page actor in the table at `bytes`: its name and ages.
-    fn rows(bytes: &[u8]) -> Vec<(String, [bool; 2])> {
-        let mut root = BymlDoc::parse(bytes).unwrap().root;
-        let rows = super::super::rows(&mut root, Some(field::EQUIPMENT_ARRAY)).unwrap();
-        let row = |a: &mut BymlMap| {
-            (
-                super::super::name(a).unwrap().to_owned(),
-                super::super::ages(a),
-            )
-        };
-        rows.into_iter().map(row).collect()
-    }
-
-    #[test]
-    fn the_boots_and_tunics_open_to_a_child_and_nothing_else_moves() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let vanilla = romfs.read(POUCH_TABLE).unwrap();
-        let (before, after) = (rows(&vanilla), rows(&gear_opened(&vanilla).unwrap()));
-        assert_eq!(before.len(), after.len());
-        let mut opened = 0;
-        for ((name, was), (_, now)) in before.iter().zip(&after) {
-            match GEAR.iter().any(|b| b.get() == name) {
-                true => {
-                    opened += 1;
-                    assert_eq!((*was, *now), ([false, true], [true, true]), "{name}");
-                }
-                false => assert_eq!(was, now, "{name} isn't boots or a tunic"),
-            }
-        }
-        assert_eq!(opened, GEAR.len());
     }
 
     #[test]

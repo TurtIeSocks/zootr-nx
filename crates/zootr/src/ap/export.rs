@@ -544,14 +544,18 @@ fn options() -> Value {
     let sets = SETS.iter().map(|set| {
         let members = set.members();
         let on = |d: &&SettingDef| matches!(d.kind, Kind::Toggle { default: true });
-        json!({
-            "id": set.id, "label": set.label, "kind": "set", "parent": set.parent,
+        let mut row = json!({
+            "id": set.id, "label": set.label, "kind": "set",
             "description": set.description,
             "options": (members.iter())
                 .map(|d| json!({ "id": d.id, "label": d.label }))
                 .collect::<Vec<_>>(),
             "default": members.iter().filter(on).map(|d| &d.id).collect::<Vec<_>>(),
-        })
+        });
+        if let Some(parent) = set.parent() {
+            row["parent"] = parent.into();
+        }
+        row
     });
     Value::Array(rows.chain(sets).collect())
 }

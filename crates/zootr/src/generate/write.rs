@@ -10,6 +10,7 @@ use ounce_formats::{Byml, BymlDoc, ModBuilder, Romfs, pack_file};
 use zootr_hook::look::LookSpec;
 
 use super::Written;
+use crate::ageless::toggles::Enabled;
 use crate::bombchu_bags;
 use crate::checks::{self, Drop, ItemCheck};
 use crate::events::Flows;
@@ -20,18 +21,16 @@ use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
-use crate::settings::{
-    AGELESS_GEAR, AGELESS_ITEMS, AGELESS_WEAPONS, DungeonEntrances, NewGame, TRADE_CHAIN,
-};
 use crate::settings::{Bombchus, Bridge};
+use crate::settings::{DungeonEntrances, NewGame, TRADE_CHAIN};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
-    ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters, chest_levels,
-    cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress,
-    gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints,
-    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
-    sheik_crater, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    ageless, ammo, blue_warps, bombchus, bombs, bridge, carpenters, chest_levels, cows, cutscenes,
+    dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress, gamedata, gerudo,
+    gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies,
+    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, sheik_crater, shops,
+    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
 
 /// What both the flows and the mod's files need from the dump for a seed,
@@ -546,8 +545,9 @@ impl<'a> Parts<'a> {
         if new_game.freestanding {
             goron_pot::write(romfs, builder, &mut tables, drops, new_game)?;
         }
-        if new_game.on.contains(AGELESS_GEAR) {
-            ageless::gear::shortcut(&mut tables)?;
+        let boots = Enabled::of(&new_game.on).boots();
+        if !boots.is_empty() {
+            ageless::gear::shortcut(&mut tables, &boots)?;
         }
         tables.write(builder)?;
         Ok((fields, look))
@@ -566,21 +566,7 @@ impl<'a> Parts<'a> {
         starter_bags::write(romfs, new_game, builder, tables)?;
         // Before the stand-ins, so one copying a magic item copies it apart.
         crate::magic::write(romfs, builder, tables, !new_game.magic_with_first_item)?;
-        if new_game.on.contains(AGELESS_WEAPONS) {
-            ageless::write(romfs, builder)?;
-        }
-        if new_game.on.contains(AGELESS_GEAR) {
-            ageless::gear::write(romfs, builder, tables)?;
-            // The boots' clips and effects are the adult's, which
-            // ageless-items lends too. Its sounds don't cover the boots.
-            if !new_game.on.contains(AGELESS_ITEMS) {
-                ageless_items::lend_child_clips(romfs, builder)?;
-            }
-            ageless_items::lend_boot_sounds(builder)?;
-        }
-        if new_game.on.contains(AGELESS_ITEMS) {
-            ageless_items::write(romfs, builder)?;
-        }
+        Enabled::of(&new_game.on).write(romfs, builder, tables)?;
         // Before the stand-ins, which copy a song's model as it's shown.
         let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
         let items = drops.values().map(|d| d.item.as_str()).chain(shown);
@@ -638,7 +624,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
-        (new_game.on.contains(AGELESS_GEAR), zootr_hook::CHILD_GEAR),
+        (Enabled::of(&new_game.on).gear(), zootr_hook::CHILD_GEAR),
     ]
     .into_iter()
     .filter_map(|(on, bit)| on.then_some(bit))
@@ -697,12 +683,21 @@ mod tests {
         assert_eq!(flags(true, false), FREE_BOMBCHUS | MENU_CYCLE);
         assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
         assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
-        let gear = NewGame {
-            on: [AGELESS_GEAR.to_string()].into_iter().collect(),
-            ..Default::default()
-        };
         let plain = hook_flags(&NewGame::default());
-        assert_eq!(hook_flags(&gear), plain | zootr_hook::CHILD_GEAR);
         assert_eq!(plain & zootr_hook::CHILD_GEAR, 0);
+        let with = |id: &str| {
+            hook_flags(&NewGame {
+                on: [id.to_string()].into_iter().collect(),
+                ..Default::default()
+            })
+        };
+        // Any boots or tunic, and nothing else.
+        for toggle in &crate::ageless::toggles::TOGGLES {
+            let gear = Enabled::of(&[toggle.id.to_string()].into_iter().collect()).gear();
+            let want = [plain, plain | zootr_hook::CHILD_GEAR][usize::from(gear)];
+            assert_eq!(with(toggle.id), want, "{}", toggle.id);
+        }
+        assert_eq!(with("both-ages-iron-boots"), plain | zootr_hook::CHILD_GEAR);
+        assert_eq!(with("both-ages-hammer"), plain);
     }
 }

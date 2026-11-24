@@ -1,15 +1,15 @@
 //! Items for both ages: each Link uses items only the other uses in the
 //! game. Child Link takes the Megaton Hammer, Hookshot, Longshot, Bow,
 //! magic arrows and the two-handed swords, adult Link the Deku Sticks, the
-//! Slingshot and the Boomerang. The rest of the spec's items join once
-//! they work (`superpowers/specs/2026-11-21-ageless-items-design.md`).
+//! Slingshot and the Boomerang, each by its own toggle
+//! ([`crate::ageless::toggles`]). Any of them on lends everything here
+//! (`superpowers/specs/2026-11-21-ageless-items-design.md`).
 //!
 //! Each gate is data, and each Link's state machine already has every
 //! item's branches:
 //!
-//! - The pause menu's table lets the item be equipped at both ages. The
-//!   two-handed swords' rows are opened by [`crate::ageless`], whose own
-//!   setting leaves them out.
+//! - The pause menu's table lets the item be equipped at both ages, row by
+//!   row as its toggle opens it.
 //! - Link's holder makes the item's actor at load. Only an actor made
 //!   there can be drawn.
 //! - Link's shooter makes the other Link's projectiles: the hooks for the
@@ -34,9 +34,8 @@
 use std::collections::HashMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
+use ounce_formats::{ActorPack, Byml, BymlMap, ModBuilder, Romfs, pack_file};
 
-use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, field, item};
 use crate::standins::{Edit, component_edited};
 
@@ -46,26 +45,6 @@ mod fska;
 mod sounds;
 
 pub use files::{BANKS, FILES, SOUNDS};
-
-/// The pause menu's items opened to both ages.
-const ITEMS: [&Name; 15] = [
-    // The Bow's four slots, each an arrow row and a loaded bow row.
-    item::ARROW_NORMAL,
-    actor::WEAPON_RANGE_BOW,
-    item::ARROW_FIRE,
-    actor::POUCH_RANGE_BOW_AND_ARROW_FIRE,
-    item::ARROW_ICE,
-    actor::POUCH_RANGE_BOW_AND_ARROW_ICE,
-    item::ARROW_LIGHT,
-    actor::POUCH_RANGE_BOW_AND_ARROW_LIGHT,
-    item::HAMMER,
-    item::HOOKSHOT,
-    item::LONGSHOT,
-    item::DEKU_STICK,
-    item::BOOMERANG,
-    item::DEKU_SEED,
-    actor::WEAPON_RANGE_SLING_SHOT,
-];
 
 /// RESTBL room past a holder, shooter or animation file's new size (research
 /// note, "The multi-copy limit was the RESTBL").
@@ -283,13 +262,10 @@ impl Own {
     }
 }
 
-/// Write the setting's files: the pause menu's table, both Links' packs,
-/// the borrowed archives, both Links' graphs and the sounds.
+/// Write what each Link needs to use the other's items: both Links'
+/// packs, the borrowed archives, both Links' graphs and the sounds. The
+/// pause menu's rows are [`crate::ageless::toggles`]'.
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-    let mut table = BymlDoc::parse(&builder.read(POUCH_TABLE)?)?;
-    opened(&mut table.root)?;
-    crate::ageless::two_handed_opened(romfs, &mut table.root)?;
-    builder.write(POUCH_TABLE, &table.to_binary())?;
     for link in &LINKS {
         let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
         let lender = ActorPack::load(romfs, link.from)?;
@@ -343,30 +319,6 @@ fn own_archives(pack: &ActorPack) -> Result<Vec<String>> {
             Ok(name.as_string()?.to_string())
         })
         .collect()
-}
-
-/// Makes each of [`ITEMS`] usable at both ages in `root`, the pause menu's
-/// table, on every page it shows on.
-fn opened(root: &mut Byml) -> Result<()> {
-    let mut found = [false; ITEMS.len()];
-    for actor in crate::ageless::rows(root, None)? {
-        let short = crate::ageless::name(actor);
-        let Some(i) = short.and_then(|s| ITEMS.iter().position(|i| i.get() == s)) else {
-            continue;
-        };
-        crate::ageless::open(actor);
-        found[i] = true;
-    }
-    let missing: Vec<&str> = (ITEMS.iter().zip(found))
-        .filter(|(_, found)| !found)
-        .map(|(i, _)| i.get())
-        .collect();
-    ensure!(
-        missing.is_empty(),
-        "the pause menu lacks {}",
-        missing.join(", ")
-    );
-    Ok(())
 }
 
 /// A file of a pack edited, and the RESTBL room it needs past its size.
@@ -504,61 +456,6 @@ mod tests {
         (rows.iter().filter_map(shoots))
             .map(|a| a.as_string().unwrap().to_string())
             .collect()
-    }
-
-    #[test]
-    fn the_menu_opens_the_items_to_both_ages_and_nothing_else() {
-        let Some(romfs) = dev_dump() else { return };
-        let vanilla = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap())
-            .unwrap()
-            .root;
-        let mut open = vanilla.clone();
-        opened(&mut open).unwrap();
-        let actors = |root: &Byml| -> Vec<BymlMap> {
-            let mut root = root.clone();
-            let rows = crate::ageless::rows(&mut root, None).unwrap();
-            rows.into_iter().map(|a| a.clone()).collect()
-        };
-        let (was, now) = (actors(&vanilla), actors(&open));
-        assert_eq!(was.len(), now.len());
-        let mut opened = HashSet::new();
-        for (was, now) in was.iter().zip(&now) {
-            let short = now[field::ACTOR_SHORT.get()]
-                .as_string()
-                .unwrap()
-                .to_string();
-            match ITEMS.iter().any(|i| i.get() == short) {
-                true => {
-                    for flag in [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT] {
-                        assert_eq!(now.get(flag.get()), Some(&Byml::Bool(true)), "{short}");
-                    }
-                    opened.insert(short);
-                }
-                false => assert_eq!(was, now, "{short}"),
-            }
-        }
-        assert_eq!(opened.len(), ITEMS.len());
-    }
-
-    #[test]
-    fn the_menu_check_counts_items_not_rows() {
-        let Some(romfs) = dev_dump() else { return };
-        // Every row of the first item renamed to the second: as many rows
-        // match as before, but the first item is gone.
-        let mut doc = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap()).unwrap();
-        let mut renamed = 0;
-        for actor in crate::ageless::rows(&mut doc.root, None).unwrap() {
-            if crate::ageless::name(actor) == Some(ITEMS[0].get()) {
-                actor.insert(
-                    field::ACTOR_SHORT.get().into(),
-                    Byml::String(ITEMS[1].get().into()),
-                );
-                renamed += 1;
-            }
-        }
-        assert!(renamed > 0);
-        let error = opened(&mut doc.root).unwrap_err().to_string();
-        assert!(error.contains(ITEMS[0].get()), "{error}");
     }
 
     #[test]
