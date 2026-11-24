@@ -10,7 +10,7 @@ use crate::config::Config;
 use crate::history::{History, Label};
 use crate::progress::{self, About, Run};
 use crate::settings::Settings;
-use crate::{game, generate, presets, settings, starting};
+use crate::{generate, presets, settings, starting};
 
 pub(super) fn print_written(w: &generate::Written) {
     w.defaults.iter().for_each(|l| println!("default {l}"));
@@ -145,19 +145,22 @@ fn install(
             false => args.out.folders()?,
         },
     };
+    let config = Config::load()?;
     let run = Run::silent().with(progress::print).logged(&about);
     let built = (|| {
-        let romfs = game::prepare(game, extras.release, &run)?;
+        let (romfs, release) = config.seed_romfs(game, extras.release, &run)?;
         let generate = |d: &Path| generate::generate(&romfs, d, seed, &settings, &extras, &run);
         match unplaced {
             true => Ok((generate::throwaway(generate)?, false)),
-            false => args.out.write(&run, generate),
+            false => args.out.write(release, &run, generate),
         }
     })();
     run.end(&built);
     let (report, installed) = built?;
     if installed {
-        super::target::warn_builds(&Config::load()?.targets);
+        let release = report.written.release;
+        let took = (config.targets.into_iter()).filter(|t| t.skips(release).is_none());
+        super::target::warn_builds(&took.collect::<Vec<_>>());
     }
     print_written(&report.written);
     println!(
@@ -196,6 +199,7 @@ fn install(
 mod tests {
     use super::*;
     use crate::cli::args::{Cli, Command};
+    use crate::game;
     use crate::known::{field, flow, item};
     use clap::Parser;
 

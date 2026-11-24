@@ -1185,6 +1185,11 @@ export type Target = {
 	 *  on a machine. None is this machine's game (`turn.here`).
 	 */
 	game?: string | null,
+	/**
+	 *  The game build this target runs. None takes a seed of either build
+	 *  (a game that picks its patch by the build IDs in the file names).
+	 */
+	release?: Release | null,
 } & ({
 	/**  Settings file lines written on install, e.g. `KEY={romfs}`. */
 	settings_file?: SettingsFile | null,

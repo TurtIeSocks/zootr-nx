@@ -30,11 +30,16 @@ pub fn is_code(text: &str) -> bool {
     text.starts_with(PREFIX) || text.starts_with(OLD_PREFIX)
 }
 
+/// The code for a seed. It leaves the build out: placements are the same
+/// on both, and the receiver's own target picks theirs.
 pub fn encode(seed: u64, settings: &Settings, extras: &Extras) -> String {
     let shared = Shared {
         seed,
         settings: settings.clone(),
-        extras: extras.clone(),
+        extras: Extras {
+            release: None,
+            ..extras.clone()
+        },
     };
     let json = serde_json::to_vec(&shared).expect("plain data serializes");
     let packed = zstd::bulk::compress(&json, 19).expect("compressing to memory works");
@@ -55,6 +60,8 @@ pub fn decode(code: &str) -> Result<Shared> {
     let mut shared: Shared =
         serde_json::from_slice(&json).context("a share code from another version")?;
     crate::settings::upgrade(&mut shared.settings, from);
+    // Codes from before [`encode`] left the build out.
+    shared.extras.release = None;
     Ok(shared)
 }
 
@@ -95,6 +102,7 @@ fn from_base64(text: &str) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::Release;
     use crate::known::item;
 
     #[test]
@@ -124,6 +132,30 @@ mod tests {
             (back.seed, back.settings, back.extras),
             (u64::MAX, settings, extras)
         );
+    }
+
+    #[test]
+    fn a_code_leaves_the_build_to_the_receiver() {
+        let extras = Extras {
+            give: vec![item::HOOKSHOT.to_string()],
+            release: Some(Release::V100),
+            ..Default::default()
+        };
+        let code = encode(7, &Settings::new(), &extras);
+        let without = Extras {
+            release: None,
+            ..extras.clone()
+        };
+        assert_eq!(code, encode(7, &Settings::new(), &without));
+        assert_eq!(decode(&code).unwrap().extras, without);
+        let old = Shared {
+            seed: 7,
+            settings: Settings::new(),
+            extras,
+        };
+        let packed = zstd::bulk::compress(&serde_json::to_vec(&old).unwrap(), 19).unwrap();
+        let old = decode(&format!("{PREFIX}{}", to_base64(&packed))).unwrap();
+        assert_eq!(old.extras.release, None, "an older code's build is dropped");
     }
 
     #[test]

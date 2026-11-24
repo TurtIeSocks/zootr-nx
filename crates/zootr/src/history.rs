@@ -143,6 +143,7 @@ impl From<&Entry> for Summary {
             test: !Extras {
                 place: Fixed::new(),
                 ap: None,
+                release: None,
                 ..e.extras.clone()
             }
             .is_empty(),
@@ -211,12 +212,14 @@ impl History {
     }
 
     /// Saved history, brought up to date: readable chest names, older
-    /// settings, and the old `vanilla` extra as Shuffle items off.
+    /// settings, the old `vanilla` extra as Shuffle items off, and the
+    /// build each seed was made for kept in its extras ([`History::add`]).
     fn parse(json: &[u8]) -> Result<Self> {
         let mut history: Self = serde_json::from_slice(json)?;
         let from = std::mem::take(&mut history.settings_version);
         for e in &mut history.entries {
             e.report.spots.iter_mut().for_each(Spot::fill_names);
+            e.extras.release.get_or_insert(e.report.written.release);
             settings::upgrade(&mut e.settings, from);
             if std::mem::take(&mut e.extras.vanilla) {
                 e.settings.insert(SHUFFLE_ITEMS.into(), false.into());
@@ -300,7 +303,9 @@ impl History {
         }
     }
 
-    /// Record a seed. Installing it is up to the caller.
+    /// Record a seed. Installing it is up to the caller. Its extras keep
+    /// the build it was made for, so a reinstall rebuilds that build
+    /// whichever target is picked by then.
     pub fn add(
         &mut self,
         settings: Settings,
@@ -309,6 +314,10 @@ impl History {
         report: Report,
     ) -> &Entry {
         let id = self.entries.last().map_or(1, |e| e.id + 1);
+        let extras = Extras {
+            release: Some(report.written.release),
+            ..extras
+        };
         self.entries.push(Entry {
             id,
             time: now(),
@@ -605,7 +614,11 @@ pub(crate) mod tests {
                 report(7),
             )
             .id;
-        assert_eq!(history.get(second).unwrap().extras, extras);
+        let kept = Extras {
+            release: Some(Release::V111),
+            ..extras
+        };
+        assert_eq!(history.get(second).unwrap().extras, kept, "with its build");
         assert_eq!(history.installed, None);
         history.installed = Some(second);
         let json = serde_json::to_vec(&history).unwrap();
@@ -781,6 +794,29 @@ pub(crate) mod tests {
         json["entries"][0]["extras"] = serde_json::json!({ "vanilla": true });
         let e = &History::parse(json.to_string().as_bytes()).unwrap().entries[0];
         assert_eq!(e.settings[SHUFFLE_ITEMS], false);
-        assert!(e.extras.is_empty());
+        assert_eq!(e.extras.release, Some(Release::V111), "its build kept");
+        assert!(!e.extras.vanilla);
+    }
+
+    #[test]
+    fn a_seed_keeps_the_build_it_was_made_for_and_old_ones_gain_it() {
+        let mut history = History::default();
+        let mut base = report(7);
+        base.written.release = Release::V100;
+        let asked = Extras {
+            release: Some(Release::V111),
+            ..Default::default()
+        };
+        let e = history.add(Settings::new(), asked, Label::default(), base);
+        assert_eq!(
+            e.extras.release,
+            Some(Release::V100),
+            "the build it was made for"
+        );
+        assert!(!Summary::from(e).test, "a build isn't a test setup");
+        let mut json = serde_json::to_value(&history).unwrap();
+        json["entries"][0]["extras"] = serde_json::json!({});
+        let old = History::parse(json.to_string().as_bytes()).unwrap();
+        assert_eq!(old.entries[0].extras.release, Some(Release::V100));
     }
 }

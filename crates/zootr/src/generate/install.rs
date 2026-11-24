@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use anyhow::{Context, Result, bail, ensure};
 
 use crate::config::Target;
+use crate::game::Release;
 use crate::patch;
 use crate::progress::{self, Run, Step, Stopped, TookOff};
 use ounce_formats::copy_mod;
@@ -42,9 +43,24 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
     targets.iter().find(|t| t.running())
 }
 
-/// Run `write` once, into the first target's mod folder, copy what it
-/// wrote to every other distinct folder, then write each target's settings
-/// line. A folder no target reads the cheat from keeps only the
+/// The targets that take a seed for `release`, each other one named on
+/// the log. Errors when there are targets but none takes it.
+fn taking(targets: &[Target], release: Release) -> Result<Vec<Target>> {
+    let (skip, take): (Vec<_>, Vec<_>) = targets.iter().partition(|t| t.skips(release).is_some());
+    for why in skip.iter().filter_map(|t| t.skips(release)) {
+        log::warn!("{why}");
+    }
+    ensure!(
+        skip.is_empty() || !take.is_empty(),
+        "no target runs {}, which this seed is for",
+        release.name()
+    );
+    Ok(take.into_iter().cloned().collect())
+}
+
+/// Run `write` once, into the first target taking a seed for `release`
+/// ([`Target::skips`] the rest), copy what it wrote to every other
+/// distinct folder, then write each target's settings line. A folder no target reads the cheat from keeps only the
 /// exefs patch, or, for a game that builds that in, splits it (see
 /// [`patch::split`]). Refuses while another install runs or any target's game
 /// is open. Returns what `write` did.
@@ -54,9 +70,11 @@ pub fn running(targets: &[Target]) -> Option<&Target> {
 /// without its cheat, so it takes the mod off every one.
 pub fn install<T>(
     targets: &[Target],
+    release: Release,
     run: &Run,
     write: impl FnOnce(&Path) -> Result<T>,
 ) -> Result<T> {
+    let targets = &taking(targets, release)?;
     guarded(targets, || {
         let wrote: Result<T> = progress::caught(|| {
             let mut done = HashSet::new();
@@ -178,6 +196,7 @@ mod tests {
             harness_env: vec![],
             rebuild: None,
             game: None,
+            release: None,
         };
         let line = SettingsFile {
             file: env.clone(),
@@ -213,6 +232,7 @@ mod tests {
             harness_env: vec![],
             rebuild: None,
             game: None,
+            release: None,
         };
         let targets = [
             target("a", "m1", false),
@@ -220,7 +240,7 @@ mod tests {
             target("c", "m2", true),
         ];
         let mut wrote = vec![];
-        let last = install(&targets, &Run::silent(), |d| {
+        let last = install(&targets, Release::V111, &Run::silent(), |d| {
             wrote.push(d.to_owned());
             std::fs::create_dir_all(d.join("romfs/Pack"))?;
             std::fs::write(d.join("romfs/Pack/seed.txt"), "7")?;
@@ -232,7 +252,47 @@ mod tests {
         let copied = std::fs::read_to_string(dir.join("m2/romfs/Pack/seed.txt")).unwrap();
         assert_eq!(copied, "7");
         assert!(dir.join("b.txt").is_file() && dir.join("c.txt").is_file());
-        assert!(install(&[], &Run::silent(), |_| Ok(())).is_err());
+        assert!(install(&[], Release::V111, &Run::silent(), |_| Ok(())).is_err());
+    }
+
+    #[test]
+    fn a_target_of_another_build_is_skipped_and_none_taking_it_is_an_error() {
+        let _turn = TURNS.lock().unwrap();
+        let dir = Scratch::new("builds");
+        let target = |name: &str, release| Target {
+            name: name.into(),
+            app: "/nowhere/zootr-test.app".into(),
+            mod_dir: dir.join(name),
+            settings_file: None,
+            save_dir: None,
+            args: vec![],
+            control: None,
+            bridge: None,
+            env: vec![],
+            harness_env: vec![],
+            rebuild: None,
+            game: None,
+            release,
+        };
+        let targets = [
+            target("base", Some(Release::V100)),
+            target("either", None),
+            target("update", Some(Release::V111)),
+        ];
+        let mut wrote = vec![];
+        install(&targets, Release::V111, &Run::silent(), |d| {
+            wrote.push(d.to_owned());
+            std::fs::create_dir_all(d.join("romfs"))?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(wrote, [dir.join("either")]);
+        assert!(dir.join("update/romfs").is_dir() && !dir.join("base").exists());
+        let names = |r| taking(&targets, r).unwrap().into_iter().map(|t| t.name);
+        assert_eq!(names(Release::V100).collect::<Vec<_>>(), ["base", "either"]);
+        let err = install(&targets[..1], Release::V111, &Run::silent(), |_| Ok(()));
+        let err = err.unwrap_err().to_string();
+        assert_eq!(err, "no target runs 1.1.1, which this seed is for");
     }
 
     #[test]
@@ -255,6 +315,7 @@ mod tests {
             harness_env: vec![],
             rebuild: None,
             game: None,
+            release: None,
         };
         use crate::game::Release;
         use crate::patch::Hook;
@@ -272,7 +333,7 @@ mod tests {
                 }
             };
             let targets = order.map(|m| target(m, line(m)));
-            install(&targets, &Run::silent(), |d| {
+            install(&targets, Release::V111, &Run::silent(), |d| {
                 crate::patch::install(d, Release::V111, &climbing())
             })
             .unwrap();
@@ -291,7 +352,7 @@ mod tests {
             game: None,
             ..target("built", "R={romfs}")
         };
-        install(&[built], &Run::silent(), |d| {
+        install(&[built], Release::V100, &Run::silent(), |d| {
             crate::patch::install(d, Release::V100, &climbing())
         })
         .unwrap();
@@ -322,6 +383,7 @@ mod tests {
             harness_env: vec![],
             rebuild: None,
             game: None,
+            release: None,
         };
         let targets = [target("a"), target("b")];
         let fresh = || {
@@ -345,10 +407,10 @@ mod tests {
         fresh();
         let run = Run::silent();
         run.stopper().stop();
-        let err = install(&targets, &run, |_| run.step(Step::Checks)).unwrap_err();
+        let err = install(&targets, Release::V111, &run, |_| run.step(Step::Checks)).unwrap_err();
         assert!(!progress::took_off(&err));
         as_were();
-        let err = install(&targets, &Run::silent(), |_| -> Result<()> {
+        let err = install(&targets, Release::V111, &Run::silent(), |_| -> Result<()> {
             bail!("broke")
         })
         .unwrap_err();
@@ -357,7 +419,7 @@ mod tests {
 
         // After, a stop, a failure and a panic each take the mod off.
         let run = Run::silent();
-        let err = install(&targets, &run, |_| {
+        let err = install(&targets, Release::V111, &run, |_| {
             run.mark_replaced();
             run.stopper().stop();
             run.check()
@@ -367,7 +429,7 @@ mod tests {
         off();
         fresh();
         let run = Run::silent();
-        let err = install(&targets, &run, |_| -> Result<()> {
+        let err = install(&targets, Release::V111, &run, |_| -> Result<()> {
             run.mark_replaced();
             bail!("the table needs 4076 bytes, 3968 are free")
         })
@@ -377,7 +439,7 @@ mod tests {
         off();
         fresh();
         let run = Run::silent();
-        let err = install(&targets, &run, |_| -> Result<()> {
+        let err = install(&targets, Release::V111, &run, |_| -> Result<()> {
             run.mark_replaced();
             panic!("index out of bounds")
         })
@@ -390,7 +452,7 @@ mod tests {
         fresh();
         let run = Run::silent();
         let stuck = targets[0].mod_dir.join("romfs");
-        let err = install(&targets, &run, |_| -> Result<()> {
+        let err = install(&targets, Release::V111, &run, |_| -> Result<()> {
             run.mark_replaced();
             std::fs::remove_dir_all(&stuck)?;
             std::fs::write(&stuck, "")?;
@@ -407,7 +469,7 @@ mod tests {
         // A stop there says so too, never that the targets are as they were.
         fresh();
         let run = Run::silent();
-        let err = install(&targets, &run, |_| {
+        let err = install(&targets, Release::V111, &run, |_| {
             run.mark_replaced();
             std::fs::remove_dir_all(&stuck)?;
             std::fs::write(&stuck, "")?;
@@ -421,6 +483,6 @@ mod tests {
         std::fs::remove_file(&stuck).unwrap();
         // And the lock it held is free for the next install.
         fresh();
-        install(&targets[..1], &Run::silent(), |_| Ok(())).unwrap();
+        install(&targets[..1], Release::V111, &Run::silent(), |_| Ok(())).unwrap();
     }
 }

@@ -338,6 +338,7 @@ mod tests {
             harness_env: vec![],
             rebuild: None,
             game: None,
+            release: None,
         };
         let mut game = Fake::default();
         let err = boot(&mut game, &target, None, Duration::ZERO).unwrap_err();
