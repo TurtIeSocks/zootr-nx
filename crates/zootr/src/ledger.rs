@@ -27,13 +27,13 @@ pub const SCHEMA: u32 = 1;
 /// The EIE debt today. A PR that pays some off lowers it in the same PR,
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
-    refused: 307,
-    left_out: 179,
+    refused: 309,
+    left_out: 335,
 };
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
-const NOT_HOLDERS: [(&Name, Why); 9] = [
+const NOT_HOLDERS: [(&Name, Why); 22] = [
     // Furniture in the Iron Knuckle rooms, a tree and a cow bone.
     (actor::OBJ_IRON_KNUCKLE_PILLAR_A_01, Why::Scenery),
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
@@ -47,6 +47,43 @@ const NOT_HOLDERS: [(&Name, Why); 9] = [
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
     // The crates Link lifts: nothing breaks them (EIE row 17).
     (actor::OBJ_BROKEN_BOX_A_03, Why::Maintainer),
+    // Silver rupees, obstacles a room counts until its door opens: their
+    // own spec is next (EIE row 19).
+    (actor::OBJ_RUPEE_TOKEN_SILVER, Why::Eie { eie: 19 }),
+    // What Link catches in a bottle, fairies and Blue Fire: the loose
+    // items spec's second phase (EIE row 20).
+    (actor::OBJ_FAIRY, Why::Eie { eie: 20 }),
+    (actor::OBJ_FAIRY_SPIRIT, Why::Eie { eie: 20 }),
+    (
+        actor::OBJ_FAIRY_HIDING_HOLE_FAIRY_FOUNTAIN,
+        Why::Eie { eie: 20 },
+    ),
+    (actor::OBJ_BLUE_FIRE_A_01, Why::Eie { eie: 20 }),
+    (actor::OBJ_BLUE_FIRE_A_06, Why::Eie { eie: 20 }),
+    // The composer brothers' ghosts in the graveyard, an event's actors.
+    (actor::OBJ_SPIRIT_POE_FLAT_EVENT, Why::Scenery),
+    (actor::OBJ_SPIRIT_POE_SHARP_EVENT, Why::Scenery),
+    // The fishing pond's sinking lure, gear for the fishing game.
+    (actor::OBJ_SINKING_LURE, Why::Scenery),
+    // Each Fortress key's placement its thief carries. The key is one
+    // check, dealt through its `SmallKeyForEvent_` placement
+    // (`research/keys.md`, Gerudo Fortress keys).
+    (
+        actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_01,
+        Why::Scenery,
+    ),
+    (
+        actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_02,
+        Why::Scenery,
+    ),
+    (
+        actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_03,
+        Why::Scenery,
+    ),
+    (
+        actor::OBJ_DUNGEON_SMALL_KEY_GERUDO_FORTRESS_04,
+        Why::Scenery,
+    ),
 ];
 
 #[derive(Serialize)]
@@ -152,8 +189,6 @@ impl Why {
 
 /// EIE #12: a breakable the shuffle doesn't deal, its drop random or not.
 const BREAKABLES: u8 = 12;
-/// EIE #18: a rupee or heart lying loose, which no setting deals yet.
-const LOOSE: u8 = 18;
 /// EIE #2: a key logic keeps out of its own dungeon, by asking for all
 /// the dungeon's keys at each of its checks.
 const OWN_DUNGEON_KEYS: u8 = 2;
@@ -227,10 +262,7 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
 
     let book = Book::load()?;
     let ctx = crate::rules::Ctx::new(&new_game);
-    // Loose rupees and hearts aren't dealt, but their rows show logic too.
-    let mut located = dealt.clone();
-    located.extend(pickups::LOOSE.checks(romfs)?);
-    let world = World::build(romfs, &book, &ctx, &located)?;
+    let world = World::build(romfs, &book, &ctx, &dealt)?;
     let held = rows
         .iter()
         .map(|(c, _)| c.item.as_str())
@@ -440,9 +472,6 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if gifts::of(c).is_some_and(|g| !g.dealt(&new_game.on)) {
         return Why::Setting;
     }
-    if pickups::LOOSE.holds(c) {
-        return Why::Eie { eie: LOOSE };
-    }
     Why::Unknown
 }
 
@@ -490,20 +519,22 @@ pub fn seed_flag(romfs: &Romfs, gd: &GameData, spots: &[Spot], hash: u64) -> Res
 }
 
 /// Every placement that holds something, dealt or not: what drops a
-/// fixed item, every gift and scrub, and every breakable, whose drop
-/// is random unless placed.
+/// fixed item, every gift and scrub, every breakable, whose drop is
+/// random unless placed, and every pickup placed as itself.
 fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>> {
     let mut out = checks::scan(romfs)?;
     out.extend(gifts::checks());
     out.extend(scrubs::checks());
     out.extend(pickups::LOOSE.checks(romfs)?);
     let placed: BTreeSet<u64> = out.iter().map(|c| c.hash).collect();
+    let pickups = placed_pickups(romfs)?;
     for (file, doc) in load_bancs(romfs, banc_files(romfs)?) {
         let doc = doc?;
         for actor in actors(&doc.root)? {
             let holder = str_field(actor, GYAML).unwrap_or_default();
             let hash = hash_of(actor).context("actor without Hash")?;
-            if breakable.contains(holder) && !placed.contains(&hash) {
+            let holds = breakable.contains(holder) || pickups.contains(holder);
+            if holds && !placed.contains(&hash) {
                 out.push(ItemCheck {
                     file: file.clone(),
                     area: crate::checks::area_of(&file).to_owned(),
@@ -524,11 +555,28 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
 
 /// A pack's drop tables. Every pack has `Default`, chests included.
 const DROPS: &str = "Component/DropParam/";
+/// What a pickup's pack gives Link when he takes it.
+const POUCH: &str = "Component/PouchContentParam/";
 
-/// The placed objects Link breaks or lifts for a drop: their pack has a
-/// drop table of its own, and either lifts or is a kind pickups already
-/// deals. Grass Link can only cut does neither.
-fn breakables(romfs: &Romfs) -> Result<BTreeSet<String>> {
+/// Every placed object that is a pickup itself: its pack says what Link
+/// gets for taking it. So a pickup no kind knows still gets a row, and a
+/// reason when it's left out. Silver rupees count toward their room, not
+/// the pouch, so they're named.
+fn placed_pickups(romfs: &Romfs) -> Result<BTreeSet<String>> {
+    let mut out = BTreeSet::from([actor::OBJ_RUPEE_TOKEN_SILVER.get().to_owned()]);
+    for name in placed_objects(romfs)? {
+        let Ok(pack) = ActorPack::load(romfs, &name) else {
+            continue;
+        };
+        if pack.files().iter().any(|f| f.starts_with(POUCH)) {
+            out.insert(name);
+        }
+    }
+    Ok(out)
+}
+
+/// The name of every `Obj_` actor any Banc file places.
+fn placed_objects(romfs: &Romfs) -> Result<BTreeSet<String>> {
     let mut names = BTreeSet::new();
     for (_, doc) in load_bancs(romfs, banc_files(romfs)?) {
         for actor in actors(&doc?.root)? {
@@ -538,8 +586,15 @@ fn breakables(romfs: &Romfs) -> Result<BTreeSet<String>> {
             }
         }
     }
+    Ok(names)
+}
+
+/// The placed objects Link breaks or lifts for a drop: their pack has a
+/// drop table of its own, and either lifts or is a kind pickups already
+/// deals. Grass Link can only cut does neither.
+fn breakables(romfs: &Romfs) -> Result<BTreeSet<String>> {
     let mut out = BTreeSet::new();
-    for name in names {
+    for name in placed_objects(romfs)? {
         let Ok(pack) = ActorPack::load(romfs, &name) else {
             continue;
         };
@@ -692,20 +747,16 @@ mod tests {
             unknown.is_empty(),
             "left out for no reason (NOT_HOLDERS): {unknown:?}"
         );
-        // Loose rupees and hearts are listed, as debt until a setting deals
-        // them.
+        // Every loose pickup is dealt, with logic.
         let loose: Vec<_> = (ledger.rows.iter())
             .filter(|r| pickups::LOOSE.places(&r.holder))
-            .map(|r| &r.left_out)
             .collect();
-        assert!(!loose.is_empty());
-        let logic = (ledger.rows.iter()).filter(|r| pickups::LOOSE.places(&r.holder));
+        assert_eq!(loose.len(), 140);
         assert!(
-            logic.clone().all(|r| !r.logic.is_empty()),
-            "a loose row with no logic"
+            loose
+                .iter()
+                .all(|r| r.left_out.is_none() && !r.logic.is_empty())
         );
-        let debt = Some(Why::Eie { eie: LOOSE });
-        assert!(loose.iter().all(|w| **w == debt), "{loose:?}");
         assert_eq!(
             Debt::of(&ledger),
             BASELINE,

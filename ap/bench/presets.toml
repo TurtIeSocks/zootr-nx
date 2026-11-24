@@ -63,6 +63,7 @@ crates = true
 rocks = true
 grass = true
 hives = true
+loose-items = true
 shuffle-masks = true
 ice-traps = "mayhem"
 progressive-items = true

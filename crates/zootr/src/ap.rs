@@ -82,6 +82,7 @@ pub const OPTIONS: &[&str] = &[
     "rocks",
     "grass",
     "hives",
+    "loose-items",
     "shuffle-masks",
     "ice-traps",
     "progressive-items",

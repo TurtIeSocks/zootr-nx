@@ -22,10 +22,31 @@ why = "in reach from its room; lies 3.6 m from its room's floor, past a walk's r
 guess = true
 
 [[check]]
+hash = 729508615351641392
+name = "Heart In Water"
+needs = "always"
+why = "in reach from its room; lies 3.2 m from its room's floor, past a walk's reach; what takes it isn't traced"
+guess = true
+
+[[check]]
+hash = 2222711177065858733
+name = "Heart In Water"
+needs = "always"
+why = "in reach from its room; lies 3.9 m from its room's floor, past a walk's reach; what takes it isn't traced"
+guess = true
+
+[[check]]
 hash = 9056903661273588275
 name = "Recovery Heart"
 needs = "always"
 why = "in reach from its room; lies 3.3 m from its room's floor, past a walk's reach; what takes it isn't traced"
+guess = true
+
+[[check]]
+hash = 16597323285320397604
+name = "Heart In Water"
+needs = "always"
+why = "in reach from its room; lies 3.4 m from its room's floor, past a walk's reach; what takes it isn't traced"
 guess = true
 
 [[flag]]

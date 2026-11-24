@@ -1,8 +1,8 @@
 //! Placed actors that hold an item as a check without a chest: freestanding
 //! heart pieces, Gold Skulltulas, whose kill drops their token, the
 //! pots, crates, rocks, grass, hives and flying pots that drop something
-//! when broken, the Gerudo thieves' keys, and the rupees and hearts lying
-//! loose, which no setting deals yet. One
+//! when broken, the Gerudo thieves' keys, and the rupees, hearts and other
+//! pickups lying loose. One
 //! that holds something else gets a pickup for it, a stand-in built on a
 //! pickup that gives a major item when no `Obj_*` form exists.
 
@@ -222,9 +222,11 @@ pub const RUTOS_LETTER: Kind = Kind {
     named: None,
 };
 
-/// Rupees and Recovery Hearts lying in the open, each its own pickup. No
-/// setting deals them yet (EIE row 18, debt): they're here so the ledger
-/// lists them and derive gives each a room rule.
+/// Rupees, Recovery Hearts and the other pickups lying in the open, each
+/// its own pickup, taken once as the game has it (`NoRespawn`): the three
+/// hearts under the Deku Tree's water, and the Deku Nut, Seed and Stick on
+/// child Lake Hylia's bed, which `logic/hyrule-field.toml` puts past the
+/// Silver Scale. The loose items setting deals them.
 pub const LOOSE: Kind = Kind {
     actors: &[
         actor::OBJ_RUPEE_GREEN,
@@ -232,6 +234,10 @@ pub const LOOSE: Kind = Kind {
         actor::OBJ_RUPEE_RED,
         actor::OBJ_RUPEE_PURPLE,
         actor::OBJ_HEART,
+        actor::OBJ_HEART_IN_WATER,
+        actor::OBJ_DEKU_NUT,
+        actor::OBJ_DEKU_SEED,
+        actor::OBJ_DEKU_STICK,
     ],
     item: None,
     field: GYAML,
@@ -383,6 +389,7 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
     let npc_gifts = new_game.on.contains(NPC_GIFTS);
     let on = [
         (new_game.freestanding, &FREESTANDING),
+        (new_game.loose_items, &LOOSE),
         (new_game.skulltulas, &SKULLTULAS),
         (new_game.boss_hearts, &BOSS_HEARTS),
         (new_game.pots, &POTS),
@@ -712,6 +719,7 @@ mod tests {
             (&LOOSE_KEYS, 2),
             (&FIRE_ARROWS, 1),
             (&RUTOS_LETTER, 1),
+            (&LOOSE, 140),
         ] {
             let checks = kind.checks(&romfs).unwrap();
             let hashes: BTreeSet<u64> = checks.iter().map(|c| c.hash).collect();
@@ -800,21 +808,63 @@ mod tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
 
-    /// Each rupee or heart lying loose is a check holding itself, and no
-    /// setting deals one yet.
+    /// Each pickup lying loose is a check holding itself, dealt only with
+    /// the loose items setting on: 192 rupee and heart placements, the
+    /// Deku Tree's three underwater hearts and Lake Hylia's nut, seed and
+    /// stick.
     #[test]
-    fn a_loose_rupee_or_heart_holds_itself_and_no_setting_deals_it() {
+    fn a_loose_pickup_holds_itself_and_its_setting_deals_it() {
         let Some(romfs) = dev_dump() else { return };
         let loose = LOOSE.checks(&romfs).unwrap();
-        assert_eq!(loose.len(), 192);
+        assert_eq!(loose.len(), 198);
         assert!(loose.iter().all(|c| c.item == c.holder));
-        let every = NewGame::from_settings(&crate::ledger::every_shuffle(), &[]).unwrap();
-        assert!(
-            !dealt(&romfs, &every)
-                .unwrap()
+        let deals = |on: bool| {
+            let mut settings = crate::ledger::every_shuffle();
+            settings.insert(crate::settings::LOOSE_ITEMS.into(), on.into());
+            let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+            let dealt = dealt(&romfs, &new_game).unwrap();
+            dealt.iter().filter(|c| LOOSE.holds(c)).count()
+        };
+        assert_eq!(deals(false), 0);
+        assert_eq!(deals(true), 198);
+    }
+
+    /// A loose rupee dealt the Hookshot lies as a stand-in, and one dealt
+    /// a Green Rupee lies as that rupee. Each keeps its placement hash, so
+    /// the game's own key still marks it taken.
+    #[test]
+    fn a_loose_spot_swaps_its_actor_under_its_own_hash() {
+        let Some(romfs) = dev_dump() else { return };
+        let checks = LOOSE.checks(&romfs).unwrap();
+        let of = |holder: &Name| {
+            checks
                 .iter()
-                .any(|c| LOOSE.holds(c))
-        );
+                .find(|c| c.holder == holder.get())
+                .unwrap()
+                .hash
+        };
+        let (green, blue) = (of(actor::OBJ_RUPEE_GREEN), of(actor::OBJ_RUPEE_BLUE));
+        let drops = HashMap::from([
+            (green, Drop::from(item::HOOKSHOT.to_string())),
+            (blue, Drop::from(actor::OBJ_RUPEE_GREEN.to_string())),
+        ]);
+        let dir = std::env::temp_dir().join(format!("zootr-loose-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &checks,
+            &drops,
+            &NewGame::rings(),
+        )
+        .unwrap();
+        let standin = format!("{green}.{GYAML}={NEW}");
+        assert!(fields.iter().any(|f| f.starts_with(&standin)), "{fields:?}");
+        assert!(fields.contains(&format!("{blue}.{GYAML}={}", actor::OBJ_RUPEE_GREEN)));
+        builder.finish().unwrap();
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]

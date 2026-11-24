@@ -44,14 +44,15 @@ use crate::known::{field, flag, map};
 use crate::pickups::steps::asks;
 use crate::pickups::{
     BOSS_HEARTS, CRATES, FIRE_ARROWS, FLYING_POTS, FORTRESS_KEYS, FREESTANDING, GRASS, HIVES, Kind,
-    LOOSE_KEYS, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS,
+    LOOSE, LOOSE_KEYS, POTS, ROCKS, RUTOS_LETTER, SKULLTULAS,
 };
 use crate::world::Presence;
 
 /// Pickups lying in place, which stand until picked only when dealt what
 /// might show a step at a time. Their key tracks the rest.
-const LYING: [&Kind; 5] = [
+const LYING: [&Kind; 6] = [
     &FREESTANDING,
+    &LOOSE,
     &BOSS_HEARTS,
     &FIRE_ARROWS,
     &LOOSE_KEYS,

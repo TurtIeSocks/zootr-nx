@@ -29,6 +29,8 @@ pub struct NewGame {
     pub shop_slots: usize,
     /// Freestanding heart pieces are checks.
     pub freestanding: bool,
+    /// Rupees, hearts and other pickups lying loose are checks.
+    pub loose_items: bool,
     /// Gold Skulltulas' drops are checks.
     pub skulltulas: bool,
     /// Boss heart containers are checks.
@@ -203,6 +205,7 @@ impl NewGame {
             scrubs: on(SCRUBS),
             scrub_price: chosen::<ScrubPrice>(settings, SCRUB_PRICE).rupees(),
             freestanding: on(FREESTANDING),
+            loose_items: on(LOOSE_ITEMS),
             skulltulas: on(SKULLTULAS),
             boss_hearts: on(BOSS_HEARTS),
             pots: on(POTS),
@@ -433,6 +436,7 @@ mod tests {
                 scrub_price: ScrubPrice::default().rupees(),
                 shop_slots: 0,
                 freestanding: false,
+                loose_items: false,
                 skulltulas: false,
                 boss_hearts: false,
                 pots: false,

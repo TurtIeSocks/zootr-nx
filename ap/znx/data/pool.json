@@ -389,6 +389,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -416,6 +419,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -440,6 +446,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -488,6 +497,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -516,6 +528,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -547,6 +562,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -565,6 +583,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -610,6 +631,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -645,6 +669,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "hives"
           },
           {
@@ -699,6 +726,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "grass"
@@ -764,6 +794,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "grass"
@@ -822,6 +855,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "rocks"
@@ -883,6 +919,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "rocks"
@@ -918,6 +957,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "rocks"
@@ -956,6 +998,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "rocks"
@@ -977,6 +1022,9 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "all": [
               {
@@ -997,44 +1045,6 @@
               },
               {
                 "setting": "rocks"
-              },
-              {
-                "setting": "hives"
-              }
-            ]
-          },
-          {
-            "setting": "pots"
-          },
-          {
-            "all": [
-              {
-                "setting": "npc-gifts"
-              },
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "hives"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Blue Rupee (5)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "grass"
               },
               {
                 "setting": "hives"
@@ -1067,6 +1077,50 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
             "all": [
               {
                 "setting": "crates"
@@ -1127,6 +1181,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "pots"
           },
           {
@@ -1155,6 +1212,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "pots"
           },
           {
@@ -1180,11 +1240,18 @@
       }
     },
     {
-      "count": 11,
+      "count": 5,
       "item": "Blue Rupee (5)",
       "trappable": true,
       "when": {
-        "setting": "pots"
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "setting": "pots"
+          }
+        ]
       }
     },
     {
@@ -1193,6 +1260,362 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1239,6 +1662,19 @@
                 "setting": "npc-gifts"
               },
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
                 "setting": "pots"
               }
             ]
@@ -1252,6 +1688,39 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1288,6 +1757,19 @@
                 "setting": "npc-gifts"
               },
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
                 "setting": "pots"
               }
             ]
@@ -1301,6 +1783,42 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1340,6 +1858,38 @@
                 "setting": "npc-gifts"
               },
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
                 "setting": "pots"
               },
               {
@@ -1372,6 +1922,55 @@
           {
             "all": [
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1386,6 +1985,35 @@
               },
               {
                 "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1414,6 +2042,42 @@
           {
             "all": [
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1428,6 +2092,38 @@
               },
               {
                 "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1459,6 +2155,45 @@
           {
             "all": [
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1475,6 +2210,38 @@
                 "setting": "rocks"
               }
             ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           }
         ]
       }
@@ -1485,6 +2252,29 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1527,6 +2317,22 @@
                 "setting": "npc-gifts"
               },
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
                 "setting": "pots"
               },
               {
@@ -1543,6 +2349,29 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1572,6 +2401,25 @@
                 "setting": "npc-gifts"
               },
               {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
                 "setting": "pots"
               },
               {
@@ -1588,6 +2436,29 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -1658,6 +2529,48 @@
           {
             "all": [
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1691,6 +2604,22 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1735,6 +2664,32 @@
           {
             "all": [
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1755,6 +2710,22 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1802,6 +2773,35 @@
           {
             "all": [
               {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "pots"
               },
               {
@@ -1825,6 +2825,44 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1875,10 +2913,39 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "rocks"
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1913,10 +2980,42 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "rocks"
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1936,6 +3035,1231 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 5,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "all": [
+          {
+            "setting": "pots"
+          },
+          {
+            "setting": "loose-items"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Blue Rupee (5)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "npc-gifts"
+              },
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -1956,6 +4280,9 @@
           },
           {
             "setting": "hives"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -1979,6 +4306,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -1995,6 +4325,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -2011,6 +4344,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -2036,6 +4372,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -2052,6 +4391,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -2080,6 +4422,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -2099,6 +4444,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -2118,6 +4466,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -2144,6 +4495,9 @@
           },
           {
             "setting": "hives"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -2171,6 +4525,9 @@
           },
           {
             "setting": "hives"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -2494,6 +4851,13 @@
     },
     {
       "count": 1,
+      "item": "Deku Nut",
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "count": 1,
       "item": "Deku Nut Bag (30)",
       "when": {
         "any": [
@@ -2525,11 +4889,14 @@
       "item": "Deku Nuts (3)"
     },
     {
-      "count": 5,
+      "count": 1,
       "item": "Deku Seeds (3)",
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "setting": "grass"
           },
@@ -2544,11 +4911,77 @@
       "item": "Deku Seeds (3)",
       "trappable": true,
       "when": {
+        "any": [
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Seeds (3)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "grass"
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 3,
+      "item": "Deku Seeds (3)",
+      "trappable": true,
+      "when": {
         "setting": "grass"
       }
     },
     {
-      "count": 5,
+      "count": 1,
+      "item": "Deku Seeds (3)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
       "item": "Deku Seeds (3)",
       "trappable": true,
       "when": {
@@ -2558,6 +4991,24 @@
           },
           {
             "setting": "grass"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Seeds (3)",
+      "trappable": true,
+      "when": {
+        "all": [
+          {
+            "setting": "pots"
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -2581,7 +5032,24 @@
       }
     },
     {
-      "count": 2,
+      "count": 1,
+      "item": "Deku Stick",
+      "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
       "item": "Deku Stick",
       "when": {
         "any": [
@@ -2595,14 +5063,63 @@
       }
     },
     {
-      "count": 4,
+      "count": 1,
+      "item": "Deku Stick",
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 3,
       "item": "Deku Stick",
       "when": {
         "setting": "pots"
       }
     },
     {
-      "count": 2,
+      "count": 1,
+      "item": "Deku Stick",
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
       "item": "Deku Stick",
       "when": {
         "all": [
@@ -2611,6 +5128,23 @@
           },
           {
             "setting": "grass"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Deku Stick",
+      "when": {
+        "all": [
+          {
+            "setting": "pots"
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -2916,6 +5450,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "rocks"
           },
           {
@@ -2934,6 +5471,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "crates"
           },
           {
@@ -2948,6 +5488,9 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "all": [
               {
@@ -2969,7 +5512,14 @@
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
-        "setting": "pots"
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "setting": "pots"
+          }
+        ]
       }
     },
     {
@@ -2978,6 +5528,9 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "all": [
               {
@@ -3006,12 +5559,220 @@
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 6,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 29,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "count": 6,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 6,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 26,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "all": [
+          {
+            "setting": "pots"
+          },
+          {
+            "setting": "loose-items"
+          }
+        ]
+      }
+    },
+    {
+      "count": 6,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
         "all": [
           {
             "setting": "pots"
           },
           {
             "setting": "crates"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -3030,6 +5791,9 @@
           },
           {
             "setting": "rocks"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -3372,7 +6136,61 @@
             "setting": "running-race"
           },
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "crates"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Purple Rupee (50)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "all": [
+              {
+                "setting": "running-race"
+              },
+              {
+                "setting": "crates"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "item": "Purple Rupee (50)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "running-race"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           }
         ]
       }
@@ -3388,6 +6206,9 @@
           },
           {
             "setting": "crates"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -3404,6 +6225,9 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "setting": "hives"
           },
@@ -3429,6 +6253,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "grass"
           },
           {
@@ -3436,6 +6263,151 @@
           },
           {
             "setting": "crates"
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "loose-items"
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 10,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 11,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "grass"
+          },
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           },
           {
             "setting": "pots"
@@ -3462,6 +6434,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3472,7 +6447,7 @@
       }
     },
     {
-      "count": 108,
+      "count": 83,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -3497,6 +6472,16 @@
         "any": [
           {
             "setting": "grass"
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           },
           {
             "all": [
@@ -3536,7 +6521,27 @@
                 "setting": "grass"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3598,7 +6603,27 @@
                 "setting": "grass"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3647,6 +6672,26 @@
           {
             "all": [
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "rocks"
               },
               {
@@ -3689,6 +6734,26 @@
           {
             "all": [
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "rocks"
               },
               {
@@ -3716,6 +6781,437 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 8,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 9,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3751,6 +7247,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3764,6 +7263,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3799,6 +7301,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3809,7 +7314,7 @@
       }
     },
     {
-      "count": 108,
+      "count": 83,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -3836,6 +7341,19 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -3877,6 +7395,19 @@
           {
             "all": [
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "crates"
               },
               {
@@ -3884,6 +7415,179 @@
               },
               {
                 "setting": "grass"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 10,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "setting": "pots"
+          }
+        ]
+      }
+    },
+    {
+      "count": 11,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3912,6 +7616,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -3922,7 +7629,7 @@
       }
     },
     {
-      "count": 48,
+      "count": 23,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -3941,6 +7648,16 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "hives"
               }
             ]
@@ -3990,6 +7707,16 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "grass"
               }
             ]
@@ -4011,6 +7738,223 @@
               },
               {
                 "setting": "crates"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 10,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 11,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4053,6 +7997,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4060,7 +8007,7 @@
       }
     },
     {
-      "count": 108,
+      "count": 83,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -4101,6 +8048,19 @@
               },
               {
                 "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -4148,7 +8108,33 @@
                 "setting": "grass"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -4222,7 +8208,33 @@
                 "setting": "grass"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
                 "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -4280,6 +8292,32 @@
                 "setting": "pots"
               },
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "rocks"
               },
               {
@@ -4328,6 +8366,32 @@
                 "setting": "pots"
               },
               {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "rocks"
               },
               {
@@ -4361,6 +8425,506 @@
               },
               {
                 "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 8,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 9,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4399,6 +8963,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           },
@@ -4415,6 +8982,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4453,6 +9023,9 @@
               },
               {
                 "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4460,7 +9033,7 @@
       }
     },
     {
-      "count": 108,
+      "count": 83,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -4483,6 +9056,22 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
           {
             "all": [
               {
@@ -4523,6 +9112,204 @@
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 10,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "hives"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "grass"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 11,
+      "item": "Recovery Heart",
+      "trappable": true,
+      "when": {
         "all": [
           {
             "setting": "pots"
@@ -4535,6 +9322,9 @@
           },
           {
             "setting": "grass"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -4559,6 +9349,9 @@
           },
           {
             "setting": "hives"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }
@@ -4569,6 +9362,9 @@
       "trappable": true,
       "when": {
         "any": [
+          {
+            "setting": "loose-items"
+          },
           {
             "setting": "rocks"
           },
@@ -4588,6 +9384,9 @@
       "when": {
         "any": [
           {
+            "setting": "loose-items"
+          },
+          {
             "setting": "crates"
           },
           {
@@ -4612,6 +9411,26 @@
           {
             "all": [
               {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
                 "setting": "crates"
               },
               {
@@ -4625,7 +9444,97 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "crates"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Red Rupee (20)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 2,
+      "item": "Red Rupee (20)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
               }
             ]
           }
@@ -4646,6 +9555,9 @@
           },
           {
             "setting": "rocks"
+          },
+          {
+            "setting": "loose-items"
           }
         ]
       }

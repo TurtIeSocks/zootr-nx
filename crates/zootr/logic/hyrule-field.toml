@@ -26,3 +26,24 @@ hash = 13942975907881711341
 name = "Grotto pond crate 2"
 needs = "(explosives or hammer) and iron-boots"
 setting = "crates"
+
+# Child Lake Hylia's bed, about 5 m under the water: a Deku Nut, Seed and
+# Stick lying together. Link dives to them with the Silver Scale, and
+# can't without one (live, 2026-11-24).
+[[check]]
+hash = 9807262312429560898
+name = "Lake bed Deku Nut"
+needs = "silver-scale"
+setting = "loose-items"
+
+[[check]]
+hash = 9602474208541439570
+name = "Lake bed Deku Seed"
+needs = "silver-scale"
+setting = "loose-items"
+
+[[check]]
+hash = 8980892284071798868
+name = "Lake bed Deku Stick"
+needs = "silver-scale"
+setting = "loose-items"

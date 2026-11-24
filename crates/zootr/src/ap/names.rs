@@ -172,6 +172,7 @@ const ITEMS: &[(&Name, &str)] = &[
     (actor::OBJ_FAIRY, "Fairy"),
     (actor::OBJ_BOMB, "Bomb"),
     (actor::OBJ_DEKU_STICK, "Deku Stick"),
+    (actor::OBJ_DEKU_NUT, "Deku Nut"),
     (actor::OBJ_DEKU_SEED, "Deku Seeds (3)"),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, "Arrows (3)"),
     (actor::T_BOX_ARROW_BUNDLE_MEDIUM, "Arrows (5)"),
@@ -222,6 +223,7 @@ const SAME: &[(&Name, &Name)] = &[
     (actor::OBJ_RUPEE_RED, actor::T_BOX_RUPEE_RED),
     (actor::OBJ_RUPEE_PURPLE, actor::T_BOX_RUPEE_PURPLE),
     (actor::OBJ_RUPEE_GOLD, actor::T_BOX_RUPEE_GOLD),
+    (actor::OBJ_HEART_IN_WATER, actor::OBJ_HEART),
     (
         actor::OBJ_ARROW_BUNDLE_SMALL,
         actor::T_BOX_ARROW_BUNDLE_SMALL,

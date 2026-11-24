@@ -351,7 +351,7 @@
   },
   {
     "default": false,
-    "description": "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. A broken pot may come back when the area reloads, so its item may too",
+    "description": "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. Its item stays until Link picks it up. After that the pot drops what it always did",
     "id": "pots",
     "kind": "toggle",
     "label": "Pots"
@@ -383,6 +383,13 @@
     "id": "hives",
     "kind": "toggle",
     "label": "Beehives"
+  },
+  {
+    "default": false,
+    "description": "Every rupee and Recovery Heart lying loose in the world is a check, and so are the Deku Nut, Seed and Stick on Lake Hylia's bed. Each is taken once, as in the game. One that holds something else shows it where the rupee or heart was",
+    "id": "loose-items",
+    "kind": "toggle",
+    "label": "Loose Items"
   },
   {
     "default": false,
