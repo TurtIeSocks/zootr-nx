@@ -83,6 +83,8 @@ interface Seeds {
   stopping: boolean;
   /** The target `steps` rebuilt, or null when they generated a seed. */
   rebuilt: string | null;
+  /** The History entry being installed, or null while none is. */
+  installing: number | null;
 }
 
 /** The seeds store. Start it with {@link init}. */
@@ -102,6 +104,7 @@ export const useSeeds = create<Seeds>()(
       generating: false,
       stopping: false,
       rebuilt: null,
+      installing: null,
     }),
   ),
 );
@@ -341,10 +344,16 @@ export const generateAp = (path: string) =>
     }),
   );
 /** Installs a history entry to every target. */
-export const install = (id: number) =>
-  run(() =>
-    stepping((steps) => call(commands.install(id, steps)), { total: 1 }),
-  );
+export async function install(id: number) {
+  useSeeds.setPath("installing", id);
+  try {
+    await run(() =>
+      stepping((steps) => call(commands.install(id, steps)), { total: 1 }),
+    );
+  } finally {
+    useSeeds.setPath("installing", null);
+  }
+}
 /** Rebuilds a target's game, its output in the step log, and says whether
  * it finished rather than stopped. Throws why it failed, or why the build
  * still lacks the installed hook patch. */
