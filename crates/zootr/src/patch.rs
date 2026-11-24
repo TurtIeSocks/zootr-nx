@@ -41,13 +41,16 @@ const SKIPS: [(u32, u32); 3] = [GATE, CATCH, gear::BOOTS];
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
-/// to `seed_guide`, so a child Bow says "Shoot Arrow".
-const CALLS: [(u32, u32); 5] = [
+/// to `seed_guide`, so a child Bow says "Shoot Arrow". The equipment
+/// slots' child tests go to `gear_child` ([`gear::CALLS`]).
+const CALLS: [(u32, u32); 7] = [
     (0x2ae_0828, 0),
     (0x2ae_08cc, 0),
     (0x2ef_6560, 4),
     (0x2ef_4888, 4),
     (0x4b_01a4, 68),
+    gear::CALLS[0],
+    gear::CALLS[1],
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
@@ -159,7 +162,7 @@ fn fit(at: u32, mut bytes: Vec<u8>, end: u32, what: &str) -> Result<Patch> {
     Ok(Patch { at, bytes })
 }
 
-/// The skips, the gear gates, the hook and its far code.
+/// The skips, the hook and its far code.
 fn code() -> Result<Vec<Patch>> {
     let skips = SKIPS.map(|(at, to)| Patch {
         at,
@@ -167,9 +170,7 @@ fn code() -> Result<Vec<Patch>> {
     });
     let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
     let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
-    Ok((skips.into_iter().chain(gear::gates()))
-        .chain([code, far])
-        .collect())
+    Ok(skips.into_iter().chain([code, far]).collect())
 }
 
 /// The skips, the hook, its far code and every call site: the same for
@@ -507,11 +508,9 @@ mod tests {
         }
     }
 
-    /// How many patches rewrite the game's own code, before the hook's.
-    const REWRITES: usize = SKIPS.len() + gear::GATES.len();
-    /// Where the table's two writes start in `patches`: after the
-    /// rewrites, the hook and its far code.
-    const TABLE_AT: usize = REWRITES + 2;
+    /// Where the table's two writes start in `patches`: after the skips,
+    /// the hook and its far code.
+    const TABLE_AT: usize = SKIPS.len() + 2;
     /// Where the sites start in `patches`, after the table.
     const SITES_AT: usize = TABLE_AT + 2;
 
@@ -543,7 +542,7 @@ mod tests {
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
         let p = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
-        let [code, far, body, magic, ..] = &p[REWRITES..] else {
+        let [code, far, body, magic, ..] = &p[SKIPS.len()..] else {
             panic!("patches")
         };
         assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
@@ -891,7 +890,6 @@ mod tests {
         // Each patch starts at a place checked above.
         let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
         let checked: Vec<u32> = (sites.map(|&(at, _)| at))
-            .chain(gear::GATES.map(|(at, _)| at))
             .chain([RUN_CALL.0, CAVE, FAR, TABLE, TABLE + 4])
             .collect();
         for p in patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap() {

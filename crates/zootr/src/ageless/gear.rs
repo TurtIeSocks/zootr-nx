@@ -1,7 +1,9 @@
 //! Boots for a child. The menu's table greys them out for him, and his
 //! model had no group for the boots' armor to hide, so his own fur boots
-//! showed through. The patch lets their effect reach him (`BOOTS` in
-//! `patch.rs`). See `superpowers/specs/2026-11-23-child-gear-design.md`.
+//! showed through. The seed's `CHILD_GEAR` flag lets the hook make the
+//! boots on him and their state reach him (`patch/gear.rs`), and his steps
+//! in them are the adult's clips, lent ([`crate::ageless_items`]). See
+//! `superpowers/specs/2026-11-23-child-gear-design.md`.
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, pack_file};

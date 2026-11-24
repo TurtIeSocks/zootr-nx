@@ -29,6 +29,19 @@ pub const DEV: u32 = 16;
 /// The header's flag for a seed whose bombchus need a Bombchu Bag, which
 /// sets their own expansion value.
 pub const BOMBCHU_BAG: u32 = 32;
+/// The header's flag for a seed where child Link wears the boots: the
+/// equipment slots' child test lets their slot through ([`gear_through`]).
+pub const CHILD_GEAR: u32 = 64;
+/// The equipment slot the boots go in.
+pub const BOOTS_SLOT: u32 = 9;
+
+/// Whether the equipment slots' child test lets `slot` through for a
+/// child in a seed with `flags`: the game refuses a child the armor, boots
+/// and hand armor slots (8 to 10), so nothing of theirs is made on him.
+/// [`CHILD_GEAR`] lets the boots through.
+pub fn gear_through(slot: u32, flags: u32) -> bool {
+    slot == BOOTS_SLOT && flags & CHILD_GEAR != 0
+}
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.
@@ -572,6 +585,17 @@ pub fn encode(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_child_gear_flag_lets_only_the_boots_through() {
+        for slot in [8, BOOTS_SLOT, 10] {
+            assert!(!gear_through(slot, 0), "{slot}");
+            assert!(!gear_through(slot, !CHILD_GEAR), "{slot}");
+        }
+        assert!(gear_through(BOOTS_SLOT, CHILD_GEAR));
+        assert!(!gear_through(8, !0));
+        assert!(!gear_through(10, !0));
+    }
     use crate::spots::tests::SPOTS;
 
     const BAGS: &[(&str, &str)] = &[("Bag_S", "Bag_S"), ("Bag_M", "Bag_M"), ("Bag_L", "Bag_L")];

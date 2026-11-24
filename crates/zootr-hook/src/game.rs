@@ -129,6 +129,7 @@ global_asm!(
     "b equipment_built_entry",
     "b equipment_left_entry",
     "b resident_made_entry",
+    "b gear_child_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -168,6 +169,9 @@ global_asm!(
     "content_name_entry:",
     "mov x4, x20",
     "b content_name",
+    "gear_child_entry:",
+    "mov w1, w20",
+    "b gear_child",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
@@ -368,6 +372,25 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         {
             return seeds;
         }
+        let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
+        child(link)
+    }
+}
+
+/// The equipment slots' child test, at both of its gates (the equip
+/// request and the actor it makes), each with the slot in `w20`: whether
+/// Link counts as a child for `slot`. Not for the boots in a seed with
+/// [`crate::CHILD_GEAR`], so they're made on him. Otherwise the game's own
+/// answer, as it gave it.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call sites.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
+    if table().is_some_and(|(_, table)| crate::gear_through(slot, table.flags)) {
+        return false;
+    }
+    unsafe {
         let child: Childhood = core::mem::transmute(main() + OFFSETS.childhood as usize);
         child(link)
     }

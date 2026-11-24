@@ -53,8 +53,9 @@ pub use table::SlotSpec;
 #[cfg(not(target_os = "none"))]
 pub use table::encode;
 pub use table::{
-    BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
-    Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv, pick, pick_with,
+    BOMBCHU_BAG, BOOTS_SLOT, BUNNY_HOOD, CHILD_GEAR, Credit, DEV, FREE_BOMBCHUS, Found, HEADER,
+    Header, ICE_TRAPS, Level, Levels, MAGIC, MENU_CYCLE, Offsets, Slot, Table, after_grant, fnv,
+    gear_through, pick, pick_with,
 };
 
 /// Where our pieces go in `main`, for game 1.1.1. The code goes over
@@ -81,7 +82,7 @@ pub const PANIC: u32 = 0x4e9_aff0;
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 84;
+pub const SLOTS: u32 = 88;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says

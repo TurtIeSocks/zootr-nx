@@ -324,6 +324,10 @@ pub fn write_mod(
     }
     if new_game.on.contains(AGELESS_GEAR) {
         ageless::gear::write(&mut builder)?;
+        // The boots' clips are the adult's, which ageless-items lends too.
+        if !new_game.on.contains(AGELESS_ITEMS) {
+            ageless_items::lend_child_clips(romfs, &mut builder)?;
+        }
     }
     if new_game.on.contains(AGELESS_ITEMS) {
         ageless_items::write(romfs, &mut builder)?;
@@ -632,6 +636,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
+        (new_game.on.contains(AGELESS_GEAR), zootr_hook::CHILD_GEAR),
     ]
     .into_iter()
     .filter_map(|(on, bit)| on.then_some(bit))
@@ -690,5 +695,12 @@ mod tests {
         assert_eq!(flags(true, false), FREE_BOMBCHUS | MENU_CYCLE);
         assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
         assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
+        let gear = NewGame {
+            on: [AGELESS_GEAR.to_string()].into_iter().collect(),
+            ..Default::default()
+        };
+        let plain = hook_flags(&NewGame::default());
+        assert_eq!(hook_flags(&gear), plain | zootr_hook::CHILD_GEAR);
+        assert_eq!(plain & zootr_hook::CHILD_GEAR, 0);
     }
 }

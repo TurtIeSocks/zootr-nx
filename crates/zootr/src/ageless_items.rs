@@ -237,6 +237,18 @@ impl Link {
         fska::rename(&mut bytes, from, &name)?;
         Ok((name, bytes))
     }
+
+    /// Add each archive he borrows, as [`Link::lent`] makes it, with its
+    /// events.
+    fn lend(&self, romfs: &Romfs, builder: &mut ModBuilder, own: &Own) -> Result<()> {
+        for archive in self.archives {
+            let (name, bytes) = self.lent(romfs, archive, own)?;
+            let from = archive.from.get();
+            builder.add(&model(&name), &bytes, &model(from))?;
+            builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
+        }
+        Ok(())
+    }
 }
 
 /// A Link's own archives, and each clip in them: the archive, and where
@@ -285,17 +297,27 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
             writer.add_file(path, new);
         }
         builder.write(&pack_file(link.who), &writer.to_binary())?;
-        for archive in link.archives {
-            let (name, bytes) = link.lent(romfs, archive, &own)?;
-            let from = archive.from.get();
-            builder.add(&model(&name), &bytes, &model(from))?;
-            builder.add(&events(&name), &romfs.read(&events(from))?, &events(from))?;
-        }
+        link.lend(romfs, builder, &own)?;
     }
     for graph in files::GRAPHS {
         builder.write(graph, &aim::aimed(&builder.read(graph)?)?)?;
     }
     sounds::write(builder)
+}
+
+/// Lend child Link the adult's archives and nothing else: the clips his
+/// graph names for the boots (`Heavy_*`, `Hover*`) are only the adult's.
+/// [`write`] lends them too, so only one of the two runs.
+pub fn lend_child_clips(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
+    let link = &CHILD;
+    let pack = ActorPack::from_bytes(link.who, builder.read(&pack_file(link.who))?)?;
+    let own = Own::read(romfs, &pack)?;
+    let (path, old, new, slack) = listed(link, &pack, &param(&pack)?)?;
+    builder.resize(&path, old.len(), new.len() + slack)?;
+    let mut writer = pack.writer();
+    writer.add_file(path, new);
+    builder.write(&pack_file(link.who), &writer.to_binary())?;
+    link.lend(romfs, builder, &own)
 }
 
 /// The archives `pack` plays, by name.
@@ -378,10 +400,22 @@ fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Bor
         );
         Ok(())
     })?;
+    let roomy = |(path, old, new): Edit| (path, old, new, SLACK);
+    let mut edits = vec![roomy(holder), roomy(shooter), listed(link, pack, &param)?];
+    if link.who == CHILD.who {
+        let (path, old, new) = crate::ice_traps::adult_effects(pack, &param)?;
+        edits.push((path, old, new, 0));
+    }
+    Ok(edits)
+}
+
+/// `pack`'s animations with each archive `link` borrows listed after his
+/// own.
+fn listed(link: &Link, pack: &ActorPack, param: &BymlMap) -> Result<Borrowed> {
     let names: Vec<String> = (link.archives.iter())
         .map(|a| link.renamed(a))
         .collect::<Result<_>>()?;
-    let animations = component_edited(pack, &param, field::ANIMATION_REF, |_, own| {
+    let (path, old, new) = component_edited(pack, param, field::ANIMATION_REF, |_, own| {
         let list = own_array(own, field::ANIMATION_RESOURCES)?;
         for name in &names {
             let mut archive = BymlMap::default();
@@ -393,13 +427,7 @@ fn borrowed(link: &Link, pack: &ActorPack, lender: &ActorPack) -> Result<Vec<Bor
         }
         Ok(())
     })?;
-    let roomy = |(path, old, new): Edit| (path, old, new, SLACK);
-    let mut edits = vec![roomy(holder), roomy(shooter), roomy(animations)];
-    if link.who == CHILD.who {
-        let (path, old, new) = crate::ice_traps::adult_effects(pack, &param)?;
-        edits.push((path, old, new, 0));
-    }
-    Ok(edits)
+    Ok((path, old, new, SLACK))
 }
 
 /// The actor a shooter row makes.
@@ -557,6 +585,29 @@ mod tests {
                 .collect();
             assert_eq!(names, want);
         }
+    }
+
+    /// The boots' clips (ageless gear): without them, child Link in either
+    /// pair stood frozen, since his steps are their root motion.
+    #[test]
+    fn the_child_borrows_every_boot_clip_the_adult_has() {
+        let Some(romfs) = dev_dump() else { return };
+        let boots = |clip: &str| clip.starts_with("Heavy") || clip.starts_with("Hover");
+        let adult = Own::read(&romfs, &ActorPack::load(&romfs, CHILD.from).unwrap()).unwrap();
+        let theirs: HashSet<&str> = (adult.clips.keys().map(String::as_str))
+            .filter(|c| boots(c))
+            .collect();
+        let lent: HashSet<String> = (CHILD.archives.iter())
+            .flat_map(|a| {
+                let bytes = romfs.read(&model(a.from.get())).unwrap();
+                fska::clips(&bytes)
+                    .map(|(c, _)| c.to_string())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        assert!(theirs.len() > 200, "{} boot clips", theirs.len());
+        let missing: Vec<_> = theirs.iter().filter(|c| !lent.contains(**c)).collect();
+        assert!(missing.is_empty(), "{missing:?}");
     }
 
     /// Cba was missed once: the child's two-handed charge skipped its start
