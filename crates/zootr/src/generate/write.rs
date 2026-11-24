@@ -20,7 +20,9 @@ use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
-use crate::settings::{AGELESS_ITEMS, AGELESS_WEAPONS, DungeonEntrances, NewGame, TRADE_CHAIN};
+use crate::settings::{
+    AGELESS_GEAR, AGELESS_ITEMS, AGELESS_WEAPONS, DungeonEntrances, NewGame, TRADE_CHAIN,
+};
 use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
 use crate::world::Era;
@@ -544,6 +546,9 @@ impl<'a> Parts<'a> {
         if new_game.freestanding {
             goron_pot::write(romfs, builder, &mut tables, drops, new_game)?;
         }
+        if new_game.on.contains(AGELESS_GEAR) {
+            ageless::gear::shortcut(&mut tables)?;
+        }
         tables.write(builder)?;
         Ok((fields, look))
     }
@@ -563,6 +568,15 @@ impl<'a> Parts<'a> {
         crate::magic::write(romfs, builder, tables, !new_game.magic_with_first_item)?;
         if new_game.on.contains(AGELESS_WEAPONS) {
             ageless::write(romfs, builder)?;
+        }
+        if new_game.on.contains(AGELESS_GEAR) {
+            ageless::gear::write(builder)?;
+            // The boots' clips and effects are the adult's, which
+            // ageless-items lends too. Its sounds don't cover the boots.
+            if !new_game.on.contains(AGELESS_ITEMS) {
+                ageless_items::lend_child_clips(romfs, builder)?;
+            }
+            ageless_items::lend_boot_sounds(builder)?;
         }
         if new_game.on.contains(AGELESS_ITEMS) {
             ageless_items::write(romfs, builder)?;
@@ -624,6 +638,7 @@ fn hook_flags(new_game: &NewGame) -> u32 {
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
+        (new_game.on.contains(AGELESS_GEAR), zootr_hook::CHILD_GEAR),
     ]
     .into_iter()
     .filter_map(|(on, bit)| on.then_some(bit))
@@ -682,5 +697,12 @@ mod tests {
         assert_eq!(flags(true, false), FREE_BOMBCHUS | MENU_CYCLE);
         assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
         assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
+        let gear = NewGame {
+            on: [AGELESS_GEAR.to_string()].into_iter().collect(),
+            ..Default::default()
+        };
+        let plain = hook_flags(&NewGame::default());
+        assert_eq!(hook_flags(&gear), plain | zootr_hook::CHILD_GEAR);
+        assert_eq!(plain & zootr_hook::CHILD_GEAR, 0);
     }
 }

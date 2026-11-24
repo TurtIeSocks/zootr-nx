@@ -191,6 +191,12 @@ pub enum Probe {
         /// Instead, this call and every call under it.
         #[arg(long)]
         tree: Option<String>,
+        /// Instead, the calls right under this container.
+        #[arg(long, conflicts_with = "tree")]
+        children: Option<String>,
+        /// Instead, the call each action and property trigger plays.
+        #[arg(long, conflicts_with_all = ["tree", "children"])]
+        triggers: bool,
     },
     /// Each chest a logic graph gates: placement hash, area and rule.
     Gates {
@@ -554,12 +560,20 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             Ok(())
         }
         Probe::Exits { node } => exits(romfs, &node),
-        Probe::Calls { user, grep, tree } => {
+        Probe::Calls {
+            user,
+            grep,
+            tree,
+            children,
+            triggers,
+        } => {
             let file = romfs.read(crate::ageless_items::SOUNDS)?;
             let grep = grep.unwrap_or_default().to_lowercase();
-            let names = match tree {
-                Some(key) => ounce_formats::xlink_tree(&file, &user, &key)?,
-                None => ounce_formats::xlink_calls(&file, &user)?,
+            let names = match (tree, children) {
+                (Some(key), _) => ounce_formats::xlink_tree(&file, &user, &key)?,
+                (_, Some(key)) => ounce_formats::xlink_children(&file, &user, &key)?,
+                _ if triggers => ounce_formats::xlink_triggers(&file, &user)?,
+                _ => ounce_formats::xlink_calls(&file, &user)?,
             };
             for name in names {
                 if name.to_lowercase().contains(&grep) {

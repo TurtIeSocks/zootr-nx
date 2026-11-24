@@ -150,6 +150,9 @@ rows! {
         npad_full: Code,
         npad_handheld: Code,
         npad_dual: Code,
+        gear_request: Code,
+        gear_actor: Code,
+        gear_hud: Code,
     }
     branches: Branches {
         gate: Code,
@@ -157,6 +160,8 @@ rows! {
         catch: Code,
         catch_to: Code,
         catch_orig: Target("branches.catch"),
+        boots: Code,
+        boots_to: Target("branches.boots"),
     }
     imports: Imports {
         npad_full: Import,

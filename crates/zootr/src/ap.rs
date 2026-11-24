@@ -153,6 +153,7 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
     ("shuffle-dungeon-entrances", Later(RULES)),
+    ("ageless-gear", Later(RULES)),
     (
         "shuffle-items",
         Never("off, every check holds what it always does, which leaves nothing to share"),

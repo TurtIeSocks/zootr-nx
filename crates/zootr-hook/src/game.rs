@@ -131,6 +131,8 @@ global_asm!(
     "b equipment_built_entry",
     "b equipment_left_entry",
     "b resident_made_entry",
+    "b gear_child_entry",
+    "b gear_hud_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -170,6 +172,18 @@ global_asm!(
     "content_name_entry:",
     "mov x4, x20",
     "b content_name",
+    "gear_child_entry:",
+    "mov w1, w20",
+    "b gear_child",
+    // In place of the boots icon's `ldrb w8, [x8, #0x5c0]`: x8 is the HUD
+    // status, and the answer goes back in w8.
+    "gear_hud_entry:",
+    "stp x29, x30, [sp, #-0x10]!",
+    "ldrb w0, [x8, #0x5c0]",
+    "bl gear_hud",
+    "mov w8, w0",
+    "ldp x29, x30, [sp], #0x10",
+    "ret",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
@@ -382,6 +396,37 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
         }
         let child: Childhood = func(main(), OFFSETS.funcs.childhood);
         child(link)
+    }
+}
+
+/// The equipment slots' child test, at both of its gates (the equip
+/// request and the actor it makes), each with the slot in `w20`: whether
+/// Link counts as a child for `slot`. Not for the boots in a seed with
+/// [`crate::CHILD_GEAR`], so they're made on him. Otherwise the game's own
+/// answer, as it gave it.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call sites.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gear_child(link: usize, slot: u32) -> bool {
+    if table().is_some_and(|(_, table)| crate::gear_through(slot, table.flags)) {
+        return false;
+    }
+    unsafe {
+        let child: Childhood = func(main(), OFFSETS.funcs.childhood);
+        child(link)
+    }
+}
+
+/// The D-pad's boots icon reads whether Link is a child from the HUD
+/// status (`child`), and hides itself for one. Not in a seed with
+/// [`crate::CHILD_GEAR`], where he wears them. Without a table, the
+/// game's own answer.
+#[unsafe(no_mangle)]
+extern "C" fn gear_hud(child: bool) -> bool {
+    match table() {
+        Some((_, table)) => crate::hud_child(child, table.flags),
+        None => child,
     }
 }
 

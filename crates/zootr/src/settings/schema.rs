@@ -399,6 +399,12 @@ fn enhancement_defs() -> Vec<SettingDef> {
             "Child and adult Link can each wield every one-handed sword and every shield, and logic expects them to. Biggoron's Sword and the Giant's Knife stay adult Link's, and only he can aim the Mirror Shield at light",
         ),
         toggle(
+            AGELESS_GEAR,
+            place::GAMEPLAY,
+            "Boots for Both Ages",
+            "Child Link can wear the Iron Boots and Hover Boots, and logic expects him to",
+        ),
+        toggle(
             AGELESS_ITEMS,
             place::GAMEPLAY,
             "Items for Both Ages",

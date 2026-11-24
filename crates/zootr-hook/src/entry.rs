@@ -30,13 +30,17 @@ pub const SEED_GUIDE: u32 = 68;
 pub const EQUIPMENT_BUILT: u32 = 72;
 pub const EQUIPMENT_LEFT: u32 = 76;
 pub const RESIDENT_MADE: u32 = 80;
+/// The equipment slots' child tests.
+pub const GEAR_CHILD: u32 = 84;
+/// The D-pad boots icon's read of whether Link is a child.
+pub const GEAR_HUD: u32 = 88;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Each entry's branch target in `game.rs`, and its offset here.
-    const ENTRIES: [(&str, u32); 21] = [
+    const ENTRIES: [(&str, u32); 23] = [
         ("content_name_entry", CONTENT_NAME),
         ("drop_actor", DROP_ACTOR),
         ("map_loaded_entry", MAP_LOADED),
@@ -58,6 +62,8 @@ mod tests {
         ("equipment_built_entry", EQUIPMENT_BUILT),
         ("equipment_left_entry", EQUIPMENT_LEFT),
         ("resident_made_entry", RESIDENT_MADE),
+        ("gear_child_entry", GEAR_CHILD),
+        ("gear_hud_entry", GEAR_HUD),
     ];
 
     #[test]

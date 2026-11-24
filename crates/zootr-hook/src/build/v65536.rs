@@ -64,6 +64,9 @@ pub const V65536: Build = Build {
         npad_full: 0x340_89fc,
         npad_handheld: 0x340_8a28,
         npad_dual: 0x340_8888,
+        gear_request: 0x2da_27f4,
+        gear_actor: 0xb1_5670,
+        gear_hud: 0x2f_6728,
     },
     branches: Branches {
         gate: 0x178_fcbc,
@@ -71,6 +74,8 @@ pub const V65536: Build = Build {
         catch: 0x45_8510,
         catch_to: 0x45_8518,
         catch_orig: 0x45_85b0,
+        boots: 0x57_2518,
+        boots_to: 0x57_2534,
     },
     imports: Imports {
         npad_full: 0x3be_2eb0,

@@ -163,6 +163,13 @@ pub struct Calls {
     pub npad_full: u32,
     pub npad_handheld: u32,
     pub npad_dual: u32,
+    /// The equipment slots' child tests, at both gates: the equip request
+    /// and the actor it makes.
+    pub gear_request: u32,
+    pub gear_actor: u32,
+    /// The D-pad boots icon's `ldrb` of whether Link is a child, from the
+    /// HUD status: a load, not a call, made a `bl` all the same.
+    pub gear_hud: u32,
 }
 
 /// The branches the patch rewrites into `b`s: each where it is, and where
@@ -185,6 +192,10 @@ pub struct Branches {
     /// Where the `tbz` at `catch` goes in the game's own code, which the
     /// patch's checks read the original's word against.
     pub catch_orig: u32,
+    /// The boot state's `tbz` that returns early for a child, and where it
+    /// goes. Made a `b`, a child's boots work as the adult's do.
+    pub boots: u32,
+    pub boots_to: u32,
 }
 
 /// The game's stubs for `nn::hid::GetNpadStates` the `npad_*` calls go to.
@@ -424,6 +435,9 @@ pub const V131072: Build = Build {
         npad_full: 0x346_966c,
         npad_handheld: 0x346_9698,
         npad_dual: 0x346_94f8,
+        gear_request: 0x2df_6d84,
+        gear_actor: 0x101_4010,
+        gear_hud: 0x2d_4998,
     },
     branches: Branches {
         gate: 0x17d_59bc,
@@ -431,6 +445,8 @@ pub const V131072: Build = Build {
         catch: 0x41_0250,
         catch_to: 0x41_0258,
         catch_orig: 0x41_02f0,
+        boots: 0x4b_6ed8,
+        boots_to: 0x4b_6ef4,
     },
     imports: Imports {
         npad_full: 0x3c4_2800,

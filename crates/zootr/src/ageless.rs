@@ -1,8 +1,8 @@
 //! One-handed swords and shields for both ages. The pause menu's
 //! Equipment page greys out the other age's swords and shields by two
 //! flags per item in its table, and that's their only limit: unset, either
-//! age equips and uses them. Tunics and boots stay as they are, since they dress adult Link's
-//! model and do nothing on a child, and so do the two-handed swords: a
+//! age equips and uses them. Tunics and boots are `ageless-gear`'s
+//! ([`gear`]), and the two-handed swords stay as they are: a
 //! child swings them only with the clips items for both ages lends him,
 //! so that setting opens them ([`two_handed_opened`]). See the spec,
 //! `superpowers/specs/2026-11-18-equip-any-age-design.md`.
@@ -16,6 +16,9 @@ use roead::sarc::Sarc;
 use crate::game::POUCH_TABLE;
 use crate::known::{Name, field};
 use crate::standins::{POUCH_ACTOR_INFO, row_id};
+
+pub mod files;
+pub mod gear;
 
 /// The flags, each age's.
 const AGES: [&Name; 2] = [field::IS_USABLE_CHILD, field::IS_USABLE_ADULT];
@@ -119,21 +122,21 @@ pub(crate) fn open(actor: &mut BymlMap) -> bool {
     changed
 }
 
-/// Makes every Equipment page actor `weapon` names usable at both ages in
+/// Makes every Equipment page actor `wanted` names usable at both ages in
 /// `root`, the pause menu's table. Returns how many it changed.
-fn unlock_in(root: &mut Byml, weapon: impl Fn(&str) -> bool) -> Result<usize> {
+fn unlock_in(root: &mut Byml, wanted: impl Fn(&str) -> bool) -> Result<usize> {
     let weapons = rows(root, Some(field::EQUIPMENT_ARRAY))?.into_iter();
-    Ok((weapons.filter(|a| name(a).is_some_and(&weapon)))
+    Ok((weapons.filter(|a| name(a).is_some_and(&wanted)))
         .map(open)
         .filter(|&changed| changed)
         .count())
 }
 
-/// The table with every actor `weapon` names usable at both ages, and how
+/// The table with every actor `wanted` names usable at both ages, and how
 /// many it changed.
-fn unlock(table: &[u8], weapon: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
+fn unlock(table: &[u8], wanted: impl Fn(&str) -> bool) -> Result<(Vec<u8>, usize)> {
     let mut doc = BymlDoc::parse(table)?;
-    let changed = unlock_in(&mut doc.root, weapon)?;
+    let changed = unlock_in(&mut doc.root, wanted)?;
     Ok((doc.to_binary(), changed))
 }
 

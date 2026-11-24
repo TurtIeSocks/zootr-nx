@@ -1,8 +1,10 @@
 //! XLink2 files (`.bslnk` sounds, `.belnk` effects), version 0x22 with
 //! 64-bit offsets. Each user (an actor's sound or effect set) holds calls
 //! the game plays by name: an asset, or a container whose children are
-//! calls too. [`copy_call`] gives one user a call another has, and
-//! [`add_case`] a case another's switch has.
+//! calls too. [`copy_call`] gives one user a call another has,
+//! [`add_case`] a case another's switch has, [`nest`] puts a call of
+//! one user inside a tree another has, and [`copy_property`] gives one
+//! user the calls another plays when a property changes.
 //!
 //! Every offset a call or container holds is relative to a table the whole
 //! file shares (asset params, conditions, property names), or to the
@@ -49,8 +51,19 @@ const LOCAL: usize = 0x08;
 const TRIGGER_TABLES: [usize; 6] = [0x10, 0x10, 0x28, 0x18, 0x20, 0];
 const TRIGGER_CALL: usize = 0x08;
 const ACTION_TRIGGERS: usize = 2;
+const PROPERTIES: usize = 3;
 const PROPERTY_TRIGGERS: usize = 4;
 const ALWAYS_TRIGGERS: usize = 5;
+
+// A property with triggers: its name's offset (8 bytes), whether it's
+// global, then its first and last trigger, both included.
+const IS_GLOBAL: usize = 0x08;
+const FIRST_TRIGGER: usize = 0x0c;
+const LAST_TRIGGER: usize = 0x10;
+// A property trigger, after its call: its condition, then the params it
+// overwrites in its call, or [`NO_OVERWRITE`].
+const OVERWRITE: usize = 0x18;
+const NO_OVERWRITE: u32 = u32::MAX;
 
 // A call.
 const CALL: usize = 0x30;
@@ -130,16 +143,7 @@ pub fn add_case(file: &[u8], from: &str, case: &str, body: &str, to: &str) -> Re
         r.bytes(theirs + PROPERTY, 0x10)? == r.bytes(mine + PROPERTY, 0x10)?,
         "{from}'s and {to}'s {switch} read different properties"
     );
-    let locals = local_names(file, &b)?;
-    for i in tree(file, &a, root)? {
-        if let Some(name) = local_property(file, &a, i)? {
-            ensure!(
-                locals.contains(&name),
-                "{body} reads {}, which {to} lacks",
-                String::from_utf8_lossy(name)
-            );
-        }
-    }
+    readable(file, &a, &b, &tree(file, &a, root)?, body, to)?;
     let from_case = a.calls + at * CALL;
     let place = Place {
         at: r.i32(mine + LAST)? as usize + 1,
@@ -149,6 +153,221 @@ pub fn add_case(file: &[u8], from: &str, case: &str, body: &str, to: &str) -> Re
         condition: r.u64(from_case + CONDITION)?,
     };
     graft(file, &a, root, &b, place)
+}
+
+/// `file` with user `to`'s call `key` nested in a copy of user `from`'s
+/// call of the same name: the copy takes its place, and the copy's call
+/// `case` is `to`'s old one, under `case`'s name and condition, so it
+/// plays `to`'s old tree. The rest of `case`'s tree stays behind. Every
+/// switch in the copy must read a property `to` has.
+pub fn nest(file: &[u8], from: &str, key: &str, case: &str, to: &str) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    let at = find(file, &b, key)?.with_context(|| format!("{to} has no {key}"))?;
+    let root = find(file, &a, key)?.with_context(|| format!("{from} has no {key}"))?;
+    let kept = find(file, &a, case)?.with_context(|| format!("{from} has no {case}"))?;
+    let behind = tree(file, &a, kept)?.split_off(1);
+    let order: Vec<usize> = (tree(file, &a, root)?.into_iter())
+        .filter(|i| !behind.contains(i))
+        .collect();
+    let copied: Vec<usize> = order.iter().copied().filter(|&i| i != kept).collect();
+    ensure!(
+        kept != root && copied.len() < order.len(),
+        "{case} isn't under {from}'s {key}"
+    );
+    readable(file, &a, &b, &copied, key, to)?;
+    let call = b.calls + at * CALL;
+    let place = Place {
+        at,
+        parent: r.i32(call + PARENT)?,
+        name: r.u64(call + CALL_NAME)?,
+        key: r.u32(call + KEY)?,
+        condition: r.u64(call + CONDITION)?,
+    };
+    let old = r.bytes(call, CALL)?;
+    let tree = copy_tree(file, &a, &b, &order, &place, b.count, Some((kept, old)))?;
+    let moved = b.count + order.iter().position(|&i| i == kept).expect("kept") - 1;
+    let mut calls = r.bytes(b.calls, b.count * CALL)?.to_vec();
+    for i in 0..b.count {
+        if i32_in(&calls, i * CALL + PARENT) == at as i32 {
+            put(&mut calls, i * CALL + PARENT, &(moved as i32).to_le_bytes());
+        }
+    }
+    calls[at * CALL..][..CALL].copy_from_slice(&tree.root);
+    calls.extend(&tree.rest);
+    let own_params = r.bytes(b.containers, b.triggers - b.containers)?;
+    rebuilt(file, &b, calls, own_params, &tree, b.count)
+}
+
+/// `file` with the triggers on user `from`'s local property that plays
+/// `plays` given to user `to`, each playing `to`'s call of the same name
+/// under the same condition. The property joins `to`'s locals if it isn't
+/// one, so the game keeps its value for `to` too. `to` must have every
+/// call they play and no triggers on the property yet.
+pub fn copy_property(file: &[u8], from: &str, plays: &str, to: &str) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    let (theirs, mine) = (properties(file, &a)?, properties(file, &b)?);
+    let (their_triggers, _) = trigger_table(file, &a, PROPERTY_TRIGGERS)?;
+    let trigger_at = |t: usize| their_triggers + t * TRIGGER_TABLES[PROPERTY_TRIGGERS];
+    let played = |t: usize| -> Result<&str> {
+        let call = trigger_call(file, &a, trigger_at(t) + TRIGGER_CALL)?;
+        Ok(std::str::from_utf8(call_name(
+            file,
+            a.calls + call * CALL,
+        )?)?)
+    };
+    let mut k = None;
+    for (i, p) in theirs.iter().enumerate() {
+        for t in p.first..=p.last {
+            if played(t)? == plays {
+                k = Some(i);
+            }
+        }
+    }
+    let k = k.with_context(|| format!("no property of {from}'s plays {plays}"))?;
+    let prop = &theirs[k];
+    let name = String::from_utf8_lossy(prop.name);
+    let has = |n: &[u8]| mine.iter().any(|p| p.name == n);
+    ensure!(!has(prop.name), "{to} already has triggers on {name}");
+    ensure!(r.u32(prop.at + IS_GLOBAL)? == 0, "{name} is global");
+    let mut triggers = Vec::new();
+    for t in prop.first..=prop.last {
+        ensure!(
+            r.u32(trigger_at(t) + OVERWRITE)? == NO_OVERWRITE,
+            "a trigger on {name} overwrites its call's params"
+        );
+        let call = played(t)?;
+        let own = find(file, &b, call)?.with_context(|| format!("{to} has no {call}"))?;
+        let mut entry = r
+            .bytes(trigger_at(t), TRIGGER_TABLES[PROPERTY_TRIGGERS])?
+            .to_vec();
+        put(
+            &mut entry,
+            TRIGGER_CALL,
+            &((own * CALL) as u64).to_le_bytes(),
+        );
+        triggers.extend(entry);
+    }
+    // It goes after each property it follows in `from` that `to` has, and
+    // its triggers before theirs from there on.
+    let place = theirs[..k].iter().filter(|p| has(p.name)).count();
+    let (my_triggers, my_count) = trigger_table(file, &b, PROPERTY_TRIGGERS)?;
+    let first = mine.get(place).map_or(my_count, |p| p.first);
+    let added = prop.last - prop.first + 1;
+    let size = TRIGGER_TABLES[PROPERTIES];
+    let entry = |at: usize, first: usize, last: usize| -> Result<Vec<u8>> {
+        let mut entry = r.bytes(at, size)?.to_vec();
+        put(&mut entry, FIRST_TRIGGER, &(first as u32).to_le_bytes());
+        put(&mut entry, LAST_TRIGGER, &(last as u32).to_le_bytes());
+        Ok(entry)
+    };
+    let mut props = Vec::new();
+    for p in &mine {
+        let by = if p.first >= first { added } else { 0 };
+        props.push(entry(p.at, p.first + by, p.last + by)?);
+    }
+    props.insert(place, entry(prop.at, first, first + added - 1)?);
+    let locals = local_names(file, &b)?;
+    let local = match locals.contains(&prop.name) {
+        true => None,
+        false => {
+            let theirs = local_names(file, &a)?;
+            let k = (theirs.iter().position(|l| *l == prop.name))
+                .with_context(|| format!("{name} isn't among {from}'s locals"))?;
+            let entry = r.bytes(a.base + USER_HEADER + LOCAL * k, LOCAL)?;
+            let at = locals.partition_point(|l| *l < prop.name);
+            Some((b.base + USER_HEADER + LOCAL * at, entry))
+        }
+    };
+    // Spliced from the end back, so each place in `file` still holds.
+    let (props_at, _) = trigger_table(file, &b, PROPERTIES)?;
+    let mut out = file.to_vec();
+    let at = my_triggers + first * TRIGGER_TABLES[PROPERTY_TRIGGERS];
+    out.splice(at..at, triggers);
+    out.splice(props_at..props_at + size * mine.len(), props.concat());
+    let w = |out: &mut Vec<u8>, at: usize, v: u32| put(out, at, &v.to_le_bytes());
+    if let Some((at, entry)) = local {
+        out.splice(at..at, entry.iter().copied());
+        put(
+            &mut out,
+            b.base + LOCALS,
+            &(locals.len() as u16 + 1).to_le_bytes(),
+        );
+        let triggers = r.u64(b.base + TRIGGERS)? + LOCAL as u64;
+        put(&mut out, b.base + TRIGGERS, &triggers.to_le_bytes());
+    }
+    for (t, more) in [(PROPERTIES, 1), (PROPERTY_TRIGGERS, added)] {
+        let count = r.u32(b.base + TRIGGER_COUNTS + 4 * t)? + more as u32;
+        w(&mut out, b.base + TRIGGER_COUNTS + 4 * t, count);
+    }
+    moved_past(file, &b, &mut out)?;
+    Ok(out)
+}
+
+/// A property of a user's with triggers: where its entry is, its name,
+/// and its first and last trigger.
+struct Property<'a> {
+    at: usize,
+    name: &'a [u8],
+    first: usize,
+    last: usize,
+}
+
+/// `user`'s properties with triggers, in their order.
+fn properties<'a>(file: &'a [u8], user: &User) -> Result<Vec<Property<'a>>> {
+    let r = Reader(file);
+    let (at, count) = trigger_table(file, user, PROPERTIES)?;
+    (0..count)
+        .map(|k| {
+            let at = at + k * TRIGGER_TABLES[PROPERTIES];
+            let (first, last) = (r.u32(at + FIRST_TRIGGER)?, r.u32(at + LAST_TRIGGER)?);
+            ensure!(first <= last, "a property with no triggers isn't read yet");
+            Ok(Property {
+                at,
+                name: name_at(file, r.u64(at)? as usize)?,
+                first: first as usize,
+                last: last as usize,
+            })
+        })
+        .collect()
+}
+
+/// Each of `user`'s properties with triggers, and the calls they play.
+pub fn property_names<'a>(file: &'a [u8], user_name: &str) -> Result<Vec<(&'a str, Vec<&'a str>)>> {
+    let u = user(file, user_name)?;
+    let (triggers, _) = trigger_table(file, &u, PROPERTY_TRIGGERS)?;
+    (properties(file, &u)?.into_iter())
+        .map(|p| {
+            let calls = (p.first..=p.last)
+                .map(|t| {
+                    let at = triggers + t * TRIGGER_TABLES[PROPERTY_TRIGGERS] + TRIGGER_CALL;
+                    let call = trigger_call(file, &u, at)?;
+                    Ok(std::str::from_utf8(call_name(
+                        file,
+                        u.calls + call * CALL,
+                    )?)?)
+                })
+                .collect::<Result<_>>()?;
+            Ok((std::str::from_utf8(p.name)?, calls))
+        })
+        .collect()
+}
+
+/// Fails unless every switch among `a`'s calls `calls` reads a property
+/// `b` has: `what` and `to` name them in the error.
+fn readable(file: &[u8], a: &User, b: &User, calls: &[usize], what: &str, to: &str) -> Result<()> {
+    let locals = local_names(file, b)?;
+    for &i in calls {
+        if let Some(name) = local_property(file, a, i)? {
+            ensure!(
+                locals.contains(&name),
+                "{what} reads {}, which {to} lacks",
+                String::from_utf8_lossy(name)
+            );
+        }
+    }
+    Ok(())
 }
 
 /// Where a grafted tree's root goes in its new user, and what it's called
@@ -168,6 +387,30 @@ struct Place {
 /// Every index `b` keeps of a call from the root's place on moves up one:
 /// parents, children, its calls by name, and its triggers' calls.
 fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<Vec<u8>> {
+    let insert_at = place.at;
+    ensure!(insert_at <= b.count, "a place past {}'s calls", b.count);
+    let order = tree(file, a, root)?;
+    let (own, own_params) = renumber_own(file, b, &place)?;
+    let tree = copy_tree(file, a, b, &order, &place, b.count + 1, None)?;
+
+    let mut calls = own[..insert_at * CALL].to_vec();
+    calls.extend(&tree.root);
+    calls.extend(&own[insert_at * CALL..]);
+    calls.extend(&tree.rest);
+    rebuilt(file, b, calls, &own_params, &tree, insert_at)
+}
+
+/// `file` with user `b`'s calls now `calls`, its container params
+/// `own_params` then `tree`'s, its assets renumbered and its ids sorted.
+/// Calls from `insert_at` on are new, and `b`'s own past it moved up one.
+fn rebuilt(
+    file: &[u8],
+    b: &User,
+    mut calls: Vec<u8>,
+    own_params: &[u8],
+    tree: &Copied,
+    insert_at: usize,
+) -> Result<Vec<u8>> {
     let r = Reader(file);
     ensure!(r.bytes(0, 4)? == b"XLNK", "not an XLink2 file");
     let version = r.u32(VERSION_AT)?;
@@ -175,16 +418,6 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
         version == VERSION,
         "XLink2 version {version:#x}, not {VERSION:#x}"
     );
-    let insert_at = place.at;
-    ensure!(insert_at <= b.count, "a place past {}'s calls", b.count);
-    let order = tree(file, a, root)?;
-    let (own, own_params) = renumber_own(file, b, &place)?;
-    let tree = copy_tree(file, a, b, &order, &place)?;
-
-    let mut calls = own[..insert_at * CALL].to_vec();
-    calls.extend(&tree.root);
-    calls.extend(&own[insert_at * CALL..]);
-    calls.extend(&tree.rest);
     // Every shipped user numbers its assets in call order: kept so.
     let mut assets = 0u32;
     for call in calls.as_chunks_mut::<CALL>().0 {
@@ -199,7 +432,7 @@ fn graft(file: &[u8], a: &User, root: usize, b: &User, place: Place) -> Result<V
     out.extend(&file[..b.ids]);
     out.extend(&ids);
     out.extend(&calls);
-    out.extend(&own_params);
+    out.extend(own_params);
     out.extend(&tree.params);
     out.extend(&file[b.triggers..]);
     let counts = Counts {
@@ -269,13 +502,22 @@ struct Copied {
 }
 
 /// The calls `order` of user `a`, a tree, copied for user `b`: the root
-/// named and placed at `place`, the rest after `b`'s calls, their params
-/// after `b`'s.
-fn copy_tree(file: &[u8], a: &User, b: &User, order: &[usize], place: &Place) -> Result<Copied> {
+/// named and placed at `place`, the rest from index `rest_at` on, their
+/// params after `b`'s. A `kept` call of `a` is copied as the given call
+/// of `b`'s instead, under its own name and condition, params untouched.
+fn copy_tree(
+    file: &[u8],
+    a: &User,
+    b: &User,
+    order: &[usize],
+    place: &Place,
+    rest_at: usize,
+    kept: Option<(usize, &[u8])>,
+) -> Result<Copied> {
     let r = Reader(file);
     let moved = |old: usize| match order.iter().position(|&o| o == old).expect("in the tree") {
         0 => place.at,
-        k => b.count + k,
+        k => rest_at + k - 1,
     };
     let mut copied = Copied {
         root: Vec::new(),
@@ -286,6 +528,16 @@ fn copy_tree(file: &[u8], a: &User, b: &User, order: &[usize], place: &Place) ->
     let param_base = b.triggers - b.containers;
     for (k, &old) in order.iter().enumerate() {
         let from_call = a.calls + old * CALL;
+        if let Some((_, own)) = kept.filter(|&(i, _)| i == old) {
+            let mut call = own.to_vec();
+            for (field, len) in [(CALL_NAME, 8), (KEY, 4), (CONDITION, 8)] {
+                put(&mut call, field, r.bytes(from_call + field, len)?);
+            }
+            let parent = moved(r.i32(from_call + PARENT)? as usize) as i32;
+            put(&mut call, PARENT, &parent.to_le_bytes());
+            copied.rest.extend(call);
+            continue;
+        }
         let mut call = r.bytes(from_call, CALL)?.to_vec();
         let parent = match k {
             0 => {
@@ -375,14 +627,21 @@ fn patch_header(
             put(out, pos + grown, &((call * CALL) as u64).to_le_bytes());
         }
     }
+    moved_past(file, b, out)
+}
+
+/// Every offset past user `b` in `out`, `file` with `b` grown, moved by
+/// the growth, and the file's size.
+fn moved_past(file: &[u8], b: &User, out: &mut [u8]) -> Result<()> {
+    let r = Reader(file);
+    let grown = out.len() - file.len();
     for header_at in user_offsets(file)?.chain([CONDITIONS, NAMES]) {
         let offset = r.u64(header_at)? as usize;
         if offset > b.base {
             put(out, header_at, &((offset + grown) as u64).to_le_bytes());
         }
     }
-    let size = out.len() as u32;
-    w(out, DATA_SIZE, size);
+    put(out, DATA_SIZE, &(out.len() as u32).to_le_bytes());
     Ok(())
 }
 
@@ -535,23 +794,26 @@ fn user(file: &[u8], name: &str) -> Result<User> {
 /// Where each of `user`'s triggers keeps its call, in the file. Always
 /// triggers aren't read yet, so a user with any is refused.
 fn trigger_calls(file: &[u8], user: &User) -> Result<Vec<usize>> {
-    let r = Reader(file);
-    let counts = (0..TRIGGER_TABLES.len())
-        .map(|t| Ok(r.u32(user.base + TRIGGER_COUNTS + 4 * t)? as usize))
-        .collect::<Result<Vec<_>>>()?;
-    ensure!(
-        counts[ALWAYS_TRIGGERS] == 0,
-        "always triggers aren't read yet"
-    );
-    let mut at = user.triggers;
+    let (_, always) = trigger_table(file, user, ALWAYS_TRIGGERS)?;
+    ensure!(always == 0, "always triggers aren't read yet");
     let mut calls = Vec::new();
-    for (t, (&size, &count)) in TRIGGER_TABLES.iter().zip(&counts).enumerate() {
-        if t == ACTION_TRIGGERS || t == PROPERTY_TRIGGERS {
-            calls.extend((0..count).map(|k| at + k * size + TRIGGER_CALL));
-        }
-        at += size * count;
+    for t in [ACTION_TRIGGERS, PROPERTY_TRIGGERS] {
+        let (at, count) = trigger_table(file, user, t)?;
+        calls.extend((0..count).map(|k| at + k * TRIGGER_TABLES[t] + TRIGGER_CALL));
     }
     Ok(calls)
+}
+
+/// Where `user`'s trigger table `t` is in the file, and its count.
+fn trigger_table(file: &[u8], user: &User, t: usize) -> Result<(usize, usize)> {
+    let r = Reader(file);
+    let count =
+        |t: usize| -> Result<usize> { Ok(r.u32(user.base + TRIGGER_COUNTS + 4 * t)? as usize) };
+    let mut at = user.triggers;
+    for (before, size) in TRIGGER_TABLES[..t].iter().enumerate() {
+        at += size * count(before)?;
+    }
+    Ok((at, count(t)?))
 }
 
 /// The index of the call a trigger of `user` keeps at `at`.
