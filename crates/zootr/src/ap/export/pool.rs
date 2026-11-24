@@ -14,6 +14,7 @@ use crate::ap::rule;
 use crate::ap::seed::Seed;
 use crate::ap::when::{Counts, steps};
 use crate::ice_traps;
+use crate::progressive::Lines;
 use crate::settings::{IceTraps, PROGRESSIVE, Settings, choice_id};
 use crate::starter_bags;
 
@@ -87,7 +88,7 @@ impl<'s> Counted<'s> {
         let mut pool = Vec::new();
         let rows = (self.counts.iter()).map(|((n, junk, trap), c)| (*n, c, *junk, *trap, false));
         let added_rows = self.added.iter().map(|(n, c)| (*n, c, false, false, true));
-        let mut firsts: BTreeMap<&str, &str> = BTreeMap::new();
+        let mut keys: BTreeMap<&str, &str> = BTreeMap::new();
         let class = |name: &str| match () {
             _ if used.contains(name) => "progression",
             _ if USEFUL.contains(&name) => "useful",
@@ -95,15 +96,14 @@ impl<'s> Counted<'s> {
         };
         for (name, (count, actor), is_junk, is_trappable, is_added) in rows.chain(added_rows) {
             if !items.iter().any(|i| i["name"] == name) {
-                // A line's first level keeps its first id for the line's name,
-                // unless the line goes by it.
+                // A line's key level keeps its first id for the line's name.
                 let line = names::line(actor)?;
-                let plain = line.is_some_and(|(l, first)| first == *actor && l != name);
+                let plain = line.is_some_and(|(_, key)| key == *actor);
                 items.push(
                     json!({ "id": ids.item_as(actor, plain), "name": name, "class": class(name) }),
                 );
-                if let Some((line, first)) = line {
-                    firsts.insert(line, first);
+                if let Some((line, key)) = line {
+                    keys.insert(line, key);
                 }
             }
             let counts = Counts {
@@ -128,12 +128,9 @@ impl<'s> Counted<'s> {
             }
         }
         // With progressive items on, each line's levels go by its name, under
-        // its first level's id.
-        // The Magic Meter's goes by its first level's, already there.
-        for (line, first) in firsts {
-            if !items.iter().any(|i| i["name"] == line) {
-                items.push(json!({ "id": ids.item(first), "name": line, "class": class(line) }));
-            }
+        // its key level's id.
+        for (line, key) in keys {
+            items.push(json!({ "id": ids.item(key), "name": line, "class": class(line) }));
         }
         // The traps the world swaps in for its trappable items.
         let trap = ice_traps::POOLED;
@@ -166,14 +163,45 @@ impl<'s> Counted<'s> {
     }
 }
 
+/// The `when` of each level of each line, in [`names::levels`]' order: a
+/// seed's lines keep the levels its settings do (`progressive::Lines`).
+pub(super) fn kept(cx: &Ctx, seeds: &[&Seed]) -> Result<Vec<Vec<Value>>> {
+    let lines: Vec<Lines> = (seeds.iter())
+        .map(|s| Lines::of(&s.dealt.new_game))
+        .collect();
+    let when = |actor: &str| {
+        let counts: Vec<u32> = lines.iter().map(|l| u32::from(l.in_line(actor))).collect();
+        let counts = Counts {
+            base: counts[0],
+            by_variant: &counts[1..],
+        };
+        let held = steps(cx.domains, cx.variants, &counts).into_iter().next();
+        held.map_or(Value::Bool(false), |(_, rule)| rule)
+    };
+    let levels = names::levels()?.into_iter();
+    Ok(levels
+        .map(|(_, l)| l.iter().map(|(actor, _)| when(actor)).collect())
+        .collect())
+}
+
 /// `pool.json`: the pool's rows, the junk the trade takes, the traps and
-/// their shares, and each line's levels.
-pub(super) fn pool_json(rows: Vec<Value>, levels: &[rule::Line], names: &Namer) -> Result<Value> {
+/// their shares, and each line's levels with the `when` each holds under
+/// ([`kept`]).
+pub(super) fn pool_json(
+    rows: Vec<Value>,
+    levels: &[rule::Line],
+    kept: &[Vec<Value>],
+    names: &Namer,
+) -> Result<Value> {
     // Each line's levels by its name, each its own name then its events:
-    // with progressive items on, the world deals each as the line and reads
-    // its rules as `rule::lined` does.
-    let levels: serde_json::Map<String, Value> = (levels.iter())
-        .map(|(line, steps)| (line.clone(), json!(steps)))
+    // with progressive items on, the world deals each a seed keeps as the
+    // line and reads its rules as `rule::lined` does.
+    let level = |(names, when): (&Vec<String>, &Value)| match when {
+        Value::Bool(true) => json!({ "names": names }),
+        _ => json!({ "names": names, "when": when }),
+    };
+    let levels: serde_json::Map<String, Value> = (levels.iter().zip(kept))
+        .map(|((line, steps), when)| (line.clone(), steps.iter().zip(when).map(level).collect()))
         .collect();
     // A share of the trappable items by Ice Traps' value (`IceTraps::of`).
     let shares: serde_json::Map<String, Value> = (IceTraps::value_variants().iter())

@@ -40,7 +40,6 @@ impl Ids {
         self.locations.get(&hash.to_string()).copied()
     }
 
-    #[cfg(test)]
     pub fn item_id(&self, actor: &str) -> Option<u64> {
         self.id_as(actor, false)
     }

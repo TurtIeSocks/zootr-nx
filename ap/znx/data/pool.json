@@ -6,118 +6,204 @@
     "Purple Rupee (50)"
   ],
   "levels": {
-    "Magic Meter": [
-      [
-        "Magic Meter"
-      ],
-      [
-        "Double Magic"
-      ]
-    ],
     "Progressive Bomb Bag": [
-      [
-        "Bomb Bag"
-      ],
-      [
-        "Big Bomb Bag"
-      ],
-      [
-        "Biggest Bomb Bag"
-      ]
+      {
+        "names": [
+          "Bomb Bag"
+        ]
+      },
+      {
+        "names": [
+          "Big Bomb Bag"
+        ]
+      },
+      {
+        "names": [
+          "Biggest Bomb Bag"
+        ]
+      }
     ],
     "Progressive Bombchu Bag": [
-      [
-        "Bombchu Bag (20)"
-      ],
-      [
-        "Bombchu Bag (30)"
-      ],
-      [
-        "Bombchu Bag (40)"
-      ]
+      {
+        "names": [
+          "Bombchu Bag (20)"
+        ],
+        "when": {
+          "setting": "bombchus=bag"
+        }
+      },
+      {
+        "names": [
+          "Bombchu Bag (30)"
+        ],
+        "when": {
+          "setting": "bombchus=bag"
+        }
+      },
+      {
+        "names": [
+          "Bombchu Bag (40)"
+        ],
+        "when": {
+          "setting": "bombchus=bag"
+        }
+      }
     ],
     "Progressive Bow": [
-      [
-        "Fairy Bow"
-      ],
-      [
-        "Big Quiver"
-      ],
-      [
-        "Biggest Quiver"
-      ]
+      {
+        "names": [
+          "Fairy Bow"
+        ]
+      },
+      {
+        "names": [
+          "Big Quiver"
+        ]
+      },
+      {
+        "names": [
+          "Biggest Quiver"
+        ]
+      }
     ],
     "Progressive Deku Nut Bag": [
-      [
-        "Deku Nut Bag (30)"
-      ],
-      [
-        "Deku Nut Bag (40)"
-      ]
+      {
+        "names": [
+          "Deku Nut Bag (20)"
+        ],
+        "when": {
+          "setting": "shuffle-nut-bag"
+        }
+      },
+      {
+        "names": [
+          "Deku Nut Bag (30)"
+        ]
+      },
+      {
+        "names": [
+          "Deku Nut Bag (40)"
+        ]
+      }
     ],
     "Progressive Deku Stick Bag": [
-      [
-        "Deku Stick Bag (20)"
-      ],
-      [
-        "Deku Stick Bag (30)"
-      ]
+      {
+        "names": [
+          "Deku Stick Bag (10)"
+        ],
+        "when": {
+          "setting": "shuffle-stick-bag"
+        }
+      },
+      {
+        "names": [
+          "Deku Stick Bag (20)"
+        ]
+      },
+      {
+        "names": [
+          "Deku Stick Bag (30)"
+        ]
+      }
     ],
     "Progressive Hookshot": [
-      [
-        "Hookshot"
-      ],
-      [
-        "Longshot"
-      ]
+      {
+        "names": [
+          "Hookshot"
+        ]
+      },
+      {
+        "names": [
+          "Longshot"
+        ]
+      }
+    ],
+    "Progressive Magic Meter": [
+      {
+        "names": [
+          "Magic Meter"
+        ],
+        "when": {
+          "setting": "magic-with-first-item=off"
+        }
+      },
+      {
+        "names": [
+          "Double Magic"
+        ]
+      }
     ],
     "Progressive Ocarina": [
-      [
-        "Fairy Ocarina"
-      ],
-      [
-        "Ocarina of Time"
-      ]
+      {
+        "names": [
+          "Fairy Ocarina"
+        ]
+      },
+      {
+        "names": [
+          "Ocarina of Time"
+        ]
+      }
     ],
     "Progressive Scale": [
-      [
-        "Silver Scale",
-        "Silver Scale"
-      ],
-      [
-        "Golden Scale"
-      ]
+      {
+        "names": [
+          "Silver Scale",
+          "Silver Scale"
+        ]
+      },
+      {
+        "names": [
+          "Golden Scale"
+        ]
+      }
     ],
     "Progressive Slingshot": [
-      [
-        "Fairy Slingshot"
-      ],
-      [
-        "Big Bullet Bag"
-      ],
-      [
-        "Biggest Bullet Bag"
-      ]
+      {
+        "names": [
+          "Fairy Slingshot"
+        ]
+      },
+      {
+        "names": [
+          "Big Bullet Bag"
+        ]
+      },
+      {
+        "names": [
+          "Biggest Bullet Bag"
+        ]
+      }
     ],
     "Progressive Strength Upgrade": [
-      [
-        "Goron's Bracelet",
-        "Goron Bracelet"
-      ],
-      [
-        "Silver Gauntlets"
-      ],
-      [
-        "Golden Gauntlets"
-      ]
+      {
+        "names": [
+          "Goron's Bracelet",
+          "Goron Bracelet"
+        ]
+      },
+      {
+        "names": [
+          "Silver Gauntlets"
+        ]
+      },
+      {
+        "names": [
+          "Golden Gauntlets"
+        ]
+      }
     ],
     "Progressive Wallet": [
-      [
-        "Adult's Wallet"
-      ],
-      [
-        "Giant's Wallet"
-      ]
+      {
+        "names": [
+          "Adult's Wallet"
+        ]
+      },
+      {
+        "names": [
+          "Giant's Wallet"
+        ]
+      }
     ]
   },
   "rows": [
@@ -32458,7 +32544,26 @@
     {
       "added": true,
       "count": 1,
-      "item": "Magic Meter"
+      "item": "Magic Meter",
+      "when": {
+        "setting": "magic-with-first-item=off"
+      }
+    },
+    {
+      "added": true,
+      "count": 1,
+      "item": "Deku Stick Bag (10)",
+      "when": {
+        "setting": "shuffle-stick-bag"
+      }
+    },
+    {
+      "added": true,
+      "count": 1,
+      "item": "Deku Nut Bag (20)",
+      "when": {
+        "setting": "shuffle-nut-bag"
+      }
     },
     {
       "added": true,

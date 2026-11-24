@@ -60,6 +60,10 @@ hives = true
 shuffle-masks = true
 ice-traps = "mayhem"
 progressive-items = true
+shuffle-nut-bag = true
+shuffle-stick-bag = true
+# At its widest off: the Magic Meter pooled, its line at full length.
+magic-with-first-item = false
 logic = "glitchless"
 starting-age = "child"
 rainbow-bridge = "six-medallions"

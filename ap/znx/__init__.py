@@ -92,6 +92,21 @@ def lined(counts: Counter) -> Counter:
     return out
 
 
+def kept(holds) -> dict:
+    """Each line's levels the options `holds` keeps, each its names, as
+    `rules.lined` reads them. A level they drop is never dealt: its names
+    go with the next level kept, so a rule naming it reads as that one."""
+    out = {}
+    for line, levels in LEVELS.items():
+        out[line], names = [], []
+        for level in levels:
+            names += level["names"]
+            if holds(level):
+                out[line].append(names)
+                names = []
+    return out
+
+
 def forced(values: dict) -> dict:
     """`values` with what each picked choice forces written in, as the
     app and our seed do (`settings::with_picks`): Adult opens the Door of
@@ -154,6 +169,7 @@ class ZnxWorld(World):
 
     setting_values: dict[str, Any]
     dealt: Counter
+    levels: dict
 
     def generate_early(self) -> None:
         values = {}
@@ -161,20 +177,21 @@ class ZnxWorld(World):
             values.update(setting_values(entry, getattr(self.options, attr(entry["id"]))))
         self.setting_values = forced(values)
         self.origin_region_name = start(self.setting_values)
+        self.levels = kept(self.holds)
         share = SHARES[self.setting_values.get(ICE_TRAPS, "off")]
         self.dealt = trapped(*dealt(filter(self.holds, POOL)), share, self.random)
         if self.setting_values[PROGRESSIVE]:
             self.dealt = lined(self.dealt)
 
     def holds(self, row: dict) -> bool:
-        """Whether these options hold `row`: a check, event or pool row an
-        option adds or takes away carries `when`."""
+        """Whether these options hold `row`: a check, event, pool row or
+        line's level an option adds or takes away carries `when`."""
         return "when" not in row or rules.fold(row["when"], self.setting_values) is True
 
     def rule(self, tree) -> rules.Rule | None:
         tree = rules.fold(tree, self.setting_values)
         if self.setting_values[PROGRESSIVE]:
-            tree = rules.lined(tree, LEVELS)
+            tree = rules.lined(tree, self.levels)
         return None if tree is True else rules.closure(tree, self.player)
 
     def live_places(self, exits: list) -> set[str]:
