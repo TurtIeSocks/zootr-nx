@@ -50,7 +50,7 @@ pub trait Game {
     fn kill(&mut self) -> Result<()>;
 }
 
-/// The seed's AP ids: each free check's location, each pool item's actor.
+/// The seed's AP ids: each free check's location, each item's actor.
 /// And whether the slot plays DeathLink.
 pub struct Book {
     locations: HashMap<u64, i64>,
@@ -67,7 +67,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (dealt.by_id(&ids)?)
+        let actors = (dealt.any_by_id(&ids)?)
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;
@@ -765,6 +765,23 @@ pub(super) mod tests {
         let (mut game, book) = (Fake::default(), book());
         assert!(give_next(&mut game, &book, &[9, 1]).is_err());
         assert!(game.given.is_empty());
+    }
+
+    /// A host's `/send` can grant any item the world names, not only the
+    /// pool's: Link gets it, so it holds up nothing behind it.
+    #[test]
+    fn an_item_outside_the_pool_is_given() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let seed = ApSeed::from_zip(include_bytes!("testdata/two_slots.apznx")).unwrap();
+        let book = Book::new(&romfs, &seed).unwrap();
+        // The fixture deals no medallions.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        let id = Ids::load().unwrap().item_id(medal).unwrap() as i64;
+        let mut game = Fake::default();
+        give_next(&mut game, &book, &[id]).unwrap();
+        assert_eq!(game.given, [medal]);
     }
 
     #[test]

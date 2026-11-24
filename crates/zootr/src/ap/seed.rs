@@ -23,6 +23,11 @@ use crate::settings::{
 use crate::shuffle::{self, Fixed};
 use crate::starting;
 
+/// Every item the world names, by its AP ids.
+pub(super) fn named_by_id(ids: &Ids) -> HashMap<u64, &'static str> {
+    ids.actors(names::named().map(names::same))
+}
+
 /// What Link reaches holding everything. The rest never happens, so the
 /// export leaves it out.
 #[derive(Default, PartialEq)]
@@ -106,6 +111,15 @@ impl Dealt {
                 out.insert(id, actor);
             }
         }
+        Ok(out)
+    }
+
+    /// [`Dealt::by_id`] over every item the world names: the room can
+    /// send one this slot never deals (a host's `/send`, AP's start
+    /// inventory), and Link gets it as itself.
+    pub fn any_by_id(&self, ids: &Ids) -> Result<HashMap<u64, &str>> {
+        let mut out: HashMap<u64, &str> = named_by_id(ids);
+        out.extend(self.by_id(ids)?);
         Ok(out)
     }
 
