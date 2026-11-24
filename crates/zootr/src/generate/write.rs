@@ -95,8 +95,8 @@ pub(super) fn flows_alone(
     flows(romfs, all, new_game, drops, &reads)
 }
 
-/// The flows the skips, the starting items and the boot rewrite, and the
-/// GameData edits they need.
+/// The flows the skips, the starting items and the boot rewrite make, and
+/// the GameData edits they need.
 fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, Vec<String>)> {
     // The opening movie and Navi's wake-up play in Kokiri Forest only.
     let skips = cutscenes::Skips {

@@ -122,6 +122,15 @@ impl Game {
         Some(g)
     }
 
+    /// Maps `len` more zeroed bytes of fake memory at `from`, for a test
+    /// that needs pages the swap's don't use.
+    pub(super) fn map(&mut self, from: u64, len: u64) {
+        self.m
+            .uc
+            .mem_map(from, len, Prot::READ | Prot::WRITE)
+            .unwrap();
+    }
+
     pub(super) fn write(&mut self, to: u64, bytes: &[u8]) {
         self.m.uc.mem_write(to, bytes).unwrap();
     }

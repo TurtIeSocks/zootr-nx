@@ -3,7 +3,7 @@ use ounce_formats::{BymlDoc, Flowchart, Link, murmur3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::write::flows_alone as flows;
+use super::write::flows_alone;
 use super::*;
 use crate::checks::{self, Drop};
 use crate::events::Flows;
@@ -151,7 +151,7 @@ fn grants_land_on_top_of_the_intro_skip() {
     let rel = crate::flows::rel(starting::OPENING);
     let parse = |r: &Rewrites| Flowchart::parse(&r[&rel]).unwrap().unwrap();
     let all = Flows::load(&romfs).unwrap();
-    let flows = |new_game: &NewGame| flows(&romfs, &all, new_game, &HashMap::new());
+    let flows = |new_game: &NewGame| flows_alone(&romfs, &all, new_game, &HashMap::new());
     let skipped = parse(&flows(&new_game).unwrap().0);
     assert_ne!(
         skipped,
@@ -204,7 +204,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
     };
     let card = HashMap::from([(1, Drop::from(gerudo::CARD.to_string()))]);
     let all = Flows::load(&romfs).unwrap();
-    let (rewrites, _) = flows(&romfs, &all, &new_game, &card).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &new_game, &card).unwrap();
     for name in [starting::OPENING, flow::GET_POUCH_CONTENT, flow::NPC_COMMON] {
         let data = &rewrites[&crate::flows::rel(name)];
         let flow = Flowchart::parse(data).unwrap().unwrap();
@@ -216,7 +216,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
         magic_with_first_item: true,
         ..Default::default()
     };
-    let (rewrites, _) = flows(&romfs, &all, &plain, &HashMap::new()).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &plain, &HashMap::new()).unwrap();
     assert!(!rewrites.contains_key(&crate::flows::rel(flow::GET_POUCH_CONTENT)));
 }
 
@@ -240,7 +240,7 @@ fn every_seed_gets_the_dev_branches() {
     };
     let all = Flows::load(&romfs).unwrap();
     let banc = crate::flows::rel(scene::SY_BANC_CHANGE_GO);
-    let (rewrites, _) = flows(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
     let give = zootr_hook::ARG_GIVE;
     assert!(
         rewrites[&banc].windows(give.len()).any(|w| w == give),
@@ -903,7 +903,7 @@ fn blue_warps_keep_age_with_the_adult_deku_tree() {
     let all = Flows::load(&romfs).unwrap();
     let rel = crate::flows::rel(crate::blue_warps::FLOW);
     let warp = |new_game: &NewGame| {
-        let (rewrites, _) = flows(&romfs, &all, new_game, &HashMap::new()).unwrap();
+        let (rewrites, _) = flows_alone(&romfs, &all, new_game, &HashMap::new()).unwrap();
         rewrites.get(&rel).cloned()
     };
     let mut new_game = NewGame::default();

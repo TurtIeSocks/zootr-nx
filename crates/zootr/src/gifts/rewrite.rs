@@ -201,14 +201,14 @@ pub(super) fn naming(
     call: &[Call],
     item: &str,
     taken: &BTreeSet<u16>,
-) -> Result<Vec<u16>> {
+) -> Vec<u16> {
     let names = |i: &u16| match &flow.events[*i as usize].kind {
         EventKind::SubFlow { params, .. } => names_item(params, &[item]),
         _ => false,
     };
-    Ok((calls_to(flow, call).into_iter())
+    (calls_to(flow, call).into_iter())
         .filter(|i| !taken.contains(i) && names(i))
-        .collect())
+        .collect()
 }
 
 /// [`rename_calls`], skipping the calls another gift of the flow has
@@ -221,7 +221,7 @@ pub(super) fn rename_untaken(
     to: &str,
     taken: &BTreeSet<u16>,
 ) -> Result<Vec<u16>> {
-    let calls = naming(flow, call, from, taken)?;
+    let calls = naming(flow, call, from, taken);
     ensure!(
         !calls.is_empty(),
         "{} never calls {} with {from}",

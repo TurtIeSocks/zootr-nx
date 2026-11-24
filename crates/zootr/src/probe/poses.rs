@@ -259,10 +259,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_floors_table_is_what_the_probe_prints() {
+    fn the_floors_table_opens_with_the_probe_header_and_is_sorted_and_counted() {
         let table = include_str!("../shops/floors/table.rs");
         assert!(table.starts_with(HEADER));
-        assert!(table.contains("pub(super) const FLOORS: [(Name, f32, bool); "));
+        let declared = table
+            .split_once("pub(super) const FLOORS: [(Name, f32, bool); ")
+            .and_then(|(_, rest)| rest.split_once(']'))
+            .and_then(|(n, _)| n.parse::<usize>().ok())
+            .expect("the table declares its length");
+        // `row` binary searches by hash, so the rows must stay in order.
+        let hashes: Vec<u64> = (table.lines())
+            .filter_map(|l| l.trim_start().strip_prefix("(n!(0x"))
+            .map(|l| u64::from_str_radix(&l[..16], 16).unwrap())
+            .collect();
+        assert_eq!(hashes.len(), declared);
+        assert!(hashes.windows(2).all(|w| w[0] < w[1]));
     }
 
     #[test]

@@ -4,22 +4,11 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use ounce_formats::{NavMesh, Romfs, Tagfile};
+use ounce_formats::{NavMesh, Romfs};
 
+use super::formats::print_types;
 use crate::checks::xyz;
 use crate::nav::navmesh_file;
-
-/// Every type a tagfile declares, with its fields.
-pub(super) fn print_types(bytes: &[u8]) -> Result<()> {
-    let file = Tagfile::parse(bytes)?;
-    for (i, t) in file.types.iter().enumerate().skip(1) {
-        println!("{i} {} parent {} size {}", t.name, t.parent, file.size(i));
-        for f in &t.fields {
-            println!("    {} @{} {}", f.name, f.offset, file.types[f.ty].name);
-        }
-    }
-    Ok(())
-}
 
 pub(super) fn nav(
     romfs: &Romfs,

@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 
 /** Props for {@link Tail}. */
 interface TailProps {
-  /** The lines shown, by id: ids at or past {@link next} are new. */
+  /** The lines shown, by id: ids at or past {@link next} are new. A late
+   * line slotted in below it is shown but not counted. */
   shown: { id: number }[];
   /** The next line's id, read when following stops. */
   next: () => number;
