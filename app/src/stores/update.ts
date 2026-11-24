@@ -1,6 +1,6 @@
-import { getVersion } from "@tauri-apps/api/app";
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
+import { commands } from "@/bindings";
 import { init as initConfig, useConfig } from "@/stores/config";
 import { once } from "@/stores/once";
 import { useUi } from "@/stores/ui";
@@ -17,10 +17,17 @@ interface Update {
   latest: Release | null;
   /** This build's version, once read. */
   current: string | null;
+  /** The commit a source build came from, `*` when dirty. Empty without git. */
+  commit: string;
+  /** A tagged release, which offers the install. Any other build is a
+   * source build: it shows its commit and only hears of a release. */
+  release: boolean;
 }
 
 export const useUpdate = create<Update>()(
-  dotPath((): Update => ({ latest: null, current: null })),
+  dotPath(
+    (): Update => ({ latest: null, current: null, commit: "", release: true }),
+  ),
 );
 
 /** How often to check again after launch. */
@@ -75,13 +82,15 @@ async function check() {
   if (asked === checks) useUpdate.setPath("latest", newerOnly(latest));
 }
 
-/** Reads this build's version, which the sidebar always shows, then checks
+/** Reads what this build is, which the sidebar always shows, then checks
  * once the config is read, every 6 hours and whenever the switch flips. */
 const started = once(async () => {
-  await getVersion().then(
-    (v) => useUpdate.setPath("current", v),
-    (e: unknown) => console.debug("Couldn't read the version", e),
-  );
+  try {
+    const { version, commit, release } = await commands.buildInfo();
+    useUpdate.setState({ current: version, commit, release });
+  } catch (e) {
+    console.debug("Couldn't read the version", e);
+  }
   await initConfig();
   await check();
   const timer = setInterval(() => void check(), EVERY);
