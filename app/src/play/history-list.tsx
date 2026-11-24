@@ -1,6 +1,7 @@
 import {
   CircleCheck,
   Download,
+  Loader2,
   Pencil,
   ScrollText,
   SlidersHorizontal,
@@ -97,13 +98,26 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
   );
 }
 
-/** Stays visible on the installed row, where Install would be. */
-function InstalledMark() {
+/** Props for {@link InstallMark}. */
+interface InstallMarkProps {
+  /** Another seed is being installed over this one. */
+  replaced?: boolean;
+  /** This seed is being installed. */
+  installing?: boolean;
+}
+
+/** Stays visible where Install would be: on the installed row, dark while
+ * another seed replaces it, and on the row being installed, spinning. */
+function InstallMark({ replaced, installing }: InstallMarkProps) {
   return (
-    <Badge asChild variant="green" className="cursor-default">
+    <Badge
+      asChild
+      variant={installing ? "info" : replaced ? "default" : "green"}
+      className="cursor-default"
+    >
       <button type="button" aria-disabled="true">
-        <CircleCheck />
-        Installed
+        {installing ? <Loader2 className="animate-spin" /> : <CircleCheck />}
+        {installing ? "Installing" : "Installed"}
       </button>
     </Badge>
   );
@@ -175,8 +189,10 @@ interface HistoryRowProps {
  * for its own values. */
 const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
   const [installedId] = useSeeds.usePath("history.installed.id");
+  const [installingId] = useSeeds.usePath("installing");
   const [differs] = useSeeds.usePath(`diffs.${e.id}`, 0);
   const isInstalled = e.id === installedId;
+  const isInstalling = e.id === installingId;
   return (
     <li
       id={rowId.seed(e.id)}
@@ -200,10 +216,15 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
           )}
         </div>
       </div>
-      {isInstalled && <InstalledMark />}
+      {(isInstalled || isInstalling) && (
+        <InstallMark
+          installing={isInstalling}
+          replaced={installingId !== null && !isInstalling}
+        />
+      )}
       {/* Floats over the row's end, so hidden actions take no room. */}
       <div className="absolute inset-y-0 right-3 flex items-center gap-0.5 pointer-events-none bg-surface-hover pl-2 opacity-0 transition-opacity duration-(--duration-fast) group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100">
-        {!isInstalled && <InstallSeed id={e.id} />}
+        {!isInstalled && !isInstalling && <InstallSeed id={e.id} />}
         {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
         {!e.ap_slot && (
           <TipButton

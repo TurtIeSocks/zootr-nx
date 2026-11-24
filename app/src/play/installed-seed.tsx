@@ -72,7 +72,7 @@ export function InstalledSeed() {
               ))}
             </div>
             <Meter value={installed.changed} max={installed.chests}>
-              {installed.changed} of {installed.chests} chests changed
+              {installed.changed} of {installed.chests} checks changed
             </Meter>
           </div>
         )}
