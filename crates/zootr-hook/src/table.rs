@@ -468,10 +468,11 @@ impl<'a> Iterator for Levels<'a> {
 pub fn pick<'a>(levels: Levels<'a>, owns: impl Fn(&[u8]) -> bool) -> Option<&'a [u8]> {
     let (mut give, mut after) = (None, true);
     for l in levels {
-        if after || owns(l.pouch) {
+        let has = owns(l.pouch);
+        if after || has {
             give = Some(l.drop);
         }
-        after = owns(l.pouch);
+        after = has;
     }
     give
 }
@@ -650,6 +651,20 @@ mod tests {
             assert_eq!(give(&["Bag_S", "Bag_M"], chest).unwrap(), "Bag_L");
             assert_eq!(give(&["Bag_S", "Bag_M", "Bag_L"], chest).unwrap(), "Bag_L");
         }
+    }
+
+    #[test]
+    fn a_pick_asks_after_each_level_once() {
+        with_table(|t| {
+            let (_, line, _) = t.find(b"Bag_S").unwrap();
+            let asked = core::cell::Cell::new(0);
+            let owns = |l: &[u8]| {
+                asked.set(asked.get() + 1);
+                l == b"Bag_S"
+            };
+            assert_eq!(pick(line, owns), Some(&b"Bag_M"[..]));
+            assert_eq!(asked.get(), BAGS.len());
+        });
     }
 
     #[test]

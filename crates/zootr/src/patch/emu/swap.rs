@@ -13,7 +13,7 @@ use zootr_hook::{Ask, Mailbox, OFFSETS, Outcome, Shared, Swap};
 use super::*;
 
 /// The fake game's memory, apart from everything else.
-const FAKE: u64 = 0x5000_0000;
+pub(super) const FAKE: u64 = 0x5000_0000;
 const MANAGER: u64 = FAKE;
 const ENTRIES: u64 = FAKE + 0x1000;
 const LINKS: u64 = FAKE + 0x2000;
@@ -52,7 +52,7 @@ enum Call {
     Wake(u64, [f32; 3], [f32; 9], u64),
 }
 
-struct Game {
+pub(super) struct Game {
     m: Machine,
     bools: BTreeMap<u32, bool>,
     calls: Vec<Call>,
@@ -60,7 +60,7 @@ struct Game {
     creates: Vec<u64>,
 }
 
-fn u64s(words: &[u64]) -> Vec<u8> {
+pub(super) fn u64s(words: &[u64]) -> Vec<u8> {
     words.iter().flat_map(|w| w.to_le_bytes()).collect()
 }
 
@@ -71,7 +71,7 @@ fn f32s(words: &[f32]) -> Vec<u8> {
 impl Game {
     /// The machine with a table (dev on) and the fake game: a child Link
     /// in play, his adult self not made yet.
-    fn new() -> Option<Self> {
+    pub(super) fn new() -> Option<Self> {
         let mut m = Machine::new()?;
         let table = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
         for p in table.iter().filter(|p| (TABLE..TABLE_END).contains(&p.at)) {
@@ -109,12 +109,12 @@ impl Game {
         g.write(LINK + 0x31c, &f32s(&POSITION));
         g.write(LINK + 0x328, &f32s(&ROTATION));
         g.write(LINK, &u64s(&[at(o.player_vtable)]));
-        g.write(LINK + 624, &u64s(&[LINK + 0x800]));
-        g.write(LINK + 0x800 + 800, &u64s(&[MOVEMENT]));
-        g.write(MOVEMENT + 24, &u64s(&[LINK]));
+        g.write(LINK + 0x270, &u64s(&[LINK + 0x800]));
+        g.write(LINK + 0x800 + 0x320, &u64s(&[MOVEMENT]));
+        g.write(MOVEMENT + 0x18, &u64s(&[LINK]));
         g.write(OWNER, &u64s(&[at(o.move_vtable)]));
-        g.write(OWNER + 16, &u64s(&[RESOURCE]));
-        g.write(RESOURCE + 88, b"Player\0");
+        g.write(OWNER + 0x10, &u64s(&[RESOURCE]));
+        g.write(RESOURCE + 0x58, b"Player\0");
         // GameData and the events (none playing) through main's globals.
         g.write(CELLS, &u64s(&[GAMEDATA, EVENTS]));
         g.write(at(o.gamedata), &u64s(&[CELLS]));
@@ -122,7 +122,7 @@ impl Game {
         Some(g)
     }
 
-    fn write(&mut self, to: u64, bytes: &[u8]) {
+    pub(super) fn write(&mut self, to: u64, bytes: &[u8]) {
         self.m.uc.mem_write(to, bytes).unwrap();
     }
 
@@ -132,7 +132,7 @@ impl Game {
         b
     }
 
-    fn u64(&self, from: u64) -> u64 {
+    pub(super) fn u64(&self, from: u64) -> u64 {
         u64::from_le_bytes(self.read(from))
     }
 
@@ -167,7 +167,7 @@ impl Game {
 
     /// One run of the function hook at `hooked` with `x0`, the game's
     /// routines it reaches stubbed, to its return.
-    fn call(&mut self, hooked: u32, x0: u64) {
+    pub(super) fn call(&mut self, hooked: u32, x0: u64) {
         self.m.uc.reg_write(R::X0, x0).unwrap();
         self.m.uc.reg_write(R::SP, STACK + STACK_SIZE / 2).unwrap();
         self.m.uc.reg_write(R::X30, SENTINEL).unwrap();
