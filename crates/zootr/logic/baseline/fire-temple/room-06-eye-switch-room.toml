@@ -20,13 +20,13 @@ guess = true
 to = 16
 needs = "flag:#8f62d9dc"
 via = "walk"
-why = "walk, 4 edges; Switch Shutter A 02 6545418845981059466 shut until flag #8f62d9dc; Fire Temple Switch Shutter A 01 14097512838582689444 shut until flag #8f62d9dc"
+why = "walk, 32 edges; Switch Shutter A 02 6545418845981059466 shut until flag #8f62d9dc; Fire Temple Switch Shutter A 01 14097512838582689444 shut until flag #8f62d9dc"
 
 [[link]]
 to = 16
 needs = "always"
 via = "jump"
-why = "level gap 1.0 to 2.2 m: within a running jump (2.7 m)"
+why = "level gap 1.0 to 1.8 m: within a running jump (2.7 m)"
 
 [[flag]]
 hash = 0x8f62d9dc

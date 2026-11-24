@@ -31,7 +31,8 @@ pub(super) fn options(name: &str) -> Result<Vec<String>> {
         .map(|(id, v)| {
             let value = match v {
                 toml::Value::Boolean(b) => b.to_string(),
-                toml::Value::String(s) => s.clone(),
+                // AP spells a choice's options as Python names, like its ids.
+                toml::Value::String(s) => s.replace('-', "_"),
                 _ => bail!("{name}.{id}: a toggle or a choice"),
             };
             Ok(format!("{}: {value}", id.replace('-', "_")))
@@ -108,6 +109,12 @@ mod tests {
         assert!(yaml.starts_with("name: Link\ngame: Ocarina of Time (znx)\n"));
         assert!(yaml.contains("\n  open_forest: true\n"));
         assert!(yaml.contains("\n  start_inventory_from_pool:\n    Kokiri Sword: 1\n"));
+    }
+
+    #[test]
+    fn a_choice_s_option_goes_by_ap_s_spelling() {
+        let lines = options("all-on").unwrap();
+        assert!(lines.contains(&"rainbow_bridge: six_medallions".to_owned()));
     }
 
     #[test]

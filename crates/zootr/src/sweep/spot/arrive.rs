@@ -11,6 +11,7 @@ use anyhow::{Result, bail};
 use super::{BEAT, CALM};
 use crate::dev::{Dev, EVENT_PLAYING, NOT_TAKEN, Place};
 use crate::known::{Name, field, map};
+use crate::live;
 use crate::play::Input;
 
 /// How many times a request refused for an event is asked again.
@@ -34,14 +35,8 @@ pub(super) fn calmly<T>(
 /// Whether `e` means the game is gone rather than a request refused.
 pub fn gone(e: &anyhow::Error) -> bool {
     let text = format!("{e:#}");
-    [
-        "didn't answer",
-        "closed the bridge",
-        "no game is listening",
-        "Broken pipe",
-    ]
-    .iter()
-    .any(|t| text.contains(t))
+    // The OS's text for a write to a closed socket.
+    (live::GONE.iter().chain(&["Broken pipe"])).any(|t| text.contains(t))
 }
 
 /// Wait for no event and no load, pressing A through any text left.
@@ -120,9 +115,9 @@ mod tests {
 
     #[test]
     fn a_gone_game_is_told_from_a_refusal() {
-        assert!(gone(&anyhow::anyhow!(
-            "the game didn't answer mem_read in 30s"
-        )));
+        for text in live::GONE {
+            assert!(gone(&anyhow::anyhow!("{text} mem_read")), "{text}");
+        }
         assert!(!gone(&anyhow::anyhow!("an event is playing")));
     }
 

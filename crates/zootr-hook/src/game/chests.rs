@@ -3,11 +3,11 @@
 
 use core::ffi::CStr;
 
-use super::{at, name, shared};
+use super::{Hash, at, func, name, shared};
+use crate::traps::COMPONENTS;
 use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick_with};
 
 type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
-type Hash = unsafe extern "C" fn(*const u8, u32) -> u32;
 type Delete = unsafe extern "C" fn(usize, usize) -> bool;
 type Create = unsafe extern "C" fn(usize, usize, *const usize, usize) -> bool;
 
@@ -35,7 +35,7 @@ pub(super) unsafe fn record(main: usize, table: &Table, node: usize) -> Option<(
     let (line, _, level) = table.find(file)?;
     let index = unsafe { *(input(0x30)? as *const u32) };
     let actor = unsafe { at(at(node, 8)?, 8)? };
-    let holder = unsafe { at(at(at(actor, 0x1f0)?, 0x270)?, 0x110)? };
+    let holder = unsafe { at(at(at(actor, 0x1f0)?, COMPONENTS)?, 0x110)? };
     let chest = Chest {
         actor,
         holder,
@@ -99,8 +99,8 @@ unsafe fn swap(main: usize, o: &Offsets, chest: &Chest, name: *const usize) -> O
     let slot = unsafe { slot(main, o, chest)? };
     let owner = unsafe { at(chest.holder, 0x18)? };
     unsafe {
-        let delete: Delete = core::mem::transmute(main + o.delete as usize);
-        let create: Create = core::mem::transmute(main + o.create as usize);
+        let delete: Delete = func(main, o.delete);
+        let create: Create = func(main, o.create);
         delete(0, slot);
         // Create waits for the old actor to die unless the slot's
         // request id is cleared.
@@ -120,7 +120,7 @@ unsafe fn swap(main: usize, o: &Offsets, chest: &Chest, name: *const usize) -> O
 /// # Safety
 /// The offsets are this build's, `chest` was made in this map.
 unsafe fn slot(main: usize, o: &Offsets, chest: &Chest) -> Option<usize> {
-    let hash: Hash = unsafe { core::mem::transmute(main + o.hash as usize) };
+    let hash: Hash = unsafe { func(main, o.hash) };
     let want = unsafe { hash(CONTENT.as_ptr().cast(), 0) };
     let holder = chest.holder;
     let n = unsafe { *((holder + 0x34) as *const u32) };
@@ -144,7 +144,7 @@ unsafe fn slot(main: usize, o: &Offsets, chest: &Chest) -> Option<usize> {
 /// # Safety
 /// `placement` is the reader's placement argument.
 pub(super) unsafe fn drop_value(placement: usize) -> Option<*mut u8> {
-    let list = unsafe { at(at(at(at(placement, 0x40)?, 0x270)?, 0)?, 0x10)? };
+    let list = unsafe { at(at(at(at(placement, 0x40)?, COMPONENTS)?, 0)?, 0x10)? };
     let count = unsafe { *(list as *const i32) };
     if !(0..=PARAMS).contains(&count) {
         return None;
@@ -187,7 +187,7 @@ pub(super) unsafe fn rewrite(main: usize, table: &Table, value: *mut u8) {
 /// The offsets are this build's.
 pub(super) unsafe fn owned(main: usize, o: &Offsets) -> Option<impl Fn(&[u8]) -> bool> {
     let manager = unsafe { at(main, o.manager as usize) }?;
-    let count: Count = unsafe { core::mem::transmute(main + o.count as usize) };
+    let count: Count = unsafe { func(main, o.count) };
     Some(move |pouch: &[u8]| unsafe { count(manager, &pouch.as_ptr(), 0, 0) } > 0)
 }
 

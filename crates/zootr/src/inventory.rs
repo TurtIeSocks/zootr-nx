@@ -266,9 +266,9 @@ pub fn icons() -> impl Iterator<Item = &'static str> {
 static KEPT: LazyLock<[(&str, &Name, &str); 4]> = LazyLock::new(|| {
     [
         (flag::SMALL_KEY_NUM, keys::SMALL, "Small Keys"),
-        ("IsGetBossKey", keys::BOSS, "Boss Key"),
-        ("IsGetMap", item::DUNGEON_MAP, "Map"),
-        ("IsGetCompass", item::DUNGEON_COMPASS, "Compass"),
+        (keys::IS_GET_BOSS_KEY, keys::BOSS, "Boss Key"),
+        (keys::IS_GET_MAP, item::DUNGEON_MAP, "Map"),
+        (keys::IS_GET_COMPASS, item::DUNGEON_COMPASS, "Compass"),
     ]
 });
 
@@ -308,7 +308,7 @@ fn kept(found: &[ItemCheck]) -> Vec<Kept> {
                     }),
                     icon: item,
                     small: i == 0,
-                    key: here.then(|| murmur3(format!("DungeonInfo.{member}.{field}").as_bytes())),
+                    key: here.then(|| murmur3(keys::dungeon_flag(member, field).as_bytes())),
                 }
             })
     })
@@ -602,7 +602,7 @@ pub(super) mod tests {
     }
 
     fn dungeon_hash(member: &str, field: &str) -> u32 {
-        murmur3(format!("DungeonInfo.{member}.{field}").as_bytes())
+        murmur3(keys::dungeon_flag(member, field).as_bytes())
     }
 
     fn cell<'a>(cells: &'a [Cell], label: &str) -> &'a Cell {
@@ -697,8 +697,11 @@ pub(super) mod tests {
     fn a_save_fills_each_dungeons_row_and_leaves_missing_items_empty() {
         let held = [
             (dungeon_hash(flag::FOREST_TEMPLE, flag::SMALL_KEY_NUM), 3),
-            (dungeon_hash(flag::FOREST_TEMPLE, "IsGetBossKey"), 1),
-            (dungeon_hash(flag::INSIDE_THE_DEKU_TREE, "IsGetMap"), 1),
+            (dungeon_hash(flag::FOREST_TEMPLE, keys::IS_GET_BOSS_KEY), 1),
+            (
+                dungeon_hash(flag::INSIDE_THE_DEKU_TREE, keys::IS_GET_MAP),
+                1,
+            ),
         ];
         let pairs: Vec<_> = std::iter::once((0, 0)).chain(held).collect();
         let save = Save::parse(Save::fixture(&pairs)).unwrap();
@@ -749,7 +752,12 @@ pub(super) mod tests {
         assert!(!inv.change(&key));
         let key = change(flag::FOREST_TEMPLE, flag::SMALL_KEY_NUM, "Int", "5 -> 4");
         assert!(inv.change(&key));
-        let boss = change(flag::FOREST_TEMPLE, "IsGetBossKey", "Bool", "false -> true");
+        let boss = change(
+            flag::FOREST_TEMPLE,
+            keys::IS_GET_BOSS_KEY,
+            "Bool",
+            "false -> true",
+        );
         assert!(inv.change(&boss));
         let cells = inv.cells();
         assert_eq!(cell(&cells, "Forest Temple Small Keys").count, Some(4));
@@ -762,7 +770,12 @@ pub(super) mod tests {
             "0 -> 1",
         );
         assert!(!inv.change(&none));
-        let back = change(flag::FOREST_TEMPLE, "IsGetBossKey", "Bool", "true -> false");
+        let back = change(
+            flag::FOREST_TEMPLE,
+            keys::IS_GET_BOSS_KEY,
+            "Bool",
+            "true -> false",
+        );
         assert!(inv.change(&back));
         assert_eq!(cell(&inv.cells(), "Forest Temple Boss Key").tier, 0);
     }

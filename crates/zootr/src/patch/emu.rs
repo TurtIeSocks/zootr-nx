@@ -301,4 +301,5 @@ fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
     }
 }
 
+mod arrows;
 mod swap;

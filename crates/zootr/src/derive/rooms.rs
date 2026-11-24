@@ -453,7 +453,7 @@ pub fn derive(
             if ra != rb && !here.takes_room_arc(ra, rb, via) {
                 entries.insert((rb, labels.part[b]));
                 let s = traced.seen.entry((ra, rb, via)).or_default();
-                s.add(metric, by, path);
+                s.add(metric, by, path, level.on_terrain(a) || level.on_terrain(b));
                 s.fall = s.fall.max(fall);
                 s.on.extend(on(path.0, path.1));
             }
@@ -519,7 +519,7 @@ pub fn derive(
             }
             entries.insert((rb, pb));
             let s = traced.seen.entry((ra, rb, p.link.via)).or_default();
-            s.add(0.0, None, p.at);
+            s.add(0.0, None, p.at, false);
             s.puzzle = Some(p.link);
         }
         // A shutter's two leaves stand a strip of floor apart: its flag is

@@ -92,7 +92,7 @@ impl Graph {
     /// The gates before flow `flow` gives `item`: from every entry point
     /// that reaches an event naming it. None when no event names it.
     pub fn gates_of_grant(&self, flow: &str, item: &str) -> Option<Vec<Gate>> {
-        let chart = self.flows.as_ref()?.0.get(flow)?;
+        let chart = self.flows.as_ref()?.charts.get(flow)?;
         let quoted = format!("{item:?}");
         let grants: Vec<u16> = (0u16..)
             .zip(&chart.events)
@@ -112,7 +112,7 @@ impl Graph {
         (flow, entry): (&str, &str),
         (quest, step): (&str, &str),
     ) -> Option<Vec<Gate>> {
-        let chart = self.flows.as_ref()?.0.get(flow)?;
+        let chart = self.flows.as_ref()?.charts.get(flow)?;
         let node = *self.ids.get(&format!("event:{flow}/{entry}"))?;
         let (saved, suffix) = (state(quest), format!(" {step}"));
         let targets: Vec<u16> = (self.outs[node].iter())
@@ -191,7 +191,7 @@ impl Graph {
             Kind::Graph => None,
             Kind::Event => match (n.name.split_once('/'), target, &self.flows) {
                 (Some((flow, entry)), Some(t), Some(flows)) => {
-                    flows.0.get(flow).map(|c| (c, entry, t))
+                    flows.charts.get(flow).map(|c| (c, entry, t))
                 }
                 _ => return Vec::new(),
             },
@@ -272,7 +272,7 @@ impl Graph {
     /// The entry points of `flow`, as `FLOW/ENTRY` event names.
     #[cfg(test)]
     pub fn entries(&self, flow: &str) -> Vec<String> {
-        let chart = self.flows.as_ref().and_then(|f| f.0.get(flow));
+        let chart = self.flows.as_ref().and_then(|f| f.charts.get(flow));
         let entries = chart.into_iter().flat_map(|c| &c.entry_points);
         entries.map(|e| format!("{flow}/{}", e.name)).collect()
     }

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use anyhow::{Context, Result};
-use ounce_formats::{Byml, KEYED, Save, SaveEntry, murmur3};
+use ounce_formats::{BOOL, Byml, KEYED, Save, SaveEntry, murmur3};
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
@@ -147,6 +147,15 @@ impl Change {
     /// The key a per-placement flag's change names.
     pub fn key(&self) -> Option<u64> {
         (self.kind == KEYED).then(|| self.name.parse().ok())?
+    }
+
+    /// Whether a flag, single or per-placement, went on or off: the `b` of
+    /// its `a -> b`. `None` for any other change.
+    pub fn turned_on(&self) -> Option<bool> {
+        if self.kind != BOOL && self.kind != KEYED {
+            return None;
+        }
+        self.change.rsplit_once(" -> ")?.1.parse().ok()
     }
 
     /// The same change, as element `i` of an array.
@@ -505,10 +514,18 @@ mod tests {
             shown,
             [(Some(3), "false -> true"), (Some(1), "true -> false")]
         );
-        assert_eq!(
-            Change::new(&GameData::default(), 3, "Bool", "x").key(),
-            None
-        );
+        assert_eq!(Change::new(&GameData::default(), 3, BOOL, "x").key(), None);
+    }
+
+    #[test]
+    fn a_flag_change_says_whether_it_went_on() {
+        let change = |kind, text| Change::new(&GameData::default(), 3, kind, text).turned_on();
+        assert_eq!(Change::keyed(7, true).turned_on(), Some(true));
+        assert_eq!(Change::keyed(7, false).turned_on(), Some(false));
+        assert_eq!(change(BOOL, "false -> true"), Some(true));
+        assert_eq!(change(BOOL, "true -> false"), Some(false));
+        assert_eq!(change(BOOL, "new: true"), None, "not a flip");
+        assert_eq!(change("Int", "0 -> 1"), None);
     }
 
     /// A save with bools `(hash, value)` and binaries `(hash, data)`.

@@ -1,34 +1,75 @@
 //! Writes a seed's drops, new-game edits and flows into a mod.
 
+mod banc;
+
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use anyhow::{Result, bail, ensure};
-use ounce_formats::{BymlDoc, ModBuilder, Romfs, pack_file, par_map, threads};
+use anyhow::{Result, bail};
+use ounce_formats::{Byml, BymlDoc, ModBuilder, Romfs, pack_file};
+use zootr_hook::look::LookSpec;
 
 use super::Written;
 use crate::bombchu_bags;
-use crate::checks::{self, Drop};
+use crate::checks::{self, Drop, ItemCheck};
 use crate::events::Flows;
 use crate::flows::Rewrites;
+use crate::gamedata::{GameData, Op};
 use crate::hints::Hint;
 use crate::narrowing::maps_move;
 use crate::progress::Run;
 use crate::progressive::Lines;
 use crate::settings::{
-    AGELESS_GEAR, AGELESS_ITEMS, AGELESS_WEAPONS, ChestSize, DungeonEntrances, NewGame, TRADE_CHAIN,
+    AGELESS_GEAR, AGELESS_ITEMS, AGELESS_WEAPONS, DungeonEntrances, NewGame, TRADE_CHAIN,
 };
 use crate::settings::{Bombchus, Bridge};
 use crate::starter_bags;
 use crate::world::Era;
 use crate::{
-    adult_jabu, ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters,
-    chest_levels, cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, foreign,
-    fortress, gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth,
-    key_tints, keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb,
-    scrubs, sheik_crater, shops, spawn, standins, starting, steps, text, tracker, trade_chain,
-    twins,
+    ageless, ageless_items, ammo, blue_warps, bombchus, bombs, bridge, carpenters, chest_levels,
+    cows, cutscenes, dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress,
+    gamedata, gerudo, gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints,
+    keys, map_copies, medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs,
+    sheik_crater, shops, spawn, standins, starting, steps, text, tracker, trade_chain, twins,
 };
+
+/// What both the flows and the mod's files need from the dump for a seed,
+/// read once.
+pub(super) struct Reads {
+    /// The cows, when they give what's dealt.
+    cows: Vec<cows::Cow>,
+    pieces: Vec<ItemCheck>,
+    levels: chest_levels::Levels,
+    /// With shuffled doors, each dungeon's front door and the arrivals
+    /// that mark it.
+    doors: Option<(entrances::Blocks, Vec<entrances::reveal::Arrival>)>,
+}
+
+impl Reads {
+    pub(super) fn load(
+        romfs: &Romfs,
+        drops: &HashMap<u64, Drop>,
+        new_game: &NewGame,
+    ) -> Result<Self> {
+        let doors = match new_game.dungeon_entrances {
+            DungeonEntrances::Off => None,
+            mode => {
+                let blocks = entrances::Blocks::read(romfs)?;
+                let arrivals = entrances::reveal::plan(&blocks, mode);
+                Some((blocks, arrivals))
+            }
+        };
+        Ok(Self {
+            cows: match new_game.cows {
+                true => cows::find(romfs)?,
+                false => Vec::new(),
+            },
+            pieces: pickups::dealt(romfs, new_game)?,
+            levels: levels(romfs, drops, new_game)?,
+            doors,
+        })
+    }
+}
 
 /// The flows `new_game` and the gifts in `drops` rewrite, and the GameData
 /// edits the skips need.
@@ -37,7 +78,28 @@ pub(super) fn flows(
     all: &Flows,
     new_game: &NewGame,
     drops: &HashMap<u64, Drop>,
+    reads: &Reads,
 ) -> Result<(Rewrites, Vec<String>)> {
+    let (mut rewrites, flags) = opening(romfs, all, new_game)?;
+    deals(romfs, all, &mut rewrites, new_game, drops, reads)?;
+    Ok((rewrites, flags))
+}
+
+/// [`flows`], reading what it needs.
+#[cfg(test)]
+pub(super) fn flows_alone(
+    romfs: &Romfs,
+    all: &Flows,
+    new_game: &NewGame,
+    drops: &HashMap<u64, Drop>,
+) -> Result<(Rewrites, Vec<String>)> {
+    let reads = Reads::load(romfs, drops, new_game)?;
+    flows(romfs, all, new_game, drops, &reads)
+}
+
+/// The flows the skips, the starting items and the boot rewrite, and the
+/// GameData edits they need.
+fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, Vec<String>)> {
     // The opening movie and Navi's wake-up play in Kokiri Forest only.
     let skips = cutscenes::Skips {
         intro: new_game.skips.intro || boot(new_game).is_some(),
@@ -79,60 +141,72 @@ pub(super) fn flows(
         let owned = new_game.start.owned();
         flags.extend(spawn::boot(romfs, &mut rewrites, &spawn, &owned)?);
     }
+    Ok((rewrites, flags))
+}
+
+/// Rewrite the flows that give what `drops` dealt, and those the settings
+/// change around them.
+fn deals(
+    romfs: &Romfs,
+    all: &Flows,
+    rewrites: &mut Rewrites,
+    new_game: &NewGame,
+    drops: &HashMap<u64, Drop>,
+    reads: &Reads,
+) -> Result<()> {
     if new_game.on.contains(TRADE_CHAIN) {
-        trade_chain::deal(romfs, &mut rewrites, drops)?;
+        trade_chain::deal(romfs, rewrites, drops)?;
     }
     gifts::give_all(
         romfs,
         all,
-        &mut rewrites,
+        rewrites,
         drops,
         Lines::of(new_game),
         &new_game.on,
     )?;
-    levels(romfs, drops, new_game)?.give(romfs, all, &mut rewrites)?;
+    reads.levels.give(romfs, all, rewrites)?;
     if new_game.shop_slots > 0 {
         let slots = shops::slots(romfs)?;
-        shops::sold::write(romfs, &mut rewrites, &slots, new_game, drops)?;
-        shops::rupees::write(romfs, &mut rewrites)?;
+        shops::sold::write(romfs, rewrites, &slots, new_game, drops)?;
+        shops::rupees::write(romfs, rewrites)?;
     }
-    dampe::give(romfs, &mut rewrites, drops)?;
+    dampe::give(romfs, rewrites, drops)?;
     if new_game.freestanding {
-        goron_pot::rename(romfs, &mut rewrites, drops)?;
+        goron_pot::rename(romfs, rewrites, drops)?;
     }
-    gerudo::stand_down(romfs, &mut rewrites, drops)?;
-    carpenters::flows(romfs, &mut rewrites)?;
-    gerudo::clear_once(romfs, &mut rewrites)?;
-    gerudo::rescue_once(romfs, &mut rewrites)?;
+    gerudo::stand_down(romfs, rewrites, drops)?;
+    carpenters::flows(romfs, rewrites)?;
+    gerudo::clear_once(romfs, rewrites)?;
+    gerudo::rescue_once(romfs, rewrites)?;
     let model = gifts::levels::model(all)?;
     let level = gifts::levels::Level {
         model: &model,
         lines: Lines::of(new_game),
     };
     if new_game.scrubs {
-        scrubs::write(romfs, &mut rewrites, drops, new_game.scrub_price, level)?;
+        scrubs::write(romfs, rewrites, drops, new_game.scrub_price, level)?;
     }
     if new_game.cows {
-        cows::give(romfs, &mut rewrites, &cows::find(romfs)?, drops, level)?;
+        cows::give(romfs, rewrites, &reads.cows, drops, level)?;
     }
-    let pieces = pickups::dealt(romfs, new_game)?;
     if new_game.fortress_keys.moved() {
-        fortress::give(romfs, &mut rewrites, &pieces, drops, Lines::of(new_game))?;
+        fortress::give(romfs, rewrites, &reads.pieces, drops, Lines::of(new_game))?;
     }
-    picked::delete_letter(romfs, &mut rewrites, &picked::holders(&pieces, drops))?;
+    picked::delete_letter(romfs, rewrites, &picked::holders(&reads.pieces, drops))?;
     if ice_traps::springs(new_game) {
-        ice_traps::flow(romfs, &mut rewrites)?;
+        ice_traps::flow(romfs, rewrites)?;
         let traps: Vec<&str> = ice_traps::actors(&new_game.foreign).collect();
-        ice_traps::one_page(romfs, &mut rewrites, &traps)?;
+        ice_traps::one_page(romfs, rewrites, &traps)?;
     }
     // Shuffled doors turn the adult Deku Tree on, so this covers them too.
     if new_game.on.contains(presets::ADULT_DEKU_TREE) {
-        blue_warps::keep_age(romfs, &mut rewrites)?;
+        blue_warps::keep_age(romfs, rewrites)?;
     }
-    if new_game.dungeon_entrances != DungeonEntrances::Off {
-        entrances::reveal::flows_for(romfs, &mut rewrites, new_game.dungeon_entrances)?;
+    if let Some((_, arrivals)) = &reads.doors {
+        entrances::reveal::flows(romfs, rewrites, &rsdb::events(romfs)?, arrivals)?;
     }
-    Ok((rewrites, flags))
+    Ok(())
 }
 
 /// Where `new_game` boots other than Link's house, as `MAP/SPOT`: the
@@ -153,6 +227,69 @@ pub fn write_mod(
     hints: &[Hint],
     run: &Run,
 ) -> Result<Written> {
+    check_drops(romfs, drops)?;
+    let mut builder = ModBuilder::new(romfs, mod_dir)?;
+    let all = Flows::load(romfs)?;
+    let reads = Reads::load(romfs, drops, new_game)?;
+    let (rewrites, flags) = flows(romfs, &all, new_game, drops, &reads)?;
+    for (rel, data) in &rewrites {
+        for to in crate::flows::copies(romfs, rel) {
+            builder.write(&to, data)?;
+        }
+    }
+    let gd = GameData::load(romfs)?;
+    let slots = match new_game.shop_slots {
+        0 => Vec::new(),
+        _ => shops::slots(romfs)?,
+    };
+    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
+    write_text(romfs, &mut builder, drops, new_game, &shelves, hints)?;
+    let mut parts = Parts::new(romfs, drops, new_game, reads, &gd)?;
+    // Presets and `--default` edits go last, so they win over a skip's.
+    let mut edits = flags;
+    edits.extend(new_game.defaults.iter().cloned());
+    let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
+    let defaults = parts.game_data(&mut data.root, &gd, &slots, &shelves, &edits)?;
+    let (fields, look) = parts.assets(&mut builder, &shelves)?;
+    let mut maps = banc::Banc::new(&parts, &all, &shelves, &fields)?;
+    for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
+        run.check()?;
+        maps.edit(&mut builder, rel, doc?)?;
+    }
+    let (actors, spots) = maps.finish(&mut builder)?;
+    // Last, once every holder's spot is known.
+    gamedata::add_u64s(&mut data.root, &picked::entries(&spots))?;
+    // Every stand-in is built by now.
+    gamedata::add_bools(&mut data.root, &pickups::taken::flags(builder.written()))?;
+    builder.write(gamedata::PATH, &data.to_binary())?;
+    bombs::write(&mut builder)?;
+    dig::write(romfs, &mut builder, drops, new_game)?;
+    run.check()?;
+    let files = builder.finish()?.len();
+    run.mark_replaced();
+    let keyed: Vec<_> = (parts.rupees.iter())
+        .filter_map(|r| ammo::line(ammo::copied(r)?))
+        .collect();
+    patch::install(
+        mod_dir,
+        Lines::of(new_game),
+        &keyed,
+        hook_flags(new_game),
+        &credits(new_game),
+        &spots,
+        look.as_ref(),
+    )?;
+    Ok(Written {
+        defaults,
+        actors,
+        files,
+        stand_ins: parts.stand_ins,
+    })
+}
+
+/// Fail on an item in `drops` the mod can't place: one with no actor that
+/// it doesn't write itself.
+fn check_drops(romfs: &Romfs, drops: &HashMap<u64, Drop>) -> Result<()> {
     if let Some(item) = drops
         .values()
         .flat_map(|d| {
@@ -172,29 +309,24 @@ pub fn write_mod(
     {
         bail!("{item} isn't an actor");
     }
-    let mut builder = ModBuilder::new(romfs, mod_dir)?;
-    let flows = Flows::load(romfs)?;
-    let (rewrites, flags) = self::flows(romfs, &flows, new_game, drops)?;
-    for (rel, data) in &rewrites {
-        for to in crate::flows::copies(romfs, rel) {
-            builder.write(&to, data)?;
-        }
-    }
+    Ok(())
+}
+
+/// Write the gifts' and the copies' captions, and `hints` to the gossip
+/// stones.
+fn write_text(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    drops: &HashMap<u64, Drop>,
+    new_game: &NewGame,
+    shelves: &shops::Shelves,
+    hints: &[Hint],
+) -> Result<()> {
     let mut lines = gifts::lines(drops, Lines::of(new_game));
     lines.push(scrubs::lines(drops, Lines::of(new_game)));
     lines.extend(scrubs::sold_out(drops));
-    let gd = gamedata::GameData::load(romfs)?;
-    let slots = match new_game.shop_slots {
-        0 => Vec::new(),
-        _ => shops::slots(romfs)?,
-    };
-    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
-    let key_copies = (
-        new_game.keys.copies(),
-        BOSS_COPIES,
-        new_game.fortress_keys.copies(),
-    );
-    let mut key_lines = key_tints::captions(new_game.keys, key_copies.1, key_copies.2);
+    let fortress = new_game.fortress_keys.copies();
+    let mut key_lines = key_tints::captions(new_game.keys, BOSS_COPIES, fortress);
     if maps_move(new_game) {
         key_lines.new.extend(map_copies::captions());
     }
@@ -202,400 +334,263 @@ pub fn write_mod(
     // caption from its own lines.
     let mut copies = vec![key_lines, foreign::captions(&new_game.foreign)];
     if new_game.shop_slots > 0 {
-        copies.push(shops::captions(romfs, &shelves)?);
+        copies.push(shops::captions(romfs, shelves)?);
     }
     copies.extend([
         starter_bags::captions(new_game),
         notice::banners(),
         notice::senders(&new_game.players),
     ]);
-    text::write(romfs, &mut builder, &lines, &copies, hints)?;
-    let cows = match new_game.cows {
-        true => cows::find(romfs)?,
-        false => Vec::new(),
-    };
-    // Presets and `--default` edits go last, so they win over a skip's.
-    let mut edits = flags;
-    edits.extend(new_game.defaults.iter().cloned());
-    let pieces = pickups::dealt(romfs, new_game)?;
-    let picked = picked::holders(&pieces, drops);
-    let steps = pickups::steps::Steps::new(&pieces, drops, Lines::of(new_game), &picked, &gd)?;
-    let stand_ins = pickups::stand_ins(&pieces, drops, Lines::of(new_game));
-    let mut bools = cows::flags(&cows);
-    bools.extend(picked::flags(&picked));
-    if new_game.shop_slots > 0 {
-        bools.extend(shops::sold::flags(&slots, new_game.shop_slots));
-        bools.extend(shelves.bools.iter().cloned());
-    }
-    bools.extend(gifts::flags(&new_game.on));
-    bools.extend(dampe::flags(drops));
-    if new_game.quiet_enemies {
-        bools.push(enemies::FLAG.into());
-    }
-    if new_game.fortress_keys.moved() {
-        bools.extend(fortress::flags());
-    }
-    bools.extend(entrances::reveal::flags(new_game.dungeon_entrances));
-    let gone = match new_game.scrubs {
-        true => {
-            bools.extend(scrubs::flags(drops));
-            scrubs::gone(drops)
-        }
-        false => Vec::new(),
-    };
-    let made = key_tints::made(key_copies.0, key_copies.1, key_copies.2);
-    let rupees = ammo::copies(drops.values().map(|d| d.item.as_str()));
-    let opened = tracker::chest_flags(&gd)?;
-    // Every dealt check, a kept item's too: its map's alternative needs it.
-    let dealt: HashSet<u64> = (checks::dealt(romfs, new_game)?.iter())
-        .map(|c| c.hash)
-        .collect();
-    let twins = twins::find(romfs, |h| dealt.contains(&h), opened)?;
-    let aliases = twins.iter().filter_map(twins::Twin::alias);
-    let mut exps: Vec<_> = aliases
-        .map(|(name, of)| (name, vec![gamedata::Op::Bool(of)]))
-        .collect();
-    exps.extend(picked::exps(&picked, &stand_ins));
-    exps.extend(shelves.exps.iter().cloned());
-    exps.extend(steps.exps.iter().cloned());
-    exps.extend(jabu_mood::exps(&gd, new_game.adult_jabu)?);
-    exps.extend(carpenters::exps(&gd)?);
-    let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
-    trade_chain::never_counting(&mut data.root)?;
-    if new_game.on.contains(TRADE_CHAIN) {
-        trade_chain::by_pouch(&mut data.root)?;
-    }
-    let defaults = presets::apply(&gd, &mut data.root, &edits)?;
-    gamedata::add_bools(&mut data.root, &bools)?;
-    gamedata::add_ints(&mut data.root, &new_game.ints)?;
-    gamedata::add_exps(&mut data.root, &exps)?;
-    let mut keyed = picked::pairs(&picked);
-    keyed.extend(&steps.copies);
-    gamedata::add_keys(&mut data.root, &keyed)?;
-    for (copy, template, _) in &made {
-        let names = [copy.clone()];
-        gamedata::join_structs(&mut data.root, template.get(), &names, &[gamedata::IS_GET])?;
-    }
-    if new_game.bombchus == Bombchus::Bag {
-        bombchu_bags::game_data(&mut data.root)?;
-    }
-    crate::magic::meter::game_data(&mut data.root)?;
-    let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
-    if !names.is_empty() {
-        gamedata::join_structs(
-            &mut data.root,
-            keys::SMALL.get(),
-            &names,
-            &[gamedata::IS_GET],
-        )?;
-    }
-    if new_game.bridge == Bridge::SixMedallions {
-        bridge::need_medallions(&mut data.root)?;
-    }
-    let mut posed = HashMap::new();
-    let mut shows_off = |e: &str| {
-        *posed
-            .entry(e.to_owned())
-            .or_insert_with(|| flows.shows_off(e))
-    };
-    let mut fields = new_game.fields.clone();
-    let mut events = rsdb::Events::load(romfs)?;
-    if new_game.scrubs {
-        fields.extend(scrubs::fields(drops));
-        scrubs::events(drops, &mut events)?;
-    }
-    fields.extend(cows::fields(&cows));
-    let mut tables = standins::Tables::load(romfs)?;
-    // Before the stand-ins, so one holding bombchus copies the freed row,
-    // and one holding nuts or sticks the row that keeps its bag.
-    bombchus::write(&mut builder, &mut tables, new_game.bombchus)?;
-    if new_game.bombchus == Bombchus::Bag {
-        bombchu_bags::write(romfs, &mut builder, &mut tables)?;
-    }
-    starter_bags::write(romfs, new_game, &mut builder, &mut tables)?;
-    // Before the stand-ins, so one copying a magic item copies it apart.
-    crate::magic::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        !new_game.magic_with_first_item,
-    )?;
-    if new_game.on.contains(AGELESS_WEAPONS) {
-        ageless::write(romfs, &mut builder)?;
-    }
-    if new_game.on.contains(AGELESS_GEAR) {
-        ageless::gear::write(&mut builder)?;
-        ageless::gear::shortcut(&mut tables)?;
-        // The boots' clips and effects are the adult's, which
-        // ageless-items lends too. Its sounds don't cover the boots.
-        if !new_game.on.contains(AGELESS_ITEMS) {
-            ageless_items::lend_child_clips(romfs, &mut builder)?;
-        }
-        ageless_items::lend_boot_sounds(&mut builder)?;
-    }
-    if new_game.on.contains(AGELESS_ITEMS) {
-        ageless_items::write(romfs, &mut builder)?;
-    }
-    // Before the stand-ins, which copy a song's model as it's shown.
-    let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
-    let items = drops.values().map(|d| d.item.as_str()).chain(shown);
-    medallions::write(romfs, &mut builder, &mut tables, items)?;
-    let flags = hook_flags(new_game);
-    let bosses = BOSS_COPIES;
-    let fortress = new_game.fortress_keys.copies();
-    key_tints::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        bosses,
-        new_game.keys,
-        fortress,
-    )?;
-    if maps_move(new_game) {
-        map_copies::write(romfs, &mut builder, &mut tables)?;
-    }
-    crate::marks::write(romfs, &mut builder, &mut tables)?;
-    foreign::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        &new_game.foreign,
-        new_game.keys,
-    )?;
-    ammo::write(romfs, &mut builder, &mut tables, &rupees)?;
-    cows::write(romfs, &mut builder, &mut tables, &mut events, &cows)?;
-    let levels = levels(romfs, drops, new_game)?;
-    levels.events(&mut events)?;
-    let look = if ice_traps::springs(new_game) {
-        ice_traps::event(&mut events)?;
-        ice_traps::sensor(romfs, &mut builder, &mut tables)?;
-        ice_traps::thaw(&mut builder)?;
-        Some(ice_traps::look(romfs, &mut builder)?)
-    } else {
-        None
-    };
-    let blocks = match new_game.dungeon_entrances {
-        DungeonEntrances::Off => None,
-        mode => {
-            let mut blocks = entrances::Blocks::read(romfs)?;
-            let arrivals = entrances::reveal::plan(&blocks, mode);
-            entrances::reveal::events(&arrivals, &mut events)?;
-            entrances::reveal::retarget(&mut blocks, &arrivals)?;
-            Some(blocks)
-        }
-    };
-    events.write(&mut builder)?;
-    if new_game.shop_slots > 0 {
-        fields.extend(shops::write(
-            romfs,
-            &mut builder,
-            &mut tables,
-            &shelves,
-            new_game,
-        )?);
-    }
-    if new_game.day_skulltulas {
-        day_skulltulas::write(romfs, &mut builder)?;
-    }
-    sheik_crater::write(romfs, &mut builder)?;
-    if new_game.on.contains(presets::JABU_OPEN) {
-        jabu_mouth::write(romfs, &mut builder)?;
-    }
-    fields.extend(pickups::write(
-        romfs,
-        &mut builder,
-        &mut tables,
-        &pieces,
-        drops,
-        new_game,
-    )?);
-    if new_game.fortress_keys.moved() {
-        fields.extend(fortress::fields(
-            romfs,
-            &pieces,
-            drops,
-            Lines::of(new_game),
-        )?);
-    }
-    steps.write(romfs, &mut builder)?;
-    held::write(romfs, &mut builder, &mut tables)?;
-    if new_game.freestanding {
-        goron_pot::write(romfs, &mut builder, &mut tables, drops, new_game)?;
-    }
-    tables.write(&mut builder)?;
-    // A pickup's drop is its field above, never the bare item. A cow's is
-    // its flow's grant, the Goron pot's its held stand-in.
-    let chest_drops: HashMap<u64, Drop> = drops
-        .iter()
-        .filter(|(h, _)| !pieces.iter().any(|p| p.hash == **h))
-        .filter(|(h, _)| !cows.iter().any(|c| c.hash() == **h))
-        .filter(|(h, _)| **h != goron_pot::HASH)
-        .map(|(h, d)| (*h, d.clone()))
-        .collect();
-    let carried = match new_game.fortress_keys.moved() {
-        true => &fortress::CARRYING[..],
-        false => &[],
-    };
-    // Each copy of a holder quiet groups make or watch, its steps' and its
-    // picked twin, by the holder: the groups run it too.
-    let quiet: HashSet<u64> = (pieces.iter())
-        .filter(|p| p.watched == checks::Watched::Quiet)
-        .map(|p| p.hash)
-        .collect();
-    let mut ran = picked::pairs(&picked);
-    ran.extend(steps.copies.iter().copied());
-    // A loud holder's copies get nodes of their own instead.
-    let loud: Vec<(u64, u64)> = (ran.iter().copied())
-        .filter(|(of, _)| {
-            pieces
-                .iter()
-                .any(|p| p.hash == *of && p.watched == checks::Watched::Loud)
-        })
-        .collect();
-    ran.retain(|(of, _)| quiet.contains(of));
-    let mut wiring = pickups::nodes::Wiring::default();
-    let creators = match loud.is_empty() {
-        true => HashMap::new(),
-        false => pickups::nodes::creators(romfs)?,
-    };
-    let mut tabled = pickups::tabled(&pieces);
-    // A step's copy is placed with its holder's table, which goes too.
-    let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
-    tabled.extend(copied.map(|(_, copy)| *copy).collect::<Vec<_>>());
-    let (mut found, mut actors) = (HashSet::new(), 0);
-    let mut spots = Vec::new();
-    let mut chest_events = HashMap::new();
-    // Changed maps wait here to be serialized a batch at a time.
-    let quiet = match new_game.quiet_enemies {
-        true => Some(enemies::kept(romfs, &dealt)?),
-        false => None,
-    };
-    let mut changed_maps = Vec::new();
-    let mut valley = 0;
-    for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
-        run.check()?;
-        let mut doc = doc?;
-        // Before every edit below, so Jabu's copies in the adult fountain
-        // take the same fields and door rewrite as the child's.
-        let jabu = adult_jabu::copy(romfs, &rel, &mut doc.root, new_game.adult_jabu)?;
-        // First, so a check placed in its twin's map takes its drop below.
-        let twinned = twins::place(&rel, &mut doc.root, &twins)? > 0;
-        // Before the fields, so each twin keeps its holder's vanilla drop.
-        let paired = picked::place(&mut doc.root, &picked)? > 0;
-        // After the twins, so each step is a copy of a holder standing until
-        // picked, and before the fields, which give each step its stand-in.
-        let stepped = steps.place(&mut doc.root)?;
-        let grouped = pickups::groups::copy(&mut doc.root, &ran)?
-            | wiring.refer(&mut doc.root, &loud, &creators)?;
-        // Before the fields, which give each step's copy its stand-in.
-        let shelved = shelves.place(&mut doc.root)?;
-        let mut changed = checks::set_fields(&mut doc.root, &fields)?;
-        spots.extend(picked::spots(&doc.root, &picked, &steps.copies)?);
-        changed.extend(checks::gone_once(&mut doc.root, &gone)?);
-        let leaves = scrubs::leaves(&doc.root, &gone)?;
-        changed.extend(checks::gone_once(&mut doc.root, &leaves)?);
-        if let Some(kept) = &quiet {
-            changed.extend(enemies::hide(&mut doc.root, kept)?);
-        }
-        changed.extend(checks::clear_drops(&mut doc.root, carried)?);
-        changed.extend(checks::clear_tables(&mut doc.root, &tabled)?);
-        changed.extend(checks::set_drops(
-            &mut doc.root,
-            &chest_drops,
-            &mut shows_off,
-        )?);
-        let shrunk =
-            new_game.chest_size == ChestSize::Small && checks::shrink_chests(&mut doc.root)? > 0;
-        let tinted = key_tints::swap(&rel, &mut doc.root, bosses)? > 0;
-        // After shrinking: a shrunk chest runs the small chest's flow.
-        let levelled = levels.name(romfs, &mut doc.root, &mut chest_events)? > 0;
-        let bridged = carpenters::banc(&rel, &mut doc.root)?;
-        valley += bridged;
-        let doors = match &blocks {
-            Some(b) => entrances::rewrite(&rel, &mut doc.root, &new_game.doors, b)? > 0,
-            None => false,
-        };
-        if jabu
-            || twinned
-            || paired
-            || stepped
-            || grouped
-            || shelved
-            || shrunk
-            || tinted
-            || levelled
-            || doors
-            || bridged > 0
-            || !changed.is_empty()
-        {
-            actors += changed.len();
-            found.extend(changed);
-            changed_maps.push((rel, doc));
-            if changed_maps.len() >= 2 * threads() {
-                write_maps(&mut builder, &mut changed_maps)?;
-            }
-        }
-    }
-    write_maps(&mut builder, &mut changed_maps)?;
-    carpenters::check_banc(valley)?;
-    carpenters::write(romfs, &mut builder)?;
-    adult_jabu::arrival(romfs, &mut builder, new_game.adult_jabu)?;
-    adult_jabu::strip_foliage(romfs, &mut builder, new_game.adult_jabu)?;
-    jabu_mood::write(romfs, &mut builder, new_game.adult_jabu)?;
-    wiring.write(romfs, &mut builder)?;
-    for f in &fields {
-        let hash = checks::parse_field(f)?.hash;
-        ensure!(found.contains(&hash), "no actor with hash {hash} for {f}");
-    }
-    // Checks that aren't a placed actor's drop.
-    let gift = |h: &u64| {
-        gifts::GIFTS.iter().any(|g| g.hash() == *h)
-            || scrubs::SCRUBS.iter().any(|s| s.hash() == *h)
-            || pieces.iter().any(|p| p.hash == *h)
-            || cows.iter().any(|c| c.hash() == *h)
-            || *h == goron_pot::HASH
-    };
-    if let Some(missing) = drops.keys().find(|h| !found.contains(*h) && !gift(h)) {
-        bail!("no actor with hash {missing} has a {}", checks::DROP_ACTOR);
-    }
-    // Last, once every holder's spot is known.
-    gamedata::add_u64s(&mut data.root, &picked::entries(&spots))?;
-    // Every stand-in is built by now.
-    gamedata::add_bools(&mut data.root, &pickups::taken::flags(builder.written()))?;
-    builder.write(gamedata::PATH, &data.to_binary())?;
-    bombs::write(&mut builder)?;
-    dig::write(romfs, &mut builder, drops, new_game)?;
-    run.check()?;
-    let files = builder.finish()?.len();
-    run.mark_replaced();
-    let credits = credits(new_game);
-    let keyed: Vec<_> = (rupees.iter())
-        .filter_map(|r| ammo::line(ammo::copied(r)?))
-        .collect();
-    patch::install(
-        mod_dir,
-        Lines::of(new_game),
-        &keyed,
-        flags,
-        &credits,
-        &spots,
-        look.as_ref(),
-    )?;
-    Ok(Written {
-        defaults,
-        actors,
-        files,
-        stand_ins,
-    })
+    text::write(romfs, builder, &lines, &copies, hints)
 }
 
-/// Write each of `maps`, serialized on every core, in order, and empty it.
-fn write_maps(builder: &mut ModBuilder, maps: &mut Vec<(String, BymlDoc)>) -> Result<()> {
-    let bins = par_map(maps, |(_, doc)| doc.to_binary());
-    for ((rel, _), bin) in maps.drain(..).zip(bins) {
-        builder.write(&rel, &bin)?;
+/// What `write_mod`'s passes share: the seed, and what's read and worked
+/// out for it once.
+struct Parts<'a> {
+    romfs: &'a Romfs,
+    drops: &'a HashMap<u64, Drop>,
+    new_game: &'a NewGame,
+    reads: Reads,
+    picked: Vec<picked::Holder>,
+    steps: pickups::steps::Steps,
+    stand_ins: Vec<(u64, String)>,
+    /// Every dealt check, a kept item's too: its map's alternative needs it.
+    dealt: HashSet<u64>,
+    twins: Vec<twins::Twin>,
+    /// The scrubs that leave once they've sold.
+    gone: Vec<(u64, String)>,
+    /// The Red Rupee copies dealt.
+    rupees: Vec<String>,
+}
+
+impl<'a> Parts<'a> {
+    fn new(
+        romfs: &'a Romfs,
+        drops: &'a HashMap<u64, Drop>,
+        new_game: &'a NewGame,
+        reads: Reads,
+        gd: &GameData,
+    ) -> Result<Self> {
+        let pieces = &reads.pieces;
+        let picked = picked::holders(pieces, drops);
+        let steps = pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd)?;
+        let stand_ins = pickups::stand_ins(pieces, drops, Lines::of(new_game));
+        let dealt: HashSet<u64> = (checks::dealt(romfs, new_game)?.iter())
+            .map(|c| c.hash)
+            .collect();
+        let twins = twins::find(romfs, |h| dealt.contains(&h), tracker::chest_flags(gd)?)?;
+        let gone = match new_game.scrubs {
+            true => scrubs::gone(drops),
+            false => Vec::new(),
+        };
+        Ok(Self {
+            romfs,
+            drops,
+            new_game,
+            reads,
+            picked,
+            steps,
+            stand_ins,
+            dealt,
+            twins,
+            gone,
+            rupees: ammo::copies(drops.values().map(|d| d.item.as_str())),
+        })
     }
-    Ok(())
+
+    /// The Bools the seed adds to GameData.
+    fn bools(&self, slots: &[shops::Slot], shelves: &shops::Shelves) -> Vec<String> {
+        let new_game = self.new_game;
+        let mut bools = cows::flags(&self.reads.cows);
+        bools.extend(picked::flags(&self.picked));
+        if new_game.shop_slots > 0 {
+            bools.extend(shops::sold::flags(slots, new_game.shop_slots));
+            bools.extend(shelves.bools.iter().cloned());
+        }
+        bools.extend(gifts::flags(&new_game.on));
+        bools.extend(dampe::flags(self.drops));
+        if new_game.quiet_enemies {
+            bools.push(enemies::FLAG.into());
+        }
+        if new_game.fortress_keys.moved() {
+            bools.extend(fortress::flags());
+        }
+        bools.extend(entrances::reveal::flags(new_game.dungeon_entrances));
+        if new_game.scrubs {
+            bools.extend(scrubs::flags(self.drops));
+        }
+        bools
+    }
+
+    /// The BoolExps the seed adds to GameData.
+    fn exps(&self, gd: &GameData, shelves: &shops::Shelves) -> Result<Vec<(String, Vec<Op>)>> {
+        let aliases = self.twins.iter().filter_map(twins::Twin::alias);
+        let mut exps: Vec<_> = aliases
+            .map(|(name, of)| (name, vec![Op::Bool(of)]))
+            .collect();
+        exps.extend(picked::exps(&self.picked, &self.stand_ins));
+        exps.extend(shelves.exps.iter().cloned());
+        exps.extend(self.steps.exps.iter().cloned());
+        exps.extend(jabu_mood::exps(gd, self.new_game.adult_jabu)?);
+        exps.extend(carpenters::exps(gd)?);
+        Ok(exps)
+    }
+
+    /// Edit GameData's `root` for the seed, with `edits` (presets and
+    /// defaults) last. Returns the edits as `name: old -> new`.
+    fn game_data(
+        &self,
+        root: &mut Byml,
+        gd: &GameData,
+        slots: &[shops::Slot],
+        shelves: &shops::Shelves,
+        edits: &[String],
+    ) -> Result<Vec<String>> {
+        let new_game = self.new_game;
+        trade_chain::never_counting(root)?;
+        if new_game.on.contains(TRADE_CHAIN) {
+            trade_chain::by_pouch(root)?;
+        }
+        let defaults = presets::apply(gd, root, edits)?;
+        gamedata::add_bools(root, &self.bools(slots, shelves))?;
+        gamedata::add_ints(root, &new_game.ints)?;
+        gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
+        let mut keyed = picked::pairs(&self.picked);
+        keyed.extend(&self.steps.copies);
+        gamedata::add_keys(root, &keyed)?;
+        let fortress = new_game.fortress_keys.copies();
+        for (copy, template, _) in &key_tints::made(new_game.keys.copies(), BOSS_COPIES, fortress) {
+            let names = [copy.clone()];
+            gamedata::join_structs(root, template.get(), &names, &[gamedata::IS_GET])?;
+        }
+        if new_game.bombchus == Bombchus::Bag {
+            bombchu_bags::game_data(root)?;
+        }
+        crate::magic::meter::game_data(root)?;
+        let names: Vec<String> = new_game.foreign.iter().map(|f| f.actor.clone()).collect();
+        if !names.is_empty() {
+            gamedata::join_structs(root, keys::SMALL.get(), &names, &[gamedata::IS_GET])?;
+        }
+        if new_game.bridge == Bridge::SixMedallions {
+            bridge::need_medallions(root)?;
+        }
+        Ok(defaults)
+    }
+
+    /// Write the seed's events, stand-ins and other files outside the maps.
+    /// Returns the fields the maps' actors take, and the ice traps' look.
+    fn assets(
+        &mut self,
+        builder: &mut ModBuilder,
+        shelves: &shops::Shelves,
+    ) -> Result<(Vec<String>, Option<LookSpec>)> {
+        let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
+        let mut fields = new_game.fields.clone();
+        let mut events = rsdb::Events::load(romfs)?;
+        if new_game.scrubs {
+            fields.extend(scrubs::fields(drops));
+            scrubs::events(drops, &mut events)?;
+        }
+        fields.extend(cows::fields(&self.reads.cows));
+        let mut tables = standins::Tables::load(romfs)?;
+        self.models(builder, &mut tables)?;
+        cows::write(romfs, builder, &mut tables, &mut events, &self.reads.cows)?;
+        self.reads.levels.events(&mut events)?;
+        let look = if ice_traps::springs(new_game) {
+            ice_traps::event(&mut events)?;
+            ice_traps::sensor(romfs, builder, &mut tables)?;
+            ice_traps::thaw(builder)?;
+            Some(ice_traps::look(romfs, builder)?)
+        } else {
+            None
+        };
+        if let Some((blocks, arrivals)) = &mut self.reads.doors {
+            entrances::reveal::events(arrivals, &mut events)?;
+            entrances::reveal::retarget(blocks, arrivals)?;
+        }
+        events.write(builder)?;
+        if new_game.shop_slots > 0 {
+            fields.extend(shops::write(
+                romfs,
+                builder,
+                &mut tables,
+                shelves,
+                new_game,
+            )?);
+        }
+        if new_game.day_skulltulas {
+            day_skulltulas::write(romfs, builder)?;
+        }
+        sheik_crater::write(romfs, builder)?;
+        if new_game.on.contains(presets::JABU_OPEN) {
+            jabu_mouth::write(romfs, builder)?;
+        }
+        let pieces = &self.reads.pieces;
+        fields.extend(pickups::write(
+            romfs,
+            builder,
+            &mut tables,
+            pieces,
+            drops,
+            new_game,
+        )?);
+        if new_game.fortress_keys.moved() {
+            let lines = Lines::of(new_game);
+            fields.extend(fortress::fields(romfs, pieces, drops, lines)?);
+        }
+        self.steps.write(romfs, builder)?;
+        held::write(romfs, builder, &mut tables)?;
+        if new_game.freestanding {
+            goron_pot::write(romfs, builder, &mut tables, drops, new_game)?;
+        }
+        if new_game.on.contains(AGELESS_GEAR) {
+            ageless::gear::shortcut(&mut tables)?;
+        }
+        tables.write(builder)?;
+        Ok((fields, look))
+    }
+
+    /// Write the item models the seed changes or adds, and their rows in
+    /// `tables`.
+    fn models(&self, builder: &mut ModBuilder, tables: &mut standins::Tables) -> Result<()> {
+        let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
+        // Before the stand-ins, so one holding bombchus copies the freed row,
+        // and one holding nuts or sticks the row that keeps its bag.
+        bombchus::write(builder, tables, new_game.bombchus)?;
+        if new_game.bombchus == Bombchus::Bag {
+            bombchu_bags::write(romfs, builder, tables)?;
+        }
+        starter_bags::write(romfs, new_game, builder, tables)?;
+        // Before the stand-ins, so one copying a magic item copies it apart.
+        crate::magic::write(romfs, builder, tables, !new_game.magic_with_first_item)?;
+        if new_game.on.contains(AGELESS_WEAPONS) {
+            ageless::write(romfs, builder)?;
+        }
+        if new_game.on.contains(AGELESS_GEAR) {
+            ageless::gear::write(builder)?;
+            // The boots' clips and effects are the adult's, which
+            // ageless-items lends too. Its sounds don't cover the boots.
+            if !new_game.on.contains(AGELESS_ITEMS) {
+                ageless_items::lend_child_clips(romfs, builder)?;
+            }
+            ageless_items::lend_boot_sounds(builder)?;
+        }
+        if new_game.on.contains(AGELESS_ITEMS) {
+            ageless_items::write(romfs, builder)?;
+        }
+        // Before the stand-ins, which copy a song's model as it's shown.
+        let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
+        let items = drops.values().map(|d| d.item.as_str()).chain(shown);
+        medallions::write(romfs, builder, tables, items)?;
+        let fortress = new_game.fortress_keys.copies();
+        key_tints::write(romfs, builder, tables, BOSS_COPIES, new_game.keys, fortress)?;
+        if maps_move(new_game) {
+            map_copies::write(romfs, builder, tables)?;
+        }
+        crate::marks::write(romfs, builder, tables)?;
+        foreign::write(romfs, builder, tables, &new_game.foreign, new_game.keys)?;
+        ammo::write(romfs, builder, tables, &self.rupees)
+    }
 }
 
 /// Every seed deals boss key copies. A copy found in a chest that runs a
@@ -666,7 +661,7 @@ mod tests {
                 (starting::SETTING.into(), start),
             ]);
             let new_game = NewGame::from_settings(&settings, &[]).unwrap();
-            let (rewrites, _) = flows(&romfs, &all, &new_game, &HashMap::new()).unwrap();
+            let (rewrites, _) = flows_alone(&romfs, &all, &new_game, &HashMap::new()).unwrap();
             let rendered = |name: &crate::known::Name| {
                 let flow = ounce_formats::Flowchart::parse(&rewrites[&crate::flows::rel(name)]);
                 crate::flows::render(&flow.unwrap().unwrap())

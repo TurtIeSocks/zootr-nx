@@ -29,9 +29,6 @@ struct Models {
 
 impl Models {
     fn load(romfs: &ounce_formats::Romfs) -> Result<Self> {
-        let load = |name: &Name| -> Result<Flowchart> {
-            flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))
-        };
         let model = |flow: &Flowchart, what| -> Result<Model> {
             let at = *flows::running(flow, what)
                 .first()
@@ -39,8 +36,8 @@ impl Models {
             flows::model(flow, what, at)
         };
         Ok(Self {
-            is_string: model(&load(ASKS)?, IS_STRING)?,
-            wait: grant::frame(&load(POUCH)?)?,
+            is_string: model(&flows::timeline(romfs, ASKS)?, IS_STRING)?,
+            wait: grant::frame(&flows::timeline(romfs, POUCH)?)?,
         })
     }
 }

@@ -23,7 +23,7 @@ impl Gift {
             return Some(added);
         }
         let flag = |found: &Name| match found == SCENE_PLAYED {
-            true => format!("{PLAYED}.{}", self.flow),
+            true => played_flag(self.flow),
             false => found.to_string(),
         };
         match self.how {

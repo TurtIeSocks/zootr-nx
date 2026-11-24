@@ -43,7 +43,7 @@ pub const SAVED: &str = "Step_";
 
 /// The quest flow, which holds the shape of each event the steps copy.
 pub(crate) fn template(romfs: &Romfs) -> Result<Flowchart> {
-    flows::load(romfs, TEMPLATE)?.context("the quest flow is a timeline")
+    flows::timeline(romfs, TEMPLATE)
 }
 
 /// The quest flow's own progress event.
@@ -100,7 +100,7 @@ pub fn saved(challenge: impl std::fmt::Display) -> String {
 }
 
 /// The edit that saves quest `challenge` at `step`.
-pub fn at(challenge: &Name, step: impl std::fmt::Display) -> String {
+pub fn at(challenge: impl std::fmt::Display, step: impl std::fmt::Display) -> String {
     format!("{}={step}", saved(challenge))
 }
 
@@ -223,7 +223,7 @@ pub fn hold(
         let at = (steps.iter().position(|s| s == step))
             .with_context(|| format!("{step} isn't a step of {challenge}"))?;
         let rewinds = |flow: &Flowchart| rewinds(flow, challenge, &steps[..at]);
-        let mut names: Vec<&String> = (all.0.iter())
+        let mut names: Vec<&String> = (all.charts.iter())
             .filter(|(_, flow)| !rewinds(flow).is_empty())
             .map(|(name, _)| name)
             .collect();
@@ -345,9 +345,9 @@ mod tests {
                 .any(|e| reached.contains(e))
         };
         // Impa's send-off moved it back before.
-        assert!(sets(&all.0[&**flow::DOOR_OF_TIME], &earlier));
+        assert!(sets(&all.charts[&**flow::DOOR_OF_TIME], &earlier));
         let after = |name: &str| flows::current(&romfs, &rewrites, name).unwrap();
-        for name in all.0.keys() {
+        for name in all.charts.keys() {
             assert!(!sets(&after(name), &earlier), "{name} still moves it back");
         }
         let door = after(flow::DOOR_OF_TIME);

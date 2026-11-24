@@ -4,9 +4,10 @@ name = "Above Gohma"
 
 [[link]]
 to = 4
-needs = "always"
-via = "walk"
-why = "walk, 1 edges"
+needs = "child"
+via = "crawl"
+why = "crawl 16307553744183202862; Air Wall Crawl Hole 16188498550072501143: child; Air Wall Crawl Hole 17670633605855749111: child; on terrain floor no live run has walked"
+guess = true
 
 [[link]]
 to = 7

@@ -15,7 +15,7 @@ use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs, pack_file, set_param}
 
 use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
-use crate::key_tints::{MADE, POUCH_TEXT, TEXT_PARTS, pointed};
+use crate::key_tints::{self, MADE, POUCH_TEXT, TEXT_PARTS, pointed};
 use crate::keys::SMALL;
 use crate::known::{actor, field};
 use crate::medallions::Colour;
@@ -127,7 +127,7 @@ pub fn is_copy(item: &str) -> bool {
 /// The label naming `item`, if it's a copy: like a key ring, it answers
 /// to its own name, whose lines [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    is_copy(item).then(|| format!("{item}{}", TEXT_PARTS[0]))
+    is_copy(item).then(|| key_tints::label(item))
 }
 
 /// The longest a player's or item's name reads in a get, past which it's
@@ -377,7 +377,6 @@ pub fn write(
 mod tests {
     use super::*;
     use crate::game::dev_dump;
-    use crate::key_tints;
     use crate::known::{field, flag, item};
     use crate::medallions::model_path;
     use crate::standins::{PLAIN_DEAL, row};

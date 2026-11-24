@@ -60,10 +60,10 @@ pub(crate) struct Models<'a> {
 
 impl<'a> Models<'a> {
     pub(crate) fn load(romfs: &Romfs) -> Result<ModelCharts> {
-        let load = |name: &str| -> Result<Flowchart> {
-            flows::load(romfs, name)?.with_context(|| format!("{name} is a timeline"))
-        };
-        Ok((load(starting::TEMPLATE)?, load(POUCH)?))
+        Ok((
+            flows::timeline(romfs, starting::TEMPLATE)?,
+            flows::timeline(romfs, POUCH)?,
+        ))
     }
 
     pub(crate) fn of(template: &'a Flowchart, pouch: &'a Flowchart) -> Self {

@@ -42,6 +42,7 @@ pub const APPEAR_HOOK_SHOT: &Name = &n!(0x9b595665bc7ec4a3);
 pub const ASSIGNABLE_ITEM_PARAM: &Name = &n!(0x69e74b75c9351108);
 pub const AS_INFO_REF: &Name = &n!(0xc1291bf7267c7e4a);
 pub const AS_NAME: &Name = &n!(0x8793cecc3ee961ee);
+pub const AS_REF: &Name = &n!(0xa9a887d86571931a);
 pub const ATTACKED_EVENT_NAME: &Name = &n!(0xda17a198a02439b7);
 pub const ATTACK_PARAMS: &Name = &n!(0xeaa6a372b6ed745b);
 pub const AUTO_CALC: &Name = &n!(0x08346f5fea099c03);

@@ -30,6 +30,7 @@
 
 #![cfg_attr(target_os = "none", no_std, no_main)]
 
+pub mod entry;
 #[cfg(target_os = "none")]
 mod game;
 pub mod keys;

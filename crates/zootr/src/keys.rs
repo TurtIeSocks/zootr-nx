@@ -256,14 +256,25 @@ pub fn pooled(check: &ItemCheck) -> &str {
 /// The Gerudo Fortress counts keys like a dungeon, one for each thief.
 pub const FORTRESS: Dungeon = Dungeon::new(flag::GERUDO_FORTRESS, 4, None);
 
+/// The dungeon table's fields for a held boss key, map and compass. The
+/// dump keeps them only as hashes, so they're spelled out here.
+pub(crate) const IS_GET_BOSS_KEY: &str = "IsGetBossKey";
+pub(crate) const IS_GET_MAP: &str = "IsGetMap";
+pub(crate) const IS_GET_COMPASS: &str = "IsGetCompass";
+
+/// The save's `field` of `dungeon`, its member of the dungeon table.
+pub(crate) fn dungeon_flag(dungeon: &str, field: &str) -> String {
+    format!("{}.{dungeon}.{field}", flag::DUNGEON_INFO)
+}
+
 /// The Bool `dungeon`'s boss key sets.
 pub fn boss_flag(dungeon: &Name) -> String {
-    format!("DungeonInfo.{dungeon}.IsGetBossKey")
+    dungeon_flag(dungeon, IS_GET_BOSS_KEY)
 }
 
 /// The Int counting `dungeon`'s small keys.
 pub fn small_flag(dungeon: &Name) -> String {
-    format!("DungeonInfo.{dungeon}.{}", flag::SMALL_KEY_NUM)
+    dungeon_flag(dungeon, flag::SMALL_KEY_NUM)
 }
 
 /// The new-game defaults that fill the counters and boss key flags of
@@ -296,26 +307,11 @@ mod tests {
         let edits = defaults(true, false);
         assert_eq!(edits.len(), 8 + 6);
         for line in [
-            &format!(
-                "DungeonInfo.{}.{}=5",
-                flag::FOREST_TEMPLE,
-                flag::SMALL_KEY_NUM
-            ),
-            &format!("DungeonInfo.{}.IsGetBossKey=true", flag::FOREST_TEMPLE),
-            &format!(
-                "DungeonInfo.{}.{}=1",
-                flag::INSIDE_GANON_CASTLE,
-                flag::SMALL_KEY_NUM
-            ),
-            &format!(
-                "DungeonInfo.{}.IsGetBossKey=true",
-                flag::INSIDE_GANON_CASTLE
-            ),
-            &format!(
-                "DungeonInfo.{}.{}=9",
-                flag::GERUDO_TRAINING_GROUND,
-                flag::SMALL_KEY_NUM
-            ),
+            &format!("{}=5", small_flag(flag::FOREST_TEMPLE)),
+            &format!("{}=true", boss_flag(flag::FOREST_TEMPLE)),
+            &format!("{}=1", small_flag(flag::INSIDE_GANON_CASTLE)),
+            &format!("{}=true", boss_flag(flag::INSIDE_GANON_CASTLE)),
+            &format!("{}=9", small_flag(flag::GERUDO_TRAINING_GROUND)),
         ] {
             assert!(edits.contains(&line.to_owned()), "{line}");
         }
@@ -327,11 +323,7 @@ mod tests {
         assert!(!edits.iter().any(|e| e.contains("Fortress")));
         assert_eq!(
             defaults(false, true),
-            [format!(
-                "DungeonInfo.{}.{}=4",
-                flag::GERUDO_FORTRESS,
-                flag::SMALL_KEY_NUM
-            )]
+            [format!("{}=4", small_flag(flag::GERUDO_FORTRESS))]
         );
         assert!(defaults(false, false).is_empty());
     }

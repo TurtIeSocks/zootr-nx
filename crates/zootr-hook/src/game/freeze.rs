@@ -18,7 +18,8 @@ pub unsafe fn freeze(main: usize, table: &Table, actor: usize) {
     let o = table.offsets;
     let shared = shared(main);
     let out = shared.sensing.load(Ordering::Relaxed) != 0;
-    if shared.traps.load(Ordering::Relaxed) == 0 && !out
+    let nothing_to_do = shared.traps.load(Ordering::Relaxed) == 0 && !out;
+    if nothing_to_do
         || unsafe { playing(main, o) } != Some(false)
         || unsafe { player(main, o, actor) }.is_none()
     {

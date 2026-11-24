@@ -194,6 +194,11 @@ pub(crate) fn played_flag(name: &str) -> String {
     format!("{PLAYED}.{name}")
 }
 
+/// The name a played flag is for, the inverse of [`played_flag`].
+pub(crate) fn played_name(flag: &str) -> Option<&str> {
+    flag.strip_prefix(&**PLAYED)?.strip_prefix('.')
+}
+
 /// `name`'s played flag, set, as a new-game flag.
 pub(crate) fn played_set(name: &str) -> String {
     format!("{}=true", played_flag(name))
@@ -312,7 +317,7 @@ pub(crate) fn transition<'a>(flow: &'a Flowchart, e: &'a EventKind) -> Option<&'
 /// Every event a scene change boots into.
 fn boots(all: &Flows) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    for flow in all.0.values() {
+    for flow in all.charts.values() {
         for e in &flow.events {
             if let EventKind::Action { params, .. } = &e.kind
                 && let Some((_, v)) = params.iter().find(|(k, _)| k == field::BOOT_EVENT_NAME)
@@ -328,10 +333,9 @@ fn boots(all: &Flows) -> BTreeSet<String> {
 
 /// `HavePlayedEvent.<name>` minus its prefix, for every string that is one.
 fn played<'a>(strings: impl IntoIterator<Item = &'a str>) -> Vec<String> {
-    let prefix = format!("{PLAYED}.");
     strings
         .into_iter()
-        .filter_map(|s| s.strip_prefix(&prefix).map(String::from))
+        .filter_map(|s| played_name(s).map(String::from))
         .collect()
 }
 
@@ -733,7 +737,7 @@ mod tests {
                 c.name
             );
             for flow in &c.flows {
-                let vanilla = &all.0[flow];
+                let vanilla = &all.charts[flow];
                 let after = Flowchart::parse(&out[&flows::rel(flow)]).unwrap().unwrap();
                 let was = gifts::scene_marks(vanilla, &c.name).0.len();
                 let (plays, sets) = gifts::scene_marks(&after, &c.name);

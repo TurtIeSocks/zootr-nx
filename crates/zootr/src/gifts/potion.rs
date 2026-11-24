@@ -40,12 +40,12 @@ pub(super) fn cleared_with_the_gift(flow: &mut Flowchart) -> Result<()> {
     };
     *next = Some(clear);
     let on_shelf = flow.push(on_shelf);
-    let gives = calls_to(flow, CALL)?;
+    let gives = calls_to(flow, CALL);
     if gives.is_empty() {
         bail!("{FLOW} never calls {}", said(CALL));
     }
     for i in gives {
-        flow.link(Link::Next(i as u16), Some(on_shelf))?;
+        flow.link(Link::Next(i), Some(on_shelf))?;
     }
     Ok(())
 }

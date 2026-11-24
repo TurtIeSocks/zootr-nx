@@ -10,7 +10,8 @@ use anyhow::{Context, Result, bail, ensure};
 
 use crate::entrances::Doors;
 use crate::settings::{
-    AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame, PROGRESSIVE, value_word,
+    ADULT_JABU, AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame, PROGRESSIVE,
+    value_word,
 };
 use crate::world::Era;
 
@@ -251,6 +252,15 @@ impl Book {
             "always" => Need::Always,
             "child" => Need::Era(Era::Child),
             "adult" => Need::Era(Era::Adult),
+            "adult-jabu-jabu" if ctx.open.contains(&value_word(ADULT_JABU, "always")) => {
+                // Each value behind its word, so the edge is there whichever.
+                let at = |option| Need::Setting(value_word(ADULT_JABU, option));
+                let morpha = self.resolve(&vocab::id("beat:morpha")?, ctx)?;
+                Need::Any(vec![
+                    at("always"),
+                    Need::All(vec![at("after-morpha"), morpha]),
+                ])
+            }
             "adult-jabu-jabu" => match ctx.adult_jabu {
                 AdultJabu::Off => Need::Never,
                 AdultJabu::Always => Need::Always,
@@ -325,6 +335,23 @@ mod tests {
         assert!(knock.met(&have(&[item::BOOMERANG]), Era::Child));
         assert!(!knock.met(&have(&[item::RANGE_SLING_SHOT]), Era::Child));
         assert!(!knock.met(&have(&[item::BOMB_BAG_SMALL]), Era::Child));
+    }
+
+    #[test]
+    fn adult_jabu_left_open_keeps_each_value_behind_its_word() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let mut c = ctx(true, &[]);
+        let words = ["off", "always", "after-morpha"].map(|o| value_word(ADULT_JABU, o));
+        c.open.extend(words.iter().cloned());
+        let Need::Any(forms) = book.resolve("adult-jabu-jabu", &c).unwrap() else {
+            panic!("adult Jabu-Jabu left open is an any of its values");
+        };
+        assert_eq!(forms[0], Need::Setting(words[1].clone()));
+        let Need::All(after) = &forms[1] else {
+            panic!("after Morpha is an all")
+        };
+        assert_eq!(after[0], Need::Setting(words[2].clone()));
     }
 
     #[test]

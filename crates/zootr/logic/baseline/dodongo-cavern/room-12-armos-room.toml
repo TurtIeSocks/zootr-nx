@@ -9,6 +9,13 @@ via = "walk"
 why = "walk, 4 edges; Switch Shutter A 06 3892030450363597117 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 9853854296544990579 shut until flag #03061f09"
 
 [[link]]
+to = 1
+needs = "flag:#03061f09"
+via = "jump"
+why = "level gap 2.0 m: within a running jump (2.7 m); Switch Shutter A 06 3892030450363597117 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 9853854296544990579 shut until flag #03061f09; Switch Shutter A 06 12320693207838952747 shut until flag #03061f09; on terrain floor no live run has walked"
+guess = true
+
+[[link]]
 to = 10
 needs = "flag:#03061f09"
 via = "walk"
@@ -18,7 +25,7 @@ why = "walk, 7 edges; Switch Shutter A 06 15168842578462879268 shut until flag #
 to = 10
 needs = "flag:#03061f09"
 via = "jump"
-why = "level gap 2.2 m: within a running jump (2.7 m); Switch Shutter A 06 5116964458081546297 shut until flag #03061f09; Switch Shutter A 06 15168842578462879268 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 17234807852443998469 shut until flag #03061f09"
+why = "gap 1.0 to 3.5 m, falling up to 3.2 m: within a running jump off the edge (4.0 m for that fall); Switch Shutter A 06 5116964458081546297 shut until flag #03061f09; Switch Shutter A 06 15168842578462879268 shut until flag #03061f09; Dodongo Cave Switch Shutter A 01 17234807852443998469 shut until flag #03061f09"
 
 [[flag]]
 hash = 0x03061f09

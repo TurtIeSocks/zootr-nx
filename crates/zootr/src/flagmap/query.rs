@@ -263,7 +263,7 @@ impl Graph {
                 crate::graphs::node_line(at.into(), &graph.nodes[usize::from(at)])
             }
             (Some(at), Some(flows), _) => {
-                let chart = flows.0.get(&e.file).context("flow not loaded")?;
+                let chart = flows.charts.get(&e.file).context("flow not loaded")?;
                 let want = format!("#{at} ");
                 (flows::render(chart).lines())
                     .find(|l| l.starts_with(&want))

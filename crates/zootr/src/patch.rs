@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 pub use zootr_hook::OFFSETS;
+use zootr_hook::entry;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
     CAVE, Credit, DEV, FAR, LIST, MENU_CYCLE, PANIC, SLOTS, Shared, Spot, TABLE, encode,
@@ -44,22 +45,26 @@ const SKIPS: [(u32, u32); 3] = [GATE, CATCH, gear::BOOTS];
 /// to `seed_guide`, so a child Bow says "Shoot Arrow". The equipment
 /// slots' child tests go to `gear_child` ([`gear::CALLS`]).
 const CALLS: [(u32, u32); 7] = [
-    (0x2ae_0828, 0),
-    (0x2ae_08cc, 0),
-    (0x2ef_6560, 4),
-    (0x2ef_4888, 4),
-    (0x4b_01a4, 68),
+    (0x2ae_0828, entry::CONTENT_NAME),
+    (0x2ae_08cc, entry::CONTENT_NAME),
+    (0x2ef_6560, entry::DROP_ACTOR),
+    (0x2ef_4888, entry::DROP_ACTOR),
+    (0x4b_01a4, entry::SEED_GUIDE),
     gear::CALLS[0],
     gear::CALLS[1],
 ];
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
 /// the setting.
-const RUN_CALL: (u32, u32) = (0x93_4990, 24);
+const RUN_CALL: (u32, u32) = (0x93_4990, entry::RUN_SPEED);
 /// The controller device's three `GetNpadStates` calls (full key,
 /// handheld, joy dual) and their hook entries, which run the trade slot's
 /// cycle with the three Items page hooks, in a seed with [`MENU_CYCLE`].
-const NPAD_CALLS: [(u32, u32); 3] = [(0x346_966c, 32), (0x346_9698, 36), (0x346_94f8, 40)];
+const NPAD_CALLS: [(u32, u32); 3] = [
+    (0x346_966c, entry::NPAD_FULL),
+    (0x346_9698, entry::NPAD_HANDHELD),
+    (0x346_94f8, entry::NPAD_DUAL),
+];
 /// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
 /// the same order. The hook reaches them through its slots.
 const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
@@ -69,20 +74,20 @@ const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
 const HOOKS: &[(u32, u32)] = &[
-    (OFFSETS.map_loaded, 8),
-    (OFFSETS.chest_made, 12),
-    (OFFSETS.granted, 16),
-    (OFFSETS.link_update, 20),
-    (OFFSETS.picked, 28),
-    (OFFSETS.items_built, 44),
-    (OFFSETS.items_left, 48),
-    (OFFSETS.ui_update, 52),
-    (OFFSETS.taken, 56),
-    (OFFSETS.nock, 60),
-    (OFFSETS.emptied, 64),
-    (OFFSETS.equipment_built, 72),
-    (OFFSETS.equipment_left, 76),
-    (OFFSETS.resident_create, 80),
+    (OFFSETS.map_loaded, entry::MAP_LOADED),
+    (OFFSETS.chest_made, entry::CHEST_MADE),
+    (OFFSETS.granted, entry::GRANTED),
+    (OFFSETS.link_update, entry::LINK_UPDATE),
+    (OFFSETS.picked, entry::PICKED),
+    (OFFSETS.items_built, entry::ITEMS_BUILT),
+    (OFFSETS.items_left, entry::ITEMS_LEFT),
+    (OFFSETS.ui_update, entry::UI_UPDATE),
+    (OFFSETS.taken, entry::TAKEN),
+    (OFFSETS.nock, entry::NOCKED),
+    (OFFSETS.emptied, entry::EMPTIED),
+    (OFFSETS.equipment_built, entry::EQUIPMENT_BUILT),
+    (OFFSETS.equipment_left, entry::EQUIPMENT_LEFT),
+    (OFFSETS.resident_create, entry::RESIDENT_MADE),
 ];
 /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
 /// 8 bytes name the cheat file and the rest, trailing zeros left out, the

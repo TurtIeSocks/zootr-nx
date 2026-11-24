@@ -45,7 +45,7 @@ pub const THAW: u64 = 4;
 /// any). One at a time: the next waits until he's free.
 pub fn spring(waiting: &AtomicU32, on: u32, since: Option<u64>, rate: u64) -> bool {
     on & FROZEN == 0
-        && since.is_none_or(|ticks| ticks >= THAW * rate)
+        && thawed(since, rate)
         && (waiting.try_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_sub(1))).is_ok()
 }
 
@@ -53,7 +53,13 @@ pub fn spring(waiting: &AtomicU32, on: u32, since: Option<u64>, rate: u64) -> bo
 /// conditions `on`, is frozen, or [`THAW`] seconds have gone by `since` it
 /// sprang with no freeze to wait for.
 pub fn unmake(on: u32, since: Option<u64>, rate: u64) -> bool {
-    on & FROZEN != 0 || since.is_none_or(|ticks| ticks >= THAW * rate)
+    on & FROZEN != 0 || thawed(since, rate)
+}
+
+/// Whether [`THAW`] seconds have gone by `since` the last trap, a count of
+/// `rate` ticks a second (`None` before any).
+fn thawed(since: Option<u64>, rate: u64) -> bool {
+    since.is_none_or(|ticks| ticks >= THAW * rate)
 }
 
 #[cfg(test)]

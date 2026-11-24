@@ -18,10 +18,10 @@ why = "drop 2.8 m"
 to = 10
 needs = "always"
 via = "walk"
-why = "walk, 3 edges"
+why = "walk, 15 edges"
 
 [[link]]
 to = 10
 needs = "always"
 via = "jump"
-why = "level gap 1.5 to 2.3 m: within a running jump (2.7 m)"
+why = "level gap 1.5 to 2.5 m: within a running jump (2.7 m)"
