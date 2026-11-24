@@ -16,7 +16,7 @@ import { ApLog } from "@/play/ap-log";
 import { GenerateSteps } from "@/play/generate-steps";
 import { DeathLinkBadge, RoomStatus } from "@/play/room-status";
 import { useApznxDrop } from "@/play/use-apznx-drop";
-import { useAp } from "@/stores/ap";
+import { roomIn, useAp } from "@/stores/ap";
 import { generateAp, useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
 import { useUpdate } from "@/stores/update";
@@ -199,7 +199,7 @@ function ForHosts({ apworld }: { apworld: ReturnType<typeof useApworld> }) {
 function Room({ entry }: { entry: Summary }) {
   const status = useAp((s) => s.status);
   const [rooms, setRooms] = useUi.usePath("ap.rooms");
-  const room = rooms[entry.id] ?? { server: "", password: "" };
+  const room = roomIn(rooms, entry);
   const [shown, setShown] = useState(false);
   const server = useRef<HTMLInputElement>(null);
   const id = useId();

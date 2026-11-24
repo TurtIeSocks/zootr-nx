@@ -55,6 +55,10 @@ pub struct ApSeed {
     pub seed: u64,
     pub slot: String,
     pub player: u32,
+    /// The room's server, from a file the room page served. Blank from
+    /// the host's `.zip`, and in seeds kept from before it.
+    #[serde(default)]
+    pub server: String,
     /// The start inventory, as our AP item ids.
     #[serde(default)]
     pub start: Vec<u64>,
@@ -123,6 +127,9 @@ pub struct Resolved {
 struct Manifest {
     game: String,
     world_version: String,
+    /// The room's, stamped in by the room page's download.
+    #[serde(default)]
+    server: String,
 }
 
 /// `name`'s JSON in `files`.
@@ -186,6 +193,7 @@ impl ApSeed {
             seed: seed.seed,
             slot: seed.slot,
             player: seed.player,
+            server: manifest.server,
             start: seed.start,
             death_link: seed.death_link,
             players: seed.players,
@@ -322,6 +330,19 @@ mod tests {
         seed
     }
 
+    /// [`TWO_SLOTS`] as the room page serves it: its server stamped into
+    /// `archipelago.json`, which it stores uncompressed.
+    const TWO_SLOTS_ROOM: &[u8] = include_bytes!("testdata/two_slots_room.apznx");
+
+    #[test]
+    fn a_seed_from_the_room_page_names_its_server() {
+        let room = ApSeed::from_zip(TWO_SLOTS_ROOM).unwrap();
+        assert_eq!(room.server, "archipelago.gg:38281");
+        assert_eq!(room.placements, two_slots().placements);
+        // The host's .zip leaves it blank.
+        assert_eq!(two_slots().server, "");
+    }
+
     #[test]
     fn a_seed_from_ap_reads_its_settings_placements_and_players() {
         let seed = two_slots();
@@ -353,6 +374,7 @@ mod tests {
         let manifest = Manifest {
             game: "Ocarina of Time".into(),
             world_version: env!("CARGO_PKG_VERSION").into(),
+            server: String::new(),
         };
         let refused = ApSeed::check_manifest(&manifest).unwrap_err().to_string();
         assert!(refused.contains("not Ocarina of Time (znx)"), "{refused}");

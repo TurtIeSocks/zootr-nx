@@ -1139,6 +1139,8 @@ export type Summary = {
 	plando: boolean,
 	/**  The slot, for a seed opened from an Archipelago `.apznx`. */
 	ap_slot: string | null,
+	/**  The room's server, when the `.apznx` came from its room page. */
+	ap_server: string | null,
 	/**  The slot plays DeathLink. */
 	death_link: boolean,
 	/**  The build of the game the seed was made for. */
