@@ -17,9 +17,10 @@ use super::{
 };
 use crate::checks::Drop;
 use crate::flows::{
-    self, GAME_DATA, IS_BOOL, Rewrites, VALUE, events, param, params_mut, reachable, string,
+    self, GAME_DATA, IS_BOOL, Rewrites, events, param, params_mut, reachable, string,
 };
 use crate::gifts::levels::Level;
+use crate::known::field::VALUE;
 use crate::known::{actor, field, flag};
 
 /// Sell each edited scrub's item in the shared flow, every one at `price`.
