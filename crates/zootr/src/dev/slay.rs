@@ -208,34 +208,51 @@ impl<M: Memory> Dev<M> {
     }
 
     /// Write 0 to `a`'s Life until it dies, again on each reset. One that
-    /// never dies gets its Life back, so it isn't left alive at 0.
+    /// never dies gets its Life back, so it isn't left alive at 0, and so
+    /// does one whose fight ends on an error.
     fn beat(&self, a: &Actor, mut life: Life) -> Result<Fate> {
+        let fight = self.fight(a, &mut life);
+        kept(fight, || {
+            (self.game).write(life.left_at(), &life.most.to_le_bytes())
+        })
+    }
+
+    /// `beat` without the Life put back: `life` follows each reset.
+    fn fight(&self, a: &Actor, life: &mut Life) -> Result<Fate> {
         let zero = 0_i32.to_le_bytes();
-        let put_back = |life: &Life| self.game.write(life.left_at(), &life.most.to_le_bytes());
         self.game.write(life.left_at(), &zero)?;
         let start = Instant::now();
         while start.elapsed() < PATIENCE {
             std::thread::sleep(TICK);
             let table = actors::actors(&self.game, self.main)?;
             let alive = table.iter().any(|b| b.at == a.at && b.name == a.name);
-            // A failed read isn't a death: the Life goes back before the error.
             let now = match alive {
-                true => a
-                    .life(&self.game, self.main)
-                    .or_else(|e| put_back(&life).and(Err(e)))?,
+                true => a.life(&self.game, self.main)?,
                 false => None,
             };
             match look(alive, self.event()?, now) {
                 Look::Gone => return Ok(Fate::Died),
                 Look::Reset(reset) => {
-                    life = reset;
+                    *life = reset;
                     self.game.write(life.left_at(), &zero)?;
                 }
                 Look::Waiting => {}
             }
         }
-        put_back(&life)?;
         Ok(Fate::NeverWoke)
+    }
+}
+
+/// A fight's fate, with the Life put back unless the enemy died: on giving
+/// up and on any error, which stays the one reported.
+fn kept(fight: Result<Fate>, put_back: impl FnOnce() -> Result<()>) -> Result<Fate> {
+    match fight {
+        Ok(Fate::Died) => Ok(Fate::Died),
+        Ok(Fate::NeverWoke) => put_back().map(|()| Fate::NeverWoke),
+        Err(e) => match put_back() {
+            Ok(()) => Err(e),
+            Err(p) => Err(e.context(format!("and the Life wasn't put back: {p:#}"))),
+        },
     }
 }
 
@@ -265,6 +282,32 @@ mod tests {
             Target::parse("Enemy_FakeBat"),
             Target::Name("Enemy_FakeBat".into())
         );
+    }
+
+    #[test]
+    fn the_life_goes_back_unless_the_enemy_died() {
+        let back = std::cell::Cell::new(0);
+        let put = || {
+            back.set(back.get() + 1);
+            Ok(())
+        };
+        assert_eq!(kept(Ok(Fate::Died), put).unwrap(), Fate::Died);
+        assert_eq!(back.get(), 0);
+        assert_eq!(kept(Ok(Fate::NeverWoke), put).unwrap(), Fate::NeverWoke);
+        assert_eq!(back.get(), 1);
+        let failed = kept(Err(anyhow::anyhow!("read failed")), put).unwrap_err();
+        assert_eq!(back.get(), 2);
+        assert_eq!(failed.to_string(), "read failed");
+    }
+
+    #[test]
+    fn a_failed_put_back_keeps_the_first_error() {
+        let failed = kept(Err(anyhow::anyhow!("read failed")), || {
+            Err(anyhow::anyhow!("write failed"))
+        })
+        .unwrap_err();
+        assert_eq!(failed.root_cause().to_string(), "read failed");
+        assert!(format!("{failed:#}").contains("write failed"));
     }
 
     #[test]
