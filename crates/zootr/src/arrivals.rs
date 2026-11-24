@@ -112,6 +112,22 @@ fn find(romfs: &Romfs, flows: &Flows) -> Result<Vec<Arrival>> {
             }
         }
     }
+    // Intros guarded by their own played flag rather than an entrance's: the
+    // scene change plays the Ice Cavern's, a level graph the Water Temple's.
+    // Each opens its area's banner. A cutscene's own skip covers `Dm_` ones.
+    for (name, chart) in &flows.charts {
+        let flag = played_flag(name);
+        if !name.starts_with("Dm_")
+            && gd.table(&flag) == Some("Bool")
+            && !found.iter().any(|(_, f)| *f == flag)
+            && chart
+                .events
+                .iter()
+                .any(|e| banner(chart, &e.kind).is_some())
+        {
+            found.insert((name.clone(), flag));
+        }
+    }
     found
         .into_iter()
         .map(|(event, flag)| {
@@ -254,7 +270,7 @@ pub fn skip(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::known::{field, flag, flow, scene};
+    use crate::known::{field, flag, flow, map, scene};
 
     const MARKET: &Name = flag::HAVE_PLAYED_EVENT_DM_HRL_CASTLE_0005;
     const GANON: &Name = flag::HAVE_PLAYED_EVENT_DM_GANON_CASTLE_0000;
@@ -289,6 +305,29 @@ mod tests {
             flow::GOTO_HYRULE_CASTLE,
             field::GOTO_HYRULE_CASTLE_ENTRY_MARKET
         )));
+    }
+
+    #[test]
+    fn intros_guarded_by_their_own_flag_are_skipped_too() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let flows = Flows::load(&romfs).unwrap();
+        let mut flags = Vec::new();
+        skip(
+            &romfs,
+            &flows,
+            &BTreeSet::new(),
+            &mut Rewrites::new(),
+            &mut flags,
+        )
+        .unwrap();
+        // The scene change plays the Ice Cavern's, a level graph the Water Temple's.
+        for intro in [flow::GOTO_ICE_CAVE, flow::GOTO_WATER_TEMPLE] {
+            assert!(flags.contains(&played_set(intro)), "{intro}");
+        }
+        let visit = format!("{}.{}=true", field::IS_VISIT_LOCATION, map::ICE_CAVERN);
+        assert!(flags.contains(&visit));
     }
 
     #[test]
