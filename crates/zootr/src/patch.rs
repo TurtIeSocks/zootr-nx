@@ -233,6 +233,23 @@ pub fn patches<A: AsRef<str>>(
         .collect())
 }
 
+/// What the port checks another build's rooms against: today's hook and
+/// far code, and the table a seed with every flag and the progressive
+/// lines writes (a seed's credits and ammo lines come on top, which
+/// `the_fullest_table_fits` counts).
+pub(crate) fn needs() -> crate::port::Needs {
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, ICE_TRAPS};
+    let flags = BUNNY_HOOD | MENU_CYCLE | ICE_TRAPS | FREE_BOMBCHUS;
+    let p = patches(&crate::progressive::LINES, &[], flags, &[], &[], None)
+        .expect("the table fits 1.1.1's room");
+    let table = p.iter().filter(|p| (TABLE..TABLE_END).contains(&p.at));
+    crate::port::Needs {
+        cave: hook_code().len() as u32,
+        far: FAR_CODE.len() as u32,
+        table: table.map(|p| p.bytes.len() as u32).sum(),
+    }
+}
+
 #[cfg(all(test, feature = "emu"))]
 mod emu;
 
