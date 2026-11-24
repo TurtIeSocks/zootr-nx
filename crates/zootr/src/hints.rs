@@ -134,7 +134,8 @@ fn line(rel: &str, area: &str, item: &str) -> String {
 const WIDEST: usize = 67;
 /// The lines a stone's box shows at once.
 const PER_PAGE: usize = 2;
-/// The tag vanilla stones turn the page with (`GOSSIP_LOST_WOOD_01`).
+/// The tag vanilla stones turn the page with (a Lost Woods stone's three
+/// pages, `research/hints.md`).
 const PAGE: (u16, u16) = (0, 4);
 
 /// `text`'s lines wrapped to [`WIDEST`], [`PER_PAGE`] to a page, a page
