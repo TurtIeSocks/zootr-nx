@@ -20,6 +20,7 @@ use crate::flows::{
     self, GAME_DATA, IS_BOOL, Rewrites, events, param, params_mut, reachable, string,
 };
 use crate::gifts::levels::Level;
+use crate::known::field::VALUE;
 use crate::known::{actor, field, flag};
 
 /// Sell each edited scrub's item in the shared flow, every one at `price`.
@@ -186,7 +187,7 @@ fn open(flow: &mut Flowchart, opens: &[u16], shown: u16, sale: u16) -> Result<u1
         }
         let mut kind = flow.events[e as usize].kind.clone();
         if e == shown {
-            flows::set(params_mut(&mut kind), field::VALUE, string(&item))?;
+            flows::set(params_mut(&mut kind), VALUE, string(&item))?;
         }
         if let EventKind::Action { next: n, .. } = &mut kind {
             *n = Some(next);
@@ -204,7 +205,7 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32, level: Level) -> Resul
     }
     let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let head = one(
-        with(flow, COMPARE, field::VALUE, HEAD)
+        with(flow, COMPARE, VALUE, HEAD)
             .into_iter()
             .filter(|e| compares.contains(e))
             .collect(),
@@ -218,7 +219,7 @@ fn sell(flow: &mut Flowchart, sales: &[&str], price: i32, level: Level) -> Resul
         set_sale(&mut sale, item, price)?;
         let sale = flow.push(sale);
         let mut compare = flow.events[head as usize].kind.clone();
-        flows::set(params_mut(&mut compare), field::VALUE, string(item))?;
+        flows::set(params_mut(&mut compare), VALUE, string(item))?;
         set_cases(&mut compare, [sale, next]);
         next = flow.push(compare);
         // After the compare, which the chain then leads through.
@@ -339,7 +340,7 @@ fn hook(flow: &mut Flowchart, items: &[&str]) -> Result<()> {
         let copy = flow.push(copy);
         let mut compare = flow.events[template as usize].kind.clone();
         flows::set(params_mut(&mut compare), GAME_DATA, string(SELECTED))?;
-        flows::set(params_mut(&mut compare), field::VALUE, string(item))?;
+        flows::set(params_mut(&mut compare), VALUE, string(item))?;
         set_cases(&mut compare, [copy, miss]);
         miss = flow.push(compare);
     }

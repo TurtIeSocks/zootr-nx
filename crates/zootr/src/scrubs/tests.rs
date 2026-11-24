@@ -13,6 +13,7 @@ use crate::flows::{
     reachable,
 };
 use crate::game::dev_dump;
+use crate::known::field::VALUE;
 use crate::known::{Name, actor, field, flag, item};
 
 const KOKIRI: usize = 0;
@@ -73,7 +74,7 @@ fn written(at: &[(usize, impl AsRef<str>)]) -> Option<(Flowchart, Flowchart)> {
 
 fn head(flow: &Flowchart) -> u16 {
     let compares = with(flow, COMPARE, GAME_DATA, TEMP);
-    let heads = with(flow, COMPARE, field::VALUE, HEAD);
+    let heads = with(flow, COMPARE, VALUE, HEAD);
     heads.into_iter().find(|e| compares.contains(e)).unwrap()
 }
 
@@ -81,7 +82,7 @@ fn head(flow: &Flowchart) -> u16 {
 fn branch(flow: &Flowchart, item: &str) -> Option<String> {
     let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let root = reachable(flow, ROOT).unwrap();
-    let hit = with(flow, COMPARE, field::VALUE, item)
+    let hit = with(flow, COMPARE, VALUE, item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))?;
     let at = case(flow, hit, 0).unwrap();
@@ -166,7 +167,7 @@ fn called(flow: &Flowchart, entry: &str) -> Vec<String> {
 fn sale(flow: &Flowchart, item: &str) -> u16 {
     let compares = with(flow, COMPARE, GAME_DATA, TEMP);
     let root = reachable(flow, ROOT).unwrap();
-    let hit = with(flow, COMPARE, field::VALUE, item)
+    let hit = with(flow, COMPARE, VALUE, item)
         .into_iter()
         .find(|e| compares.contains(e) && root.contains(e))
         .unwrap();
@@ -290,7 +291,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, main, field::VALUE).and_then(Value::as_str),
+        value(&after, main, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     let call = next(&after, main).unwrap();
@@ -318,7 +319,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, compare, field::VALUE).and_then(Value::as_str),
+        value(&after, compare, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     assert_eq!(case(&after, compare, 1).unwrap(), carry_on);
@@ -329,7 +330,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(TEMP.get())
     );
     assert_eq!(
-        value(&after, set, field::VALUE).and_then(Value::as_str),
+        value(&after, set, VALUE).and_then(Value::as_str),
         Some(SONG.get())
     );
     let clear = next(&after, set).unwrap();
@@ -338,7 +339,7 @@ fn a_plain_pouch_spot_names_the_item_after_reading_the_placement() {
         Some(SELECTED.get())
     );
     assert_eq!(
-        value(&after, clear, field::VALUE).and_then(Value::as_str),
+        value(&after, clear, VALUE).and_then(Value::as_str),
         Some("")
     );
     assert_eq!(next(&after, clear), Some(carry_on));
@@ -356,7 +357,7 @@ fn every_spot_can_sell_a_plain_item_at_once() {
         if spot.branch != Branch::Secret {
             let main = entry_of(&after, &sells(spot, item)).main.unwrap();
             assert_eq!(
-                value(&after, main, field::VALUE).and_then(Value::as_str),
+                value(&after, main, VALUE).and_then(Value::as_str),
                 Some(item.get())
             );
         }
@@ -599,7 +600,7 @@ fn riddle_sales(flow: &Flowchart) -> Vec<(String, Vec<String>, bool)> {
             let opens = run_into(flow, sale);
             let shown = (opens.iter())
                 .filter(|e| with(flow, SET_STRING, GAME_DATA, SELECTED).contains(e))
-                .map(|&e| sold(flow, e, field::VALUE))
+                .map(|&e| sold(flow, e, VALUE))
                 .collect();
             let hearts = opens.iter().any(|e| gauges.contains(e));
             (sold(flow, sale, flag::ACTOR_NAME), shown, hearts)
@@ -657,7 +658,7 @@ fn two_scrubs_selling_one_item_share_a_branch() {
     let Some((_, after)) = written(&[(KOKIRI, "Item_L"), (LW_STICKS, "Item_L")]) else {
         return;
     };
-    let compares = with(&after, COMPARE, field::VALUE, "Item_L");
+    let compares = with(&after, COMPARE, VALUE, "Item_L");
     assert_eq!(compares.len(), 1);
 }
 
