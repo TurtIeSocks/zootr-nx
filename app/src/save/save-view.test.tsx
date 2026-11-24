@@ -375,6 +375,23 @@ test("a second save of the same slot writes over the first, with no warning", as
   ).toBeNull();
 });
 
+test("a written save stays saved when reading its new stamp fails", async () => {
+  await open();
+  fireEvent.click(tile("Hookshot"));
+  await waitFor(() => expect(useUi.getPath("save.edits")).toHaveLength(1));
+  saveWrite.mockImplementationOnce((slot: number) => {
+    stamps.set(slot, (stamps.get(slot) ?? 0) + 500);
+    saveSlots.mockImplementationOnce(() =>
+      Promise.reject(new Error("Fake read failure")),
+    );
+    return ok({ log: [], backup: "b.bak" });
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.getByText(/Backup at b.bak/)).toBeTruthy());
+  expect(useUi.getPath("save.edits")).toEqual([]);
+  expect(screen.queryByText(/Fake read failure/)).toBeNull();
+});
+
 test("Discard drops the reload warning with the edits", async () => {
   await open();
   fireEvent.click(tile("Hookshot"));

@@ -2,6 +2,7 @@
 //! abilities inlined, eras resolved per place and start flags folded in.
 
 mod pool;
+mod shrink;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -10,15 +11,15 @@ use ounce_formats::{Romfs, par_map};
 use serde_json::{Value, json};
 
 use super::rule::{self, Rules, all, any};
-use super::seed::{Everything, Seed, base, domains, open, values, variants};
+use super::seed::{Dump, Everything, Seed, base, domains, open, values, variants};
 use super::when::{Counts, Domain, Variant, steps, word};
-use super::{OPTIONS, SETS, described, ids::Ids, names, offers};
+use super::{JOINT, OPTIONS, SETS, described, ids::Ids, names, offers};
 use crate::checks::ItemCheck;
 use crate::fill;
 use crate::logic::World;
 use crate::narrowing::allowed;
 use crate::rules::{Need, vocab};
-use crate::settings::{Kind, NewGame, SettingDef, Settings, schema};
+use crate::settings::{Kind, NewGame, PROGRESSIVE, SettingDef, Settings, schema};
 use crate::world::Era;
 
 /// Items that aren't progression but are worth more than filler.
@@ -34,14 +35,16 @@ const USEFUL: &[&str] = &[
 pub const VICTORY: &str = "victory";
 
 /// Every file of the export, by name, as JSON text. `ids` is the last
-/// export's `ids.json`, if any.
-pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str, String>> {
+/// export's `ids.json`.
+pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>> {
     let base = base();
-    let base_seed = Seed::build(romfs, &base, &open())?;
+    // Every seed below reads the same game data, so it's read once.
+    let dump = Dump::new(romfs)?;
+    let base_seed = Seed::build_in(&dump, &base, &open())?;
     let variants = variants()?;
     let domains = domains()?;
     // Each seed builds on its own, so they build at once.
-    let built: Vec<Seed> = par_map(&variants, |v| Seed::build(romfs, &v.settings(), &open()))
+    let built: Vec<Seed> = par_map(&variants, |v| Seed::build_in(&dump, &v.settings(), &open()))
         .into_iter()
         .collect::<Result<_>>()?;
     // The base first, then each variant's seed.
@@ -50,13 +53,10 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let settings: Vec<Settings> = std::iter::once(base.clone())
         .chain(variants.iter().map(Variant::settings))
         .collect();
-    let set: Vec<Seed> = par_map(&settings, |s| Seed::build(romfs, s, &Default::default()))
+    let set: Vec<Seed> = par_map(&settings, |s| Seed::build_in(&dump, s, &Default::default()))
         .into_iter()
         .collect::<Result<_>>()?;
-    let mut ids: Ids = ids
-        .map(serde_json::from_str)
-        .transpose()?
-        .unwrap_or_default();
+    let mut ids: Ids = serde_json::from_str(ids)?;
     let names = Namer::new(romfs, &seeds)?;
     let w = &base_seed.world;
     for (seed, v) in built.iter().zip(&variants) {
@@ -102,6 +102,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
     let counted = pool::Counted::new(&seeds, &settings)?;
     counted.check_sources(&seeds)?;
     let (items, pool) = counted.items_and_pool(&cx, &rules.used, &mut ids)?;
+    let kept = pool::kept(&cx, &seeds)?;
     // Where a variant starts Link elsewhere (Starting Age), that start
     // under the settings that pick it; the world takes the first that
     // holds, else `start`.
@@ -119,7 +120,7 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
             }
         }
     }
-    let world = json!({
+    let mut world = json!({
         "start": names.place(w.start()),
         "starts": starts,
         "places": places,
@@ -128,13 +129,38 @@ pub fn export(romfs: &Romfs, ids: Option<&str>) -> Result<BTreeMap<&'static str,
         "events": events,
         "goal": VICTORY,
     });
-    let golden = super::golden::golden(&settings, &set, &names, &ids)?;
+    // Every name `rules.lined` reads as a line's level, which stays a rule
+    // of its own.
+    let lined: BTreeSet<&str> = (levels.iter())
+        .flat_map(|(_, steps)| steps.iter().flatten())
+        .map(String::as_str)
+        .collect();
+    shrink::merge(&mut world, &lined);
+    shrink::share(&mut world);
+    // The golden pairs Progressive Items on with each other case's options
+    // too: the base holds it off, and so would every case but the joint
+    // group's.
+    let on = |s: &Settings| {
+        let mut on = s.clone();
+        on.insert(PROGRESSIVE.into(), true.into());
+        on
+    };
+    let twins: Vec<Settings> = settings
+        .iter()
+        .map(&on)
+        .filter(|t| !settings.contains(t))
+        .collect();
+    let twin_seeds: Vec<Seed> = par_map(&twins, |s| Seed::build_in(&dump, s, &Default::default()))
+        .into_iter()
+        .collect::<Result<_>>()?;
+    let cases = (settings.iter().chain(&twins)).zip(set.iter().chain(&twin_seeds));
+    let golden = super::golden::golden(cases, &names, &ids)?;
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
     out.insert(
         "pool.json",
-        pretty(&pool::pool_json(pool, &levels, &names)?)?,
+        pretty(&pool::pool_json(pool, &levels, &kept, &names)?)?,
     );
     out.insert("options.json", pretty(&options())?);
     out.insert("golden.json", pretty(&golden)?);
@@ -317,6 +343,9 @@ impl Ctx<'_> {
         let (reach, names) = (self.reach, self.names);
         let mut checks: BTreeMap<u64, Row> = BTreeMap::new();
         let mut events: BTreeMap<String, Row> = BTreeMap::new();
+        // What a check may not hold depends on the check alone, so once
+        // for every seed.
+        let mut forbids: BTreeMap<u64, BTreeSet<&str>> = BTreeMap::new();
         for (n, seed) in seeds.iter().enumerate() {
             let mut by_hash: BTreeMap<u64, Vec<(usize, &Need)>> = BTreeMap::new();
             for l in &seed.world.locations {
@@ -336,13 +365,19 @@ impl Ctx<'_> {
                 }
                 let check = (seed.dealt.checks.iter().find(|c| c.hash == hash))
                     .with_context(|| format!("no check {hash}"))?;
-                // In either form, since a row holds for both.
-                let mut forbid = BTreeSet::new();
-                for form in [true, false] {
-                    for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
-                        forbid.insert(names.item_in(actor, Some(form))?);
+                let forbid = match forbids.get(&hash) {
+                    Some(forbid) => forbid.clone(),
+                    None => {
+                        // In either form, since a row holds for both.
+                        let mut forbid = BTreeSet::new();
+                        for form in [true, false] {
+                            for actor in pooled.iter().filter(|a| !allowed(check, a, form)) {
+                                forbid.insert(names.item_in(actor, Some(form))?);
+                            }
+                        }
+                        forbids.entry(hash).or_insert(forbid).clone()
                     }
-                }
+                };
                 let row = json!({
                     "id": ids.location(hash),
                     "hash": hash.to_string(),
@@ -481,23 +516,30 @@ fn options() -> Value {
     let rows = OPTIONS
         .iter()
         .filter_map(|id| defs.iter().find(|d| d.id == *id));
-    let rows = rows.map(|d| match &d.kind {
-        Kind::Toggle { default } => json!({
-            "id": d.id, "label": d.label, "description": d.description,
-            "kind": "toggle", "default": default,
-        }),
-        Kind::Choice { default, options } => json!({
-            "id": d.id, "label": d.label, "description": described(&d.id, d.description),
-            "kind": "choice", "default": default,
-            "options": (options.iter())
-                .filter(|o| offers(&d.id, &o.id))
-                .map(|o| json!({ "id": o.id, "label": o.label, "forces": o.forces }))
-                .collect::<Vec<_>>(),
-        }),
-        Kind::Inventory { default } => json!({
-            "id": d.id, "label": d.label, "description": d.description,
-            "kind": "inventory", "default": default,
-        }),
+    let rows = rows.map(|d| {
+        let mut row = match &d.kind {
+            Kind::Toggle { default } => json!({
+                "id": d.id, "label": d.label, "description": d.description,
+                "kind": "toggle", "default": default,
+            }),
+            Kind::Choice { default, options } => json!({
+                "id": d.id, "label": d.label, "description": described(&d.id, d.description),
+                "kind": "choice", "default": default,
+                "options": (options.iter())
+                    .filter(|o| offers(&d.id, &o.id))
+                    .map(|o| json!({ "id": o.id, "label": o.label, "forces": o.forces }))
+                    .collect::<Vec<_>>(),
+            }),
+            Kind::Inventory { default } => json!({
+                "id": d.id, "label": d.label, "description": d.description,
+                "kind": "inventory", "default": default,
+            }),
+        };
+        // The group of options whose combinations the world's tests run.
+        if let Some(group) = JOINT.iter().position(|g| g.contains(&d.id.as_str())) {
+            row["joint"] = group.into();
+        }
+        row
     });
     let sets = SETS.iter().map(|set| {
         let members = set.members();
@@ -581,7 +623,7 @@ mod tests {
         static EXPORT: OnceLock<BTreeMap<&'static str, String>> = OnceLock::new();
         EXPORT.get_or_init(|| {
             let ids = std::fs::read_to_string(super::super::data_dir().join("ids.json")).unwrap();
-            export(romfs, Some(&ids)).unwrap()
+            export(romfs, &ids).unwrap()
         })
     }
 
@@ -589,7 +631,7 @@ mod tests {
     /// them: the same checks, events and pool, and one item a check.
     fn rows_match(romfs: &Romfs, settings: &Settings) -> std::result::Result<(), String> {
         let files = exported(romfs);
-        let world: Value = serde_json::from_str(&files["world.json"]).unwrap();
+        let world = shrink::expand(&serde_json::from_str(&files["world.json"]).unwrap());
         let pool: Value = serde_json::from_str(&files["pool.json"]).unwrap();
         // Every offered option's value, as the world reads them.
         let mut options = Settings::new();
@@ -733,8 +775,13 @@ mod tests {
     fn lined(pool: BTreeMap<String, u64>, levels: &Value) -> BTreeMap<String, u64> {
         let line = |item: &str| {
             let mut lines = levels.as_object().unwrap().iter();
-            let found =
-                lines.find(|(_, steps)| steps.as_array().unwrap().iter().any(|s| s[0] == item));
+            let found = lines.find(|(_, levels)| {
+                levels
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|l| l["names"][0] == item)
+            });
             found.map(|(line, _)| line.clone())
         };
         let mut out = BTreeMap::new();
@@ -867,6 +914,28 @@ mod tests {
                 "{name} is stale: run `zootr ap export` and commit it"
             );
         }
+    }
+
+    /// The world reads its joint groups from the options, not a list of
+    /// its own: each member says which group it is in.
+    #[test]
+    fn each_joint_option_names_its_group() {
+        let options = options();
+        for (n, group) in JOINT.iter().enumerate() {
+            let named = (options.as_array().unwrap().iter()).filter(|o| o["joint"] == n);
+            let mut named: Vec<&str> = named.map(|o| o["id"].as_str().unwrap()).collect();
+            let mut want = group.to_vec();
+            named.sort();
+            want.sort();
+            assert_eq!(named, want, "group {n}");
+        }
+        let members: usize = JOINT.iter().map(|g| g.len()).sum();
+        let tagged = options
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|o| o.get("joint").is_some());
+        assert_eq!(tagged.count(), members);
     }
 
     #[test]

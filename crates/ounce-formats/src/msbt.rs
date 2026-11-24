@@ -148,6 +148,16 @@ impl Msbt {
         Ok(())
     }
 
+    /// A tag without params, as this file writes it.
+    pub fn tag(&self, group: u16, kind: u16) -> Part {
+        let mut raw = match self.wide {
+            true => TAG.to_le_bytes().to_vec(),
+            false => vec![TAG as u8],
+        };
+        raw.extend([group, kind, 0].map(u16::to_le_bytes).concat());
+        Part::Tag(raw)
+    }
+
     /// Every label, in the order of their texts.
     pub fn labels(&self) -> Result<Vec<&str>> {
         let mut all: Vec<_> = self.buckets()?.iter().flatten().collect();
@@ -454,6 +464,18 @@ mod tests {
             assert_eq!(got["new_one"], "It's  rupees");
             assert_eq!(got["a"], "changed");
             assert!(back.misplaced().is_empty());
+        }
+    }
+
+    #[test]
+    fn a_made_tag_is_the_one_the_file_would_hold() {
+        for wide in [false, true] {
+            let msbt = Msbt::parse(&build(wide, false, &[&[Text("x")]])).unwrap();
+            let held = encode(wide, &[Tag(0, 4, &[])]);
+            let Part::Tag(raw) = msbt.tag(0, 4) else {
+                panic!("not a tag")
+            };
+            assert_eq!(raw, held[..held.len() - if wide { 2 } else { 1 }]);
         }
     }
 

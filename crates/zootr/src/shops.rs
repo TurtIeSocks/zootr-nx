@@ -170,8 +170,8 @@ fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
     let mut npcs = Vec::new();
     for (file, doc) in bancs(romfs)? {
         let doc = doc?;
-        let area = file.split('/').nth(1).unwrap_or("?");
-        let adult = !file.contains("_Child_");
+        let area = crate::checks::area_of(&file);
+        let adult = !crate::checks::is_child(&file);
         for actor in actors(&doc.root)? {
             let goods = str_field(actor, GYAML).unwrap_or_default();
             if goods.starts_with(KEEPER) {
@@ -288,7 +288,7 @@ fn by_shop(slots: Vec<Slot>) -> Vec<Vec<Slot>> {
 /// entry's placements leave it out.
 fn goods_index(actor: &Byml) -> i32 {
     let index = || {
-        let dynamic = actor.as_map().ok()?.get(field::DYNAMIC.get())?;
+        let dynamic = actor.as_map().ok()?.get(crate::checks::DYNAMIC)?;
         let dynamic = dynamic.as_map().ok()?;
         dynamic.get(field::SHOP_ITEM_INDEX.get())?.as_int().ok()
     };
@@ -746,8 +746,7 @@ mod tests {
         }
 
         let rel = format!("Pack/Actor/{name}.pack.zs");
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(data).unwrap();
         let param = |path: &str| -> BymlMap {
             let pack_file = pack_path(path);
@@ -850,8 +849,7 @@ mod tests {
         assert!(restbl.get(&pack_path(&refs(POUCH))).is_some());
 
         for table in [ACTOR_INFO, GAME_ACTOR_INFO, POUCH_ACTOR_INFO] {
-            let raw = std::fs::read(dir.join("romfs").join(table)).unwrap();
-            let doc = BymlDoc::parse(&romfs.dicts().decompress(table, &raw).unwrap()).unwrap();
+            let doc = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, table)).unwrap();
             let ids: Vec<&str> = doc.root.as_array().unwrap().iter().map(row_id).collect();
             assert!(ids.windows(2).all(|w| w[0] < w[1]), "{table} out of order");
             assert_eq!(

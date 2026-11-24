@@ -26,7 +26,6 @@ use rule::{Rule, atom};
 pub use wiring::{Placed, Wiring, path, wiring};
 
 const LOGIC: &str = "Logic";
-pub(crate) const CHEST: &str = "Obj_TBox_";
 const TREASURE_BOX: &Name = field::ACTOR_LOGIC_TREASURE_BOX;
 /// A boss's heart container, and the logic node that makes it appear.
 const HEART: &Name = actor::OBJ_HEART_CONTAINER;
@@ -49,8 +48,10 @@ const EVENT_TRIGGER: &Name = field::EVENT_REQUEST_TRIGGER;
 /// nothing else is quiet: running it twice changes nothing.
 const QUIET: [&str; 3] = ["ActorLogic", "Operate", "Hold"];
 /// Words in those classes that still mark a writer: an event request, a
-/// GameData allocation, a setter.
-const LOUD: [&str; 3] = ["EventRequest", "Alloc", "Set"];
+/// setter. An autogen GameData allocation is the group's own memory, kept
+/// per placed group, so a copy under its own Hash keeps its own (research:
+/// Fire Temple crate freeze, the Deku Tree's regrowing grass).
+const LOUD: [&str; 2] = ["EventRequest", "Set"];
 
 /// One thing a gate reads.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -226,7 +227,7 @@ pub fn trace(romfs: &Romfs) -> Result<Vec<Gate>> {
         drives(
             romfs,
             TREASURE_BOX,
-            |gyaml| gyaml.starts_with(CHEST),
+            crate::checks::is_chest,
             // The chest inputs a gate is read from: whether it exists, and
             // whether it opens.
             Some(&[CREATE, "Unlock"]),
@@ -460,9 +461,8 @@ impl World {
                     world.gyamls.entry(hash).or_insert_with(|| gyaml.to_owned());
                 }
             }
-            let area = rel.trim_start_matches("Banc/");
             world.bancs.push(Banc {
-                area: area.split('/').next().unwrap_or(area).to_owned(),
+                area: crate::checks::area_of(&rel).to_owned(),
                 groups: groups(&doc.root)
                     .with_context(|| format!("{} in {rel}", field::AI_GROUPS))?,
             });

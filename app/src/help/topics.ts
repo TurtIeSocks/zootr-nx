@@ -51,6 +51,15 @@ export const TOPICS = {
       "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
     ],
   },
+  favorites: {
+    title: "Favorites",
+    at: { tab: "Play", folder: "favorites" },
+    body: [
+      "Settings you keep by name, to switch between. Save your current settings here, then Use them again any time.",
+      "Use settings replaces every setting, the starting inventory included. A plando stays as it is.",
+      "Vanilla+ and Randomizer come built in: the game as it is with comfort enhancements, and the randomizer's usual setup.",
+    ],
+  },
   "ap-slot": {
     title: "Slot",
     at: { tab: "Play", folder: "archipelago" },

@@ -1,18 +1,28 @@
 //! Edits to a model file (BFRES v10): vertices edited in place, and a
 //! shape's whole mesh replaced by one appended to the memory pool.
+//!
+//! The children: `codec` packs and unpacks the stored vertex values,
+//! `names` finds shapes and reads the pool's strings, and `relocate`
+//! moves the pool, blocks and relocation table when the pool grows.
 
 use anyhow::{Context, Result, bail, ensure};
 
 use crate::reader::Reader;
 
-/// Where the header keeps its first block (u16), the relocation table and
-/// the file's size (u32s).
-const FIRST_BLOCK: usize = 0x16;
-const RELOCATIONS: usize = 0x18;
+mod codec;
+mod names;
+mod relocate;
+
+use codec::{half_at, to_half, unorm_at};
+pub use codec::{pack, unpack};
+pub use names::shape_names;
+pub(crate) use names::{find_magic, name_at};
+use names::{shape_at, try_name_at};
+pub use relocate::pointers;
+use relocate::{Pool, grow_blocks, pad, put, relocate};
+
+/// Where the header keeps the file's size (u32).
 const FILE_SIZE: usize = 0x1c;
-/// Where the header points at the memory pool's info: its size, then
-/// where its buffers start.
-const POOL_INFO: usize = 0xb0;
 /// The pool's size stays a multiple of this, and each buffer in it starts
 /// on a multiple of the smaller.
 const POOL_ALIGN: usize = 0x1000;
@@ -113,30 +123,39 @@ pub fn edit_vertices(
     Ok(out)
 }
 
-/// One attribute record of a vertex buffer header: its name, format,
-/// where it sits in each vertex, and which buffer holds it.
-struct AttrRecord<'a> {
-    name: Option<&'a [u8]>,
-    format: u32,
-    offset: usize,
-    buffer: usize,
+/// One attribute record of a vertex buffer header, at its offset. Its
+/// fields are read on demand, so a search reads only the records up to
+/// its match.
+#[derive(Clone, Copy)]
+struct AttrRecord(usize);
+
+impl AttrRecord {
+    /// Its name, `None` when its pointer leads to no pool string.
+    fn name(self, data: &[u8]) -> Result<Option<&[u8]>> {
+        try_name_at(data, self.0)
+    }
+
+    fn format(self, data: &[u8]) -> Result<u32> {
+        Reader(data).u32(self.0 + 8)
+    }
+
+    /// Where it sits in each vertex.
+    fn offset(self, data: &[u8]) -> Result<usize> {
+        Ok(Reader(data).u16(self.0 + 12)? as usize)
+    }
+
+    /// Which buffer holds it.
+    fn buffer(self, data: &[u8]) -> Result<usize> {
+        Ok(Reader(data).u16(self.0 + 14)? as usize)
+    }
 }
 
 /// Every attribute record of the vertex buffer header at `v`.
-fn attr_records<'a>(data: &'a [u8], v: usize) -> Result<Vec<AttrRecord<'a>>> {
+fn attr_records(data: &[u8], v: usize) -> Result<impl Iterator<Item = AttrRecord>> {
     let r = Reader(data);
     let attributes = r.ptr(v + VERTEX_ATTRIBUTES)?;
-    (0..r.u8(v + VERTEX_ATTRIBUTE_COUNT)? as usize)
-        .map(|i| {
-            let a = attributes + ATTRIBUTE_SIZE * i;
-            Ok(AttrRecord {
-                name: name_at(data, a),
-                format: r.u32(a + 8)?,
-                offset: r.u16(a + 12)? as usize,
-                buffer: r.u16(a + 14)? as usize,
-            })
-        })
-        .collect()
+    let count = r.u8(v + VERTEX_ATTRIBUTE_COUNT)? as usize;
+    Ok((0..count).map(move |i| AttrRecord(attributes + ATTRIBUTE_SIZE * i)))
 }
 
 /// Every vertex's value of attribute `name` (`_p0`, `_u0`, `_n0`) in the
@@ -149,28 +168,31 @@ pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> 
     let pool = Pool::read(data)?;
     let v = r.ptr(at + SHAPE_VERTICES)?;
     let count = r.offset(v + VERTEX_COUNT)?;
-    let all = attr_records(data, v)?;
-    let found = all.iter().find(|a| a.name == Some(name.as_bytes()));
-    let a = found.with_context(|| {
+    // An unreadable name reads as no name here, so the error lists the rest.
+    let named = |a: AttrRecord| name_at(data, a.0).unwrap_or_default();
+    let all: Vec<_> = attr_records(data, v)?.collect();
+    let found = all.iter().find(|&&a| named(a) == name.as_bytes());
+    let a = *found.with_context(|| {
         let names: Vec<_> = (all.iter())
-            .map(|a| String::from_utf8_lossy(a.name.unwrap_or_default()))
+            .map(|&a| String::from_utf8_lossy(named(a)))
             .collect();
         format!("{shape}: no {name}, only {}", names.join(" "))
     })?;
+    let (format, offset, buffer) = (a.format(data)?, a.offset(data)?, a.buffer(data)?);
     // Each buffer follows the one before it in the pool, aligned.
     let (sizes, strides) = (r.ptr(v + VERTEX_SIZES)?, r.ptr(v + VERTEX_STRIDES)?);
     let mut start = pool.start + r.offset(v + VERTEX_DATA)?;
-    for k in 0..a.buffer {
+    for k in 0..buffer {
         start = (start + r.offset(sizes + 16 * k)?).next_multiple_of(8);
     }
-    let stride = r.offset(strides + 16 * a.buffer)?;
+    let stride = r.offset(strides + 16 * buffer)?;
     (0..count)
         .map(|i| {
-            let at = start + stride * i + a.offset;
+            let at = start + stride * i + offset;
             let half = |k: usize| half_at(&r, at + 2 * k);
             let float = |k: usize| r.f32(at + 4 * k);
             let unorm = |k: usize| unorm_at(&r, at + 2 * k);
-            Ok(match a.format {
+            Ok(match format {
                 FLOAT3 => [float(0)?, float(1)?, float(2)?, 0.0],
                 FLOAT2 => [float(0)?, float(1)?, 0.0, 0.0],
                 HALF4 => [half(0)?, half(1)?, half(2)?, half(3)?],
@@ -212,12 +234,12 @@ pub struct Attribute {
 pub fn attributes(data: &[u8], shape: &str) -> Result<Vec<Attribute>> {
     let buffer = Buffer::find(data, shape)?;
     let mut found: Vec<Attribute> = attr_records(data, buffer.vertex)?
-        .into_iter()
         .map(|a| {
             Ok(Attribute {
-                name: String::from_utf8_lossy(a.name.context("an attribute with no name")?).into(),
-                format: a.format,
-                offset: a.offset,
+                name: String::from_utf8_lossy(a.name(data)?.context("an attribute with no name")?)
+                    .into(),
+                format: a.format(data)?,
+                offset: a.offset(data)?,
                 varies: false,
             })
         })
@@ -499,158 +521,6 @@ impl Bounds {
     }
 }
 
-/// The memory pool: where its info header is, and where the pool starts
-/// and how big it is.
-struct Pool {
-    info: usize,
-    start: usize,
-    size: usize,
-}
-
-impl Pool {
-    fn read(data: &[u8]) -> Result<Self> {
-        let r = Reader(data);
-        let info = r.ptr(POOL_INFO)?;
-        Ok(Self {
-            info,
-            start: r.ptr(info + 8)?,
-            size: r.offset(info + 4)?,
-        })
-    }
-}
-
-/// Every pointer the relocation table lists: where it is, and where it
-/// points.
-pub fn pointers(data: &[u8]) -> Result<Vec<(usize, usize)>> {
-    let r = Reader(data);
-    let table = Table::find(data)?;
-    let mut out = Vec::new();
-    for e in 0..table.entries {
-        let entry = table.entry(e);
-        let structs = r.u16(entry + 4)?;
-        let (count, padding) = (r.u8(entry + 6)?, r.u8(entry + 7)? as usize);
-        let mut p = r.offset(entry)?;
-        for _ in 0..structs {
-            for _ in 0..count {
-                out.push((p, r.ptr(p)?));
-                p += 8;
-            }
-            p += 8 * padding;
-        }
-    }
-    Ok(out)
-}
-
-/// The relocation table: where it is, how many sections and entries.
-struct Table {
-    at: usize,
-    sections: usize,
-    entries: usize,
-}
-
-impl Table {
-    fn find(data: &[u8]) -> Result<Self> {
-        let r = Reader(data);
-        let at = r.offset(RELOCATIONS)?;
-        ensure!(data.get(at..at + 4) == Some(b"_RLT"), "no relocation table");
-        let sections = r.offset(at + 8)?;
-        let mut entries = 0;
-        for s in 0..sections {
-            let section = at + 0x10 + 0x18 * s;
-            entries = entries.max(r.offset(section + 16)? + r.offset(section + 20)?);
-        }
-        Ok(Self {
-            at,
-            sections,
-            entries,
-        })
-    }
-
-    fn section(&self, s: usize) -> usize {
-        self.at + 0x10 + 0x18 * s
-    }
-
-    fn entry(&self, e: usize) -> usize {
-        self.at + 0x10 + 0x18 * self.sections + 8 * e
-    }
-}
-
-/// Moves the relocation table's sections, entries and pointers for
-/// `growth` bytes inserted at `at`. The table follows the pool, so it has
-/// moved too: the header learns where.
-fn relocate(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
-    let old = Reader(out).offset(RELOCATIONS)?;
-    ensure!(old >= at, "the relocation table is before the pool's end");
-    put(out, RELOCATIONS, old + growth)?;
-    let table = Table::find(out)?;
-    put(out, table.at + 4, table.at)?;
-    for s in 0..table.sections {
-        let section = table.section(s);
-        let r = Reader(out);
-        let (offset, size) = (r.offset(section + 8)?, r.offset(section + 12)?);
-        if offset >= at {
-            put(out, section + 8, offset + growth)?;
-        } else if offset + size >= at {
-            put(out, section + 12, size + growth)?;
-        }
-    }
-    for e in 0..table.entries {
-        let location = Reader(out).offset(table.entry(e))?;
-        if location >= at {
-            put(out, table.entry(e), location + growth)?;
-        }
-    }
-    for (p, to) in pointers(out)? {
-        if to >= at {
-            out[p..p + 8].copy_from_slice(&((to + growth) as u64).to_le_bytes());
-        }
-    }
-    Ok(())
-}
-
-/// Each block whose span holds `at` grown by `growth`, and each link to a
-/// block past it lengthened.
-fn grow_blocks(out: &mut [u8], at: usize, growth: usize) -> Result<()> {
-    let mut block = Reader(out).u16(FIRST_BLOCK)? as usize;
-    while block != 0 {
-        let r = Reader(out);
-        let (next, size) = (r.offset(block + 4)?, r.offset(block + 8)?);
-        if block < at && block + size >= at {
-            put(out, block + 8, size + growth)?;
-        }
-        if next == 0 {
-            break;
-        }
-        let to = block + next;
-        if block < at && to >= at {
-            put(out, block + 4, next + growth)?;
-        }
-        block = if to >= at { to + growth } else { to };
-    }
-    Ok(())
-}
-
-/// `out` padded with zeros to a multiple of `align`.
-fn pad(out: &mut Vec<u8>, align: usize) {
-    out.resize(out.len().next_multiple_of(align), 0);
-}
-
-/// `value` written as a u32 at `at`.
-fn put(out: &mut [u8], at: usize, value: usize) -> Result<()> {
-    let value = u32::try_from(value).context("past u32")?;
-    out.get_mut(at..at + 4)
-        .context("past the end")?
-        .copy_from_slice(&value.to_le_bytes());
-    Ok(())
-}
-
-/// The offset of the shape named `shape`.
-fn shape_at(data: &[u8], shape: &str) -> Result<usize> {
-    shapes(data)
-        .find(|&at| shape_name(data, at) == Some(shape.as_bytes()))
-        .with_context(|| format!("no shape {shape}"))
-}
-
 /// Where a shape's vertices are, and how to find each attribute.
 struct Buffer<'a> {
     shape: &'a str,
@@ -688,15 +558,14 @@ impl<'a> Buffer<'a> {
     /// Where attribute `name` sits in each vertex, if it's in `format`.
     fn offset(&self, data: &[u8], (name, format): (&str, u32)) -> Result<usize> {
         let shape = self.shape;
-        let records = attr_records(data, self.vertex)?;
-        let a = (records.iter().find(|a| a.name == Some(name.as_bytes())))
-            .with_context(|| format!("{shape}: no {name}"))?;
-        ensure!(
-            a.format == format,
-            "{shape}: {name} in format {:#x}",
-            a.format
-        );
-        Ok(a.offset)
+        for a in attr_records(data, self.vertex)? {
+            if a.name(data)? == Some(name.as_bytes()) {
+                let found = a.format(data)?;
+                ensure!(found == format, "{shape}: {name} in format {found:#x}");
+                return a.offset(data);
+            }
+        }
+        bail!("{shape}: no {name}")
     }
 }
 
@@ -792,117 +661,9 @@ impl Layout {
     }
 }
 
-/// A normal or tangent as stored: x, y and z in 10 signed bits each, over
-/// 511, and w (a tangent's handedness) in the top 2.
-pub fn unpack(packed: u32) -> [f32; 4] {
-    let signed = |shift: u32, bits: u32| {
-        let v = (packed >> shift) & ((1 << bits) - 1);
-        (v as i32) << (32 - bits) >> (32 - bits)
-    };
-    let xyz = |shift| (signed(shift, 10) as f32 / 511.0).max(-1.0);
-    [xyz(0), xyz(10), xyz(20), signed(30, 2) as f32]
-}
-
-/// [`unpack`]'s inverse, each value rounded.
-pub fn pack(v: [f32; 4]) -> u32 {
-    let field = |f: f32, scale: f32, bits: u32| {
-        let max = (1 << (bits - 1)) - 1;
-        ((f * scale).round() as i32).clamp(-max, max) as u32 & ((1 << bits) - 1)
-    };
-    field(v[0], 511.0, 10)
-        | field(v[1], 511.0, 10) << 10
-        | field(v[2], 511.0, 10) << 20
-        | field(v[3], 1.0, 2) << 30
-}
-
-/// The half float at `at`.
-fn half_at(r: &Reader, at: usize) -> Result<f32> {
-    Ok(from_half(r.u16(at)?))
-}
-
-/// The 16-bit unorm at `at`, from 0 to 1.
-fn unorm_at(r: &Reader, at: usize) -> Result<f32> {
-    Ok(r.u16(at)? as f32 / 65535.0)
-}
-
-/// A half float's value.
-fn from_half(h: u16) -> f32 {
-    let sign = if h & 0x8000 != 0 { -1.0 } else { 1.0 };
-    let (exp, mantissa) = ((h >> 10) & 0x1f, (h & 0x3ff) as f32);
-    match exp {
-        0 => sign * mantissa * 2f32.powi(-24),
-        31 => sign * f32::INFINITY,
-        e => sign * (1.0 + mantissa / 1024.0) * 2f32.powi(e as i32 - 15),
-    }
-}
-
-/// `f` as a half float, rounded. Too small for a normal half, it's a
-/// subnormal one (steps of 2^-24, rounding up into the smallest normal);
-/// too big, an error.
-fn to_half(f: f32) -> Result<u16> {
-    let bits = f.to_bits();
-    let sign = ((bits >> 16) & 0x8000) as u16;
-    if f.abs() < 2f32.powi(-14) {
-        return Ok(sign | (f.abs() * 2f32.powi(24)).round() as u16);
-    }
-    let exp = ((bits >> 23) & 0xff) as i32 - 127 + 15;
-    ensure!(exp < 31, "{f} is past a half");
-    let mantissa = bits & 0x7f_ffff;
-    // A carry out of the mantissa rounds up into the exponent, as it should.
-    Ok(sign | (((exp as u32) << 10) + (mantissa >> 13) + ((mantissa >> 12) & 1)) as u16)
-}
-
-/// Every shape's name.
-pub fn shape_names(data: &[u8]) -> Vec<String> {
-    (shapes(data).filter_map(|s| shape_name(data, s)))
-        .map(|n| String::from_utf8_lossy(n).into_owned())
-        .collect()
-}
-
-/// Every shape header's offset.
-fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
-    find_magic(data, b"FSHP", SHAPE_VERTICES + 8, 8)
-}
-
-fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
-    name_at(data, shape + SHAPE_NAME)
-}
-
-/// Every offset, a multiple of `align`, where `magic` starts a header
-/// that needs `tail` bytes from its start.
-pub(crate) fn find_magic<'a>(
-    data: &'a [u8],
-    magic: &'a [u8; 4],
-    tail: usize,
-    align: usize,
-) -> impl Iterator<Item = usize> + 'a {
-    (0..data.len().saturating_sub(tail))
-        .step_by(align)
-        .filter(move |&at| data.get(at..at + 4) == Some(magic))
-}
-
-/// The pool string the pointer at `at` points to.
-pub(crate) fn name_at(data: &[u8], at: usize) -> Option<&[u8]> {
-    pool_string(data, Reader(data).ptr(at).ok()?)
-}
-
-/// A string in the file's pool: its length first.
-fn pool_string(data: &[u8], at: usize) -> Option<&[u8]> {
-    let len = Reader(data).u16(at).ok()? as usize;
-    data.get(at + 2..at + 2 + len)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn packed_normals_round_trip() {
-        for packed in [0x4000_0000_u32, 0x7fd8_6abc, 0xc19f_8241, 0x5fff_fdff] {
-            assert_eq!(pack(unpack(packed)), packed, "{packed:#x}");
-        }
-        assert_eq!(unpack(pack([1.0, -1.0, 0.0, -1.0])), [1.0, -1.0, 0.0, -1.0]);
-    }
 
     #[test]
     fn bounds_hold_every_vertex_and_need_one() {
@@ -925,18 +686,26 @@ mod tests {
     }
 
     #[test]
-    fn halves_round_trip() {
-        for h in [
-            0x0000, 0x3c00, 0x2283, 0xa283, 0x1c00, 0x7bff, 0x0001, 0x8314,
-        ] {
-            assert_eq!(to_half(from_half(h)).unwrap(), h, "{h:#x}");
-        }
-        assert_eq!(from_half(0x3c00), 1.0);
-        assert_eq!(to_half(0.013).unwrap(), 0x22a8);
-        assert_eq!(to_half(1e-6).unwrap(), 17);
-        assert_eq!(to_half(-4.7e-5).unwrap(), 0x8000 | 789);
-        assert_eq!(from_half(to_half(6.103e-5).unwrap()), 2f32.powi(-14));
-        assert_eq!(to_half(1e-9).unwrap(), 0);
-        assert!(to_half(70000.0).is_err());
+    fn an_attribute_search_reads_records_up_to_its_match() {
+        // A vertex buffer header at 0 with two records, the second past
+        // the end: the first, `_p0`, is found; any other name hits the
+        // unreadable second and says so.
+        let mut data = vec![0; 0x70];
+        data[VERTEX_ATTRIBUTES..][..8].copy_from_slice(&0x60u64.to_le_bytes());
+        data[VERTEX_ATTRIBUTE_COUNT] = 2;
+        data[0x58..0x5d].copy_from_slice(b"\x03\0_p0");
+        data[0x60..0x68].copy_from_slice(&0x58u64.to_le_bytes());
+        data[0x68..0x6c].copy_from_slice(&FLOAT3.to_le_bytes());
+        data[0x6c] = 4;
+        let buffer = Buffer {
+            shape: "s",
+            start: 0,
+            stride: 0,
+            count: 0,
+            vertex: 0,
+        };
+        assert_eq!(buffer.offset(&data, ("_p0", FLOAT3)).unwrap(), 4);
+        let err = buffer.offset(&data, ("_n0", FLOAT3)).unwrap_err();
+        assert!(err.to_string().contains("past the end"), "{err}");
     }
 }

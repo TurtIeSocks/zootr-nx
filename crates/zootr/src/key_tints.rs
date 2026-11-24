@@ -15,21 +15,22 @@ pub(crate) mod paint;
 mod rings;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, murmur3, pack_file};
+use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, pack_file};
+#[cfg(test)]
 use zootr_hook::Credit;
 
 use crate::checks::{self, DROP_ACTOR, GYAML};
+#[cfg(test)]
+use crate::copies::as_credits;
+use crate::copies::{self, MADE, POUCH_TEXT, Sets, TEXT_PARTS, copy, own_pack, pointed};
 use crate::keys::{
     BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon, dungeon_of,
     has_boss, small_flag,
 };
-use crate::known::{Name, actor, field, flag, flow, item};
+use crate::known::{Name, actor, flag, flow, item};
 use crate::medallions::{self, Colour};
 use crate::settings::DungeonKeys;
-use crate::standins::{
-    MODEL, POUCH, POUCH_ACTOR, Tables, actor_path, clone_pack, doc, path_of, pouch_actor, raw,
-    renamed, resolved, with_ref, write_clone,
-};
+use crate::standins::{Tables, raw};
 use crate::text::{Copies, CopyLine, Named, Says};
 use paint::{Host, Look};
 
@@ -108,9 +109,6 @@ fn colour(dungeon: &Name) -> Option<Colour> {
         .or_else(|| OWN.iter().find(|(d, _)| *d == dungeon).map(|(_, c)| *c))
 }
 
-/// How every item actor the seed makes begins, the dump's prefix and ours.
-pub(crate) const MADE: &str = "Item_Rando_";
-
 /// Dungeon `n`'s small key as a chest's content. On the floor it's the
 /// model's own name.
 fn chest_key(n: usize) -> String {
@@ -155,18 +153,11 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
     own_pack(&template, item, &model).map(Some)
 }
 
-/// `template`'s pack as an own copy named `item` showing `model`, as
-/// [`copy`] writes it.
-pub(crate) fn own_pack(template: &ActorPack, item: &str, model: &str) -> Result<ActorPack> {
-    let files = copied(template, item, model)?;
-    clone_pack(template, item, files)
-}
-
 /// The label naming `item`, if it's a ring or boss key copy. Its pack
 /// lives only in the seed, and it answers to its own name, whose lines
 /// [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    copy_of(item, DungeonKeys::default()).map(|_| label(item))
+    copy_of(item, DungeonKeys::default()).map(|_| copies::label(item))
 }
 
 /// The key `item` copies and the model it shows as `keys` deals it.
@@ -283,14 +274,6 @@ pub fn made(rings: bool, bosses: bool, fortress: bool) -> Vec<(String, &'static 
     made
 }
 
-/// The lines a key's get reads, each under the key's name.
-pub(crate) const TEXT_PARTS: [&str; 3] = ["_Name", "_GetMessage", "_GetCaption"];
-
-/// The label of `item`'s name line, the first of its [`TEXT_PARTS`].
-pub(crate) fn label(item: &str) -> String {
-    format!("{item}{}", TEXT_PARTS[0])
-}
-
 /// Each of [`TEXT_PARTS`]' English line for a copy, `{}` its dungeon's
 /// name, and whether every other language adds the name in brackets.
 /// `None` keeps the game's line in every language.
@@ -310,17 +293,6 @@ const BOSS_TEXT: CopyText = [
     (Some("You found {the} {} boss key!"), true),
     (None, false),
 ];
-pub(crate) const POUCH_TEXT: &str = "ActorMsg/PouchContent";
-
-/// What a copy sets as it's found: a Bool true, an Int to a value, or one
-/// more on an Int.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Sets {
-    Bool(String),
-    Int(String, i32),
-    Add(String, i32),
-}
-
 /// What each copy sets as it's found: with `bosses` a boss key's flag, with
 /// key rings a ring's counter, full, with Keysanity one more on a small
 /// key's counter, and with `fortress` one more on the Fortress's.
@@ -348,19 +320,6 @@ pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Set
 #[cfg(test)]
 pub fn credits(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Credit)> {
     as_credits(sets(bosses, keys, fortress))
-}
-
-/// `sets` as the hook's table names it.
-pub fn as_credits(sets: Vec<(String, Sets)>) -> Vec<(String, Credit)> {
-    let hash = |name: &str| murmur3(name.as_bytes());
-    let credit = |s: Sets| match s {
-        Sets::Bool(name) => Credit::Bool(hash(&name)),
-        Sets::Int(name, value) => Credit::Int(hash(&name), value),
-        Sets::Add(name, n) => Credit::Add(hash(&name), n),
-    };
-    (sets.into_iter())
-        .map(|(item, s)| (item, credit(s)))
-        .collect()
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with
@@ -433,87 +392,6 @@ fn uncounted(tables: &mut Tables, bosses: bool, rings: bool, fortress: bool) -> 
     Ok(())
 }
 
-/// `template` copied as `name`, showing `model`, with its rows. An `own`
-/// copy answers to its own name (a ring, boss key, map or compass copy the
-/// hook credits), any other to the template's, as the game's own key.
-pub(crate) fn copy(
-    builder: &mut ModBuilder,
-    tables: &mut Tables,
-    template: &ActorPack,
-    name: &str,
-    model: &str,
-    own: bool,
-) -> Result<()> {
-    let files = match own {
-        true => copied(template, name, model)?,
-        false => pointed(template, name, model)?.into(),
-    };
-    write_clone(builder, template, name, files)?;
-    tables.copy_item(name, &template.name)?;
-    if own {
-        tables.name_itself(name)?;
-    }
-    tables.show(name, &template.name, model)
-}
-
-/// `name`'s ActorParam and ModelInfo as `template`'s, the ModelInfo a file
-/// of its own naming `model`, since packs sharing a file share whichever
-/// loaded first. Each is `(path, doc, the template file it copies)`.
-pub(crate) fn pointed(
-    template: &ActorPack,
-    name: &str,
-    model: &str,
-) -> Result<[(String, BymlDoc, String); 2]> {
-    pointed_at(template, name, model, model)
-}
-
-/// [`pointed`], naming `fmdb` in model project `project`.
-pub(crate) fn pointed_at(
-    template: &ActorPack,
-    name: &str,
-    project: &str,
-    fmdb: &str,
-) -> Result<[(String, BymlDoc, String); 2]> {
-    let actor_like = actor_path(&template.name);
-    let info_like = path_of(template, MODEL)?;
-    let info_path = renamed(&info_like, name);
-    let actor_doc = BymlDoc::parse(&raw(template, &actor_like)?)?;
-    let actor = with_ref(actor_doc.root.as_map()?, MODEL, &info_path)?;
-    let info_doc = BymlDoc::parse(&raw(template, &info_like)?)?;
-    let mut info = info_doc.root.as_map()?.clone();
-    info.insert(field::FMDB_NAME.get().into(), Byml::String(fmdb.into()));
-    info.insert(
-        field::MODEL_PROJECT_NAME.get().into(),
-        Byml::String(project.into()),
-    );
-    Ok([
-        (actor_path(name), doc(actor, &actor_doc), actor_like),
-        (info_path, doc(info, &info_doc), info_like),
-    ])
-}
-
-/// A copy's files: `template`'s actor showing `model`, as [`pointed`], and
-/// its own pouch content naming the copy. Left naming the template, the
-/// pouch would hand over the game's key from any holder that resolves it.
-pub(crate) fn copied(
-    template: &ActorPack,
-    name: &str,
-    model: &str,
-) -> Result<Vec<(String, BymlDoc, String)>> {
-    let [(actor_at, actor, actor_like), info] = pointed(template, name, model)?;
-    let pouch_like = path_of(template, POUCH)?;
-    let pouch_at = renamed(&pouch_like, name);
-    let pouch_doc = BymlDoc::parse(&raw(template, &pouch_like)?)?;
-    let mut pouch = resolved(template, &pouch_like)?;
-    pouch.insert(POUCH_ACTOR.get().into(), pouch_actor(name));
-    let actor = doc(with_ref(actor.root.as_map()?, POUCH, &pouch_at)?, &actor);
-    Ok(vec![
-        (actor_at, actor, actor_like),
-        info,
-        (pouch_at, doc(pouch, &pouch_doc), pouch_like),
-    ])
-}
-
 /// `pack` rewritten in place to show `model`.
 fn repoint(builder: &mut ModBuilder, pack: &ActorPack, model: &str) -> Result<()> {
     let mut writer = pack.writer();
@@ -549,7 +427,7 @@ pub fn swap(rel: &str, root: &mut Byml, bosses: bool) -> Result<usize> {
                 .insert(GYAML.into(), floor.as_str().into());
             swapped += 1;
         }
-        let Some(dynamic) = actor.as_mut_map()?.get_mut("Dynamic") else {
+        let Some(dynamic) = actor.as_mut_map()?.get_mut(crate::checks::DYNAMIC) else {
             continue;
         };
         let held = checks::str_field(dynamic, DROP_ACTOR);
@@ -570,6 +448,8 @@ pub fn swap(rel: &str, root: &mut Byml, bosses: bool) -> Result<usize> {
 mod tests {
     use super::*;
     use crate::game::dev_dump;
+    use crate::known::field;
+    use crate::standins::{MODEL, path_of, renamed};
 
     #[test]
     fn a_copy_s_text_names_its_dungeon_in_english_and_in_brackets_elsewhere() {
@@ -811,7 +691,10 @@ mod tests {
             let mut plain = doc.root.clone();
             swap(&rel, &mut plain, false).unwrap();
             for actor in checks::actors(&plain).unwrap() {
-                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = actor
+                    .as_map()
+                    .ok()
+                    .and_then(|m| m.get(crate::checks::DYNAMIC));
                 let held = held
                     .and_then(|d| checks::str_field(d, DROP_ACTOR))
                     .unwrap_or("");
@@ -826,7 +709,10 @@ mod tests {
             for actor in checks::actors(&doc.root).unwrap() {
                 let gyaml = checks::str_field(actor, GYAML);
                 assert_ne!(gyaml, Some(SMALL_LOOK.host.as_ref()), "{rel}");
-                let held = actor.as_map().ok().and_then(|m| m.get("Dynamic"));
+                let held = actor
+                    .as_map()
+                    .ok()
+                    .and_then(|m| m.get(crate::checks::DYNAMIC));
                 let held = held.and_then(|d| checks::str_field(d, DROP_ACTOR));
                 for key in [SMALL, BOSS] {
                     assert_ne!(held, Some(key.as_ref()), "{rel}");
@@ -853,8 +739,7 @@ mod tests {
             builder.finish().unwrap();
             for copy in [ring(2), boss(2), fortress()] {
                 let rel = pack_file(&copy);
-                let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-                let bytes = romfs.dicts().decompress(&rel, &raw).unwrap();
+                let bytes = crate::game::read_built(&romfs, &dir, &rel);
                 let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
                 let built = copy_pack(&romfs, &copy, keys).unwrap().unwrap();
                 assert_eq!(built.files(), written.files(), "{copy} {keys:?}");
@@ -882,10 +767,7 @@ mod tests {
         let mut tables = Tables::load(romfs).unwrap();
         write(romfs, &mut builder, &mut tables, true, keys, false).unwrap();
         builder.finish().unwrap();
-        let read = |rel: &str| {
-            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-            romfs.dicts().decompress(rel, &raw).unwrap()
-        };
+        let read = |rel: &str| crate::game::read_built(romfs, &dir, rel);
         let info = |name: &str| path_of(&ActorPack::load(romfs, name).unwrap(), MODEL).unwrap();
         let has = |bytes: &[u8], s: &str| bytes.windows(s.len()).any(|w| w == s.as_bytes());
         let fmdb = |name: &str| {

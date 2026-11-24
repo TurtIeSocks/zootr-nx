@@ -89,7 +89,7 @@ impl Survey {
         let mut presence = BTreeMap::<String, Usage>::new();
         for (file, doc) in bancs(romfs)? {
             let doc = doc?;
-            let area = file.split('/').nth(1).unwrap_or("?").to_owned();
+            let area = crate::checks::area_of(&file).to_owned();
             for actor in actors(&doc.root)? {
                 learn_all(&mut gamedata, actor);
                 if let Some(p) = presence_of(actor) {

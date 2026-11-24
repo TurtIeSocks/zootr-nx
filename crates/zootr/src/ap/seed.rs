@@ -7,12 +7,13 @@ use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::Value;
 
+use super::ids::Ids;
 use super::when::{Domain, Variant};
 use super::{JOINT, exposed, names, offers};
 use crate::checks::{self, ItemCheck};
 use crate::fill;
 use crate::ice_traps;
-use crate::logic::{Got, Play, World};
+use crate::logic::{Data, Got, Play, World};
 use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{
@@ -21,6 +22,11 @@ use crate::settings::{
 };
 use crate::shuffle::{self, Fixed};
 use crate::starting;
+
+/// Every item the world names, by its AP ids.
+pub(super) fn named_by_id(ids: &Ids) -> HashMap<u64, &'static str> {
+    ids.actors(names::named().map(names::same))
+}
 
 /// What Link reaches holding everything. The rest never happens, so the
 /// export leaves it out.
@@ -87,9 +93,44 @@ impl Dealt {
         pool.chain(trap).collect()
     }
 
+    /// The actor Link gets for each AP id this slot's items go by: the
+    /// pool's and the trap's. With progressive items on, a line goes by
+    /// its key level's id (`names::line`) and gives this seed's first level
+    /// of it, which the hook climbs from: the Nut Bag (20) with its shuffle
+    /// on, the (30) without, Double Magic alone with magic from the first
+    /// magic item.
+    pub fn by_id(&self, ids: &Ids) -> Result<HashMap<u64, &str>> {
+        let mut out = ids.actors(self.actors());
+        if !self.new_game.progressive {
+            return Ok(out);
+        }
+        for actor in self.actors() {
+            if let Some((_, key)) = names::line(actor)?
+                && let Some(id) = ids.item_id(key)
+            {
+                out.insert(id, actor);
+            }
+        }
+        Ok(out)
+    }
+
+    /// [`Dealt::by_id`] over every item the world names: the room can
+    /// send one this slot never deals (a host's `/send`, AP's start
+    /// inventory), and Link gets it as itself.
+    pub fn any_by_id(&self, ids: &Ids) -> Result<HashMap<u64, &str>> {
+        let mut out: HashMap<u64, &str> = named_by_id(ids);
+        out.extend(self.by_id(ids)?);
+        Ok(out)
+    }
+
     pub fn new(romfs: &Romfs, settings: &Settings) -> Result<Self> {
+        Self::of(romfs, checks::all(romfs)?, settings)
+    }
+
+    /// [`Dealt::new`] from every check, as [`checks::all`] gives them.
+    fn of(romfs: &Romfs, all: Vec<ItemCheck>, settings: &Settings) -> Result<Self> {
         let new_game = NewGame::from_settings(settings, &[])?;
-        let checks = checks::dealt(romfs, &new_game)?;
+        let checks = checks::dealt_of(romfs, all, &new_game)?;
         let fixed = Fixed::new();
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
         let pool: Vec<String> = deal.items.iter().map(|i| i.to_string()).collect();
@@ -131,17 +172,45 @@ fn lines(new_game: &NewGame, open: &BTreeSet<String>) -> Lines {
     lines
 }
 
+/// What every seed reads from the game, read once for the export's many.
+pub struct Dump<'a> {
+    romfs: &'a Romfs,
+    /// Every check, before a seed's settings pick from them.
+    all: Vec<ItemCheck>,
+    data: Data<'a>,
+    book: Book,
+}
+
+impl<'a> Dump<'a> {
+    pub fn new(romfs: &'a Romfs) -> Result<Self> {
+        Ok(Self {
+            romfs,
+            all: checks::all(romfs)?,
+            data: Data::every(romfs)?,
+            book: Book::load()?,
+        })
+    }
+}
+
 impl Seed {
     /// `settings` resolved as a normal seed would, with `open` left open.
+    #[cfg(test)]
     pub fn build(romfs: &Romfs, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
-        let dealt = Dealt::new(romfs, settings)?;
+        Self::build_in(&Dump::new(romfs)?, settings, open)
+    }
+
+    /// [`Seed::build`] from game data read once.
+    pub fn build_in(dump: &Dump, settings: &Settings, open: &BTreeSet<String>) -> Result<Self> {
+        let romfs = dump.romfs;
+        let dealt = Dealt::of(romfs, dump.all.clone(), settings)?;
         let (new_game, checks) = (&dealt.new_game, &dealt.checks);
         let ctx = Ctx {
             open: open.clone(),
             lines: lines(new_game, open),
             ..Ctx::new(new_game)
         };
-        let world = World::build(romfs, &Book::load()?, &ctx, checks)?;
+        let mut data = dump.data.only(checks);
+        let world = World::from_data(&mut data, &dump.book, &ctx, checks)?;
         let start = fill::start(new_game);
         let needed = world.items();
         let pool = dealt.pool.iter().map(String::as_str);
@@ -413,6 +482,33 @@ mod tests {
         let price = (variants.iter()).filter(|v| v.overlay.contains_key(SCRUB_PRICE));
         assert!(price.clone().count() > 0);
         assert!(price.into_iter().all(|v| v.from.is_none()));
+    }
+
+    /// With progressive items on, a received line gives the seed's own
+    /// first level of it, which the hook climbs from.
+    #[test]
+    fn a_line_s_id_gives_the_seed_s_first_level() {
+        use crate::known::{Name, item};
+        use crate::settings::{NPC_GIFTS, PROGRESSIVE};
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let ids = Ids::load().unwrap();
+        let gives = |on: &[&str], key: &Name| {
+            let mut settings = base();
+            for id in [PROGRESSIVE, NPC_GIFTS].iter().chain(on) {
+                settings.insert((*id).into(), true.into());
+            }
+            let dealt = Dealt::new(&romfs, &settings).unwrap();
+            let id = ids.item_id(key.get()).unwrap();
+            dealt.by_id(&ids).unwrap()[&id].to_owned()
+        };
+        let (nuts, meter) = (item::NUT_BAG_MEDIUM, crate::magic::meter::METER);
+        assert_eq!(gives(&[], nuts), nuts.get());
+        assert_eq!(gives(&[SHUFFLE_NUT_BAG], nuts), item::NUT_BAG_SMALL.get());
+        assert_eq!(gives(&[], meter), meter.get());
+        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
+        assert_eq!(gives(&[MAGIC_WITH_FIRST_ITEM], meter), double);
     }
 
     /// A file from a world before these options opens with what that

@@ -6,6 +6,7 @@
 //! instead: by the shortest way that stays on the mesh among the grown
 //! footprints' corners and the mesh's own.
 
+use super::flat_unit;
 use super::graph::{Graph, Via, dist};
 use super::route::Waypoint;
 use super::shape::inside;
@@ -35,9 +36,8 @@ fn flat(p: [f32; 3]) -> [f32; 2] {
 
 /// The outward normal of the edge `a`..`b` of a counterclockwise ring.
 fn normal(a: [f32; 2], b: [f32; 2]) -> [f32; 2] {
-    let (dx, dz) = (b[0] - a[0], b[1] - a[1]);
-    let length = dx.hypot(dz).max(1e-6);
-    [dz / length, -dx / length]
+    let [ux, uz] = flat_unit([b[0] - a[0], b[1] - a[1]]);
+    [uz, -ux]
 }
 
 /// The convex counterclockwise `ring` grown outward by `by`. A ring of one

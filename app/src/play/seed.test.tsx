@@ -1,29 +1,25 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import type { Summary } from "@/bindings";
 import { ExtrasBadges, Name } from "@/play/seed";
+import { summary } from "@/test/fixtures";
 
 afterEach(cleanup);
 
-const entry: Summary = {
-  id: 1,
-  time: 0,
-  seed: "42",
-  settings: {},
+const entry = summary({
   label: { name: "Fake seed", note: "A fake note" },
-  chests: 0,
-  changed: 0,
-  icons: [],
   share: "ZR1-fake",
   test: true,
   plando: true,
-  ap_slot: null,
-  death_link: false,
-};
+  release: "1.0.0",
+});
 
 test.each([
   ["Plando", "Built with a plando: items pinned to checks"],
   ["Test", "Built with a test setup: a spawn, items or new-game flags"],
+  [
+    "1.0.0",
+    "Base game (1.0.0) support is experimental and not verified in game",
+  ],
 ])("the %s badge takes focus and opens its tip", async (label, tip) => {
   render(<ExtrasBadges entry={entry} />);
   const badge = screen.getByText(label);

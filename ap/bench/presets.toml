@@ -17,6 +17,13 @@ skip-cutscenes = true
 npc-gifts = true
 progressive-items = false
 
+# The defaults with Hints on, for reading the stones in a room.
+[hints]
+open-forest = true
+kakariko-gate = true
+skip-cutscenes = true
+hints = true
+
 # Every option at its widest: every check kind on. An option the world
 # gains joins here in the same PR (a test checks every one is named).
 [all-on]
@@ -60,6 +67,10 @@ hives = true
 shuffle-masks = true
 ice-traps = "mayhem"
 progressive-items = true
+shuffle-nut-bag = true
+shuffle-stick-bag = true
+# At its widest off: the Magic Meter pooled, its line at full length.
+magic-with-first-item = false
 logic = "glitchless"
 starting-age = "child"
 rainbow-bridge = "six-medallions"
@@ -74,4 +85,5 @@ menus = true
 clock = true
 no-tutorials = true
 no-pickup-texts = true
+hints = true
 skipped-cutscenes = ["skip-intro", "skip-kokiri"]

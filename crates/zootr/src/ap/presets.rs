@@ -149,7 +149,7 @@ mod tests {
         let err = options("everything").unwrap_err().to_string();
         assert_eq!(
             err,
-            "no preset everything: all-on, defaults, progressive-off"
+            "no preset everything: all-on, defaults, hints, progressive-off"
         );
     }
 }

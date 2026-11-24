@@ -11,6 +11,7 @@ use unicorn_engine::{Arch, Mode, Prot, RegisterARM64 as R, Unicorn};
 
 use super::tests::PC_MAIN;
 use super::*;
+use crate::game::{Release, dumped_main};
 
 /// Where `main` is mapped.
 const BASE: u64 = 0x1000_0000;
@@ -22,10 +23,6 @@ const SCRATCH: u64 = 0x3000_0000;
 const SENTINEL: u64 = 0x4000_0000;
 /// What a stubbed game function returns in `x0`, distinct at every width.
 const MARK: u64 = 0x0123_4567_89ab_cdef;
-/// Where `main`'s text, every instruction the game has, ends.
-const TEXT_END: u32 = 0x3c4_61d0;
-/// Where the run may go without counting as game code: the hook's pieces.
-const OURS: [Range<u32>; 2] = [CAVE..CAVE_END, FAR..FAR_END];
 /// Instructions a run may take before it counts as a loop.
 const BUDGET: usize = 1_000_000;
 
@@ -75,27 +72,31 @@ const KEPT: [R; 21] = [
 struct Reads(usize, usize, u32);
 
 /// What each original a call site calls reads, from Ghidra's decompiler
-/// (2026-11-23), or what the hook forwards where that is more.
-fn reads(callee: u32) -> Reads {
+/// (2026-11-23), or what the hook forwards where that is more: build
+/// `b`'s functions.
+fn reads(b: &Build, callee: u32) -> Reads {
+    let (f, i) = (&b.funcs, &b.imports);
     match callee {
         // The event request's string setter: (request, key, value).
-        0xfe_3fe0 => Reads(3, 0, 0),
+        c if c == f.setter => Reads(3, 0, 0),
         // The drop reader: Ghidra sees two and no result, the hook
         // forwards four and a word.
-        0xbd_1c00 => Reads(4, 0, 64),
+        c if c == f.reader => Reads(4, 0, 64),
         // The child test: (link) -> a ushort.
-        0x4b_6db0 => Reads(1, 0, 16),
+        c if c == f.childhood => Reads(1, 0, 16),
         // The run node's speed setter: (state, dir) and the speed in s0.
-        0x93_52f0 => Reads(2, 1, 0),
+        c if c == f.run_setter => Reads(2, 1, 0),
         // nn::hid::GetNpadStates' stubs: (states, count, id) -> an int.
-        0x3c4_27f0 | 0x3c4_2800 | 0x3c4_2830 => Reads(3, 0, 32),
+        c if [i.npad_full, i.npad_handheld, i.npad_dual].contains(&c) => Reads(3, 0, 32),
         _ => panic!("what does {callee:#x} read?"),
     }
 }
 
-/// The machine, and the dump's own word at each address the patch changes.
+/// The machine, the hook it runs, and the dump's own word at each address
+/// the patch changes.
 struct Machine {
     uc: Unicorn<'static, Run>,
+    h: &'static Hook,
     original: Vec<u8>,
 }
 
@@ -112,18 +113,23 @@ fn at(offset: u32) -> u64 {
 }
 
 impl Machine {
-    /// `main` with the code patches and no table, or `None` without the
-    /// Mac game's `main` (as on CI).
-    fn new() -> Option<Self> {
-        let original = std::fs::read(PC_MAIN).ok()?;
+    /// `h`'s build of `main` with its code patches and no table, or `None`
+    /// without it (as on CI): 1.1.1's as the Mac game runs it, 1.0.0's
+    /// from the dump.
+    fn new(h: &'static Hook) -> Option<Self> {
+        let original = match h.release {
+            Release::V111 => std::fs::read(PC_MAIN).ok()?,
+            Release::V100 => dumped_main(Release::V100)?.1.clone(),
+        };
+        let r = &h.build.regions;
         let mut uc =
             Unicorn::new_with_data(Arch::ARM64, Mode::LITTLE_ENDIAN, Run::default()).unwrap();
         let size = (original.len() as u64)
-            .max(u64::from(LIST_END))
+            .max(u64::from(r.list_end))
             .next_multiple_of(0x1000);
         uc.mem_map(BASE, size, Prot::ALL).unwrap();
         uc.mem_write(BASE, &original).unwrap();
-        for p in code_patches().unwrap() {
+        for p in h.code_patches().unwrap() {
             uc.mem_write(at(p.at), &p.bytes).unwrap();
         }
         uc.mem_map(STACK, STACK_SIZE, Prot::READ | Prot::WRITE)
@@ -133,10 +139,12 @@ impl Machine {
         uc.mem_map(SENTINEL, 0x1000, Prot::ALL).unwrap();
         uc.mem_write(SENTINEL, &[0x00, 0x00, 0x20, 0xd4].repeat(0x400))
             .unwrap();
-        // Every instruction outside the hook is the game's: the first one
-        // past the start stops the run, unless it's where the run ends.
-        uc.add_code_hook(BASE, at(TEXT_END), |uc, pc, _| {
-            let ours = OURS.iter().any(|r| r.contains(&((pc - BASE) as u32)));
+        // Every instruction outside the hook's pieces is the game's: the
+        // first one past the start stops the run, unless it's where the run
+        // ends.
+        let ours: [Range<u32>; 2] = [r.cave..r.cave_end, r.far..r.far_end];
+        uc.add_code_hook(BASE, at(r.text_end), move |uc, pc, _| {
+            let ours = ours.iter().any(|r| r.contains(&((pc - BASE) as u32)));
             let run = uc.get_data_mut();
             if !ours && pc != run.start && pc != run.until && run.left.is_none() {
                 run.left = Some(pc);
@@ -144,7 +152,7 @@ impl Machine {
             }
         })
         .unwrap();
-        Some(Self { uc, original })
+        Some(Self { uc, h, original })
     }
 
     /// The dump's `bl` target at a call site.
@@ -250,54 +258,61 @@ impl Machine {
     }
 }
 
+/// A machine for each build whose `main` is here.
+fn machines() -> impl Iterator<Item = Machine> {
+    Hook::all().iter().filter_map(Machine::new)
+}
+
 #[test]
 fn without_a_table_each_call_site_calls_its_original_and_nothing_else() {
-    let Some(mut m) = Machine::new() else {
-        return;
-    };
-    let sites = CALLS.into_iter().chain(NPAD_CALLS).chain([RUN_CALL]);
-    for (site, _) in sites {
-        let original = m.callee(site);
-        let what = format!("call at {site:#x}");
-        m.passes_through(site, original, at(site + 4), reads(original), &what);
+    for mut m in machines() {
+        let b = &m.h.build;
+        let sites = calls(b)
+            .into_iter()
+            .chain(npad_calls(b))
+            .chain([run_call(b)]);
+        for (site, _) in sites {
+            let original = m.callee(site);
+            let what = format!("{} call at {site:#x}", m.h.release.name());
+            m.passes_through(site, original, at(site + 4), reads(b, original), &what);
+        }
     }
 }
 
 #[test]
 fn without_a_table_each_hooked_function_runs_its_own_body_and_nothing_else() {
-    let Some(mut m) = Machine::new() else {
-        return;
-    };
-    for &(hooked, _) in HOOKS {
-        // The body is the whole function: every argument register.
-        let all = Reads(INTS.len(), FLOATS.len(), 64);
-        m.passes_through(
-            hooked,
-            hooked + 4,
-            SENTINEL,
-            all,
-            &format!("hook at {hooked:#x}"),
-        );
+    for mut m in machines() {
+        for (hooked, _) in hooks(&m.h.build) {
+            // The body is the whole function: every argument register.
+            let all = Reads(INTS.len(), FLOATS.len(), 64);
+            m.passes_through(
+                hooked,
+                hooked + 4,
+                SENTINEL,
+                all,
+                &format!("{} hook at {hooked:#x}", m.h.release.name()),
+            );
+        }
     }
 }
 
 #[test]
 fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
-    let Some(mut m) = Machine::new() else {
-        return;
-    };
-    let (site, _) = gear::HUD;
-    for child in [0u8, 1] {
-        let set = m.set_registers();
-        let status = m.uc.reg_read(R::X8).unwrap();
-        m.uc.mem_write(status + 0x5c0, &[child]).unwrap();
-        m.run(at(site), at(site + 4), "boots icon");
-        assert_eq!(m.uc.reg_read(R::X8).unwrap(), u64::from(child));
-        assert_eq!(
-            m.changed(&set, &KEPT),
-            [""; 0],
-            "the registers a call keeps"
-        );
+    for mut m in machines() {
+        let (site, _) = gear::hud(&m.h.build);
+        let what = format!("{} boots icon", m.h.release.name());
+        for child in [0u8, 1] {
+            let set = m.set_registers();
+            let status = m.uc.reg_read(R::X8).unwrap();
+            m.uc.mem_write(status + 0x5c0, &[child]).unwrap();
+            m.run(at(site), at(site + 4), &what);
+            assert_eq!(m.uc.reg_read(R::X8).unwrap(), u64::from(child), "{what}");
+            assert_eq!(
+                m.changed(&set, &KEPT),
+                [""; 0],
+                "{what}: the registers a call keeps"
+            );
+        }
     }
 }
 

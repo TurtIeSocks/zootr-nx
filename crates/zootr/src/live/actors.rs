@@ -1,22 +1,23 @@
-//! The live actors, walked from the game's actor table (offsets as of
-//! 1.1.1, into `main`), the Life an enemy has left, and hiding an actor's
+//! The live actors, walked from the game's actor table (offsets into
+//! `main`, from [`OFFSETS`]), the Life an enemy has left, and hiding an actor's
 //! model.
 
 use anyhow::{Context, Result};
 use serde::Serialize;
 
 use super::{Memory, quad, sized};
+use crate::patch::OFFSETS;
 
 /// Where the table's header pointer and its slot count are.
-const TABLE: u64 = 0x4e9_0da8;
-const CAPACITY: u64 = 0x4e9_0da0;
+const TABLE: u64 = OFFSETS.bss.actors_table as u64;
+const CAPACITY: u64 = OFFSETS.bss.actors_capacity as u64;
 /// Where the header's slots start, and how far apart they are. A slot
 /// holds its actor's pointer first.
 const SLOTS: u64 = 0x40;
 const SLOT: usize = 0x60;
 /// An actor's vtable, and a Life component's.
-const ACTOR_VTABLE: u64 = 0x4b2_5e18;
-const LIFE_VTABLE: u64 = 0x4b4_86a0;
+const ACTOR_VTABLE: u64 = OFFSETS.vtables.player as u64;
+const LIFE_VTABLE: u64 = OFFSETS.vtables.life as u64;
 /// Where an actor keeps its name pointer, its component block, its
 /// position and its placement's record.
 const NAME: usize = 0x260;

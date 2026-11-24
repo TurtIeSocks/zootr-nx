@@ -150,7 +150,7 @@
     "name": "Deku Stick"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 139,
     "name": "Deku Stick Bag (20)"
   },
@@ -230,7 +230,7 @@
     "name": "Fairy Slingshot"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 44,
     "name": "Farore's Wind"
   },
@@ -350,7 +350,7 @@
     "name": "Hylian Shield"
   },
   {
-    "class": "useful",
+    "class": "progression",
     "id": 15,
     "name": "Ice Arrows"
   },
@@ -365,7 +365,7 @@
     "name": "Ice Cavern Map"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 48,
     "name": "Improved Spin"
   },
@@ -445,7 +445,7 @@
     "name": "Mirror Shield"
   },
   {
-    "class": "filler",
+    "class": "progression",
     "id": 51,
     "name": "Nayru's Love"
   },
@@ -641,6 +641,16 @@
   },
   {
     "class": "progression",
+    "id": 120,
+    "name": "Deku Stick Bag (10)"
+  },
+  {
+    "class": "filler",
+    "id": 119,
+    "name": "Deku Nut Bag (20)"
+  },
+  {
+    "class": "progression",
     "id": 153,
     "name": "Bombchu Bag (20)"
   },
@@ -715,7 +725,7 @@
     "name": "Progressive Deku Nut Bag"
   },
   {
-    "class": "useful",
+    "class": "progression",
     "id": 26,
     "name": "Progressive Deku Stick Bag"
   },
@@ -723,6 +733,11 @@
     "class": "progression",
     "id": 27,
     "name": "Progressive Hookshot"
+  },
+  {
+    "class": "progression",
+    "id": 154,
+    "name": "Progressive Magic Meter"
   },
   {
     "class": "progression",

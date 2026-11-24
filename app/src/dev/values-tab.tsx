@@ -10,7 +10,7 @@ import { openTab } from "@/dev/nav";
 import { RECENT_VALUES } from "@/dev/requests";
 import { useDevValue } from "@/dev/use-dev-value";
 import { call } from "@/lib/api";
-import { SAVED } from "@/lib/quest-step";
+import { SAVED, stepsOf } from "@/lib/quest-step";
 import { send, useCanSend, useDev } from "@/stores/dev";
 import { remember, useUi } from "@/stores/ui";
 
@@ -156,7 +156,7 @@ function SavedStep({ name }: { name: string }) {
   const [quests] = useDev.usePath("options.quests");
   const [value] = useDev.usePath("gameValue");
   const challenge = name.startsWith(SAVED) ? name.slice(SAVED.length) : "";
-  if (!quests[challenge]) return null;
+  if (!stepsOf(quests, challenge)) return null;
 
   return (
     <p className="mt-1.5 text-ink-faint text-xs">

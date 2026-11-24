@@ -1,5 +1,6 @@
 //! Answers the `znx` world's own logic has to match: for each exposed
-//! option and seeded handfuls of the pool, which checks Rust logic reaches.
+//! option and seeded handfuls of the pool, which checks Rust logic reaches
+//! and whether it beats the seed.
 
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
@@ -11,8 +12,9 @@ use super::{OPTIONS, SETS};
 use crate::rng::Rng;
 use crate::settings::{Kind, Settings, schema};
 
-/// Shares of the pool each case holds.
-const SHARES: [usize; 4] = [0, 1, 2, 3];
+/// Shares of the pool each case holds, from none to all of it: the goal
+/// only shows once enough is in hand.
+const SHARES: [usize; 5] = [0, 1, 2, 3, 4];
 const OF: usize = 4;
 
 /// Every AP option's value in `settings`, its default if unset: a set's
@@ -44,17 +46,23 @@ fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
     Ok(out)
 }
 
-/// Each of `seeds` built with its `settings` set.
-pub fn golden(settings: &[Settings], seeds: &[Seed], names: &Namer, ids: &Ids) -> Result<Value> {
+/// Each seed built with its settings set.
+pub fn golden<'a>(
+    cases: impl Iterator<Item = (&'a Settings, &'a Seed)>,
+    names: &Namer,
+    ids: &Ids,
+) -> Result<Value> {
     let mut out = Vec::new();
-    for (n, (settings, seed)) in settings.iter().zip(seeds).enumerate() {
+    for (n, (settings, seed)) in cases.enumerate() {
         for share in SHARES {
             let mut pool = seed.dealt.pool.clone();
             Rng::new((n * OF + share) as u64).shuffle(&mut pool);
             pool.truncate(pool.len() * share / OF);
             let mut have = seed.start.clone();
             pool.iter().for_each(|i| have.add(i));
-            let reached = seed.play(&have).reached;
+            let play = seed.play(&have);
+            let goal = seed.world.beaten(&play.have);
+            let reached = play.reached;
             let mut reachable = Vec::new();
             for hash in reached.into_iter().filter(|h| seed.dealt.free.contains(h)) {
                 let id = ids.location_id(hash);
@@ -69,6 +77,7 @@ pub fn golden(settings: &[Settings], seeds: &[Seed], names: &Namer, ids: &Ids) -
                 "settings": exposed(settings)?,
                 "items": items,
                 "reachable": reachable,
+                "goal": goal,
             }));
         }
     }

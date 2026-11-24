@@ -89,6 +89,18 @@ impl Answer {
     }
 }
 
+/// The answer in a model's `reply`. One that held no text costs the
+/// spot one turn, as an unreadable one does, never the whole spot.
+fn answer(reply: Result<String>) -> Result<Answer> {
+    match reply {
+        Ok(text) => Ok(Answer::parse(&text)),
+        Err(e) => match e.downcast_ref::<vision::NoText>() {
+            Some(none) => Ok(Answer::Unreadable(none.to_string())),
+            None => Err(e),
+        },
+    }
+}
+
 pub trait Judge {
     fn look(&mut self, look: &Look) -> Result<Answer>;
 
@@ -156,7 +168,7 @@ impl Judge for ModelJudge {
             temperature: 0.2,
             max_tokens: 300,
         };
-        Ok(Answer::parse(&self.vision.ask(&ask)?))
+        answer(self.vision.ask(&ask))
     }
 
     fn learn(&mut self, lesson: &str) -> Result<()> {
@@ -173,6 +185,17 @@ impl Judge for ModelJudge {
 mod tests {
     use super::*;
     use crate::vision::Api;
+
+    #[test]
+    fn a_reply_with_no_text_costs_one_turn() {
+        let thought = serde_json::json!({"stop_reason": "max_tokens", "content": []});
+        let none = vision::parse_anthropic(&thought, "m");
+        let unreadable = answer(none).unwrap();
+        assert!(matches!(&unreadable, Answer::Unreadable(t) if t.contains("max_tokens")));
+        assert!(answer(Err(anyhow::anyhow!("no game is listening"))).is_err());
+        let broken = serde_json::json!({"detail": "Not Found"});
+        assert!(answer(vision::parse_anthropic(&broken, "m")).is_err());
+    }
 
     #[test]
     fn each_answer_parses() {

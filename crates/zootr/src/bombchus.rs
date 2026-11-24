@@ -175,8 +175,7 @@ mod tests {
         tables.write(&mut builder).unwrap();
         assert_eq!(builder.finish().unwrap().len(), PACKS.len() + 4);
         for pack in PACKS {
-            let raw = std::fs::read(dir.join("romfs").join(pack_file(pack))).unwrap();
-            let data = romfs.dicts().decompress(&pack_file(pack), &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &pack_file(pack));
             let sarc = Sarc::new(data).unwrap();
             let doc = BymlDoc::parse(sarc.get_data(&pouch_param()).unwrap()).unwrap();
             let fixed = doc

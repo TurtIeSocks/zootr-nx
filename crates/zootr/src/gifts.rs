@@ -427,7 +427,7 @@ pub fn give_all(
                 .with_context(|| format!("{} giving {item}", gift.giver))?,
             (false, How::Calls { call, .. }) => {
                 let flow = flows::current(romfs, rewrites, gift.flow)?;
-                naming(&flow, call, item, mine)?
+                naming(&flow, call, item, mine)
             }
             _ => Vec::new(),
         };

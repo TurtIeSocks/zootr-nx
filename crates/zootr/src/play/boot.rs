@@ -156,8 +156,8 @@ fn link(from: &Path, to: &Path) -> std::io::Result<()> {
 
 /// Press A whenever the game is in its menus, until play. `look` says how
 /// far a start has got, by the time since launch, for an input that can't.
-/// A failed status or press is retried, and the last one says why a start
-/// that never got there failed.
+/// A failed status or press is retried, and one in the last pass says why
+/// a start that never got there failed.
 fn into_play(
     input: &mut impl Input,
     look: impl Fn(Duration) -> Boot,
@@ -190,15 +190,11 @@ fn into_play(
                 continue;
             }
         };
-        match boot {
+        last = match boot {
             Boot::Play => return Ok(()),
-            Boot::Menus => {
-                if let Err(e) = input.press("A") {
-                    last = Some(e.context("pressing A"));
-                }
-            }
-            Boot::Starting => {}
-        }
+            Boot::Menus => input.press("A").err().map(|e| e.context("pressing A")),
+            Boot::Starting => None,
+        };
     }
 }
 
@@ -276,8 +272,8 @@ mod tests {
         up: Cell<u32>,
         /// Refuse every press.
         no_keys: bool,
-        /// Fail every status request.
-        no_status: bool,
+        /// Fail this many status requests first.
+        no_status: u32,
     }
 
     impl Input for Fake {
@@ -305,7 +301,10 @@ mod tests {
             bail!("no stick")
         }
         fn boot(&mut self) -> Result<Option<Boot>> {
-            ensure!(!self.no_status, "the bridge is down");
+            if self.no_status > 0 {
+                self.no_status -= 1;
+                bail!("the bridge is down");
+            }
             Ok(None)
         }
         fn shot(&mut self, _: &Path) -> Result<()> {
@@ -385,11 +384,21 @@ mod tests {
         assert!(err.contains("never reached play"), "{err}");
         assert!(err.contains("pressing A: no control file"), "{err}");
         let mut game = Fake {
-            no_status: true,
+            no_status: u32::MAX,
             ..Fake::default()
         };
         let err = into_play(&mut game, |_| Boot::Play, QUICK).unwrap_err();
         assert!(format!("{err:#}").contains("the bridge is down"), "{err:#}");
+    }
+
+    #[test]
+    fn a_start_that_gives_up_forgets_a_failure_it_got_past() {
+        let mut game = Fake {
+            no_status: 1,
+            ..Fake::default()
+        };
+        let err = into_play(&mut game, |_| Boot::Starting, QUICK).unwrap_err();
+        assert_eq!(format!("{err:#}"), "the game never reached play");
     }
 
     /// Boxed, as the CLI hands it over.

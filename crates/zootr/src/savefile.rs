@@ -360,8 +360,13 @@ pub fn write(path: &Path, save: &Save) -> Result<PathBuf> {
 /// older one: a second write inside the same second gets `-1`, `-2` and on,
 /// so the first backup keeps the save from before any edit.
 fn back_up(path: &Path) -> Result<PathBuf> {
+    back_up_as(path, generate::time_seed() / 1_000_000_000)
+}
+
+/// [`back_up`] at the second `secs`. The backup keeps the save's
+/// permissions, and one that fails partway is removed.
+fn back_up_as(path: &Path, secs: u64) -> Result<PathBuf> {
     let mut old = std::fs::File::open(path)?;
-    let secs = generate::time_seed() / 1_000_000_000;
     for n in 0u32.. {
         let stamp = match n {
             0 => secs.to_string(),
@@ -370,7 +375,12 @@ fn back_up(path: &Path) -> Result<PathBuf> {
         let backup = path.with_extension(format!("sav.{stamp}.bak"));
         match std::fs::File::create_new(&backup) {
             Ok(mut file) => {
-                std::io::copy(&mut old, &mut file)?;
+                let copied = std::io::copy(&mut old, &mut file)
+                    .and_then(|_| file.set_permissions(old.metadata()?.permissions()));
+                if let Err(e) = copied {
+                    let _ = std::fs::remove_file(&backup);
+                    return Err(e).with_context(|| format!("backing up to {}", backup.display()));
+                }
                 return Ok(backup);
             }
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
@@ -491,16 +501,22 @@ mod tests {
     #[test]
     fn two_writes_in_one_second_keep_the_first_backup() {
         let dir = std::env::temp_dir().join(format!("zootr-backup-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("progress.sav");
         let original = Save::fixture(&[(0, 0), (11, 0)]);
         std::fs::write(&path, &original).unwrap();
         let edited = Save::parse(Save::fixture(&[(0, 0), (11, 1)])).unwrap();
-        let first = write(&path, &edited).unwrap();
-        let second = write(&path, &edited).unwrap();
-        assert_ne!(first, second);
+        let first = back_up_as(&path, 7).unwrap();
+        std::fs::write(&path, edited.bytes()).unwrap();
+        let second = back_up_as(&path, 7).unwrap();
+        assert_eq!(first, dir.join("progress.sav.7.bak"));
+        assert_eq!(second, dir.join("progress.sav.7-1.bak"));
         assert_eq!(std::fs::read(&first).unwrap(), original);
         assert_eq!(std::fs::read(&second).unwrap(), edited.bytes());
+        // A real write backs up the same way.
+        let third = write(&path, &edited).unwrap();
+        assert_eq!(std::fs::read(third).unwrap(), edited.bytes());
         std::fs::remove_dir_all(dir).unwrap();
     }
 

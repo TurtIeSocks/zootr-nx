@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { WhyButton } from "@/components/why-button";
 import { errorParts } from "@/lib/api";
+import { alreadyRunning } from "@/lib/config";
 import { useKept } from "@/play/use-kept";
 import { useTargetRunning } from "@/stores/seeds";
 
@@ -32,9 +33,10 @@ export function RebuildDialog({
   onRebuild,
   onPlay,
 }: RebuildDialogProps) {
-  const running = useTargetRunning(name);
-  // The title keeps the name while the dialog fades out.
+  // The dialog keeps the name, and so its buttons' state, while it fades
+  // out.
   const shown = useKept(name);
+  const running = useTargetRunning(shown);
   const then = (f: () => void) => () => {
     onClose();
     f();
@@ -57,14 +59,14 @@ export function RebuildDialog({
           </Button>
           <WhyButton
             variant="secondary"
-            why={running && `${name} is already running`}
+            why={running && shown !== undefined && alreadyRunning(shown)}
             onClick={then(onPlay)}
           >
             Play Anyway
           </WhyButton>
           {build?.command && (
             <WhyButton
-              why={running && `Close ${name} first`}
+              why={running && `Close ${shown} first`}
               onClick={then(onRebuild)}
             >
               Rebuild and Play

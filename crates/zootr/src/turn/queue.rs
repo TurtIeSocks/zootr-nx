@@ -61,6 +61,9 @@ pub struct Sweep {
     /// Asked to step aside at its next row boundary, since then.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub yielding: Option<i64>,
+    /// When it last asked anything: one quiet past the lease has died.
+    #[serde(default)]
+    pub seen: i64,
 }
 
 /// A hold handed out by [`Queue::tick`].
@@ -96,6 +99,17 @@ impl Queue {
                 },
             })
             .collect();
+    }
+
+    /// A sweep kept from before sweeps had a `seen` loads with none, so
+    /// it counts as seen at `now`, the load: one lease to speak up rather
+    /// than lapsing on the first tick while it may still run.
+    pub fn loaded(&mut self, now: i64) {
+        for s in self.games.iter_mut().filter_map(|g| g.sweep.as_mut()) {
+            if s.seen == 0 {
+                s.seen = now;
+            }
+        }
     }
 
     fn game(&mut self, name: &str) -> Result<&mut Game> {
@@ -301,9 +315,10 @@ impl Queue {
     /// now, and the machine plays one game at most besides ([`room`]). A
     /// `both` waiter counts only once every machine is open to it, an `on`
     /// waiter only for a game it [`suits`]. Another sweep on the game keeps
-    /// it; the same sweep asking again starts afresh, since nothing still
-    /// wants it to step aside.
-    pub fn sweep_start(&mut self, game: &str, name: &str) -> Result<bool> {
+    /// it until it stops or lapses ([`tick`](Self::tick)); the same sweep
+    /// asking again starts afresh, since nothing still wants it to step
+    /// aside.
+    pub fn sweep_start(&mut self, game: &str, name: &str, now: i64) -> Result<bool> {
         let idle = (self.waiting.iter()).all(|w| {
             (w.both && !self.all_open_to(&w.session))
                 || w.on.as_deref().is_some_and(|o| !suits(o, game))
@@ -318,17 +333,26 @@ impl Queue {
         g.sweep = Some(Sweep {
             name: name.into(),
             yielding: None,
+            seen: now,
         });
         Ok(true)
     }
 
     /// Whether sweep `name` must step aside from `game` at this row
-    /// boundary: asked to, or already counted as gone.
-    pub fn sweep_yields(&self, game: &str, name: &str) -> bool {
-        let sweep = (self.games.iter())
+    /// boundary: asked to, or already counted as gone. Asking shows it's
+    /// still alive.
+    pub fn sweep_yields(&mut self, game: &str, name: &str, now: i64) -> bool {
+        let sweep = (self.games.iter_mut())
             .find(|g| g.name == game)
-            .and_then(|g| g.sweep.as_ref());
-        sweep.is_none_or(|s| s.name != name || s.yielding.is_some())
+            .and_then(|g| g.sweep.as_mut())
+            .filter(|s| s.name == name);
+        match sweep {
+            Some(s) => {
+                s.seen = now;
+                s.yielding.is_some()
+            }
+            None => true,
+        }
     }
 
     /// Sweep `name` stopped on `game`.
@@ -340,8 +364,8 @@ impl Queue {
         Ok(())
     }
 
-    /// Lapse holds idle past `lease`, count sweeps still mid-row past
-    /// `cap` as gone, then hand each free game to the first waiter it
+    /// Lapse holds and sweeps idle past `lease`, count sweeps still
+    /// mid-row past `cap` as gone, then hand each free game to the first waiter it
     /// suits, asking a sweep on it to step aside first, and only when no
     /// game without one suits. A machine with a sweep takes one game more
     /// at most ([`room`]). A `both` waiter gets a game of every
@@ -352,11 +376,9 @@ impl Queue {
             if g.holder.as_ref().is_some_and(|h| now - h.seen >= lease) {
                 g.holder = None;
             }
-            if g.sweep
-                .as_ref()
-                .and_then(|s| s.yielding)
-                .is_some_and(|t| now - t >= cap)
-            {
+            if g.sweep.as_ref().is_some_and(|s| {
+                now - s.seen >= lease || s.yielding.is_some_and(|t| now - t >= cap)
+            }) {
                 g.sweep = None;
             }
         }
@@ -638,39 +660,69 @@ mod tests {
     #[test]
     fn a_sweep_steps_aside_for_a_waiter_then_resumes_once_no_one_wants_the_game() {
         let mut q = Queue::new(&["far".into()]);
-        assert!(q.sweep_start("far", "night").unwrap());
-        assert!(!q.sweep_yields("far", "night"));
+        assert!(q.sweep_start("far", "night", 0).unwrap());
+        assert!(!q.sweep_yields("far", "night", 0));
         q.join("a", "", false, false, None, 10).unwrap();
         assert!(granted(&mut q, 10).is_empty(), "the sweep goes first");
-        assert!(q.sweep_yields("far", "night"));
+        assert!(q.sweep_yields("far", "night", 0));
         q.sweep_done("far", "night").unwrap();
         assert_eq!(granted(&mut q, 40), [pair("a", "far")]);
-        assert!(!q.sweep_start("far", "night").unwrap(), "held");
+        assert!(!q.sweep_start("far", "night", 0).unwrap(), "held");
         q.free("a");
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
     }
 
     #[test]
     fn a_second_sweep_waits_for_the_first_and_leaves_its_step_aside_be() {
         let mut q = Queue::new(&["far".into()]);
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
         q.take("far", 3).unwrap();
         q.leave("far").unwrap();
-        assert!(!q.sweep_start("far", "day").unwrap());
-        assert!(q.sweep_yields("far", "night"), "still asked to step aside");
+        assert!(!q.sweep_start("far", "day", 0).unwrap());
+        assert!(
+            q.sweep_yields("far", "night", 0),
+            "still asked to step aside"
+        );
         q.sweep_done("far", "night").unwrap();
-        assert!(q.sweep_start("far", "day").unwrap());
+        assert!(q.sweep_start("far", "day", 0).unwrap());
+    }
+
+    #[test]
+    fn a_sweep_that_died_without_a_word_lapses_for_the_next() {
+        let mut q = Queue::new(&["far".into()]);
+        assert!(q.sweep_start("far", "night", 0).unwrap());
+        assert!(!q.sweep_yields("far", "night", 100));
+        granted(&mut q, 100 + LEASE - 1);
+        assert!(!q.sweep_start("far", "day", 100 + LEASE - 1).unwrap());
+        granted(&mut q, 100 + LEASE);
+        assert!(q.sweep_start("far", "day", 100 + LEASE).unwrap());
+        assert!(
+            q.sweep_yields("far", "night", 100 + LEASE),
+            "not its game now"
+        );
+    }
+
+    #[test]
+    fn a_sweep_kept_from_before_seen_gets_a_lease_from_the_load() {
+        let old = r#"{"games":[{"name":"far","sweep":{"name":"night"}}],"waiting":[]}"#;
+        let mut q: Queue = serde_json::from_str(old).unwrap();
+        let load = 1_000_000;
+        q.loaded(load);
+        granted(&mut q, load + 1);
+        assert!(!q.sweep_start("far", "day", load + 1).unwrap());
+        granted(&mut q, load + LEASE);
+        assert!(q.sweep_start("far", "day", load + LEASE).unwrap());
     }
 
     #[test]
     fn a_sweep_still_mid_row_past_the_cap_counts_as_gone() {
         let mut q = Queue::new(&["far".into()]);
-        q.sweep_start("far", "night").unwrap();
+        q.sweep_start("far", "night", 0).unwrap();
         q.join("a", "", false, false, None, 0).unwrap();
         assert!(granted(&mut q, 0).is_empty());
         assert!(granted(&mut q, CAP - 1).is_empty());
         assert_eq!(granted(&mut q, CAP), [pair("a", "far")]);
-        assert!(q.sweep_yields("far", "night"));
+        assert!(q.sweep_yields("far", "night", 0));
     }
 
     #[test]
@@ -678,19 +730,19 @@ mod tests {
         let mut q = queue();
         q.join("x", "", false, false, None, 0).unwrap();
         granted(&mut q, 0);
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
         q.join("a", "", false, false, None, 1).unwrap();
         assert!(granted(&mut q, 1).is_empty());
-        assert!(q.sweep_yields("far", "night"));
+        assert!(q.sweep_yields("far", "night", 0));
     }
 
     #[test]
     fn the_maintainer_playing_asks_the_sweep_to_step_aside() {
         let mut q = Queue::new(&["far".into()]);
-        q.sweep_start("far", "night").unwrap();
+        q.sweep_start("far", "night", 0).unwrap();
         q.take("far", 3).unwrap();
-        assert!(q.sweep_yields("far", "night"));
-        assert!(!q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_yields("far", "night", 0));
+        assert!(!q.sweep_start("far", "night", 0).unwrap());
     }
 
     #[test]
@@ -720,10 +772,10 @@ mod tests {
         q.join("x", "", false, false, None, 0).unwrap();
         granted(&mut q, 0);
         q.join("a", "", false, false, Some("near"), 1).unwrap();
-        assert!(q.sweep_start("far", "night").unwrap());
-        assert!(!q.sweep_yields("far", "night"));
+        assert!(q.sweep_start("far", "night", 0).unwrap());
+        assert!(!q.sweep_yields("far", "night", 0));
         assert!(granted(&mut q, 2).is_empty());
-        assert!(!q.sweep_yields("far", "night"), "a wants near only");
+        assert!(!q.sweep_yields("far", "night", 0), "a wants near only");
     }
 
     #[test]
@@ -777,18 +829,18 @@ mod tests {
         let mut q = queue();
         q.join("x", "", false, false, None, 0).unwrap();
         granted(&mut q, 0);
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
         q.join("ab", "", false, true, None, 1).unwrap();
         assert_eq!(granted(&mut q, 1), []);
-        assert!(!q.sweep_yields("far", "night"), "near is still held");
+        assert!(!q.sweep_yields("far", "night", 0), "near is still held");
         q.sweep_done("far", "night").unwrap();
         assert!(
-            q.sweep_start("far", "night").unwrap(),
+            q.sweep_start("far", "night", 0).unwrap(),
             "ab can't be served yet"
         );
         q.free("x");
         assert_eq!(granted(&mut q, 2), []);
-        assert!(q.sweep_yields("far", "night"));
+        assert!(q.sweep_yields("far", "night", 0));
         q.join("b", "", false, false, None, 3).unwrap();
         assert_eq!(
             granted(&mut q, 3),
@@ -858,12 +910,15 @@ mod tests {
     #[test]
     fn beside_a_sweep_a_machine_plays_one_game_more_and_leaves_the_sweep_be() {
         let mut q = slots();
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
         for w in ["a", "b"] {
             q.join(w, "", false, false, Some("far"), 1).unwrap();
         }
         assert_eq!(granted(&mut q, 1), [pair("a", "far-2")]);
-        assert!(!q.sweep_yields("far", "night"), "b waits, the sweep runs");
+        assert!(
+            !q.sweep_yields("far", "night", 0),
+            "b waits, the sweep runs"
+        );
         q.join("c", "", false, false, None, 2).unwrap();
         assert_eq!(granted(&mut q, 2), [pair("c", "near")], "near has no sweep");
         q.sweep_done("far", "night").unwrap();
@@ -876,9 +931,9 @@ mod tests {
         q.join("a", "", false, false, Some("far-2"), 0).unwrap();
         q.join("b", "", false, false, Some("far-3"), 0).unwrap();
         assert_eq!(granted(&mut q, 0), [pair("a", "far-2"), pair("b", "far-3")]);
-        assert!(!q.sweep_start("far", "night").unwrap());
+        assert!(!q.sweep_start("far", "night", 0).unwrap());
         q.free("b");
-        assert!(q.sweep_start("far", "night").unwrap());
+        assert!(q.sweep_start("far", "night", 0).unwrap());
     }
 
     #[test]

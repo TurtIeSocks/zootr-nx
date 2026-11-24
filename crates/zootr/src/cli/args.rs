@@ -24,8 +24,9 @@ pub(crate) use super::new_game::setting;
     about = "Randomizer generator for Ocarina of Time on Switch 2"
 )]
 pub(super) struct Cli {
-    /// Your game dump: a `.nup` holding the 1.1.1 update, or a folder of
-    /// its extracted romfs. Defaults to the app's, then `dump/oot.nup`.
+    /// Your game dump: a `.nup` holding the 1.1.1 update (or the base game,
+    /// 1.0.0, without one), or a folder of its extracted romfs. Defaults to
+    /// the app's, then `dump/oot.nup`.
     #[arg(long, global = true, alias = "romfs")]
     pub(super) game: Option<PathBuf>,
     #[command(subcommand)]
@@ -581,6 +582,12 @@ pub(super) struct Shuffle {
     /// `SageOfSpirit=Step02`. Run in order. Repeatable.
     #[arg(long, value_name = "CHALLENGE=STEP")]
     progress: Vec<String>,
+    /// Make the seed for this build of the game, reading that package of
+    /// the dump: for a dump that holds both. Without it, the dump's own:
+    /// the 1.1.1 update if it has one, else the base. 1.0.0 is
+    /// experimental and not verified in game.
+    #[arg(long, value_name = "BUILD")]
+    release: Option<crate::game::Release>,
     #[command(flatten)]
     new_game: NewGame,
     #[command(flatten)]
@@ -761,6 +768,7 @@ impl Shuffle {
             progress: self.progress.clone(),
             fields: self.field.clone(),
             doors: self.door.clone(),
+            release: self.release,
             ..Default::default()
         }
     }

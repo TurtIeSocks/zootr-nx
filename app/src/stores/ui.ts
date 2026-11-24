@@ -28,7 +28,7 @@ export const COLUMNS = { time: 48, name: 360, type: 112 };
 export type Widths = typeof COLUMNS;
 
 /** The Play page's folders. */
-export type PlayTab = "standard" | "archipelago" | "history";
+export type PlayTab = "standard" | "archipelago" | "history" | "favorites";
 
 /** Which seeds History lists. */
 export type HistoryFilter = "all" | "standard" | "archipelago";

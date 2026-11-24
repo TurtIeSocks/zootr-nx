@@ -8,7 +8,10 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 export const commands = {
 	/**  Polled, so off the main thread: it probes processes and user paths. */
 	status: () => typedError<Status, string>(__TAURI_INVOKE("status")),
+	buildInfo: () => __TAURI_INVOKE<BuildInfo>("build_info"),
 	schema: () => __TAURI_INVOKE<SettingDef[]>("schema"),
+	/**  The favorites that come with the app, as the Favorites list shows them. */
+	builtInFavorites: () => __TAURI_INVOKE<BuiltIn[]>("built_in_favorites"),
 	config: () => typedError<Config, string>(__TAURI_INVOKE("config")),
 	/**
 	 *  Saves the config, and says which targets' mod folders it moved out of
@@ -53,7 +56,11 @@ export const commands = {
 	clearHistory: () => typedError<null, string>(__TAURI_INVOKE("clear_history")),
 	spoiler: (id: number) => typedError<Spoiler, string>(__TAURI_INVOKE("spoiler", { id })),
 	play: (target: string) => typedError<null, string>(__TAURI_INVOKE("play", { target })),
-	/**  A shared preset as a new target, named so no saved target has its name. */
+	/**
+	 *  A shared preset as a new target, named so no saved target has its name,
+	 *  another game's included: saving drops another game's target that
+	 *  shares a name with one of this shell's.
+	 */
 	importTarget: (preset: string) => typedError<Target, string>(__TAURI_INVOKE("import_target", { preset })),
 	/**  A saved target's preset JSON, to share. */
 	exportTarget: (name: string) => typedError<string, string>(__TAURI_INVOKE("export_target", { name })),
@@ -202,10 +209,12 @@ export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading
 export const TRACKER_COLUMNS = 3 as const;
 
 /* Types */
-/**  A status change or a log line. */
+/**  A status change or a log line, or the page's log started over. */
 export type ApEvent = {
 	status: ApStatus,
 	line: string | null,
+	/**  The log so far is another seed's: drop it before taking `line`. */
+	clear: boolean,
 };
 
 /**  What the page shows: the status and the log so far. */
@@ -258,6 +267,15 @@ export type Build = {
 	command: boolean,
 };
 
+/**  What the sidebar says this build is. */
+export type BuildInfo = {
+	version: string,
+	/**  The short commit it was built from, `*` when dirty. Empty without git. */
+	commit: string,
+	/**  A tagged build from the release workflow. Any other is a source build. */
+	release: boolean,
+};
+
 /**  Whether a game's last build saw the hook patch installed now. */
 export type BuildStatus = 
 /**  The build has the installed patch, or neither has one. */
@@ -268,6 +286,19 @@ export type BuildStatus =
 { kind: "refused"; note: string } | 
 /**  The build lists no patches, so it may not load them. */
 { kind: "unrecorded" };
+
+/**
+ *  A favorite that comes with the app: never stored, renamed, updated or
+ *  deleted.
+ */
+export type BuiltIn = {
+	/**  What `--favorite` takes, beside the name. */
+	id: string,
+	name: string,
+	note: string,
+	/**  Values over the defaults. */
+	settings: { [key in string]: Value },
+};
 
 /**  One drawn cell. */
 export type Cell = {
@@ -349,6 +380,8 @@ export type Config = {
 	place?: { [key in string]: string },
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
+	/**  Setting sets kept by name, newest first. */
+	favorites?: Favorite[],
 	/**
 	 *  The app shows its developer tools: the dev panel, Test setup, and
 	 *  the targets' scripted-play fields. Off, a hidden test setup leaves
@@ -489,6 +522,18 @@ export type Event = { type: "Started"; session: Session } |
 { type: "Muted"; hash: number; name: string; manual: boolean } | 
 /**  A marker `at` seconds into the session, saying what happened. */
 { type: "Marked"; at: number; text: string } | { type: "Unsaved"; reason: string } | { type: "Ended"; reason: string } | { type: "Status"; status: LiveStatus };
+
+/**
+ *  A setting set the player keeps by name: settings only, never a plando,
+ *  a test setup or flag edits.
+ */
+export type Favorite = {
+	name: string,
+	note?: string,
+	/**  When it was saved or last updated, in seconds as History's times. */
+	time: number,
+	settings: { [key in string]: Value },
+};
 
 /**  One group's header, with its rows when it's open. */
 export type FlagGroup = {
@@ -780,6 +825,13 @@ export type Rebuild = {
 	 */
 	manifest?: string | null,
 };
+
+/**
+ *  A build of the game: the base package (1.0.0) or the update (1.1.1),
+ *  each with its own `main` and romfs. Seeds from before a seed kept its
+ *  build were all made for 1.1.1.
+ */
+export type Release = "1.0.0" | "1.1.1";
 
 /**  An item Link gets outside the shuffle, in the round that collects it. */
 export type RoundEvent = {
@@ -1089,6 +1141,8 @@ export type Summary = {
 	ap_slot: string | null,
 	/**  The slot plays DeathLink. */
 	death_link: boolean,
+	/**  The build of the game the seed was made for. */
+	release: Release,
 };
 
 /**  Where a seed installs and the game runs. Nothing here knows which one it is. */

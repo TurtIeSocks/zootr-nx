@@ -7,8 +7,8 @@ pub use look::FILES;
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, murmur3, pack_path};
 
+use crate::copies;
 use crate::gamedata;
-use crate::key_tints;
 use crate::known::{Name, field, hash, item};
 use crate::rsdb;
 use crate::standins::{
@@ -139,7 +139,7 @@ fn expansion(template: &ActorPack, name: &str) -> Result<[(String, BymlDoc, Stri
 /// (showing `model`) and pouch content as a key ring's, and its own
 /// expansion.
 fn files(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, BymlDoc, String)>> {
-    let mut files = key_tints::copied(template, name, model)?;
+    let mut files = copies::copied(template, name, model)?;
     let [table, expansion] = expansion(template, name)?;
     let (_, actor, _) = files.first_mut().context("no actor")?;
     *actor = doc(with_ref(actor.root.as_map()?, TABLE, &table.0)?, actor);
@@ -150,7 +150,7 @@ fn files(template: &ActorPack, name: &str, model: &str) -> Result<Vec<(String, B
 /// The label naming `item`, if it's a Bombchu Bag: its pack lives only in
 /// the seed, and it answers to its own name.
 pub fn name_label(item: &str) -> Option<String> {
-    BAGS.contains(&item).then(|| key_tints::label(item))
+    BAGS.contains(&item).then(|| copies::label(item))
 }
 
 /// `item`'s pack if it's a Bombchu Bag, built as [`write`] writes it.
@@ -231,7 +231,7 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::key_tints::MADE;
+    use crate::copies::MADE;
 
     use crate::standins::POUCH_ACTOR_INFO;
     use ounce_formats::pack_file;
@@ -257,10 +257,7 @@ mod tests {
         write(&romfs, &mut builder, &mut tables).unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
-        let read = |rel: &str| {
-            let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-            romfs.dicts().decompress(rel, &raw).unwrap()
-        };
+        let read = |rel: &str| crate::game::read_built(&romfs, &dir, rel);
         let pouch = BymlDoc::parse(&read(POUCH_ACTOR_INFO)).unwrap();
         let chu = pouch_actor(item::BOMBCHU).as_string().unwrap().to_string();
         for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {

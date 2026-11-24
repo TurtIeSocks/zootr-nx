@@ -12,29 +12,20 @@
 //! The eyelids are rigged at other angles at each age, so a lent archive
 //! leaves them unbound and the Link keeps his own.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::{Context, Result, ensure};
+use ounce_formats::fska::{
+    self, BONE_BASE as BASE, BONE_COUNT as TRACK_COUNT, BONE_FLAGS as FLAGS, BONE_SIZE as TRACK,
+    BONES as TRACKS, NAME,
+};
 
 use crate::known::field;
 
-const MAGIC: &[u8; 4] = b"FSKA";
-/// An animation header's fields: its name, its bone tracks and how many.
-const NAME: usize = 0x08;
-const TRACKS: usize = 0x28;
-const TRACK_COUNT: usize = 0x4c;
-/// A bone track's size and fields: its name, curves, base values, flags
-/// and curve count.
-const TRACK: usize = 0x38;
+/// A bone track's curves and curve count. The rest of the layout is
+/// [`fska`]'s, which calls a track a bone animation.
 const CURVES: usize = 0x08;
-const BASE: usize = 0x10;
-const FLAGS: usize = 0x28;
 const CURVE_COUNT: usize = 0x2e;
-/// The base values a track's flags carry, in order: scale (3 floats),
-/// rotation (4), translation (3).
-const HAS_SCALE: u32 = 1 << 3;
-const HAS_ROTATION: u32 = 1 << 4;
-const HAS_TRANSLATION: u32 = 1 << 5;
 /// The flag bits saying which translation axes have curves, X first.
 const TRANSLATION_CURVES: u32 = 13;
 /// A curve's size and fields: what it animates, its scale and offset.
@@ -121,40 +112,46 @@ struct Track<'a> {
     curve_count: usize,
 }
 
+/// The track at `at`, which [`tracks`] found in the file, if its base
+/// values and its curves are in the file too.
 fn track(d: &[u8], at: usize) -> Option<Track<'_>> {
     let flags = u32_at(d, at + FLAGS)?;
-    let base = offset_at(d, at + BASE)?;
-    let translation = match flags & HAS_TRANSLATION != 0 && base != 0 {
-        true => {
-            let scale = if flags & HAS_SCALE != 0 { 12 } else { 0 };
-            let rotation = if flags & HAS_ROTATION != 0 { 16 } else { 0 };
-            let at = base + scale + rotation;
-            Some((at, floats_at::<3>(d, at)?))
-        }
-        false => None,
+    // Past the end, adding the scale and rotation to it could wrap.
+    let base = offset_at(d, at + BASE).filter(|&base| base < d.len())?;
+    let translation = match fska::translation_at(flags as usize, base) {
+        Some(at) => Some((at, floats_at::<3>(d, at)?)),
+        None => None,
     };
+    let curves = offset_at(d, at + CURVES)?;
+    let curve_count = usize::from(*d.get(at + CURVE_COUNT)?);
+    span(d, curves, curve_count * CURVE)?;
     Some(Track {
         name: string_at(d, offset_at(d, at)?)?,
         translation,
         curved: (flags >> TRANSLATION_CURVES) & 0b111,
-        curves: offset_at(d, at + CURVES)?,
-        curve_count: usize::from(*d.get(at + CURVE_COUNT)?),
+        curves,
+        curve_count,
     })
 }
 
+/// Where the clip whose header is at `at` keeps its bone tracks, and how
+/// many, if they're all in the file.
+fn tracks(d: &[u8], at: usize) -> Option<(usize, usize)> {
+    let tracks = offset_at(d, at + TRACKS)?;
+    let count = (u32_at(d, at + TRACK_COUNT)? & 0xffff) as usize;
+    span(d, tracks, count * TRACK)?;
+    Some((tracks, count))
+}
+
 /// Each animation in the archive: where its header is, and where its bone
-/// tracks are and how many. Found by magic, 8-aligned, as the archive's
-/// own tables would give them; a match whose name or tracks don't read is
-/// not one.
+/// tracks are and how many. Found as [`fska::animations`] finds them, as
+/// the archive's own tables would give them; a match whose name or tracks
+/// don't read is not one.
 fn animations(d: &[u8]) -> Vec<(usize, usize, usize)> {
-    (0..d.len().saturating_sub(0x50))
-        .step_by(8)
-        .filter(|&at| &d[at..at + 4] == MAGIC)
+    fska::animations(d)
         .filter_map(|at| {
             string_at(d, offset_at(d, at + NAME)?)?;
-            let tracks = offset_at(d, at + TRACKS)?;
-            let count = (u32_at(d, at + TRACK_COUNT)? & 0xffff) as usize;
-            span(d, tracks, count * TRACK)?;
+            let (tracks, count) = tracks(d, at)?;
             Some((at, tracks, count))
         })
         .collect()
@@ -294,15 +291,16 @@ fn mark(archive: &mut [u8], names: Vec<usize>, marked: impl Fn(&str) -> bool) ->
 
 /// The curves of the clip whose header is at `at`, each with its bone.
 fn curves(d: &[u8], at: usize) -> impl Iterator<Item = (&str, usize)> {
-    let tracks = offset_at(d, at + TRACKS).unwrap_or(0);
-    let count = u32_at(d, at + TRACK_COUNT).map_or(0, |c| (c & 0xffff) as usize);
-    (0..count)
-        .filter_map(move |i| track(d, tracks + i * TRACK))
+    (tracks(d, at).into_iter())
+        .flat_map(|(tracks, count)| (0..count).map(move |i| tracks + i * TRACK))
+        .filter_map(move |at| track(d, at))
         .flat_map(|t| (0..t.curve_count).map(move |j| (t.name, t.curves + j * CURVE)))
 }
 
-/// The clip's root curves, the motion of where its body stands, by target.
-fn roots(d: &[u8], at: usize) -> HashMap<u32, usize> {
+/// The clip's root curves, the motion of where its body stands, by target,
+/// in target order: `rooted` takes room for each in turn, so the order
+/// decides where the data lands.
+fn roots(d: &[u8], at: usize) -> BTreeMap<u32, usize> {
     (curves(d, at).filter(|&(bone, _)| bone == field::ROOT.get()))
         .filter_map(|(_, c)| Some((u32_at(d, c + TARGET)?, c)))
         .collect()
@@ -329,12 +327,12 @@ fn room(d: &[u8]) -> Vec<(usize, usize)> {
     const USED: u8 = 2;
     let mut marks = vec![0u8; d.len()];
     for (at, _, _) in animations(d) {
-        let mark = match offset_at(d, at + NAME).and_then(|n| d.get(n + 2)) {
+        let mark = match offset_at(d, at + NAME).and_then(|n| d.get(n.checked_add(2)?)) {
             Some(&HIDDEN) => FREE,
             _ => USED,
         };
         for (at, len) in curves(d, at).filter_map(|(_, c)| spans(d, c)).flatten() {
-            for m in marks.get_mut(at..at + len).into_iter().flatten() {
+            for m in span_mut(&mut marks, at, len).into_iter().flatten() {
                 *m = (*m).max(mark);
             }
         }
@@ -460,6 +458,34 @@ mod tests {
         let mut d = [0; 8];
         assert_eq!(put_floats(&mut d, 0, &[1.0, 2.0]), Some(()));
         assert_eq!(floats_at::<2>(&d, 0), Some([1.0, 2.0]));
+    }
+
+    /// A track named "a" with a translation and one curve, after it in the
+    /// file, with its base values and its curve at the given offsets.
+    fn one_track(base: usize, curves: usize) -> Vec<u8> {
+        let mut d = vec![0; TRACK + 4 * 3 + CURVE + 3];
+        let name = d.len() - 3;
+        put_offset(&mut d, 0, name).unwrap();
+        put_offset(&mut d, BASE, base).unwrap();
+        put_offset(&mut d, CURVES, curves).unwrap();
+        d[FLAGS] = fska::HAS_TRANSLATE as u8;
+        d[CURVE_COUNT] = 1;
+        d[name..].copy_from_slice(&[1, 0, b'a']);
+        d
+    }
+
+    #[test]
+    fn a_track_whose_offsets_leave_the_file_does_not_read() {
+        let (base, curve) = (TRACK, TRACK + 4 * 3);
+        let d = one_track(base, curve);
+        let t = track(&d, 0).unwrap();
+        assert_eq!((t.name, t.translation), ("a", Some((base, [0.0; 3]))));
+        assert_eq!(t.curves, curve);
+        // Near the end of the address space, adding to them wraps around
+        // to a small offset that does read.
+        assert!(track(&one_track(usize::MAX - 4, curve), 0).is_none());
+        assert!(track(&one_track(base, usize::MAX - 4), 0).is_none());
+        assert!(track(&one_track(base, curve + 4), 0).is_none());
     }
 }
 

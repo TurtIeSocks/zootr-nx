@@ -15,21 +15,25 @@ pub mod bench_live;
 pub mod client;
 mod death;
 mod export;
+mod game;
 mod golden;
 mod ids;
 pub(crate) mod names;
 mod notice;
 mod open;
 mod presets;
+#[cfg(test)]
+mod released;
 pub mod room;
 mod rule;
 mod seed;
 pub mod there;
 pub mod timing;
+mod trouble;
 mod when;
 mod zip;
 
-pub use open::{ApSeed, Placed, Resolved};
+pub use open::{ApSeed, Placed, Resolved, check_room};
 
 /// The game's name in Archipelago.
 pub const GAME: &str = "Ocarina of Time (znx)";
@@ -82,6 +86,9 @@ pub const OPTIONS: &[&str] = &[
     "shuffle-masks",
     "ice-traps",
     "progressive-items",
+    "shuffle-nut-bag",
+    "shuffle-stick-bag",
+    "magic-with-first-item",
     "logic",
     "starting-age",
     "rainbow-bridge",
@@ -96,6 +103,7 @@ pub const OPTIONS: &[&str] = &[
     "clock",
     "no-tutorials",
     "no-pickup-texts",
+    "hints",
 ];
 
 /// Settings the world offers together as one AP option, a list of the
@@ -144,14 +152,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     // Off, Dodongo's Cavern's Bomb Bag chest keeps its bag, and logic
     // shows no child way to it.
     ("chests", Later(CHECK_KINDS)),
-    // With progressive items, each makes its line start a level lower, so
-    // the Nut Bag (30) a gift or scrub deals becomes the Nut Bag (20) and
-    // Double Magic the Magic Meter: which item a check deals depends on
-    // two options, NPC Gifts or Scrubs with this.
-    ("shuffle-nut-bag", Later(CHECK_KINDS)),
-    ("shuffle-stick-bag", Later(CHECK_KINDS)),
-    ("magic-with-first-item", Later(COMFORT)),
-    ("hints", Later(RULES)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     ("ageless-gear", Later(RULES)),
     (
@@ -168,7 +168,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
 const CHECK_KINDS: &str = "check kinds";
 const RULES: &str = "goal and rules";
 const KEYS: &str = "keys";
-const COMFORT: &str = "comfort";
 
 /// Whether the world offers `def`, alone or in a set. A toggle left out
 /// but on in every Archipelago seed (its default, or pinned like Chests)
@@ -210,14 +209,25 @@ pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
 /// put, no Weird Egg), with Gerudo Fortress (Freed keeps the membership
 /// card's check), with Cows (the gifts' bottles fill the pouch's five,
 /// so the cows' milk deals as rupees) and with King Zora Moved (either
-/// makes Ruto's Letter ✅ a check).
-pub const JOINT: &[&[&str]] = &[&[
-    "npc-gifts",
-    "met-zelda",
-    "gerudo-fortress",
-    "cows",
-    "king-zora-moved",
-]];
+/// makes Ruto's Letter ✅ a check). And Progressive Items with the
+/// settings that start a line a level lower (a starter bag shuffled, the
+/// Magic Meter pooled): which levels a line's name stands for depends on
+/// all four.
+pub const JOINT: &[&[&str]] = &[
+    &[
+        "npc-gifts",
+        "met-zelda",
+        "gerudo-fortress",
+        "cows",
+        "king-zora-moved",
+    ],
+    &[
+        "progressive-items",
+        "shuffle-nut-bag",
+        "shuffle-stick-bag",
+        "magic-with-first-item",
+    ],
+];
 
 /// Choice options the world leaves out, each as setting id, option and
 /// a sentence of the setting's description that offers it. Dungeon keys
@@ -274,8 +284,7 @@ pub fn data_dir() -> PathBuf {
 
 /// Export into `dir`, keeping the ids its `ids.json` already gave out.
 pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
-    let ids = std::fs::read_to_string(dir.join("ids.json")).ok();
-    let files = export::export(romfs, ids.as_deref())?;
+    let files = export::export(romfs, &kept_ids(dir)?)?;
     std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
     for (name, text) in files {
         std::fs::write(dir.join(name), text)?;
@@ -283,9 +292,28 @@ pub fn write(romfs: &Romfs, dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The ids `dir` already gave out, or for a folder without them the ones
+/// the world ships, so a new folder never hands an old id to a new check.
+fn kept_ids(dir: &Path) -> Result<String> {
+    let path = dir.join("ids.json");
+    match std::fs::read_to_string(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(ids::IDS.to_owned()),
+        read => read.with_context(|| format!("reading {}", path.display())),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{HELD, data_dir, described};
+    use super::{HELD, data_dir, described, kept_ids};
+
+    #[test]
+    fn a_folder_without_ids_carries_on_from_the_world_s() {
+        let dir = data_dir();
+        let held = std::fs::read_to_string(dir.join("ids.json")).unwrap();
+        assert_eq!(kept_ids(&dir).unwrap(), held);
+        let fresh = dir.join("fake-no-such-folder");
+        assert_eq!(kept_ids(&fresh).unwrap(), super::ids::IDS);
+    }
 
     /// Each held sentence is still in its setting's text, so the world's
     /// copy never offers an option it leaves out.
@@ -331,7 +359,7 @@ mod tests {
         assert_eq!(ap(crate::settings::CHESTS), OnUntil(CHECK_KINDS));
         assert!(matches!(ap("shuffle-items"), AlwaysOn(_)));
         assert!(matches!(ap("start-inventory"), Never(_)));
-        assert!(matches!(ap("shuffle-nut-bag"), Later(_)));
+        assert!(matches!(ap("shuffle-dungeon-entrances"), Later(_)));
     }
 
     #[test]

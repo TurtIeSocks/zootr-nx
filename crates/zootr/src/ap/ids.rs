@@ -14,7 +14,7 @@ pub struct Ids {
 }
 
 /// The AP world's table, as the app ships it.
-const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
+pub(super) const IDS: &str = include_str!("../../../../ap/znx/data/ids.json");
 
 impl Ids {
     pub fn load() -> anyhow::Result<Self> {
@@ -31,7 +31,9 @@ impl Ids {
 
     /// `actor`'s id, or with `plain` its second: a line's first level goes
     /// by its line's name with progressive items on and its own with them
-    /// off (`names::levels`), and a name keeps one id.
+    /// off (`names::levels`), and a name keeps one id. The Magic Meter's two
+    /// are the other way round: a release shipped its plain name under the
+    /// first id (`ap::released`).
     pub fn item_as(&mut self, actor: &str, plain: bool) -> u64 {
         take(&mut self.items, item_key(actor, plain))
     }
@@ -40,7 +42,6 @@ impl Ids {
         self.locations.get(&hash.to_string()).copied()
     }
 
-    #[cfg(test)]
     pub fn item_id(&self, actor: &str) -> Option<u64> {
         self.id_as(actor, false)
     }

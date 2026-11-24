@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use clap::Subcommand;
-use ounce_formats::{ActorPack, Romfs, files_with_suffix, messages, murmur3, pack_file};
+use ounce_formats::{
+    ActorPack, Msbt, Part, Romfs, files_with_suffix, messages, murmur3, pack_file,
+};
 use roead::sarc::Sarc;
 
 use crate::gamedata::GameData;
@@ -18,6 +20,8 @@ mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
+mod exefs;
+mod filter;
 mod formats;
 mod hurts;
 mod logic;
@@ -30,10 +34,13 @@ mod shapes;
 mod uvs;
 mod water;
 
-use actors::{hits, print_actors};
-use formats::{ainb, ainbs, byml, files, grep, pool, restbl, strings, unpack, unpacked};
+use actors::print_actors;
+pub use filter::Filter;
+use formats::{
+    ainb, ainbs, byml, files, grep, pool, print_types, restbl, strings, unpack, unpacked,
+};
 use logic::{checks, doors, exits, gates, groups, pouch, settings, shops, tools};
-use navmesh::{nav, print_types};
+use navmesh::nav;
 
 #[derive(Subcommand)]
 pub enum Probe {
@@ -90,7 +97,15 @@ pub enum Probe {
     /// description, and a choice's options.
     Settings,
     /// Game text whose id or English contains this, any case.
-    Text { pattern: String },
+    Text {
+        pattern: String,
+        /// Read this mod folder's text, as a seed wrote it, instead.
+        #[arg(long)]
+        mod_dir: Option<PathBuf>,
+        /// Show each control tag's bytes in place, as `<0e 00 03 ..>`.
+        #[arg(long)]
+        tags: bool,
+    },
     /// Files anywhere in the dump whose path contains this, with sizes.
     /// Reads the `.nup`, so it reaches files zootr doesn't extract.
     Files {
@@ -127,7 +142,7 @@ pub enum Probe {
     /// gives each bone at its first frame.
     Poses { path: String },
     /// How far below its origin each pool item's model reaches on a
-    /// shelf, in the pose it plays there: the source of `shops/floors.rs`.
+    /// shelf, in the pose it plays there: the source of `shops/floors/table.rs`.
     Floors,
     /// Each shape in the models whose path contains this: the lowest and
     /// highest corner of its vertices as stored, before any pose, and each
@@ -255,6 +270,15 @@ pub enum Probe {
         #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
         settings: Vec<(String, serde_json::Value)>,
     },
+    /// How many of `seeds` seeds logic fills within its tries, and the
+    /// last failure's reason: a dungeon PR's before and after.
+    Seeds {
+        #[arg(long, default_value_t = 50, value_parser = clap::value_parser!(u64).range(1..))]
+        seeds: u64,
+        /// A setting by id, as `shuffle` takes it. Repeatable.
+        #[arg(long = "setting", value_name = "ID=VALUE", value_parser = crate::cli::args::setting)]
+        settings: Vec<(String, serde_json::Value)>,
+    },
     /// The check ledger as JSON: every check with every shuffle on, dealt
     /// or left out, with what the code knows of it. `--unknown` lists only
     /// the left-out placements nothing explains yet.
@@ -343,6 +367,28 @@ pub enum Probe {
         #[arg(long, value_parser = point, allow_hyphen_values = true, requires = "from")]
         to: Option<[f32; 3]>,
     },
+    /// Maps every offset of 1.1.1's table into another build's `main` and,
+    /// once each is matched (or confirmed by hand in `port::CONFIRMED`),
+    /// writes that build's table as Rust to `--out`. The report (each
+    /// offset's method, window, candidates and confidence, the rooms and
+    /// the field offsets left unconfirmed) goes to stdout or `--report`.
+    Port {
+        #[arg(long)]
+        to: crate::game::Release,
+        #[arg(long)]
+        report: Option<PathBuf>,
+        #[arg(long, default_value = crate::port::TABLE_FILE)]
+        out: PathBuf,
+    },
+    /// One build's code, `main`, decoded from the dump and written flat to
+    /// `--out` as it lies in memory (text, rodata and data at their
+    /// offsets, bss zeroed), with its build ID, segments and MOD0.
+    Main {
+        #[arg(long)]
+        build: crate::game::Release,
+        #[arg(long)]
+        out: PathBuf,
+    },
     /// The sweep's plan for one round: each holder kind by how it'd be
     /// swept (open, talk, play, skip), and every skipped spot with why.
     Plan {
@@ -397,33 +443,6 @@ pub enum Probe {
     },
 }
 
-#[derive(clap::Args, Default)]
-pub struct Filter {
-    /// Actor names containing this.
-    #[arg(long)]
-    gyaml: Option<String>,
-    /// Banc paths containing this, like an area or `_Child_`.
-    #[arg(long)]
-    file: Option<String>,
-    /// One placement hash.
-    #[arg(long)]
-    hash: Option<u64>,
-    /// Only actors within `--within` of X,Y,Z, measured flat.
-    #[arg(long, value_parser = point, allow_hyphen_values = true)]
-    near: Option<[f32; 3]>,
-    #[arg(long, default_value_t = 10.0)]
-    within: f32,
-    /// Each placement once, though child and adult files repeat it.
-    #[arg(long)]
-    dedupe: bool,
-    /// Every field, not only the position.
-    #[arg(long)]
-    fields: bool,
-    /// Placements and unique hashes per actor name, instead of each one.
-    #[arg(long)]
-    count: bool,
-}
-
 /// `game` is the dump, for the probes that read past the extracted romfs.
 pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
     match probe {
@@ -451,7 +470,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             });
             Ok(())
         }
-        Probe::Text { pattern } => text(romfs, &pattern),
+        Probe::Text {
+            pattern,
+            mod_dir,
+            tags,
+        } => text(romfs, &pattern, mod_dir.as_deref(), tags),
         Probe::Settings => {
             settings();
             Ok(())
@@ -513,6 +536,8 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             at,
             within,
         } => nav(romfs, game, &map, types, at, within),
+        Probe::Main { build, out } => exefs::print_main(game, build, &out),
+        Probe::Port { to, report, out } => exefs::port(game, to, report.as_deref(), &out),
         Probe::Plan { mix, seed, only } => plan::plan(romfs, mix.as_deref(), seed, only.as_deref()),
         Probe::Unpack { pattern, out } => unpack(romfs, game, &pattern, &out),
         Probe::Grep { needle, path } => grep(romfs, game, &needle, &path),
@@ -569,6 +594,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             never,
         } => checks(romfs, area.as_deref(), &settings, never),
         Probe::Doors { rolls, settings } => doors(romfs, rolls, &settings),
+        Probe::Seeds { seeds, settings } => logic::seeds(romfs, seeds, &settings),
         Probe::Byml { pattern, file } => byml(romfs, game, &pattern, file),
         Probe::Ainb { path, out } => ainb(romfs, &path, out.as_deref()),
         Probe::Ainbs => ainbs(romfs),
@@ -580,11 +606,6 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Pool { seed, untracked } => pool(romfs, seed, untracked),
         Probe::Ledger { unknown } => crate::ledger::print(romfs, unknown),
     }
-}
-
-/// A point as `x,y,z`, to a tenth.
-fn xyz(p: [f32; 3]) -> String {
-    format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
 }
 
 /// Counts one more `key` in `by`, making its value with `make` the first
@@ -601,15 +622,6 @@ fn tally<'a, T>(
         }
     }
     Ok(())
-}
-
-/// The root of `i`'s set in a union-find forest, halving the path there.
-fn root(of: &mut [usize], mut i: usize) -> usize {
-    while of[i] != i {
-        of[i] = of[of[i]];
-        i = of[i];
-    }
-    i
 }
 
 fn key(romfs: &Romfs, hash: u64) -> Result<()> {
@@ -714,8 +726,17 @@ fn pack(romfs: &Romfs, actor: &str, file: Option<&str>, mod_dir: Option<&Path>) 
     Ok(())
 }
 
-fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
-    let sarc = Sarc::new(romfs.read(TEXT)?).with_context(|| format!("reading {TEXT}"))?;
+fn text(romfs: &Romfs, pattern: &str, mod_dir: Option<&Path>, tags: bool) -> Result<()> {
+    let data = match mod_dir {
+        Some(dir) => {
+            let path = dir.join("romfs").join(TEXT);
+            let raw =
+                std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
+            romfs.dicts().decompress(TEXT, &raw)?
+        }
+        None => romfs.read(TEXT)?,
+    };
+    let sarc = Sarc::new(&data).with_context(|| format!("reading {TEXT}"))?;
     let want = pattern.to_lowercase();
     for f in sarc.files() {
         let Some(name) = f.name().filter(|n| n.ends_with(".msbt")) else {
@@ -727,11 +748,27 @@ fn text(romfs: &Romfs, pattern: &str) -> Result<()> {
             .filter(|(id, t)| [id, t].iter().any(|s| s.to_lowercase().contains(&want)))
             .collect();
         found.sort();
+        let msbt = tags.then(|| Msbt::parse(f.data())).transpose()?;
         for (id, t) in found {
+            let t = match &msbt {
+                Some(m) => tagged(&m.get(&id)?.unwrap_or_default()),
+                None => t,
+            };
             println!("{name}:{id} {}", t.replace('\n', " / "));
         }
     }
     Ok(())
+}
+
+/// `parts` as text with each tag's bytes in place.
+fn tagged(parts: &[Part]) -> String {
+    let hex = |raw: &[u8]| raw.iter().map(|b| format!("{b:02x}")).collect::<Vec<_>>();
+    (parts.iter())
+        .map(|p| match p {
+            Part::Text(t) => t.clone(),
+            Part::Tag(raw) => format!("<{}>", hex(raw).join(" ")),
+        })
+        .collect()
 }
 
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {

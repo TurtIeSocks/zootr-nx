@@ -29,7 +29,12 @@ const RELEASE = {
 };
 
 beforeEach(() => {
-  useUpdate.setState({ latest: RELEASE, current: "0.1.0" });
+  useUpdate.setState({
+    latest: RELEASE,
+    current: "0.1.0",
+    commit: "",
+    release: true,
+  });
   vi.mocked(installable).mockResolvedValue(null);
 });
 
@@ -134,4 +139,22 @@ test("a failed install says so and keeps the release page", async () => {
   expect(screen.getByText("signature mismatch")).toBeTruthy();
   expect(installButton()).toHaveProperty("disabled", false);
   expect(screen.getByRole("link", { name: "Release Page" })).toBeTruthy();
+});
+
+test("a source build hears of the release but never installs it", async () => {
+  vi.mocked(installable).mockResolvedValue(UPDATE);
+  useUpdate.setState({ commit: "abc1234", release: false });
+  await openSettled();
+  expect(installable).not.toHaveBeenCalled();
+  expect(installButton()).toBeNull();
+  expect(
+    screen.getByText(
+      "Built from source (abc1234): pull and rebuild to update.",
+    ),
+  ).toBeTruthy();
+});
+
+test("a release says nothing of source", async () => {
+  await openSettled();
+  expect(screen.queryByText(/Built from source/)).toBeNull();
 });

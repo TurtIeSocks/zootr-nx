@@ -30,11 +30,20 @@ const READ: (&Name, &Name) = (
 /// The call that turns Link to the stone before the reading.
 const INIT: (&Name, &Name) = (flow::INIT_TALK, flow::INIT_TALK_GOSSIP_STONE);
 
-/// One hint: an item and the Banc folder it's in.
+/// One hint: an item and where it is.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Hint {
-    pub area: String,
+    pub place: Place,
     pub item: String,
+}
+
+/// Where a hinted item is.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Place {
+    /// A Banc folder, named in each language.
+    Area(String),
+    /// Words written as they are: another Archipelago slot's check.
+    Words(String),
 }
 
 /// Up to `STONES` hints, each a different spot holding an item in
@@ -48,7 +57,7 @@ pub fn choose(spots: &[Spot], wanted: &BTreeSet<&str>, seed: u64) -> Vec<Hint> {
     Rng::new(seed ^ u64::from_le_bytes(*b"gossip!!")).shuffle(&mut found);
     found.truncate(STONES);
     let hint = |s: &&Spot| Hint {
-        area: s.area.clone(),
+        place: Place::Area(s.area.clone()),
         item: s.item.clone(),
     };
     found.iter().map(hint).collect()
@@ -98,12 +107,16 @@ pub(crate) fn language(
         names.get(label).filter(|n| !n.is_empty()).cloned()
     };
     for (stone, hint) in stones.iter().zip(hints.iter().cycle()) {
-        let area = named(&areas, &hint.area).unwrap_or_else(|| pretty(&hint.area));
+        let area = match &hint.place {
+            Place::Area(a) => named(&areas, a).unwrap_or_else(|| pretty(a)),
+            Place::Words(words) => words.clone(),
+        };
         let item = labels
             .get(hint.item.as_str())
             .and_then(|l| named(&pouch, l));
         let item = item.unwrap_or_else(|| pretty(&hint.item));
-        msbt.set(stone, &[Part::Text(line(rel, &area, &item))])?;
+        let parts = paged(&msbt, &line(rel, &area, &item));
+        msbt.set(stone, &parts)?;
     }
     replace_file(data, &path, &msbt.to_binary())
 }
@@ -114,6 +127,48 @@ fn line(rel: &str, area: &str, item: &str) -> String {
         true => format!("They say that {area}\nhides {item}."),
         false => format!("{area}:\n{item}"),
     }
+}
+
+/// The most characters a stone's box holds on a line. Hints are mostly
+/// Title Case names, wider than vanilla's prose: 64 of them ran past
+/// the bubble live, and 50 keeps inside it (`research/hints.md`).
+const WIDEST: usize = 50;
+/// The lines a stone's box shows at once.
+const PER_PAGE: usize = 2;
+/// The tag vanilla stones turn the page with (a Lost Woods stone's three
+/// pages, `research/hints.md`).
+const PAGE: (u16, u16) = (0, 4);
+
+/// `text`'s lines wrapped to [`WIDEST`], [`PER_PAGE`] to a page, a page
+/// break between pages. A line that fits keeps its one page.
+fn paged(msbt: &Msbt, text: &str) -> Vec<Part> {
+    let lines: Vec<String> = text.lines().flat_map(wrapped).collect();
+    let pages = lines.chunks(PER_PAGE).map(|p| Part::Text(p.join("\n")));
+    let page = msbt.tag(PAGE.0, PAGE.1);
+    let mut parts = Vec::new();
+    for p in pages {
+        if !parts.is_empty() {
+            parts.push(page.clone());
+        }
+        parts.push(p);
+    }
+    parts
+}
+
+/// `line` broken at spaces into lines of at most [`WIDEST`] characters. A
+/// word longer than that keeps a line of its own.
+fn wrapped(line: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in line.split(' ') {
+        match out.last_mut() {
+            Some(last) if last.chars().count() + 1 + word.chars().count() <= WIDEST => {
+                last.push(' ');
+                last.push_str(word);
+            }
+            _ => out.push(word.to_owned()),
+        }
+    }
+    out
 }
 
 /// The stones' labels, sorted.
@@ -155,10 +210,14 @@ mod tests {
     #[test]
     fn every_stone_names_a_hint_in_every_language() {
         let Some(romfs) = dev_dump() else { return };
-        let hints = [Hint {
-            area: flag::KOKIRI_FOREST.to_string(),
+        let hint = |place| Hint {
+            place,
             item: item::HAMMER.to_string(),
-        }];
+        };
+        let hints = [
+            hint(Place::Area(flag::KOKIRI_FOREST.to_string())),
+            hint(Place::Words("Fake Pot 3 (Fake Player)".into())),
+        ];
         let item = crate::names::name_label(&romfs, item::HAMMER).unwrap();
         let labels = HashMap::from([(item::HAMMER.get(), item.unwrap())]);
         let rels = text::archives(&romfs).unwrap();
@@ -168,14 +227,64 @@ mod tests {
             let sarc = Sarc::new(&data).unwrap();
             let lines = messages(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
             let read: Vec<&String> = stones(&lines).iter().map(|s| &lines[*s]).collect();
-            assert!(read.iter().all(|l| *l == read[0]), "{rel}");
+            // The stones take the hints in turn.
+            assert!(read.iter().step_by(2).all(|l| *l == read[0]), "{rel}");
+            assert!(
+                read.iter().skip(1).step_by(2).all(|l| *l == read[1]),
+                "{rel}"
+            );
+            assert!(
+                read[1].starts_with("Fake Pot 3 (Fake Player)") || text::is_english(&rel),
+                "{rel}"
+            );
             if rel.contains("USen") {
                 assert_eq!(
                     read[0],
                     "They say that Kokiri Forest\nhides Megaton Hammer."
                 );
+                assert_eq!(
+                    read[1],
+                    "They say that Fake Pot 3 (Fake Player)\nhides Megaton Hammer."
+                );
             }
         }
+    }
+
+    #[test]
+    fn a_long_line_wraps_at_spaces() {
+        let long = format!("They say that {} (FakePlayer)", "Fake Location ".repeat(6));
+        let lines = wrapped(&long);
+        assert!(
+            lines.iter().all(|l| l.chars().count() <= WIDEST),
+            "{lines:?}"
+        );
+        assert_eq!(lines.join(" "), long);
+        assert_eq!(wrapped("hides Megaton Hammer."), ["hides Megaton Hammer."]);
+    }
+
+    #[test]
+    fn a_stone_too_long_for_its_box_turns_the_page() {
+        let Some(romfs) = dev_dump() else { return };
+        let place = format!("{}(FakePlayer)", "Fake Location ".repeat(4));
+        let hints = [Hint {
+            place: Place::Words(place.clone()),
+            item: item::HAMMER.to_string(),
+        }];
+        let item = crate::names::name_label(&romfs, item::HAMMER).unwrap();
+        let labels = HashMap::from([(item::HAMMER.get(), item.unwrap())]);
+        let rel = (text::archives(&romfs).unwrap().into_iter())
+            .find(|r| r.contains("USen"))
+            .unwrap();
+        let data = language(&romfs.read(&rel).unwrap(), &rel, &hints, &labels).unwrap();
+        let sarc = Sarc::new(&data).unwrap();
+        let msbt = Msbt::parse(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
+        let lines = messages(sarc.get_data(&format!("{FILE}.msbt")).unwrap()).unwrap();
+        let parts = msbt.get(stones(&lines)[0]).unwrap().unwrap();
+        let first = wrapped(&format!("They say that {place}"));
+        assert_eq!(first.len(), PER_PAGE, "the place fills the first page");
+        let first = first.join("\n");
+        let hides = Part::Text("hides Megaton Hammer.".into());
+        assert_eq!(parts, [Part::Text(first), msbt.tag(PAGE.0, PAGE.1), hides]);
     }
 
     #[test]

@@ -2681,6 +2681,7 @@ dependencies = [
  "nup-format",
  "sha2",
  "thiserror 2.0.21",
+ "zbic",
  "zstd",
 ]
 
@@ -6123,6 +6124,10 @@ dependencies = [
  "syn 3.0.10",
  "synstructure",
 ]
+
+[[package]]
+name = "zbic"
+version = "0.9.1"
 
 [[package]]
 name = "zbus"

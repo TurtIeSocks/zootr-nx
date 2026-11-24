@@ -1,4 +1,10 @@
-import { FlaskConical, Globe, type LucideIcon, Pin } from "lucide-react";
+import {
+  FlaskConical,
+  Globe,
+  type LucideIcon,
+  Pin,
+  TriangleAlert,
+} from "lucide-react";
 import type { Summary } from "@/bindings";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +42,8 @@ function TipBadge({ icon: Icon, label, tip, variant = "info" }: TipBadgeProps) {
   );
 }
 
-/** Marks an Archipelago slot, a plando or a test setup. */
+/** Marks an Archipelago slot, a plando, a test setup or a seed for the
+ * base game. */
 export function ExtrasBadges({ entry }: SeedProps) {
   return (
     <>
@@ -60,6 +67,13 @@ export function ExtrasBadges({ entry }: SeedProps) {
           icon={FlaskConical}
           label="Test"
           tip="Built with a test setup: a spawn, items or new-game flags"
+        />
+      )}
+      {entry.release === "1.0.0" && (
+        <TipBadge
+          icon={TriangleAlert}
+          label="1.0.0"
+          tip="Base game (1.0.0) support is experimental and not verified in game"
         />
       )}
     </>

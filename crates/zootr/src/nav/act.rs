@@ -9,12 +9,12 @@ use serde::Serialize;
 
 use ounce_formats::Romfs;
 
-use super::Level;
 use super::drive::{Drive, SLIDE, Sense, TAP_MS};
 use super::graph::{Graph, dist};
 use super::kinds::{self, Act, Blow};
 use super::route;
 use super::went::{Done, Reason, Went};
+use super::{Level, flat_dir};
 use crate::dev::Dev;
 use crate::live::Memory;
 use crate::play::Input;
@@ -85,13 +85,6 @@ impl fmt::Display for Used {
     }
 }
 
-/// The unit vector from `a` to `b`, measured flat.
-fn toward(a: [f32; 3], b: [f32; 3]) -> [f32; 2] {
-    let (dx, dz) = (b[0] - a[0], b[2] - a[2]);
-    let n = dx.hypot(dz).max(1e-3);
-    [dx / n, dz / n]
-}
-
 /// How near a spot to face from the floor at its holder's level must come,
 /// in m. Mido's back chests stop 0.45 m off theirs and still open.
 const FOOTED: f32 = 0.5;
@@ -132,7 +125,7 @@ pub(super) fn stand_from(
             (Some(side), spot)
         }
         Act::Through { stand } => {
-            let [ux, uz] = toward(at, link);
+            let [ux, uz] = flat_dir(at, link);
             (None, [at[0] + ux * stand, at[1], at[2] + uz * stand])
         }
         Act::Over => (None, at),
@@ -174,7 +167,7 @@ impl<S: Sense, I: Input> Drive<'_, S, I> {
     /// push toward a point past it, no A.
     fn through(&mut self, door: [f32; 3], from: [f32; 3]) -> Result<Touch> {
         let map = self.sense.state()?.map;
-        let [ux, uz] = toward(from, door);
+        let [ux, uz] = flat_dir(from, door);
         let past = [door[0] + ux * PAST, door[1], door[2] + uz * PAST];
         self.steer_at(past)?;
         let state = self.sense.state()?;

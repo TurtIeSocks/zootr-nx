@@ -208,34 +208,64 @@ impl<M: Memory> Dev<M> {
     }
 
     /// Write 0 to `a`'s Life until it dies, again on each reset. One that
-    /// never dies gets its Life back, so it isn't left alive at 0.
+    /// never dies gets its Life back, so it isn't left alive at 0, and so
+    /// does one whose fight ends on an error while it's still in the table.
     fn beat(&self, a: &Actor, mut life: Life) -> Result<Fate> {
+        let fight = self.fight(a, &mut life);
+        kept(
+            fight,
+            || self.present(a),
+            || (self.game).write(life.left_at(), &life.most.to_le_bytes()),
+        )
+    }
+
+    /// Whether `a` is still in the actor table, at the same address.
+    fn present(&self, a: &Actor) -> Result<bool> {
+        let table = actors::actors(&self.game, self.main)?;
+        Ok(table.iter().any(|b| b.at == a.at && b.name == a.name))
+    }
+
+    /// `beat` without the Life put back: `life` follows each reset.
+    fn fight(&self, a: &Actor, life: &mut Life) -> Result<Fate> {
         let zero = 0_i32.to_le_bytes();
-        let put_back = |life: &Life| self.game.write(life.left_at(), &life.most.to_le_bytes());
         self.game.write(life.left_at(), &zero)?;
         let start = Instant::now();
         while start.elapsed() < PATIENCE {
             std::thread::sleep(TICK);
-            let table = actors::actors(&self.game, self.main)?;
-            let alive = table.iter().any(|b| b.at == a.at && b.name == a.name);
-            // A failed read isn't a death: the Life goes back before the error.
+            let alive = self.present(a)?;
             let now = match alive {
-                true => a
-                    .life(&self.game, self.main)
-                    .or_else(|e| put_back(&life).and(Err(e)))?,
+                true => a.life(&self.game, self.main)?,
                 false => None,
             };
             match look(alive, self.event()?, now) {
                 Look::Gone => return Ok(Fate::Died),
                 Look::Reset(reset) => {
-                    life = reset;
+                    *life = reset;
                     self.game.write(life.left_at(), &zero)?;
                 }
                 Look::Waiting => {}
             }
         }
-        put_back(&life)?;
         Ok(Fate::NeverWoke)
+    }
+}
+
+/// A fight's fate, with the Life put back unless the enemy died: on giving
+/// up, and on an error once `there` shows the enemy is still in the table,
+/// since its address may be freed otherwise. The error stays the one
+/// reported.
+fn kept(
+    fight: Result<Fate>,
+    there: impl FnOnce() -> Result<bool>,
+    put_back: impl FnOnce() -> Result<()>,
+) -> Result<Fate> {
+    match fight {
+        Ok(Fate::Died) => Ok(Fate::Died),
+        Ok(Fate::NeverWoke) => put_back().map(|()| Fate::NeverWoke),
+        Err(e) => match there().and_then(|there| if there { put_back() } else { Ok(()) }) {
+            Ok(()) => Err(e),
+            Err(p) => Err(e.context(format!("and the Life wasn't put back: {p:#}"))),
+        },
     }
 }
 
@@ -265,6 +295,55 @@ mod tests {
             Target::parse("Enemy_FakeBat"),
             Target::Name("Enemy_FakeBat".into())
         );
+    }
+
+    #[test]
+    fn the_life_goes_back_unless_the_enemy_died() {
+        let back = std::cell::Cell::new(0);
+        let put = || {
+            back.set(back.get() + 1);
+            Ok(())
+        };
+        let there = || Ok(true);
+        assert_eq!(kept(Ok(Fate::Died), there, put).unwrap(), Fate::Died);
+        assert_eq!(back.get(), 0);
+        let gone = || Ok(false);
+        assert_eq!(
+            kept(Ok(Fate::NeverWoke), gone, put).unwrap(),
+            Fate::NeverWoke
+        );
+        assert_eq!(back.get(), 1, "giving up puts it back unchecked");
+        let failed = kept(Err(anyhow::anyhow!("read failed")), there, put).unwrap_err();
+        assert_eq!(back.get(), 2);
+        assert_eq!(failed.to_string(), "read failed");
+    }
+
+    #[test]
+    fn an_error_puts_the_life_back_only_while_the_enemy_is_in_the_table() {
+        let back = std::cell::Cell::new(0);
+        let put = || {
+            back.set(back.get() + 1);
+            Ok(())
+        };
+        let failed = kept(Err(anyhow::anyhow!("read failed")), || Ok(false), put).unwrap_err();
+        assert_eq!(back.get(), 0, "a freed address is never written");
+        assert_eq!(failed.to_string(), "read failed");
+        let unsure = || Err(anyhow::anyhow!("table unreadable"));
+        let failed = kept(Err(anyhow::anyhow!("read failed")), unsure, put).unwrap_err();
+        assert_eq!(back.get(), 0, "an unread table is no proof it's there");
+        assert!(format!("{failed:#}").contains("table unreadable"));
+    }
+
+    #[test]
+    fn a_failed_put_back_keeps_the_first_error() {
+        let failed = kept(
+            Err(anyhow::anyhow!("read failed")),
+            || Ok(true),
+            || Err(anyhow::anyhow!("write failed")),
+        )
+        .unwrap_err();
+        assert_eq!(failed.root_cause().to_string(), "read failed");
+        assert!(format!("{failed:#}").contains("write failed"));
     }
 
     #[test]

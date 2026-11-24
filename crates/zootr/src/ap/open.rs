@@ -10,16 +10,35 @@ use serde::{Deserialize, Serialize};
 
 use super::GAME;
 use super::ids::Ids;
-use super::names;
-use super::seed::{Dealt, base};
+use super::seed::{Dealt, base, named_by_id};
 use crate::foreign::{self, Foreign, Owner};
+use crate::hints::{Hint, Place};
 use crate::ice_traps;
 use crate::known::{Name, item};
 use crate::settings::{IceTraps, Settings};
 use crate::shuffle::Fixed;
 
+/// Refuses a room whose slot data names another world version than the
+/// seed's `version`: its placements may not be the mod's. No commas, since
+/// the page splits a refusal on them.
+pub fn check_room(slot_data: &serde_json::Value, version: &str) -> Result<()> {
+    let room = slot_data["world_version"].as_str().unwrap_or("an unknown");
+    ensure!(
+        room == version,
+        "the room was made with the {room} world but this seed with {version}: install the room's own .apznx"
+    );
+    Ok(())
+}
+
 /// AP's class for a trap.
 const TRAP: &str = "trap";
+
+/// Another slot's check as a stone names it: `<location> (<player>)`,
+/// without control characters. A long one runs onto the stone's next page.
+fn their_place(location: &str, player: &str) -> String {
+    let (location, player) = (foreign::printable(location), foreign::printable(player));
+    format!("{location} ({player})")
+}
 
 /// The item another game's item is a copy of, showing its class's model:
 /// one Link gets once, so it reads as a get of its own.
@@ -48,6 +67,24 @@ pub struct ApSeed {
     pub players: BTreeMap<u32, String>,
     /// By check hash.
     pub placements: BTreeMap<u64, Placed>,
+    /// The stones' hints, in order, with the hints option on. Seeds from
+    /// before them have none.
+    #[serde(default)]
+    pub hints: Vec<ApHint>,
+}
+
+/// One stone's hint: where one of this slot's items is.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ApHint {
+    /// At one of this slot's checks, by hash.
+    Own { item: u64, own: u64 },
+    /// At another slot's location, by its AP names.
+    Theirs {
+        item: u64,
+        player: String,
+        location: String,
+    },
 }
 
 /// What AP put at one check.
@@ -79,6 +116,7 @@ pub struct Resolved {
     pub foreign: Vec<Foreign>,
     /// The start inventory, by actor.
     pub give: Vec<String>,
+    pub hints: Vec<Hint>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,18 +137,27 @@ fn json<T: serde::de::DeserializeOwned>(
 }
 
 impl ApSeed {
-    /// The `.apznx` at `path`. Refuses one from another version, whose
-    /// checks and ids may differ from this one's.
+    /// The `.apznx` at `path`. Refuses one from another version.
     pub fn read(path: &Path) -> Result<Self> {
         let data = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
         let seed = Self::from_zip(&data).with_context(|| format!("reading {}", path.display()))?;
+        seed.check_version()?;
+        Ok(seed)
+    }
+
+    /// Refuses a seed from another version, whose checks and ids may differ
+    /// from this one's. Every path that installs or connects one checks: a
+    /// stored seed (a history reinstall, a share code) never passed [`read`].
+    ///
+    /// [`read`]: Self::read
+    pub fn check_version(&self) -> Result<()> {
         let app = env!("CARGO_PKG_VERSION");
         ensure!(
-            seed.world_version == app,
+            self.world_version == app,
             "a seed from the {} world, and this is zootr-nx {app}: open it with the same version",
-            seed.world_version
+            self.world_version
         );
-        Ok(seed)
+        Ok(())
     }
 
     pub(super) fn from_zip(data: &[u8]) -> Result<Self> {
@@ -129,6 +176,8 @@ impl ApSeed {
             death_link: bool,
             #[serde(default)]
             players: BTreeMap<u32, String>,
+            #[serde(default)]
+            hints: Vec<ApHint>,
         }
         let seed: SeedFile = json(&files, "seed.json")?;
         Ok(Self {
@@ -141,6 +190,7 @@ impl ApSeed {
             death_link: seed.death_link,
             players: seed.players,
             placements: json(&files, "placements.json")?,
+            hints: seed.hints,
         })
     }
 
@@ -163,6 +213,7 @@ impl ApSeed {
     /// The pins, copies and start inventory, checked against the deal: AP
     /// must have placed every check the deal shuffles, and no other.
     pub fn resolve(&self, romfs: &Romfs) -> Result<Resolved> {
+        self.check_version()?;
         let dealt = Dealt::new(romfs, &self.full_settings())?;
         let placed: BTreeSet<u64> = self.placements.keys().copied().collect();
         let missing: Vec<_> = dealt.free.difference(&placed).collect();
@@ -172,10 +223,10 @@ impl ApSeed {
             "the seed doesn't match this version's checks: none placed at {missing:?}, unknown {extra:?}"
         );
         let ids = Ids::load()?;
-        let actors = ids.actors(dealt.actors());
+        let actors = dealt.any_by_id(&ids)?;
         let actor = |id| by_id(&actors, id);
         // Another slot's settings can deal items this slot's never do.
-        let ours = ids.actors(names::named().map(names::same));
+        let ours = named_by_id(&ids);
         let theirs = |id| by_id(&ours, id);
 
         let mut fixed = Fixed::new();
@@ -217,10 +268,30 @@ impl ApSeed {
             .iter()
             .map(|&id| actor(id))
             .collect::<Result<_>>()?;
+        let area = |hash| match dealt.checks.iter().find(|c| c.hash == hash) {
+            Some(c) => Ok(Place::Area(c.area.clone())),
+            None => bail!("a hint names check {hash}, which this version doesn't have"),
+        };
+        let hint = |h: &ApHint| -> Result<Hint> {
+            let (item, place) = match h {
+                ApHint::Own { item, own } => (item, area(*own)?),
+                ApHint::Theirs {
+                    item,
+                    player,
+                    location,
+                } => (item, Place::Words(their_place(location, player))),
+            };
+            Ok(Hint {
+                place,
+                item: actor(*item)?,
+            })
+        };
+        let hints = self.hints.iter().map(hint).collect::<Result<_>>()?;
         Ok(Resolved {
             fixed,
             foreign,
             give,
+            hints,
         })
     }
 }
@@ -236,6 +307,7 @@ fn by_id(table: &HashMap<u64, &str>, id: u64) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ap::names;
     use crate::game::dev_dump;
     use crate::generate::{Extras, generate};
     use crate::progress::Run;
@@ -243,9 +315,16 @@ mod tests {
     /// Slot 1 of a two-slot znx multiworld from AP's `Generate.py`.
     const TWO_SLOTS: &[u8] = include_bytes!("testdata/two_slots.apznx");
 
+    /// [`TWO_SLOTS`], as if this version's world wrote it.
+    fn two_slots() -> ApSeed {
+        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        seed.world_version = env!("CARGO_PKG_VERSION").into();
+        seed
+    }
+
     #[test]
     fn a_seed_from_ap_reads_its_settings_placements_and_players() {
-        let seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let seed = two_slots();
         assert_eq!((seed.slot.as_str(), seed.player), ("Link", 1));
         assert_eq!(seed.settings.get("open-forest"), Some(&true.into()));
         // Written before the DeathLink option: it reads as off.
@@ -280,9 +359,38 @@ mod tests {
     }
 
     #[test]
+    fn a_seed_from_another_version_is_refused_however_it_installs() {
+        let seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let refused = seed.check_version().unwrap_err().to_string();
+        assert!(refused.contains("the 0.4.0 world"), "{refused}");
+        assert!(two_slots().check_version().is_ok());
+        // A history reinstall or a share code builds from the stored seed.
+        let Some(romfs) = dev_dump() else { return };
+        let refused = seed.resolve(&romfs).err().unwrap().to_string();
+        assert!(refused.contains("the 0.4.0 world"), "{refused}");
+    }
+
+    #[test]
+    fn a_room_from_another_world_version_is_refused() {
+        let ours = env!("CARGO_PKG_VERSION");
+        let room = |v: &str| serde_json::json!({ "world_version": v, "settings": {} });
+        assert!(check_room(&room(ours), ours).is_ok());
+        let refused = check_room(&room("0.4.0"), ours).unwrap_err().to_string();
+        assert!(
+            refused.contains("0.4.0") && refused.contains(ours),
+            "{refused}"
+        );
+        assert!(
+            !refused.contains(", "),
+            "the page splits a refusal on commas"
+        );
+        assert!(check_room(&serde_json::json!({}), ours).is_err());
+    }
+
+    #[test]
     fn a_seed_resolves_to_a_pin_for_every_free_check_and_a_copy_per_item_and_player() {
         let Some(romfs) = dev_dump() else { return };
-        let seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let seed = two_slots();
         let resolved = seed.resolve(&romfs).unwrap();
         assert!(resolved.fixed.keys().eq(seed.placements.keys()));
         let copies: BTreeSet<_> = (resolved.fixed.values())
@@ -303,7 +411,7 @@ mod tests {
     #[test]
     fn our_item_from_another_slot_shows_itself_though_this_slot_lacks_it() {
         let Some(romfs) = dev_dump() else { return };
-        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut seed = two_slots();
         // The fixture deals no medallions: only another slot's settings could.
         let medal = crate::known::item::MEDAL_LIGHT.get();
         let id = Ids::load().unwrap().item_id(medal).unwrap();
@@ -320,9 +428,56 @@ mod tests {
     }
 
     #[test]
+    fn another_slot_s_place_drops_control_characters() {
+        assert_eq!(
+            their_place(" Fake Pot\u{e} 3", "Zel\u{e}da"),
+            "Fake Pot 3 (Zelda)"
+        );
+    }
+
+    #[test]
+    fn hints_name_link_s_own_checks_by_area_and_another_slot_s_by_name() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = two_slots();
+        // Written before hints, the fixture has none.
+        assert!(seed.resolve(&romfs).unwrap().hints.is_empty());
+        let own = |(&hash, p): (&u64, &Placed)| match p {
+            Placed::Own(id) => Some((hash, *id)),
+            Placed::Foreign(_) => None,
+        };
+        let (own, item) = seed.placements.iter().find_map(own).unwrap();
+        let location = "Fake Pot 3".to_string();
+        let player = "Zelda".to_string();
+        seed.hints = vec![
+            ApHint::Own { item, own },
+            ApHint::Theirs {
+                item,
+                player,
+                location,
+            },
+        ];
+        let resolved = seed.resolve(&romfs).unwrap();
+        let dealt = Dealt::new(&romfs, &seed.full_settings()).unwrap();
+        let area = dealt
+            .checks
+            .iter()
+            .find(|c| c.hash == own)
+            .unwrap()
+            .area
+            .clone();
+        let item = resolved.fixed[&own].clone();
+        let words = Place::Words("Fake Pot 3 (Zelda)".into());
+        let want = [(Place::Area(area), &item), (words, &item)].map(|(place, item)| Hint {
+            place,
+            item: item.clone(),
+        });
+        assert_eq!(resolved.hints, want);
+    }
+
+    #[test]
     fn another_game_s_items_show_their_class_s_model() {
         let Some(romfs) = dev_dump() else { return };
-        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut seed = two_slots();
         let classes = ["progression", "useful", "filler", "trap"];
         for (placed, class) in seed.placements.values_mut().zip(classes) {
             *placed = Placed::Foreign(ForeignItem {
@@ -354,7 +509,7 @@ mod tests {
     #[test]
     fn a_seed_with_traps_holds_link_s_own_and_gives_the_room_s() {
         let Some(romfs) = dev_dump() else { return };
-        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut seed = two_slots();
         let trap = crate::ice_traps::POOLED;
         let without = seed.resolve(&romfs).unwrap();
         assert!(!without.foreign.iter().any(|f| f.actor == trap));
@@ -377,7 +532,7 @@ mod tests {
         let received = resolved.foreign.iter().find(|f| f.actor == trap).unwrap();
         assert!(matches!(received.owner, Owner::Trap { .. }));
         // The received notice names it: the trap's own name, not a disguise.
-        let named = crate::key_tints::label(trap);
+        let named = crate::copies::label(trap);
         let captions = foreign::captions(&resolved.foreign);
         let name = captions.new.iter().find(|l| l.label == named).unwrap();
         assert!(matches!(&name.says, crate::text::Says::Text(t) if t == crate::ice_traps::NAME));
@@ -389,7 +544,7 @@ mod tests {
 
     /// What `extras` installs from `seed` with the fixture's settings.
     fn installed(romfs: &Romfs, seed: u64, extras: &Extras) -> crate::generate::Report {
-        let settings = ApSeed::from_zip(TWO_SLOTS).unwrap().full_settings();
+        let settings = two_slots().full_settings();
         let dir = std::env::temp_dir().join(format!("zootr-ap-{}-{seed}", std::process::id()));
         let report = generate(romfs, &dir, seed, &settings, extras, &Run::silent()).unwrap();
         std::fs::remove_dir_all(dir).unwrap();
@@ -399,7 +554,7 @@ mod tests {
     #[test]
     fn a_seed_from_ap_always_installs_the_same_mod_with_its_items_for_others() {
         let Some(romfs) = dev_dump() else { return };
-        let ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let ap = two_slots();
         let extras = Extras::ap(ap.clone());
         let report = installed(&romfs, ap.seed, &extras);
         assert_eq!(report, installed(&romfs, ap.seed, &extras));
@@ -423,7 +578,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let shuffled = installed(&romfs, 7, &Extras::default());
         let ids = Ids::load().unwrap();
-        let mut ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut ap = two_slots();
         let free = Dealt::new(&romfs, &ap.full_settings()).unwrap().free;
         ap.placements = (shuffled.spots.iter())
             .filter(|s| free.contains(&s.hash))
@@ -447,7 +602,7 @@ mod tests {
     #[test]
     fn a_seed_from_ap_refuses_shuffled_dungeon_entrances() {
         let Some(romfs) = dev_dump() else { return };
-        let ap = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let ap = two_slots();
         let mut settings = ap.full_settings();
         let on = serde_json::Value::String("on".into());
         settings.insert(crate::settings::DUNGEON_ENTRANCES.into(), on);
@@ -469,9 +624,19 @@ mod tests {
     }
 
     #[test]
+    fn a_start_item_outside_the_pool_is_given() {
+        let Some(romfs) = dev_dump() else { return };
+        let mut seed = two_slots();
+        // The fixture deals no medallions: only AP's start inventory could.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        seed.start = vec![Ids::load().unwrap().item_id(medal).unwrap()];
+        assert_eq!(seed.resolve(&romfs).unwrap().give, [medal]);
+    }
+
+    #[test]
     fn a_seed_missing_a_check_is_refused() {
         let Some(romfs) = dev_dump() else { return };
-        let mut seed = ApSeed::from_zip(TWO_SLOTS).unwrap();
+        let mut seed = two_slots();
         seed.placements.pop_first();
         let refused = seed.resolve(&romfs).err().unwrap().to_string();
         assert!(refused.contains("none placed at"), "{refused}");

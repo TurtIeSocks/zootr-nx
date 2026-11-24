@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
-import { commands, type SettingDef } from "@/bindings";
+import { type BuiltIn, commands, type SettingDef } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { type FullConfig, full, testOn } from "@/lib/config";
 import { type Patch, patched } from "@/lib/settings";
@@ -20,6 +20,8 @@ export interface Group {
 export interface ConfigState {
   /** Every setting the randomizer has, in order. */
   schema: SettingDef[];
+  /** The favorites that come with the app. */
+  builtIns: BuiltIn[];
   /** The saved config, with every field filled in. */
   config: FullConfig;
   /** The config has been read once. */
@@ -37,6 +39,7 @@ export const useConfig = create<ConfigState>()(
   dotPath(
     (): ConfigState => ({
       schema: [],
+      builtIns: [],
       config: full({}),
       loaded: false,
       groups: [],
@@ -86,6 +89,7 @@ export async function reload() {
 const started = once(async () => {
   try {
     useConfig.setPath("schema", await commands.schema());
+    useConfig.setPath("builtIns", await commands.builtInFavorites());
   } catch (e) {
     useConfig.setPath("error", message(e));
   }

@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  alreadyRunning,
   blocked,
   DUMP_GONE,
   type FullTest,
@@ -7,6 +8,7 @@ import {
   NEED_DUMP,
   NEED_TARGET,
   NO_TEST,
+  playBlocked,
   testParts,
 } from "@/lib/config";
 
@@ -45,4 +47,11 @@ test("a test setup reads as where it starts and what it adds", () => {
       defaults: ["X=1", "Y=2"],
     }),
   ).toBe("5 items · 2 flags");
+});
+
+test("play waits for a target that isn't running", () => {
+  expect(playBlocked(undefined, false)).toBe(NEED_TARGET);
+  expect(playBlocked("PC", true)).toBe(alreadyRunning("PC"));
+  expect(alreadyRunning("PC")).toBe("PC is already running");
+  expect(playBlocked("PC", false)).toBe("");
 });

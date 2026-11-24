@@ -17,6 +17,7 @@
     "default": false,
     "description": "Link starts having met Zelda, with her letter in hand, and Talon and Malon back at Lon Lon Ranch. Her letter's check holds the letter. Impa's check comes at the start (Zelda's Lullaby, unless Songs are shuffled), and Malon's does too when NPC gifts are shuffled. Zelda's Letter and the Weird Egg have been removed from the pool",
     "id": "met-zelda",
+    "joint": 0,
     "kind": "toggle",
     "label": "Met Zelda"
   },
@@ -64,6 +65,7 @@
     "default": "normal",
     "description": "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
     "id": "gerudo-fortress",
+    "joint": 0,
     "kind": "choice",
     "label": "Gerudo Fortress",
     "options": [
@@ -88,6 +90,7 @@
     "default": false,
     "description": "What people hand over becomes a check: their gifts, minigame prizes, the House of Skulltula's rewards and the Great Fairies' upgrades",
     "id": "npc-gifts",
+    "joint": 0,
     "kind": "toggle",
     "label": "NPC Gifts"
   },
@@ -193,6 +196,7 @@
     "default": false,
     "description": "Each of the eight cows gives a check once, for Epona's Song. After that it gives milk, which still needs a bottle",
     "id": "cows",
+    "joint": 0,
     "kind": "toggle",
     "label": "Cows"
   },
@@ -427,8 +431,33 @@
     "default": true,
     "description": "Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size",
     "id": "progressive-items",
+    "joint": 1,
     "kind": "toggle",
     "label": "Progressive Items"
+  },
+  {
+    "default": false,
+    "description": "The Small Nut Bag is an item in the pool, and Link holds no Deku Nuts until he finds it. Off, the first nut he picks up brings it, as in the game",
+    "id": "shuffle-nut-bag",
+    "joint": 1,
+    "kind": "toggle",
+    "label": "Shuffle the Nut Bag"
+  },
+  {
+    "default": false,
+    "description": "The Small Stick Bag is an item in the pool, and Link holds no Deku Sticks until he finds it. Off, the first stick he picks up brings it, as in the game",
+    "id": "shuffle-stick-bag",
+    "joint": 1,
+    "kind": "toggle",
+    "label": "Shuffle the Stick Bag"
+  },
+  {
+    "default": false,
+    "description": "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
+    "id": "magic-with-first-item",
+    "joint": 1,
+    "kind": "toggle",
+    "label": "Magic Comes with the First Magic Item"
   },
   {
     "default": "glitchless",
@@ -518,6 +547,7 @@
     "default": false,
     "description": "King Zora has read Ruto's letter and stands aside for child Link, as he does once he's shown it. Ruto's Letter becomes an empty bottle, shuffled from its spot at the bottom of the lake",
     "id": "king-zora-moved",
+    "joint": 0,
     "kind": "toggle",
     "label": "King Zora Moved"
   },
@@ -627,6 +657,13 @@
     "id": "no-pickup-texts",
     "kind": "toggle",
     "label": "No Pickup Texts"
+  },
+  {
+    "default": false,
+    "description": "Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk",
+    "id": "hints",
+    "kind": "toggle",
+    "label": "Gossip Stone Hints"
   },
   {
     "default": [

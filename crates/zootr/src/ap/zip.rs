@@ -58,21 +58,27 @@ pub fn files(data: &[u8]) -> Result<HashMap<String, Vec<u8>>> {
             .context("the zip ends early")?;
         let file = match method {
             0 => raw.to_vec(),
-            8 => {
-                // The sizes come from the file: deflate packs at most 1032 to
-                // one, and one byte past `size` is enough to call it wrong.
-                let mut file = Vec::with_capacity(size.min(raw.len().saturating_mul(1032)));
-                flate2::read::DeflateDecoder::new(raw)
-                    .take(size as u64 + 1)
-                    .read_to_end(&mut file)?;
-                file
-            }
+            // Deflate packs at most 1032 to one.
+            8 => read_capped(
+                flate2::read::DeflateDecoder::new(raw),
+                size,
+                raw.len().saturating_mul(1032),
+            )?,
             m => bail!("{name} is packed with method {m}, which isn't read"),
         };
         ensure!(file.len() == size, "{name} unpacked to the wrong size");
         out.insert(name, file);
     }
     Ok(out)
+}
+
+/// Read `from` up to one byte past `size`. The sizes come from the file,
+/// so a lying one stops there, which is enough to call it wrong, instead
+/// of filling memory. `most` bounds what's reserved up front.
+fn read_capped(from: impl Read, size: usize, most: usize) -> Result<Vec<u8>> {
+    let mut file = Vec::with_capacity(size.min(most));
+    from.take(size as u64 + 1).read_to_end(&mut file)?;
+    Ok(file)
 }
 
 #[cfg(test)]
@@ -137,8 +143,18 @@ mod tests {
     }
 
     #[test]
-    fn a_cut_short_zip_is_refused() {
+    fn a_zip_pointing_past_its_end_is_refused() {
         let zip = one_file(0, b"hi", 2);
+        let directory = zip.len() - 22 - 47;
+        let past = u32::try_from(zip.len()).unwrap().to_le_bytes();
+        // The directory, a packed size and a local header, each past the end.
+        for at in [zip.len() - 6, directory + 20, directory + 42] {
+            let mut bad = zip.clone();
+            bad[at..at + 4].copy_from_slice(&past);
+            let message = format!("{:#}", files(&bad).unwrap_err());
+            assert!(message.contains("ends early"), "field at {at}: {message}");
+        }
+        // Cut anywhere, the end record goes with it.
         for len in 0..zip.len() {
             assert!(files(&zip[..len]).is_err(), "cut at {len}");
         }
@@ -147,6 +163,30 @@ mod tests {
     #[test]
     fn a_file_that_unpacks_past_its_size_is_refused() {
         let zip = one_file(8, &deflate(&[7u8; 4096]), 10);
-        assert!(files(&zip).is_err());
+        let message = format!("{:#}", files(&zip).unwrap_err());
+        assert!(message.contains("wrong size"), "{message}");
+    }
+
+    /// Endless sevens, failing once asked for more than `most`.
+    struct Endless {
+        given: usize,
+        most: usize,
+    }
+
+    impl Read for Endless {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            self.given += buf.len();
+            if self.given > self.most {
+                return Err(std::io::Error::other("read past the cap"));
+            }
+            buf.fill(7);
+            Ok(buf.len())
+        }
+    }
+
+    #[test]
+    fn a_read_stops_one_byte_past_its_size() {
+        let file = read_capped(Endless { given: 0, most: 11 }, 10, usize::MAX).unwrap();
+        assert_eq!(file.len(), 11);
     }
 }

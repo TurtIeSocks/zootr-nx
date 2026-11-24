@@ -238,7 +238,8 @@ pub(super) fn photo(
 /// The installed seed, as the app's history names it, if any.
 fn installed() -> Result<Option<String>> {
     let history = History::load()?;
-    Ok(match history.installed.map(|id| (id, history.get(id))) {
+    let id = history.installed().id;
+    Ok(match id.map(|id| (id, history.get(id))) {
         Some((id, Ok(e))) if !e.label.name.is_empty() => Some(format!("#{id}, {}", e.label.name)),
         Some((id, _)) => Some(format!("#{id}")),
         None => None,

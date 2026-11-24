@@ -2,7 +2,8 @@
 //! base game, its updates and its add-ons in one file.
 //!
 //! Written from the format's SPEC.md, v1. Read only, and the per-package meta
-//! TLV block is not read (see the README).
+//! TLV block is not read (see the README). [`nso`] reads the executables an
+//! exefs holds.
 
 use std::fs;
 use std::io::{self, BufReader, Read, Write};
@@ -12,6 +13,8 @@ use sha2::{Digest, Sha256};
 
 #[cfg(feature = "fixture")]
 pub mod fixture;
+mod lz4;
+pub mod nso;
 
 const MAGIC: [u8; 4] = *b"NUP\x01";
 const TOC_MAGIC: [u8; 4] = *b"TOC\x01";
@@ -393,13 +396,20 @@ impl Nup {
                 return Err(corrupt("name is not UTF-8"));
             }
         }
+        // No two child ranges share a slot, and each node is listed once at
+        // most and a root never, so the tree is a tree: no node is reached
+        // twice and MAX_DEPTH only caps depth.
+        let mut covered = vec![false; self.children.len()];
         for d in &self.dirs {
-            if u64::from(d.first) + u64::from(d.count) > self.children.len() as u64 {
+            let range = (d.first as usize).checked_add(d.count as usize);
+            let Some(slots) = range.and_then(|end| covered.get_mut(d.first as usize..end)) else {
                 return Err(corrupt("child range out of bounds"));
+            };
+            if slots.iter().any(|&c| c) {
+                return Err(corrupt("child ranges overlap"));
             }
+            slots.fill(true);
         }
-        // Each node is listed once at most and a root never, so the tree is
-        // a tree: no node is reached twice and MAX_DEPTH only caps depth.
         let mut listed = vec![false; self.dirs.len() + self.files.len()];
         for p in &self.packages {
             listed[p.root.0 as usize] = true;

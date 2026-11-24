@@ -142,15 +142,7 @@ interface CopySeedProps
 /** Copies the share code: the seed with its settings, for a friend to build
  * the same mod. */
 export function CopySeed({ entry, ...props }: CopySeedProps) {
-  const { copied, flash } = useCopied();
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(entry.share);
-      flash("share");
-    } catch {
-      // No clipboard to write to.
-    }
-  };
+  const { copied, copy } = useCopied();
   return (
     <TipButton
       {...props}
@@ -160,7 +152,7 @@ export function CopySeed({ entry, ...props }: CopySeedProps) {
           ? "Copied"
           : `Copy seed ${entry.seed} with its settings, for New seed`
       }
-      onClick={copy}
+      onClick={() => void copy("share", entry.share)}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
     </TipButton>

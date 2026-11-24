@@ -3,7 +3,7 @@ use ounce_formats::{BymlDoc, Flowchart, Link, murmur3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use super::write::flows_alone as flows;
+use super::write::flows_alone;
 use super::*;
 use crate::checks::{self, Drop};
 use crate::events::Flows;
@@ -107,7 +107,7 @@ fn a_run_reports_every_step_in_order() {
             heard.lock().unwrap().push(*step);
         }
     });
-    let romfs = crate::game::prepare(path, &run).unwrap();
+    let romfs = crate::game::prepare(path, None, &run).unwrap();
     let dir = Scratch::new("steps-run");
     generate(&romfs, &dir, 7, &Settings::new(), &Extras::default(), &run).unwrap();
     use Step::*;
@@ -151,7 +151,7 @@ fn grants_land_on_top_of_the_intro_skip() {
     let rel = crate::flows::rel(starting::OPENING);
     let parse = |r: &Rewrites| Flowchart::parse(&r[&rel]).unwrap().unwrap();
     let all = Flows::load(&romfs).unwrap();
-    let flows = |new_game: &NewGame| flows(&romfs, &all, new_game, &HashMap::new());
+    let flows = |new_game: &NewGame| flows_alone(&romfs, &all, new_game, &HashMap::new());
     let skipped = parse(&flows(&new_game).unwrap().0);
     assert_ne!(
         skipped,
@@ -204,7 +204,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
     };
     let card = HashMap::from([(1, Drop::from(gerudo::CARD.to_string()))]);
     let all = Flows::load(&romfs).unwrap();
-    let (rewrites, _) = flows(&romfs, &all, &new_game, &card).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &new_game, &card).unwrap();
     for name in [starting::OPENING, flow::GET_POUCH_CONTENT, flow::NPC_COMMON] {
         let data = &rewrites[&crate::flows::rel(name)];
         let flow = Flowchart::parse(data).unwrap().unwrap();
@@ -216,7 +216,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
         magic_with_first_item: true,
         ..Default::default()
     };
-    let (rewrites, _) = flows(&romfs, &all, &plain, &HashMap::new()).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &plain, &HashMap::new()).unwrap();
     assert!(!rewrites.contains_key(&crate::flows::rel(flow::GET_POUCH_CONTENT)));
 }
 
@@ -240,7 +240,7 @@ fn every_seed_gets_the_dev_branches() {
     };
     let all = Flows::load(&romfs).unwrap();
     let banc = crate::flows::rel(scene::SY_BANC_CHANGE_GO);
-    let (rewrites, _) = flows(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
+    let (rewrites, _) = flows_alone(&romfs, &all, &NewGame::default(), &HashMap::new()).unwrap();
     let give = zootr_hook::ARG_GIVE;
     assert!(
         rewrites[&banc].windows(give.len()).any(|w| w == give),
@@ -326,10 +326,7 @@ fn cows_are_checks_and_bools_only_with_the_option_on() {
             .unwrap()
             .len()
     };
-    let written = |dir: &Path| {
-        let raw = std::fs::read(dir.join("romfs").join(gamedata::PATH)).unwrap();
-        bools(&romfs.dicts().decompress(gamedata::PATH, &raw).unwrap())
-    };
+    let written = |dir: &Path| bools(&crate::game::read_built(&romfs, dir, gamedata::PATH));
     let clone = |dir: &Path| dir.join("romfs/Pack/Actor/Animal_Cow_Rando_00.pack.zs");
     let on = NewGame {
         cows: true,
@@ -665,8 +662,7 @@ fn the_medallion_bridge_starts_armed_and_keeps_its_step() {
             .join(crate::flows::rel(flow::ALL_SAGE))
             .is_file()
     );
-    let raw = std::fs::read(dir.join("romfs").join(gamedata::PATH)).unwrap();
-    let data = romfs.dicts().decompress(gamedata::PATH, &raw).unwrap();
+    let data = crate::game::read_built(&romfs, &dir, gamedata::PATH);
     let mut doc = BymlDoc::parse(&data).unwrap();
     assert!(
         bridge::need_medallions(&mut doc.root).is_err(),
@@ -730,6 +726,34 @@ fn hints_fill_every_stone_only_with_the_option_on() {
     .unwrap();
     let vanilla = stones(&dir.join("b")).unwrap_or_default();
     assert!(!vanilla.iter().any(|l| l.starts_with("They say that ")));
+    // An AP seed's stones name only the hints it was given.
+    let given = |hints: Vec<hints::Hint>, out: &str| {
+        let new_game = NewGame {
+            given_hints: Some(hints),
+            ..on.clone()
+        };
+        shuffle(
+            &romfs,
+            &dir.join(out),
+            7,
+            &Fixed::new(),
+            &new_game,
+            &Run::silent(),
+        )
+        .unwrap();
+        stones(&dir.join(out)).unwrap_or_default()
+    };
+    let words = hints::Place::Words("Fake Pot 3 (Fake Player)".into());
+    let hint = hints::Hint {
+        place: words,
+        item: item::HAMMER.to_string(),
+    };
+    let read = given(vec![hint], "c");
+    assert_eq!(read.len(), hints::STONES);
+    let line = "They say that Fake Pot 3 (Fake Player)\nhides Megaton Hammer.";
+    assert!(read.iter().all(|l| l == line), "{read:?}");
+    let none = given(vec![], "d");
+    assert!(!none.iter().any(|l| l.starts_with("They say that ")));
 }
 
 #[test]
@@ -760,7 +784,7 @@ fn line_chests_hold_their_first_level_and_no_swap() {
             .iter()
             .find(|a| checks::hash_of(a) == Some(chest.hash))
             .unwrap();
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[crate::checks::DYNAMIC];
         let fields = [checks::DROP_ACTOR, checks::CHECK_ACTOR, checks::SUBSTITUTE];
         let [drop, check, substitute] = fields.map(|k| checks::str_field(dynamic, k));
         assert_eq!((check, substitute), (None, None), "{}", chest.file);
@@ -796,24 +820,20 @@ fn a_pickup_holding_a_major_item_drops_its_stand_in() {
     ]);
     let report = shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
     let rel = crate::gamedata::PATH;
-    let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-    let gd =
-        crate::gamedata::GameData::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+    let gd = crate::gamedata::GameData::parse(&crate::game::read_built(&romfs, &dir, rel)).unwrap();
     for check in [pot, skulltula] {
-        let raw = std::fs::read(dir.join("romfs").join(&check.file)).unwrap();
-        let raw = romfs.dicts().decompress(&check.file, &raw).unwrap();
+        let raw = crate::game::read_built(&romfs, &dir, &check.file);
         let doc = BymlDoc::parse(&raw).unwrap();
         let actors = checks::actors(&doc.root).unwrap();
         let actor = actors
             .iter()
             .find(|a| checks::hash_of(a) == Some(check.hash))
             .unwrap();
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[crate::checks::DYNAMIC];
         let drop = checks::str_field(dynamic, checks::DROP_ACTOR).unwrap();
         assert!(drop.starts_with("Obj_Rando_"), "{}: {drop}", check.holder);
         let rel = standins::POUCH_ACTOR_INFO;
-        let raw = std::fs::read(dir.join("romfs").join(rel)).unwrap();
-        let pouch = BymlDoc::parse(&romfs.dicts().decompress(rel, &raw).unwrap()).unwrap();
+        let pouch = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, rel)).unwrap();
         standins::row(&pouch, drop).unwrap();
         // Its take ticks it without the hook: the stand-in's Bool, read by
         // every gate through the holder's BoolExp, and by the tracker.
@@ -911,7 +931,7 @@ fn blue_warps_keep_age_with_the_adult_deku_tree() {
     let all = Flows::load(&romfs).unwrap();
     let rel = crate::flows::rel(crate::blue_warps::FLOW);
     let warp = |new_game: &NewGame| {
-        let (rewrites, _) = flows(&romfs, &all, new_game, &HashMap::new()).unwrap();
+        let (rewrites, _) = flows_alone(&romfs, &all, new_game, &HashMap::new()).unwrap();
         rewrites.get(&rel).cloned()
     };
     let mut new_game = NewGame::default();

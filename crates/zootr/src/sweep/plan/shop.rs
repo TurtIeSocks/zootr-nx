@@ -4,7 +4,8 @@
 use anyhow::Result;
 
 use super::landing::{across_from, flat};
-use super::{Planner, Ready, Steps, Trigger, quests, step_of};
+use super::quest::{quests, step_of};
+use super::{Planner, Ready, Steps, Trigger};
 use crate::gates::{Atom, Expr};
 use crate::generate::Spot;
 use crate::gifts;

@@ -3,7 +3,7 @@ import { commands } from "@/bindings";
 import { Palette, type PaletteGroup } from "@/components/palette/palette";
 import { usePaletteKey } from "@/components/palette/use-palette-key";
 import { message } from "@/lib/api";
-import { NEED_TARGET } from "@/lib/config";
+import { playBlocked } from "@/lib/config";
 import { generateTyped } from "@/play/generate";
 import {
   actions,
@@ -84,11 +84,7 @@ function useHits(): Hit[] {
         generating,
         busy,
         picked,
-        cantPlay: !picked
-          ? NEED_TARGET
-          : running
-            ? `${picked} is already running`
-            : "",
+        cantPlay: playBlocked(picked, running),
         stale: stale(build),
         theme,
         generate: (install) =>

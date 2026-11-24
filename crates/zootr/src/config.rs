@@ -50,6 +50,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "specta", specta(type = BTreeMap<String, BTreeMap<String, String>>))]
     pub plandos: BTreeMap<String, Fixed>,
+    /// Setting sets kept by name, newest first.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub favorites: Vec<crate::settings::favorites::Favorite>,
     /// The Items tab's look. The UI sets it through its own command, so
     /// it's left out of the UI's config.
     #[cfg_attr(feature = "specta", specta(skip))]
@@ -198,12 +201,11 @@ impl Target {
 
     /// Whether the game is running: answering on its bridge when it has
     /// one, since `app` may only launch it under another name, else a
-    /// process started from `app`'s path.
+    /// process started from `app`'s path. A socket another build shares
+    /// counts only with a process in this build ([`Target::running_among`]).
     pub fn running(&self) -> bool {
-        match &self.bridge {
-            Some(socket) => crate::live::Bridge::listening(socket),
-            None => platform::running(&self.app),
-        }
+        let all = Config::load_all().map(|c| c.targets).unwrap_or_default();
+        self.running_among(&all, Path::new(platform::PROC))
     }
 
     /// `args` with `{game}` filled in.
@@ -394,9 +396,10 @@ impl Target {
         }
     }
 
-    /// `name`, or `name 2`, `name 3` and so on until no target has it.
-    pub fn unique_name(&self, taken: &[Target]) -> String {
-        let free = |n: &str| !taken.iter().any(|t| t.name == n);
+    /// `name`, or `name 2`, `name 3` and so on until none of `taken` has it.
+    pub fn unique_name<'a>(&self, taken: impl IntoIterator<Item = &'a Target>) -> String {
+        let taken: Vec<&str> = taken.into_iter().map(|t| t.name.as_str()).collect();
+        let free = |n: &str| !taken.contains(&n);
         let name = self.name.trim();
         if free(name) {
             return name.to_owned();
@@ -484,6 +487,9 @@ impl Config {
         }
         let mut config: Self = serde_json::from_value(json)?;
         crate::settings::upgrade(&mut config.settings);
+        for f in &mut config.favorites {
+            crate::settings::upgrade(&mut f.settings);
+        }
         config.fix_mods_roots();
         Ok(config)
     }
@@ -492,10 +498,7 @@ impl Config {
     /// other games' included: [`Config::save`] drops another game's target
     /// that shares a name with one of this config's.
     pub fn add_imported(&mut self, mut target: Target, saved: &Config) -> String {
-        let taken: Vec<Target> = (self.targets.iter().chain(&saved.targets))
-            .cloned()
-            .collect();
-        target.name = target.unique_name(&taken);
+        target.name = target.unique_name(self.targets.iter().chain(&saved.targets));
         let name = target.name.clone();
         self.targets.push(target);
         name
@@ -718,9 +721,9 @@ mod tests {
             bridge: Some(path.clone()),
             ..target("a", None)
         };
-        assert!(!t.running());
+        assert!(!t.running_among(&[], Path::new("/nowhere/proc")));
         let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
-        assert!(t.running());
+        assert!(t.running_among(&[], Path::new("/nowhere/proc")));
         drop(listener);
         std::fs::remove_file(&path).unwrap();
     }

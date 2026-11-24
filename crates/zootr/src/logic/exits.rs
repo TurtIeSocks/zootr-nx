@@ -63,12 +63,11 @@ pub(super) fn edges(
             }
             _ => (e.to.as_str(), None),
         };
-        let mut need = match e.presence.as_str() {
-            // Flags only ever get set, so an exit open while one is unset
-            // stays open.
-            "-" => Need::Always,
-            flag if flag.starts_with('!') => Need::Always,
-            flag => Need::Flag(flag.into()),
+        let mut need = match &e.presence {
+            Some(p) if !p.negated => Need::Flag(p.flag.clone()),
+            // No gate, or one there while its flag is unset: flags only
+            // ever get set, so such an exit is open from the start.
+            _ => Need::Always,
         };
         if let Some(rule) = rule_of(&e.from, &e.to) {
             ruled.insert((rule.from.as_str(), rule.to.as_str()));
@@ -127,7 +126,10 @@ pub(super) fn edges(
                     .with_context(|| format!("no place {}", rule.to))?,
             };
             edges.push(Edge {
-                from: Some(at(&rooms.leave(&rule.from, &rule.to, "-")?, era)?),
+                from: Some(at(
+                    &rooms.leave(&rule.from, &rule.to, world::NO_START_POS)?,
+                    era,
+                )?),
                 to: at(&rule.to, to_era)?,
                 need: need.clone(),
             });

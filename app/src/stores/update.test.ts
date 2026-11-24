@@ -1,12 +1,18 @@
-import { getVersion } from "@tauri-apps/api/app";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { commands } from "@/bindings";
 import { full } from "@/lib/config";
 import { useConfig } from "@/stores/config";
 import { useUi } from "@/stores/ui";
 import { checkNow, init, useUpdate } from "@/stores/update";
 
-vi.mock("@tauri-apps/api/app", () => ({
-  getVersion: vi.fn(async () => "0.1.0"),
+vi.mock("@/bindings", () => ({
+  commands: {
+    buildInfo: vi.fn(async () => ({
+      version: "0.1.0",
+      commit: "abc1234",
+      release: false,
+    })),
+  },
 }));
 vi.mock("@/stores/config", async (original) => ({
   ...(await original<typeof import("@/stores/config")>()),
@@ -36,9 +42,18 @@ test("a newer release is kept, with this build's version", async () => {
   expect(useUpdate.getState().current).toBe("0.1.0");
 });
 
+test("a source build keeps its commit and still hears of a release", async () => {
+  await init();
+  expect(useUpdate.getState()).toMatchObject({
+    commit: "abc1234",
+    release: false,
+    latest: { version: "0.2.0" },
+  });
+});
+
 test("a version it can't read leaves the version blank and offers nothing", async () => {
   vi.spyOn(console, "debug").mockImplementation(() => {});
-  vi.mocked(getVersion).mockRejectedValueOnce(new Error("no Tauri"));
+  vi.mocked(commands.buildInfo).mockRejectedValueOnce(new Error("no Tauri"));
   await init();
   expect(useUpdate.getState().current).toBeNull();
   expect(useUpdate.getState().latest).toBeNull();

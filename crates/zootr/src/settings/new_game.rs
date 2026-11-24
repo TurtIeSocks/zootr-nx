@@ -110,6 +110,9 @@ pub struct NewGame {
     /// Every slot's name by number, in an AP seed, for received items'
     /// notices.
     pub players: std::collections::BTreeMap<u32, String>,
+    /// The stones' hints AP picked, in an AP seed that has them: the seed
+    /// picks none of its own.
+    pub given_hints: Option<Vec<crate::hints::Hint>>,
 }
 
 impl NewGame {
@@ -253,6 +256,7 @@ impl NewGame {
             ints: vec![],
             foreign: vec![],
             players: Default::default(),
+            given_hints: None,
         })
     }
 }
@@ -269,6 +273,7 @@ fn choice_edits(
     met_zelda: bool,
 ) -> Vec<String> {
     [
+        presets::softlocks(),
         keys::defaults(
             keys == DungeonKeys::Start,
             fortress_keys == FortressKeys::Start,
@@ -383,11 +388,11 @@ mod tests {
         assert!(new_game.defaults.contains(&nuts), "{:?}", new_game.defaults);
     }
 
-    /// What the default-on presets add, then `edits`.
+    /// What the default-on presets add, the softlock fixes, then `edits`.
     fn with_defaults(edits: &[&str]) -> Vec<String> {
         let on: Vec<String> = presets::DEFAULT_ON.map(String::from).into();
         let edits: Vec<String> = edits.iter().map(|&e| e.into()).collect();
-        presets::expand(&on, &edits).unwrap()
+        presets::expand(&on, &[presets::softlocks(), edits].concat()).unwrap()
     }
 
     /// `with_defaults`, with `keys` and then `edits` after the presets.
@@ -396,6 +401,18 @@ mod tests {
         out.extend(keys.iter().cloned());
         out.extend(edits.iter().map(|&e| e.to_owned()));
         out
+    }
+
+    /// The Deku Tree's slingshot room starts solved, its plank down, so
+    /// Link without a slingshot or bow isn't trapped there.
+    #[test]
+    fn every_new_game_starts_the_slingshot_room_solved() {
+        let game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
+        let solved = format!(
+            "{}=true",
+            crate::known::flag::INSIDE_THE_DEKU_TREE_ROOM_C_CLEARED
+        );
+        assert!(game.defaults.contains(&solved), "{:?}", game.defaults);
     }
 
     #[test]
@@ -457,6 +474,7 @@ mod tests {
                 ints: vec![],
                 foreign: vec![],
                 players: Default::default(),
+                given_hints: None,
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

@@ -10,8 +10,9 @@ use roead::sarc::Sarc;
 use crate::hints::{self, Hint};
 use crate::names::{AREAS, ITEMS, name_label};
 
-/// Each language's text is one archive in `Mals`.
-const ARCHIVES: (&str, &str) = ("Mals", ".Product.110.sarc.zs");
+/// Each language's text is one archive in `Mals`, stamped with its
+/// build's version (`Product.110` in 1.1.1, `Product.100` in 1.0.0).
+const ARCHIVES: (&str, &str) = ("Mals", ".sarc.zs");
 
 /// New lines for one message file, each a copy of a vanilla line that
 /// names an item, naming another instead.
@@ -500,8 +501,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"))
             .unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         let path = format!("{}.msbt", lines.file);
         let msbt = Msbt::parse(sarc.get_data(&path).unwrap()).unwrap();
@@ -609,8 +609,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"));
         let rel = rel.unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         for l in &lines {
             let msbt = Msbt::parse(sarc.get_data(&format!("{}.msbt", l.file)).unwrap()).unwrap();
@@ -652,8 +651,7 @@ mod tests {
             .into_iter()
             .find(|r| r.contains("USen"));
         let rel = rel.unwrap();
-        let raw = std::fs::read(dir.join("romfs").join(&rel)).unwrap();
-        let data = romfs.dicts().decompress(&rel, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &rel);
         let sarc = Sarc::new(&data).unwrap();
         let msbt = Msbt::parse(sarc.get_data(&format!("{}.msbt", l.file)).unwrap()).unwrap();
         let line = |label: &str| split(&msbt.get(label).unwrap().unwrap()).0;
@@ -674,7 +672,7 @@ mod tests {
         for rel in archives(&romfs).unwrap() {
             let data = romfs.read(&rel).unwrap();
             let (_, missed) = language(&data, &rel, &lines, &labels).unwrap();
-            let lang = rel.trim_start_matches("Mals/").trim_end_matches(ARCHIVES.1);
+            let lang = rel.trim_start_matches("Mals/").split('.').next().unwrap();
             fell_back.extend(missed.iter().map(|m| format!("{lang} {m}")));
         }
         // Polish item names are empty in this file.

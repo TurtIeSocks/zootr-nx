@@ -16,3 +16,31 @@ evidence = [
     "playtest 2026-11-23, the maintainer: no way down here, the room is left by the door the scrubs open",
     "live trace 2026-11-23: walking from the scrub room's floor at the pocket, Link stops at the rock (z 45.6)",
 ]
+
+[[flag]]
+hash = 0xd2f46f66
+name = "Inside The Deku Tree Room K Cleared"
+needs = "slingshot or bow or boomerang or hookshot or hammer or fire or bombs or ((deku-shield or hylian-shield) and melee)"
+why = "the brothers, beaten in order, as room 1's scrub: out of the ground to a ranged hit or their nut sent back, then any weapon"
+evidence = [
+    "playtest 2026-11-22, the maintainer: the Hylian Shield sent their nuts back in order and the door opened",
+    "playtest 2026-11-24, the maintainer: ranged weapons beat them too, as they do room 1's scrub",
+]
+
+[[check]]
+hash = 9056903661273588275
+name = "Recovery Heart"
+needs = "flag:#d2f46f66"
+why = "lies under Deku Scrub Brother One, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under Deku Scrub Brother One, named ScrubDekuHeart",
+]
+
+[[check]]
+hash = 160199974268797383
+name = "Green Rupee"
+needs = "flag:#d2f46f66"
+why = "lies under Deku Scrub Brother One, out of reach until it's beaten"
+evidence = [
+    "placed 0.6 to 0.9 m under Deku Scrub Brother One, named ScrubDekuRupee",
+]

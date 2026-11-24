@@ -2,11 +2,10 @@
 //! other worlds find for him, and reports the goal. One core for the app
 //! and `zootr ap connect`, which only start it and show its notes.
 //!
-//! The game side is the [`Game`] trait, so the core runs against a fake in
-//! tests. [`Live`] is the real one: the target's game, read directly or through its bridge.
+//! The game side is [`super::game`]'s [`Game`] trait, so the core runs
+//! against a fake in tests.
 
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::sync::Arc;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::mpsc::{Receiver, TryRecvError};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -16,46 +15,21 @@ use archipelago_rs::{self as ap, ClientStatus, ConnectionOptions, ConnectionStat
 use ounce_formats::Romfs;
 
 use super::death::{Death, Deaths, Done};
+pub use super::game::{Game, Installed, Live, installed};
 use super::ids::Ids;
 use super::notice::Notices;
 use super::seed::Dealt;
-use super::{ApSeed, GAME, RECEIVED};
-use crate::dev::Dev;
-use crate::gamedata::GameData;
-use crate::generate::Spot;
-use crate::known::flow;
-use crate::live::{self, Game as Target};
-use crate::notice::Shown;
-use crate::steps;
-use crate::tracker::{Flag, Tracker};
+use super::trouble::{Source, Troubles};
+use super::{ApSeed, GAME};
+use crate::dev::Landed;
 
-/// What the core needs of the running game.
-pub trait Game {
-    /// Link is in play: no load and no event.
-    fn ready(&mut self) -> Result<bool>;
-    /// The spots Link has checked.
-    fn checked(&mut self) -> Result<BTreeSet<u64>>;
-    /// Link has reached the goal.
-    fn goal(&mut self) -> Result<bool>;
-    /// How many received items Link has been given, from the save.
-    fn given(&mut self) -> Result<usize>;
-    /// Give Link `actor`, then count `given` items given. Says what he
-    /// got: a progressive item's level.
-    fn give(&mut self, actor: &str, given: usize) -> Result<String>;
-    /// Show a received item's notice.
-    fn notice(&mut self, shown: &Shown) -> Result<()>;
-    /// Link died since the last look.
-    fn died(&mut self) -> Result<bool>;
-    /// Drop Link's hearts to zero, as a last hit would.
-    fn kill(&mut self) -> Result<()>;
-}
-
-/// The seed's AP ids: each free check's location, each pool item's actor.
-/// And whether the slot plays DeathLink.
+/// The seed's AP ids: each free check's location, each item's actor.
+/// And whether the slot plays DeathLink, and the world that wrote it.
 pub struct Book {
     locations: HashMap<u64, i64>,
     actors: HashMap<i64, String>,
     death_link: bool,
+    world_version: String,
 }
 
 impl Book {
@@ -67,7 +41,7 @@ impl Book {
             .filter_map(|&h| Some((h, ids.location_id(h)?)))
             .map(|(h, l)| Ok((h, id(l)?)))
             .collect::<Result<_>>()?;
-        let actors = (ids.actors(dealt.actors()))
+        let actors = (dealt.any_by_id(&ids)?)
             .into_iter()
             .map(|(i, a)| Ok((id(i)?, a.to_owned())))
             .collect::<Result<_>>()?;
@@ -75,6 +49,7 @@ impl Book {
             locations,
             actors,
             death_link: seed.death_link,
+            world_version: seed.world_version.clone(),
         })
     }
 
@@ -83,12 +58,14 @@ impl Book {
         self.locations.get(&spot).copied()
     }
 
-    /// The AP locations of `spots`, skipping any AP didn't place.
-    fn locations<'a>(&self, spots: impl IntoIterator<Item = &'a u64>) -> Vec<i64> {
-        spots
-            .into_iter()
-            .filter_map(|h| self.locations.get(h).copied())
-            .collect()
+    /// What of `spots` to send: each one AP placed whose location the
+    /// server `knows`, with that location. Then the locations it doesn't
+    /// know, which would make it refuse the whole send.
+    fn sendable(&self, spots: &[u64], knows: impl Fn(i64) -> bool) -> (Vec<(u64, i64)>, Vec<i64>) {
+        let (send, unknown): (Vec<_>, Vec<_>) = (spots.iter())
+            .filter_map(|&h| Some((h, self.location(h)?)))
+            .partition(|&(_, id)| knows(id));
+        (send, unknown.into_iter().map(|(_, id)| id).collect())
     }
 }
 
@@ -118,8 +95,15 @@ pub enum Note {
         from: String,
         cause: Option<String>,
     },
-    /// Something went wrong that the core keeps going past.
+    /// Something went wrong that the core keeps going past. Said once
+    /// while it lasts.
     Trouble(String),
+    /// A trouble that lasted has cleared.
+    Cleared(String),
+    /// The game can't be read, and why. Nothing reaches Link until
+    /// [`Note::Reachable`].
+    Unreachable(String),
+    Reachable,
 }
 
 impl std::fmt::Display for Note {
@@ -139,6 +123,9 @@ impl std::fmt::Display for Note {
                 None => write!(f, "DeathLink: {from} died"),
             },
             Self::Trouble(why) => write!(f, "{why}"),
+            Self::Cleared(why) => write!(f, "cleared: {why}"),
+            Self::Unreachable(why) => write!(f, "can't reach the game: {why}"),
+            Self::Reachable => write!(f, "the game answers again"),
         }
     }
 }
@@ -149,6 +136,9 @@ struct Ledger {
     /// Spots the server has from us this connection.
     sent: BTreeSet<u64>,
     goal: bool,
+    /// The server has sent our items this connection. Until then its list
+    /// reads empty.
+    items: bool,
 }
 
 /// One look at the game, without the server: what to send, and whether the
@@ -200,13 +190,20 @@ fn give_next(
     };
     let actor =
         (book.actors.get(&id)).with_context(|| format!("no item of ours has AP id {id}"))?;
-    let got = game.give(actor, given + 1)?;
-    Ok(Some((given, got)))
+    // A give that reached Link counts, even when what came after it
+    // failed: else every pass gives it again.
+    let got = game.give(actor);
+    if got.as_ref().map_or_else(|e| e.is::<Landed>(), |_| true) {
+        game.count(given + 1)?;
+    }
+    Ok(Some((given, got?)))
 }
 
 /// Give the next item owed, if any, then show the notice due: between a
 /// burst's gives only its first few, so the rest aren't held up. Its index
 /// and what Link got. `sender` says who sent an index, as it's given.
+/// `received` is `None` until the server's items are in: nothing is given
+/// then, so a save with items given isn't held against an empty list.
 ///
 /// One give a pass, so the room is answered between gives: the server
 /// drops a client that leaves its keepalive unanswered for 20 s, and a
@@ -214,12 +211,15 @@ fn give_next(
 fn give_one<G: Game>(
     game: &mut G,
     book: &Book,
-    received: &[i64],
+    received: Option<&[i64]>,
     notices: &mut Notices,
     mut sender: impl FnMut(usize) -> Option<u32>,
     now: Instant,
 ) -> Result<Option<(usize, String)>> {
-    let gave = give_next(game, book, received)?;
+    let gave = match received {
+        Some(received) => give_next(game, book, received)?,
+        None => None,
+    };
     match &gave {
         Some((index, got)) => {
             if let Some(slot) = sender(*index) {
@@ -239,6 +239,15 @@ pub struct Room {
     pub server: String,
     pub slot: String,
     pub password: Option<String>,
+}
+
+impl Room {
+    /// The server to dial: [`Room::server`] without the spaces a paste
+    /// brings, which would make it a bad url that reads as a lost
+    /// connection.
+    fn address(&self) -> &str {
+        self.server.trim()
+    }
 }
 
 /// How often the core looks at the game.
@@ -321,10 +330,11 @@ fn session(
         options = options.tags([ap::tags::DEATH_LINK]);
     }
     let mut conn: ap::Connection =
-        ap::Connection::new(room.server.clone(), room.slot.clone(), Some(GAME), options);
+        ap::Connection::new(room.address(), room.slot.clone(), Some(GAME), options);
     let mut ledger = Ledger::default();
     let mut deaths = Deaths::default();
     let mut notices = Notices::default();
+    let mut troubles = Troubles::default();
     let mut heard = Vec::new();
     let mut printed = Vec::new();
     let mut connected = false;
@@ -338,6 +348,11 @@ fn session(
         for event in conn.update() {
             match event {
                 ap::Event::Connected => {
+                    if let ConnectionState::Connected(client) = conn.state()
+                        && let Err(e) = super::check_room(client.slot_data(), &book.world_version)
+                    {
+                        return End::Refused(e.to_string());
+                    }
                     connected = true;
                     ledger.reset();
                     note(Note::Connected);
@@ -346,7 +361,10 @@ fn session(
                     note(Note::Trouble(e.to_string()))
                 }
                 // Something for Link: look now rather than at the next tick.
-                ap::Event::ReceivedItems(_) => next_look = Instant::now(),
+                ap::Event::ReceivedItems(_) => {
+                    ledger.items = true;
+                    next_look = Instant::now();
+                }
                 ap::Event::Print(ap::Print::ItemSend { item, .. }) => printed.push(item),
                 ap::Event::DeathLink { source, cause, .. } if book.death_link => {
                     heard.push(Death { source, cause });
@@ -369,12 +387,21 @@ fn session(
             }
             ConnectionState::Connected(client) if owed || Instant::now() >= next_look => {
                 next_look = Instant::now() + LOOK;
-                owed = tick(client, book, game, &mut ledger, &mut notices, note);
+                owed = tick(
+                    client,
+                    book,
+                    game,
+                    (&mut ledger, &mut notices, &mut troubles),
+                    note,
+                );
                 if book.death_link {
                     // The room's own bounce comes back to us too.
                     let me = client.this_player().alias().to_string();
                     (heard.drain(..).filter(|d| d.source != me)).for_each(|d| deaths.hold(d));
-                    death_link(client, game, &mut deaths, &me, note);
+                    // A game that can't be read has said so already.
+                    if troubles.reachable() {
+                        death_link(client, game, &mut deaths, &mut troubles, &me, note);
+                    }
                 }
             }
             _ => owed = false,
@@ -391,39 +418,40 @@ fn tick(
     client: &mut ap::Client,
     book: &Book,
     game: &mut impl Game,
-    ledger: &mut Ledger,
-    notices: &mut Notices,
+    (ledger, notices, troubles): (&mut Ledger, &mut Notices, &mut Troubles),
     note: &mut impl FnMut(Note),
 ) -> bool {
-    let look = match ledger.look(game) {
-        Ok(look) => look,
-        Err(e) => {
-            note(Note::Trouble(format!("{e:#}")));
-            return false;
-        }
+    let Some(look) = troubles.take(Source::Game, ledger.look(game), note) else {
+        return false;
     };
-    let ids = book.locations(&look.send);
-    if !ids.is_empty() {
+    let (send, unknown) = book.sendable(&look.send, |id| client.this_game().has_location(id));
+    if !unknown.is_empty() {
+        // Left in the ledger, so said once and never tried again.
+        note(Note::Trouble(format!(
+            "the room doesn't know locations {unknown:?}: is it another seed's room? Not sent"
+        )));
+    }
+    if !send.is_empty() {
         // The server may have lost them while we were away: always resend.
-        let names = ids.iter().map(|&id| location_name(client, id)).collect();
-        match client.mark_checked(ids) {
-            Ok(()) => note(Note::Sent(names)),
-            Err(e) => {
-                ledger.sent.retain(|s| !look.send.contains(s));
-                note(Note::Trouble(e.to_string()));
-            }
+        let names = send
+            .iter()
+            .map(|&(_, id)| location_name(client, id))
+            .collect();
+        let sent = client.mark_checked(send.iter().map(|&(_, id)| id));
+        match troubles.take(Source::Send, sent.map_err(Into::into), note) {
+            Some(()) => note(Note::Sent(names)),
+            None => ledger.sent.retain(|s| !send.iter().any(|(h, _)| h == s)),
         }
     }
     if look.goal {
-        match client.set_status(ClientStatus::Goal) {
-            Ok(()) => note(Note::Goal),
-            Err(e) => {
-                ledger.goal = false;
-                note(Note::Trouble(e.to_string()));
-            }
+        let set = client.set_status(ClientStatus::Goal);
+        match troubles.take(Source::Goal, set.map_err(Into::into), note) {
+            Some(()) => note(Note::Goal),
+            None => ledger.goal = false,
         }
     }
-    let received: Vec<i64> = found(client).map(|r| r.item().id()).collect();
+    let received: Option<Vec<i64>> =
+        (ledger.items).then(|| found(client).map(|r| r.item().id()).collect());
     let sender = |index| {
         let r = found(client).nth(index)?;
         note(Note::Received {
@@ -432,13 +460,15 @@ fn tick(
         });
         Some(r.sender().slot())
     };
-    match give_one(game, book, &received, notices, sender, Instant::now()) {
-        Ok(gave) => gave.is_some(),
-        Err(e) => {
-            note(Note::Trouble(format!("{e:#}")));
-            false
-        }
-    }
+    let gave = give_one(
+        game,
+        book,
+        received.as_deref(),
+        notices,
+        sender,
+        Instant::now(),
+    );
+    troubles.take(Source::Give, gave, note).flatten().is_some()
 }
 
 /// Send Link's death to the room, or kill him for one of the room's.
@@ -446,22 +476,28 @@ fn death_link(
     client: &mut ap::Client,
     game: &mut impl Game,
     deaths: &mut Deaths,
+    troubles: &mut Troubles,
     me: &str,
     note: &mut impl FnMut(Note),
 ) {
-    let sent = match deaths.look(game) {
-        Ok(Some(Done::Died)) => {
+    let said = match troubles
+        .take(Source::Death, deaths.look(game), note)
+        .flatten()
+    {
+        Some(Done::Died) => {
             let options = ap::DeathLinkOptions::new().cause(format!("{me} died."));
-            client.death_link(options).map(|()| Note::Died)
+            let sent = client.death_link(options).map_err(Into::into);
+            troubles
+                .take(Source::DeathSent, sent, note)
+                .map(|()| Note::Died)
         }
-        Ok(Some(Done::Killed(d))) => Ok(Note::Killed {
+        Some(Done::Killed(d)) => Some(Note::Killed {
             from: d.source,
             cause: d.cause,
         }),
-        Ok(None) => return,
-        Err(e) => return note(Note::Trouble(format!("{e:#}"))),
+        None => None,
     };
-    note(sent.unwrap_or_else(|e| Note::Trouble(e.to_string())));
+    said.into_iter().for_each(note);
 }
 
 /// The locations of ours among `printed`'s item sends, which it empties.
@@ -486,187 +522,17 @@ fn location_name(client: &ap::Client, id: i64) -> String {
     (client.this_game().location(id)).map_or_else(|| id.to_string(), |l| l.name().to_string())
 }
 
-/// The installed seed's client parts, on the game `target` runs.
-pub struct Installed {
-    pub book: Book,
-    pub game: Live,
-    /// The seed's own slot.
-    pub slot: String,
-}
-
-/// What the client needs of the installed seed. `gd` is the installed
-/// seed's, which names the Int it adds.
-pub fn installed(romfs: &Romfs, gd: Arc<GameData>, target: Target) -> Result<Installed> {
-    let history = crate::history::History::load()?;
-    let entry = history.get(history.installed.context("no seed is installed")?)?;
-    let seed =
-        (entry.extras.ap.as_ref()).context("the installed seed isn't one from Archipelago")?;
-    Ok(Installed {
-        book: Book::new(romfs, seed)?,
-        game: Live::new(target, gd, &entry.report.spots)?,
-        slot: seed.slot.clone(),
-    })
-}
-
-/// The running game, through the mailbox.
-pub struct Live {
-    dev: Dev<Target>,
-    gd: Arc<GameData>,
-    tracker: Tracker,
-    /// Checks the seed hands over at the start, as Met Zelda's: their
-    /// scenes never play, so no flag says so.
-    given: BTreeSet<u64>,
-    goal: u32,
-    received: u32,
-    /// [`DEATHS`] at the last look.
-    deaths: Option<i64>,
-}
-
-impl Live {
-    pub fn new(game: Target, gd: Arc<GameData>, spots: &[Spot]) -> Result<Self> {
-        let tracker = Tracker::new(&gd, spots)?;
-        Ok(Self {
-            dev: Dev::new(game)?,
-            gd,
-            tracker,
-            given: spots.iter().filter(|s| s.given).map(|s| s.hash).collect(),
-            goal: live::hash(&steps::saved(flow::DEFEAT_GANON))?,
-            received: live::hash(RECEIVED)?,
-            deaths: None,
-        })
-    }
-
-    fn get(&self, hash: u32) -> Result<String> {
-        self.dev.game().get(&self.gd, hash)
-    }
-}
-
-/// Link's deaths in the save (GameData, unnamed). It counts the moment his
-/// hearts run out, and a fairy's save doesn't count.
-const DEATHS: u32 = 0xd30c_8e29;
-
-/// The step Ganon's defeat reaches once his last fight is over.
-const GOAL_DONE: &str = "Complete";
-
-impl Game for Live {
-    fn ready(&mut self) -> Result<bool> {
-        Ok(!self.dev.busy()?)
-    }
-
-    /// One read for every Bool, and the per-placement flags only when a
-    /// spot goes by one.
-    fn checked(&mut self) -> Result<BTreeSet<u64>> {
-        let game = self.dev.game();
-        let (mut bools, mut keyed) = (Vec::new(), false);
-        for flag in self.tracker.flags() {
-            match flag {
-                Flag::Bool(h) => bools.push(h),
-                Flag::Key(_) => keyed = true,
-            }
-        }
-        let read = live::bools(game, game.global(), &bools)?;
-        let on: HashSet<u32> = (bools.iter().zip(read))
-            .filter_map(|(&h, on)| on.then_some(h))
-            .collect();
-        let keys = match keyed {
-            true => live::keys(game, game.global())?,
-            false => BTreeSet::new(),
-        };
-        self.tracker.load(|f| match f {
-            Flag::Bool(h) => on.contains(&h),
-            Flag::Key(k) => keys.contains(&k),
-        });
-        Ok(self.tracker.checked().union(&self.given).copied().collect())
-    }
-
-    fn goal(&mut self) -> Result<bool> {
-        Ok(self.get(self.goal)? == GOAL_DONE)
-    }
-
-    fn given(&mut self) -> Result<usize> {
-        let n: i64 = self.get(self.received)?.parse()?;
-        Ok(usize::try_from(n)?)
-    }
-
-    fn died(&mut self) -> Result<bool> {
-        let n: i64 = self.get(DEATHS)?.parse()?;
-        let died = self.deaths.is_some_and(|last| n > last);
-        self.deaths = Some(n);
-        Ok(died)
-    }
-
-    fn kill(&mut self) -> Result<()> {
-        self.dev.kill()
-    }
-
-    fn give(&mut self, actor: &str, given: usize) -> Result<String> {
-        let got = self.dev.give_level(actor)?;
-        live::set(
-            self.dev.game(),
-            self.dev.game().global(),
-            self.received,
-            &given.to_string(),
-        )?;
-        Ok(got)
-    }
-
-    fn notice(&mut self, shown: &Shown) -> Result<()> {
-        self.dev.notice(shown)
-    }
-}
-
 #[cfg(test)]
-pub(super) mod tests {
+mod tests {
     use super::*;
-
-    #[derive(Default)]
-    pub(in crate::ap) struct Fake {
-        pub busy: bool,
-        pub checked: BTreeSet<u64>,
-        pub goal: bool,
-        pub given: Vec<String>,
-        /// Link died since the last look.
-        pub died: bool,
-        pub kills: usize,
-        pub notices: Vec<Shown>,
-    }
-
-    impl Game for Fake {
-        fn ready(&mut self) -> Result<bool> {
-            Ok(!self.busy)
-        }
-        fn checked(&mut self) -> Result<BTreeSet<u64>> {
-            Ok(self.checked.clone())
-        }
-        fn goal(&mut self) -> Result<bool> {
-            Ok(self.goal)
-        }
-        fn given(&mut self) -> Result<usize> {
-            Ok(self.given.len())
-        }
-        fn give(&mut self, actor: &str, given: usize) -> Result<String> {
-            self.given.push(actor.into());
-            assert_eq!(self.given.len(), given);
-            Ok(actor.into())
-        }
-        fn notice(&mut self, shown: &Shown) -> Result<()> {
-            self.notices.push(shown.clone());
-            Ok(())
-        }
-        fn died(&mut self) -> Result<bool> {
-            Ok(std::mem::take(&mut self.died))
-        }
-        fn kill(&mut self) -> Result<()> {
-            self.kills += 1;
-            Ok(())
-        }
-    }
+    use crate::ap::game::tests::Fake;
 
     fn book() -> Book {
         Book {
             locations: [(10, 100), (20, 200)].into(),
             actors: [(1, "Item_FakeBow".into()), (2, "Item_FakeHook".into())].into(),
             death_link: false,
+            world_version: String::new(),
         }
     }
 
@@ -684,7 +550,17 @@ pub(super) mod tests {
 
     #[test]
     fn a_spot_ap_didnt_place_has_no_location() {
-        assert_eq!(book().locations(&[10, 30, 20]), [100, 200]);
+        let (send, unknown) = book().sendable(&[10, 30, 20], |_| true);
+        assert_eq!(send, [(10, 100), (20, 200)]);
+        assert!(unknown.is_empty());
+    }
+
+    /// The server checks every id of a send, and refuses the lot for one
+    /// it doesn't know: that one goes nowhere, the rest go.
+    #[test]
+    fn a_location_the_server_doesnt_know_is_kept_out_of_the_send() {
+        let (send, unknown) = book().sendable(&[10, 20], |id| id == 100);
+        assert_eq!((send, unknown), (vec![(10, 100)], vec![200]));
     }
 
     #[test]
@@ -707,7 +583,8 @@ pub(super) mod tests {
     /// notices had shown after each give.
     fn give_all(game: &mut Fake, notices: &mut Notices, received: &[i64]) -> Vec<(usize, usize)> {
         let (book, now, mut out) = (book(), Instant::now(), vec![]);
-        while let Some((i, _)) = give_one(game, &book, received, notices, |_| Some(0), now).unwrap()
+        while let Some((i, _)) =
+            give_one(game, &book, Some(received), notices, |_| Some(0), now).unwrap()
         {
             out.push((i, game.notices.len()));
         }
@@ -718,7 +595,14 @@ pub(super) mod tests {
     fn a_pass_gives_one_item_so_the_room_is_answered_between() {
         let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
         let now = Instant::now();
-        let gave = give_one(&mut game, &book, &[2, 1, 2], &mut notices, |_| Some(0), now);
+        let gave = give_one(
+            &mut game,
+            &book,
+            Some(&[2, 1, 2]),
+            &mut notices,
+            |_| Some(0),
+            now,
+        );
         assert_eq!(gave.unwrap().map(|(i, _)| i), Some(0));
         assert_eq!(game.given.len(), 1);
         let given: Vec<_> = give_all(&mut game, &mut notices, &[2, 1, 2])
@@ -754,10 +638,39 @@ pub(super) mod tests {
     #[test]
     fn a_save_ahead_of_the_server_gives_nothing_and_says_so() {
         let (mut game, book) = (Fake::default(), book());
-        game.given = vec!["Item_FakeBow".into(); 3];
+        game.counted = 3;
         let err = give_next(&mut game, &book, &[1]).unwrap_err();
         assert!(err.to_string().contains("another room"), "{err}");
-        assert_eq!(game.given.len(), 3);
+        assert!(game.given.is_empty());
+    }
+
+    /// Right after a connect the server's items may not be in yet: the
+    /// save isn't held against an empty list.
+    #[test]
+    fn nothing_is_compared_before_the_server_sends_its_items() {
+        let (mut game, book, mut notices) = (Fake::default(), book(), Notices::default());
+        game.counted = 3;
+        let gave = give_one(
+            &mut game,
+            &book,
+            None,
+            &mut notices,
+            |_| Some(0),
+            Instant::now(),
+        );
+        assert_eq!(gave.unwrap(), None);
+    }
+
+    /// A give whose wait after it fails still counts, or every pass gives
+    /// it again.
+    #[test]
+    fn a_give_that_lands_then_fails_is_counted() {
+        let (mut game, book) = (Fake::default(), book());
+        game.fail_landed = true;
+        assert!(give_next(&mut game, &book, &[1, 2]).is_err());
+        game.fail_landed = false;
+        give_next(&mut game, &book, &[1, 2]).unwrap();
+        assert_eq!(game.given, ["Item_FakeBow", "Item_FakeHook"]);
     }
 
     #[test]
@@ -767,6 +680,23 @@ pub(super) mod tests {
         assert!(game.given.is_empty());
     }
 
+    /// A host's `/send` can grant any item the world names, not only the
+    /// pool's: Link gets it, so it holds up nothing behind it.
+    #[test]
+    fn an_item_outside_the_pool_is_given() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let seed = ApSeed::from_zip(include_bytes!("testdata/two_slots.apznx")).unwrap();
+        let book = Book::new(&romfs, &seed).unwrap();
+        // The fixture deals no medallions.
+        let medal = crate::known::item::MEDAL_LIGHT.get();
+        let id = Ids::load().unwrap().item_id(medal).unwrap() as i64;
+        let mut game = Fake::default();
+        give_next(&mut game, &book, &[id]).unwrap();
+        assert_eq!(game.given, [medal]);
+    }
+
     #[test]
     fn the_goal_is_sent_once() {
         let (mut game, mut ledger) = (Fake::default(), Ledger::default());
@@ -774,6 +704,16 @@ pub(super) mod tests {
         game.goal = true;
         assert!(ledger.look(&mut game).unwrap().goal);
         assert!(!ledger.look(&mut game).unwrap().goal);
+    }
+
+    #[test]
+    fn a_pasted_server_s_spaces_are_dropped() {
+        let room = Room {
+            server: " localhost:38281 \n".into(),
+            slot: "FakeSlot".into(),
+            password: None,
+        };
+        assert_eq!(room.address(), "localhost:38281");
     }
 
     #[test]

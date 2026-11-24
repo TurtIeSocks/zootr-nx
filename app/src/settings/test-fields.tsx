@@ -11,7 +11,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { ValueInput } from "@/components/value-input";
 import { call } from "@/lib/api";
 import { known, listed } from "@/lib/game-options";
-import { type QuestStep, stepOf } from "@/lib/quest-step";
+import { type QuestStep, stepOf, stepsOf } from "@/lib/quest-step";
 import { SIDES } from "@/lib/sides";
 import { useLoad } from "@/lib/use-load";
 import { type TestForm, useTestForm } from "@/settings/test-form";
@@ -63,9 +63,11 @@ export function SpawnField() {
   );
 }
 
-/** A map's placed actors, or none for no map. */
+/** A map's placed actors, each once, or none for no map. */
 const actorsOf = async (map: string): Promise<string[]> =>
-  map ? Object.keys(await call(commands.devActors(map))) : [];
+  map
+    ? [...new Set((await call(commands.devActors(map))).map((a) => a.actor))]
+    : [];
 
 /** A placed actor of the spawn's map to warp beside, and which side. */
 export function NearField() {
@@ -301,7 +303,7 @@ export function QuestStepsField() {
       label={label}
       hint="Run in order. A new game runs them in its opening and Apply runs them live. The names are checked when you save"
       warn={
-        typed && !whole && hasQuests && !quests[typed]
+        typed && !whole && hasQuests && !stepsOf(quests, typed)
           ? "The game has no quest by that name"
           : undefined
       }

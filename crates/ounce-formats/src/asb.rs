@@ -21,7 +21,9 @@ const INT_SELECTOR_FLAGS: u32 = 0xa000_0000;
 const CLIP: u16 = 3;
 const INT_SELECTOR: u16 = 8;
 const BOOL_SELECTOR: u16 = 21;
-/// Where an int selector's plug keeps the value its case matches.
+/// An int selector's plug size, and where it keeps the value its case
+/// matches.
+const INT_PLUG: usize = 12;
 const CASE_VALUE: usize = 4;
 
 /// Where a node type's plug table sits in its params, and where each plug
@@ -228,12 +230,14 @@ pub fn select_int(
     let header = u32::from_le_bytes([count, 0, 0, count]);
     let totals = u32::from_le_bytes([count, 0, count, 0]);
     put(bytes, &[0, header, totals]);
-    let plug = |k: usize| (plugs + 12 * k) as u32;
+    let plug = |k: usize| (plugs + INT_PLUG * k) as u32;
     put(bytes, &(0..count as usize).map(plug).collect::<Vec<_>>());
-    // Each plug: a word, the case's value, then its child.
-    debug_assert_eq!((CASE_VALUE, layout.child), (4, 8));
+    // Each plug: the case's value and its child where the reader looks.
     for &(value, child) in cases.iter().chain([&(0, otherwise)]) {
-        put(bytes, &[0, value as u32, child]);
+        let mut plug = [0; INT_PLUG];
+        plug[CASE_VALUE..][..4].copy_from_slice(&value.to_le_bytes());
+        plug[layout.child..][..4].copy_from_slice(&child.to_le_bytes());
+        bytes.extend(plug);
     }
     bytes[node..node + 2].copy_from_slice(&INT_SELECTOR.to_le_bytes());
     bytes[node + 8..node + 12].copy_from_slice(&(params as u32).to_le_bytes());

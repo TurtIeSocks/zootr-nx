@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { Row, SettingDef, Summary } from "@/bindings";
+import type { Row, SettingDef } from "@/bindings";
 import { GROUP_HELP, TOPICS } from "@/help/topics";
 import { APP_FIELDS } from "@/settings/app-fields";
 import {
@@ -14,6 +14,7 @@ import {
   settings,
 } from "@/shell/find/sources";
 import { useUi } from "@/stores/ui";
+import { summary, toggleDef } from "@/test/fixtures";
 
 vi.mock("@/shell/find/reveal", async (real) => ({
   ...(await real<typeof import("@/shell/find/reveal")>()),
@@ -26,38 +27,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const def = (over: Partial<SettingDef> = {}): SettingDef => ({
-  id: "fake-cows",
-  group: "Shuffles",
-  label: "Shuffle fake cows",
-  description: "Untested. Each fake cow gives an item.",
-  kind: { type: "toggle", default: false },
-  parent: null,
-  requires: null,
-  section: "Fake section",
-  section_about: "",
-  list: false,
-  gives: [],
-  archipelago: { ap: "offered" },
-  ...over,
-});
-
-const summary = (over: Partial<Summary> = {}): Summary => ({
-  id: 142,
-  time: 0,
-  seed: "42",
-  icons: [],
-  share: "",
-  settings: {},
-  label: {},
-  chests: 0,
-  changed: 0,
-  test: false,
-  plando: false,
-  ap_slot: null,
-  death_link: false,
-  ...over,
-});
+const def = (over: Partial<SettingDef> = {}) =>
+  toggleDef("fake-cows", {
+    group: "Shuffles",
+    label: "Shuffle fake cows",
+    description: "Untested. Each fake cow gives an item.",
+    section_about: "",
+    ...over,
+  });
 
 const row = (hash: string, label: string | null = null): Row => ({
   spot: {
@@ -185,6 +162,7 @@ test("Play names its target, and a stale game opens Play to ask", () => {
 test("seeds by name and note, checks by place and label", () => {
   const [named, bare] = seeds([
     summary({
+      id: 142,
       label: { name: "Fake forest test", note: "open the fake gate" },
     }),
     summary({ id: 9, seed: "77" }),

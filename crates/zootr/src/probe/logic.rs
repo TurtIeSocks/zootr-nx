@@ -6,7 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::Result;
 use ounce_formats::{Romfs, murmur3};
 
-use super::{Filter, actor_names, hits, show};
+use super::filter::{Filter, hits};
+use super::{actor_names, show};
 use crate::checks::{banc_files, load_banc, str_field};
 use crate::gamedata::GameData;
 use crate::known::field;
@@ -63,7 +64,8 @@ pub(super) fn exits(romfs: &Romfs, node: &str) -> Result<()> {
     for e in crate::world::exits(romfs)? {
         if touches(&e.from) || touches(&e.to) {
             let need = rule(&e.from, &e.to);
-            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &e.presence, &need));
+            let gate = crate::world::shown(e.presence.as_ref());
+            rows.insert(row(&e.era.to_string(), &e.from, &e.to, &gate, &need));
         }
     }
     for r in book.exits.iter().filter(|r| r.added) {
@@ -223,6 +225,36 @@ pub(super) fn doors(
         odds * 100.0,
         (1.0 - odds).powi(tries as i32)
     );
+    Ok(())
+}
+
+/// Fills seeds 1 to `seeds` and prints how many logic beats within its
+/// tries, and the last failure's reason.
+pub(super) fn seeds(
+    romfs: &Romfs,
+    seeds: u64,
+    settings: &[(String, serde_json::Value)],
+) -> Result<()> {
+    use crate::settings::{NewGame, Settings};
+    let new_game = NewGame::from_settings(&settings.iter().cloned().collect::<Settings>(), &[])?;
+    let checks = crate::checks::dealt(romfs, &new_game)?;
+    let book = crate::rules::Book::load()?;
+    let ctx = crate::rules::Ctx::new(&new_game);
+    let world = crate::logic::World::build(romfs, &book, &ctx, &checks)?;
+    let fixed = crate::shuffle::Fixed::new();
+    let run = crate::progress::Run::silent();
+    let (mut beaten, mut last) = (0, None);
+    for seed in 1..=seeds {
+        let deal = crate::shuffle::deal(&checks, &fixed, &new_game)?;
+        match crate::fill::fill(&world, &checks, deal, seed, &new_game, &run) {
+            Ok(_) => beaten += 1,
+            Err(e) => last = Some(format!("seed {seed}: {e:#}")),
+        }
+    }
+    println!("{beaten}/{seeds} seeds beatable");
+    if let Some(last) = last {
+        println!("last failure: {last}");
+    }
     Ok(())
 }
 

@@ -11,6 +11,7 @@ use std::f32::consts::{PI, TAU};
 use anyhow::{Result, bail};
 #[cfg(test)]
 use ounce_formats::pointers;
+use ounce_formats::vec3::{add, cross, dot, normalized, scale, sub};
 use ounce_formats::{Lod, Texture, Vertex, lods, pack, replace_mesh, unpack};
 
 use crate::known::{Name, field};
@@ -387,39 +388,11 @@ pub fn painted(w: usize, h: usize, x: usize, y: usize) -> bool {
     FINISHES.iter().any(|f| f.holds(w, h, x, y))
 }
 
-fn normalized(a: [f32; 3]) -> [f32; 3] {
-    scale(a, 1.0 / dot(a, a).sqrt())
-}
-
 fn rotate(p: [f32; 3], axis: [f32; 3], angle: f32) -> [f32; 3] {
     // Rodrigues: p cos + (axis × p) sin + axis (axis · p)(1 - cos).
     let (s, c) = angle.sin_cos();
     let along = scale(axis, dot(axis, p) * (1.0 - c));
     add(add(scale(p, c), scale(cross(axis, p), s)), along)
-}
-
-fn add(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    std::array::from_fn(|k| a[k] + b[k])
-}
-
-fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    std::array::from_fn(|k| a[k] - b[k])
-}
-
-fn scale(a: [f32; 3], s: f32) -> [f32; 3] {
-    a.map(|x| x * s)
-}
-
-fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
-    (0..3).map(|k| a[k] * b[k]).sum()
-}
-
-fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
 }
 
 #[cfg(test)]

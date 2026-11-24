@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ap::ApSeed;
+use crate::game::Release;
 use crate::shuffle::Fixed;
 
 /// Options only the CLI sets. Kept with a seed so it reinstalls the same.
@@ -33,6 +34,11 @@ pub struct Extras {
     /// An Archipelago seed: its placements stand in for the shuffle.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ap: Option<ApSeed>,
+    /// The build the seed is made for, from `shuffle --release`; the
+    /// dump's own build without it. Not a setting: within a build every
+    /// seed's hook is the same.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<Release>,
     /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]
@@ -70,6 +76,7 @@ mod tests {
                 flag::SHADOW_NOCTURNE
             )),
             give: vec![item::GLASS_TRUTH.to_string()],
+            release: Some(Release::V100),
             ..Default::default()
         };
         let json = serde_json::to_string(&extras).unwrap();

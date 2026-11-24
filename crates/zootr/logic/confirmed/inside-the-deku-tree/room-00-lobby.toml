@@ -1,0 +1,22 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 0
+name = "Lobby"
+
+[[link]]
+to = 4
+needs = "always"
+via = "climb"
+why = "the ivy between the lobby and the basement"
+evidence = [
+    "the maintainer's rule: a climbable surface climbs every way",
+]
+
+# The walk to the compass room covers it, so logic loses nothing.
+[[link]]
+to = 3
+needs = "never"
+via = "jump"
+why = "derive's running jump from the lobby to the compass room, never found live"
+evidence = [
+    "the maintainer's call 2026-11-24: the walk already reaches the compass room",
+]

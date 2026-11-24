@@ -35,6 +35,8 @@ const SUBSTITUTE_CHEST: &Name = actor::OBJ_T_BOX_A_06;
 /// The small chest a `SUBSTITUTE_CHEST` is built on.
 const PLAIN_CHEST: &Name = actor::OBJ_T_BOX_A_01;
 const NO_BAKE: &str = "_NoBake";
+/// The prefix every chest's actor name starts with.
+pub const CHEST: &str = "Obj_TBox_";
 
 #[derive(Clone)]
 pub struct ItemCheck {
@@ -82,6 +84,26 @@ pub fn banc_files(romfs: &Romfs) -> Result<Vec<String>> {
         .iter()
         .map(|p| romfs.rel(p))
         .collect()
+}
+
+/// The area folder a Banc file `rel` sits in, e.g. `KokiriForest`.
+pub fn banc_area(rel: &str) -> Option<&str> {
+    rel.split('/').nth(1)
+}
+
+/// [`banc_area`], or `"?"` for a path with no folder.
+pub fn area_of(rel: &str) -> &str {
+    banc_area(rel).unwrap_or("?")
+}
+
+/// Whether `holder`, a placed actor's name, is a chest.
+pub fn is_chest(holder: &str) -> bool {
+    holder.starts_with(CHEST)
+}
+
+/// Whether Banc file `rel` is a child map's.
+pub fn is_child(rel: &str) -> bool {
+    rel.contains("_Child_")
 }
 
 pub fn load_banc(romfs: &Romfs, rel: &str) -> Result<BymlDoc> {
@@ -142,6 +164,11 @@ pub(crate) fn swap_strings(map: &mut BymlMap, from: &str, to: &str) -> usize {
         }
     }
     map.values_mut().map(|v| walk(v, from, to)).sum()
+}
+
+/// A point as `x,y,z`, to a tenth.
+pub fn xyz(p: [f32; 3]) -> String {
+    format!("{:.1},{:.1},{:.1}", p[0], p[1], p[2])
 }
 
 /// The dungeon room `actor` names, if it names one.
@@ -205,7 +232,7 @@ fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
             };
             out.push(ItemCheck {
                 file: file.clone(),
-                area: file.split('/').nth(1).unwrap_or("?").to_owned(),
+                area: area_of(&file).to_owned(),
                 hash: hash_of(actor).context("actor without Hash")?,
                 holder: str_field(actor, GYAML).unwrap_or_default().to_owned(),
                 item: item.to_owned(),
@@ -542,7 +569,7 @@ mod tests {
         let actor = Byml::from_iter([
             ("Hash", Byml::from(1u64)),
             (GYAML, gyaml.into()),
-            ("Dynamic", dynamic),
+            (DYNAMIC, dynamic),
         ]);
         Byml::from_iter([("Actors", Byml::from(vec![actor]))])
     }
@@ -553,6 +580,16 @@ mod tests {
             .iter()
             .filter_map(|a| str_field(a, GYAML))
             .collect()
+    }
+
+    #[test]
+    fn a_banc_path_names_its_area_folder() {
+        let rel = "Banc/FakeArea/FakeMap_Child_Static.bcett.byml.zs";
+        assert_eq!(banc_area(rel), Some("FakeArea"));
+        assert_eq!(area_of(rel), "FakeArea");
+        assert!(is_child(rel));
+        assert_eq!(banc_area("loose"), None);
+        assert_eq!(area_of("loose"), "?");
     }
 
     #[test]
@@ -632,7 +669,7 @@ mod tests {
             gyamls(&root),
             [actor::OBJ_SHIELD_HYLIAN, actor::ENEMY_SKULLTULA_GOLD]
         );
-        let dynamic = &actors_mut(&mut root).unwrap()[1].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors_mut(&mut root).unwrap()[1].as_map().unwrap()[DYNAMIC];
         assert_eq!(
             str_field(dynamic, DROP_ACTOR),
             Some(&**actor::OBJ_HEART_PIECE)
@@ -647,7 +684,7 @@ mod tests {
             parse_field("1.Dynamic.A=B").unwrap(),
             FieldEdit {
                 hash: 1,
-                path: vec!["Dynamic", "A"],
+                path: vec![DYNAMIC, "A"],
                 value: "B",
                 raise: false,
             }
@@ -659,7 +696,7 @@ mod tests {
         let mut root = chest("Item_A", "Flag");
         assert!(clear_drops(&mut root, &[2]).unwrap().is_empty());
         assert_eq!(clear_drops(&mut root, &[1]).unwrap(), [1]);
-        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
         assert_eq!(str_field(dynamic, DROP_ACTOR), None);
         assert_eq!(str_field(dynamic, GET_EVENT), Some("Flag"));
         assert!(clear_drops(&mut root, &[1]).unwrap().is_empty());
@@ -669,7 +706,7 @@ mod tests {
         let mut root = chest(item, event);
         let drops = HashMap::from([(1, Drop::from(new.to_owned()))]);
         assert_eq!(set_drops(&mut root, &drops, |e| e == "Pose").unwrap(), [1]);
-        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()["Dynamic"];
+        let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
         assert_eq!(str_field(dynamic, DROP_ACTOR), Some(new));
         str_field(dynamic, GET_EVENT).map(str::to_owned)
     }
@@ -698,7 +735,7 @@ mod tests {
             };
             set_drops(&mut root, &HashMap::from([(1, drop)]), |_| false).unwrap();
             let actor = &actors(&root).unwrap()[0];
-            let dynamic = &actor.as_map().unwrap()["Dynamic"];
+            let dynamic = &actor.as_map().unwrap()[DYNAMIC];
             [
                 (actor, GYAML),
                 (dynamic, CHECK_ACTOR),
@@ -738,7 +775,7 @@ mod tests {
         let drops = HashMap::from([(1, Drop::from("Item_C".to_owned()))]);
         set_drops(&mut root, &drops, |_| false).unwrap();
         let actor = &actors(&root).unwrap()[0];
-        let dynamic = &actor.as_map().unwrap()["Dynamic"];
+        let dynamic = &actor.as_map().unwrap()[DYNAMIC];
         assert_eq!(gyamls(&root), [actor::OBJ_T_BOX_A_01_NO_BAKE]);
         assert_eq!(
             [DROP_ACTOR, CHECK_ACTOR, SUBSTITUTE].map(|k| str_field(dynamic, k)),
@@ -767,7 +804,7 @@ mod tests {
         for rel in banc_files(&romfs).unwrap() {
             let doc = load_banc(&romfs, &rel).unwrap();
             for actor in actors(&doc.root).unwrap() {
-                let Some(dynamic) = actor.as_map().unwrap().get("Dynamic") else {
+                let Some(dynamic) = actor.as_map().unwrap().get(DYNAMIC) else {
                     continue;
                 };
                 if str_field(dynamic, SUBSTITUTE).is_some() {

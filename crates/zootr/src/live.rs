@@ -1,20 +1,19 @@
 //! GameData values read and written live in the running game, from
 //! outside the game. Plain memory access, no hooks. Layout in `docs/research/live-flags.md`.
+//! Reading the table is here; `game` attaches to the running game and `poll`
+//! watches it for changes.
 
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::path::Path;
+use std::collections::BTreeSet;
 use std::sync::LazyLock;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Result, bail};
 
 use ounce_formats::KEYED;
 use zootr_hook::keys::{KEY_STRIDE, KEY_VALUE, KEYS, find};
 
-use crate::config::Target;
 use crate::gamedata::GameData;
-use crate::known::{field, flag};
-use crate::patch::OFFSETS;
+use crate::known::field;
 use crate::savefile::{self, Change};
 use crate::value;
 
@@ -392,287 +391,23 @@ pub fn stamp(secs: u64) -> String {
     format!("[{:02}:{:02}]", secs / 60, secs % 60)
 }
 
-/// A running game, polled for what changed since the last look.
-pub struct Poll<M> {
-    mem: M,
-    global: u64,
-    was: Vec<Value>,
-    keys: BTreeSet<u64>,
-    noise: Noise,
-    muted: HashSet<u32>,
-}
-
-impl Poll<Game> {
-    pub fn new(game: Game) -> Result<Self> {
-        let global = game.global;
-        Self::over(game, global)
-    }
-}
-
-impl<M: Memory> Poll<M> {
-    pub fn over(mem: M, global: u64) -> Result<Self> {
-        let manager = manager(&mem, global)?;
-        Ok(Self {
-            was: values(&mem, manager)?,
-            keys: keys_of(&mem, manager)?,
-            mem,
-            global,
-            noise: Noise::default(),
-            muted: HashSet::new(),
-        })
-    }
-
-    /// What changed since the last call among values `wanted` keeps, and
-    /// the values muted for the first time. `all` mutes nothing.
-    pub fn next(
-        &mut self,
-        gd: &GameData,
-        all: bool,
-        mut wanted: impl FnMut(u32) -> bool,
-    ) -> Result<(Vec<Change>, Vec<u32>)> {
-        let manager = manager(&self.mem, self.global)?;
-        let now = values(&self.mem, manager)?;
-        let keys = keys_of(&self.mem, manager)?;
-        let (at, mut muted) = (Instant::now(), Vec::new());
-        let keep = |h| {
-            if !wanted(h) {
-                return false;
-            }
-            if all || self.noise.allows(h, at) {
-                return true;
-            }
-            if self.muted.insert(h) {
-                muted.push(h);
-            }
-            false
-        };
-        let mut out = changes(gd, &self.was, &now, keep);
-        out.extend(savefile::keyed(&self.keys, &keys));
-        (self.was, self.keys) = (now, keys);
-        Ok((out, muted))
-    }
-}
-
-/// Mutes values that change too often to read, like Link's position and
-/// the play clock. Once muted, a value stays muted.
-#[derive(Default)]
-pub struct Noise(HashMap<u32, (Instant, u32)>);
-
-impl Noise {
-    /// Whether a change to `hash` at `now` should still print.
-    pub fn allows(&mut self, hash: u32, now: Instant) -> bool {
-        let (start, n) = self.0.entry(hash).or_insert((now, 0));
-        if *n <= BURST && now - *start > WINDOW {
-            (*start, *n) = (now, 0);
-        }
-        *n += 1;
-        *n <= BURST
-    }
-}
-
-/// The running game, attached for reads and writes.
-pub struct Game {
-    mem: Backend,
-    global: u64,
-    places: Places,
-}
-
-/// How a [`Game`] reaches the game's memory.
-enum Backend {
-    /// The game's task, read directly.
-    Mach(u32),
-    /// The target's control socket.
-    Bridge(Bridge),
-}
-
-/// Where a target with a bridge loads the game's `main`.
-pub const NATIVE_MAIN: u64 = 0x8002_0000;
-
-impl Memory for Game {
-    fn read(&self, at: u64, len: usize) -> Result<Vec<u8>> {
-        match &self.mem {
-            Backend::Mach(task) => mach::read(*task, at, len),
-            Backend::Bridge(b) => b.read(at, len),
-        }
-    }
-
-    fn write(&self, at: u64, data: &[u8]) -> Result<()> {
-        match &self.mem {
-            Backend::Mach(task) => mach::write(*task, at, data),
-            Backend::Bridge(b) => b.write(at, data),
-        }
-    }
-
-    fn read_many(&self, ranges: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
-        match &self.mem {
-            Backend::Mach(task) => (ranges.iter())
-                .map(|&(at, len)| mach::read(*task, at, len))
-                .collect(),
-            Backend::Bridge(b) => b.read_many(ranges),
-        }
-    }
-
-    fn batch(&self, writes: &[(u64, &[u8])], reads: &[(u64, usize)]) -> Result<Vec<Vec<u8>>> {
-        match &self.mem {
-            Backend::Mach(_) => in_order(self, writes, reads),
-            Backend::Bridge(b) => b.batch(writes, reads),
-        }
-    }
-
-    fn places(&self) -> Option<&Places> {
-        Some(&self.places)
-    }
-}
-
-/// The OS refused to let this build read the game. The one attach error
-/// that waiting for the game won't fix.
-#[derive(Debug)]
-pub struct NotSigned {
-    pub pid: i32,
-}
-
-impl std::fmt::Display for NotSigned {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let exe = std::env::current_exe().unwrap_or_default();
-        write!(
-            f,
-            "this build isn't signed for live reads of process {}\n\
-             Build with `make zootr`, or sign this binary:\n  \
-             codesign -f -s - --entitlements crates/zootr/live.entitlements {}",
-            self.pid,
-            exe.display()
-        )
-    }
-}
-
-impl std::error::Error for NotSigned {}
-
-/// Live reads need macOS, or a target with a bridge. Like [`NotSigned`],
-/// waiting won't fix it.
-#[derive(Debug)]
-pub struct Unsupported;
-
-impl std::fmt::Display for Unsupported {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.write_str("live reads need macOS, or a target with a bridge")
-    }
-}
-
-impl std::error::Error for Unsupported {}
-
-/// What Live says while the game is up but can't be read yet.
-pub const STARTING: &str = "Waiting for the game to finish starting";
-/// What Live says while the game doesn't answer in time.
-pub const SLOW: &str = "The game isn't answering yet";
-
-/// `raw`, under Live's word for a game still starting.
-fn starting(raw: anyhow::Error) -> anyhow::Error {
-    raw.context(crate::plain::Plain(STARTING.into()))
-}
-
-impl Game {
-    /// The target's running game: through its bridge when it has one,
-    /// else among the processes started from its app.
-    pub fn attach(target: &Target) -> Result<Self> {
-        match &target.bridge {
-            Some(socket) => Self::over(Bridge::connect(socket).map_err(starting)?),
-            None => Self::find(&target.app),
-        }
-    }
-
-    /// The game behind `bridge`, whose GameData global sits at a
-    /// fixed offset from `main`.
-    pub fn over(bridge: Bridge) -> Result<Self> {
-        let global = NATIVE_MAIN + u64::from(OFFSETS.gamedata);
-        bridge.u64(global)?;
-        Ok(Self {
-            mem: Backend::Bridge(bridge),
-            global,
-            places: Places::default(),
-        })
-    }
-
-    fn find(app: &Path) -> Result<Self> {
-        let pids = mach::pids(app)?;
-        if pids.is_empty() {
-            return Err(starting(anyhow!(
-                "the game isn't running from {}",
-                app.display()
-            )));
-        }
-        // The game runs as two processes, and the OS may refuse one of them
-        // while the other, the one holding GameData, lets this build in.
-        let mut refused = None;
-        for pid in pids {
-            let Some(task) = mach::task(pid) else {
-                refused.get_or_insert(pid);
-                continue;
-            };
-            for (at, size) in mach::code(task) {
-                let Ok(code) = mach::read(task, at, size) else {
-                    continue;
-                };
-                // The system's shared library cache, never the game.
-                if code.starts_with(b"dyld") {
-                    continue;
-                }
-                if let Some(global) = global(&code, at) {
-                    return Ok(Self {
-                        mem: Backend::Mach(task),
-                        global,
-                        places: Places::default(),
-                    });
-                }
-            }
-        }
-        if let Some(pid) = refused {
-            return Err(NotSigned { pid }.into());
-        }
-        Err(starting(anyhow!(
-            "{} wasn't found in the game; is this the 1.1.1 update?",
-            flag::GAME_DATA
-        )))
-    }
-}
-
-impl Game {
-    pub fn global(&self) -> u64 {
-        self.global
-    }
-
-    /// The current value, as the Live tab shows it. See [`read`].
-    pub fn get(&self, gd: &GameData, hash: u32) -> Result<String> {
-        read(self, gd, self.global, hash)
-    }
-
-    /// See [`set`].
-    pub fn set(&self, hash: u32, value: &str) -> Result<()> {
-        set(self, self.global, hash, value)
-    }
-
-    /// The game's mapped regions: start, size and protection (read 1,
-    /// write 2, execute 4). Read directly only.
-    pub fn regions(&self) -> Result<Vec<(u64, usize, i32)>> {
-        match &self.mem {
-            Backend::Mach(task) => Ok(mach::regions(*task)),
-            Backend::Bridge(_) => bail!("the bridge can't list regions"),
-        }
-    }
-}
-
 /// The processes started from `app`.
 pub(crate) use mach::pids;
 
 pub mod actors;
 mod bridge;
+mod game;
 mod lookup;
 mod mach;
 #[cfg(windows)]
 mod pipe;
+mod poll;
 pub mod snap;
 
 pub use bridge::{Bridge, CLOSED, GONE, PATIENCE, Refused};
+pub use game::{Game, NATIVE_MAIN, NotSigned, SLOW, STARTING, Unsupported};
 pub use lookup::{Places, bools, hash, locate, read, set, value, value_with};
+pub use poll::{Noise, Poll};
 
 #[cfg(test)]
 pub(crate) mod tests {
@@ -944,54 +679,5 @@ pub(crate) mod tests {
         fn write(&self, _: u64, _: &[u8]) -> Result<()> {
             bail!("read only")
         }
-    }
-
-    #[test]
-    fn a_poll_reports_a_value_muted_once() {
-        let gd = GameData::default();
-        let flip = Flip(vec![ints([5, 1]), ints([5, 2])], 0.into());
-        let mut poll = Poll::over(flip, 0x1000).unwrap();
-        let mut seen = Vec::new();
-        for _ in 0..8 {
-            let (changes, muted) = poll.next(&gd, false, |_| true).unwrap();
-            seen.push((changes.len(), muted));
-        }
-        let mut expected = vec![(1, vec![]); 5];
-        expected.extend([(0, vec![hash(2, 1)]), (0, vec![]), (0, vec![])]);
-        assert_eq!(seen, expected);
-        assert_eq!(poll.next(&gd, true, |_| true).unwrap().0.len(), 1);
-    }
-
-    #[test]
-    fn a_poll_reports_each_placement_flag_that_flips() {
-        let gd = GameData::default();
-        let at = |a, b| keyed(&[], &[], &[(1 << 63, a), (7, b)]);
-        let flip = Flip(vec![at(false, true), at(true, false)], 0.into());
-        assert_eq!(keys(&flip.0[0], 0x1000).unwrap(), BTreeSet::from([7]));
-        let mut poll = Poll::over(flip, 0x1000).unwrap();
-        let (changes, _) = poll.next(&gd, false, |_| true).unwrap();
-        // A flip lands right after the manager's read, so the first poll
-        // reads the second game and the next one the first.
-        let shown: Vec<_> = (changes.iter())
-            .map(|c| (c.key(), c.kind.as_str(), c.change.as_str()))
-            .collect();
-        assert_eq!(
-            shown,
-            [
-                (Some(7), KEYED, "false -> true"),
-                (Some(1 << 63), KEYED, "true -> false"),
-            ]
-        );
-    }
-
-    #[test]
-    fn noise_mutes_a_burst_for_good() {
-        let (mut noise, start) = (Noise::default(), Instant::now());
-        let at = |ms| start + Duration::from_millis(ms);
-        let slow: Vec<bool> = (0..8).map(|k| noise.allows(1, at(k * 4000))).collect();
-        assert!(slow.iter().all(|&q| q));
-        let fast: Vec<bool> = (0..7).map(|k| noise.allows(2, at(k * 100))).collect();
-        assert_eq!(fast, [true, true, true, true, true, false, false]);
-        assert!(!noise.allows(2, at(60_000)));
     }
 }

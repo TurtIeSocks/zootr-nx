@@ -7,7 +7,7 @@
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{Byml, Romfs};
 
-use crate::checks::{self, actors, actors_mut, bancs, str_field};
+use crate::checks::{self, DYNAMIC, actors, actors_mut, bancs, str_field};
 use crate::known::{Name, field, map};
 use crate::rng::Rng;
 use crate::settings::DungeonEntrances;
@@ -16,7 +16,6 @@ use crate::world::node_of;
 pub mod reveal;
 
 const DOOR_ACTOR: &Name = field::FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR;
-const DYNAMIC: &str = "Dynamic";
 
 /// The fields that say where a door leads. A moved door takes all of them
 /// from the door it stands in for, and drops any that one lacks. The init

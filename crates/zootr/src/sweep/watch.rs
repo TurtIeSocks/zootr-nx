@@ -99,7 +99,7 @@ pub(super) fn got_other(changes: &[Change], wanted: &[String], windowed: bool) -
         let item = c.name.strip_prefix("IsGet.")?;
         let got = !item.starts_with(FLOOR_RUPEE)
             && !wanted.contains(&c.name)
-            && c.change.ends_with("-> true");
+            && c.turned_on() == Some(true);
         got.then(|| Other::Flag(item.to_owned()))
     });
     let flag = flag.filter(|_| !windowed || window.is_some());
@@ -207,13 +207,15 @@ impl Watch {
 mod tests {
     use super::*;
     use crate::known::{actor, flag, item};
+    use ounce_formats::BOOL;
 
+    /// A change as the save reports it: an `IsGet` flag is a Bool.
     fn change(name: &str, change: &str) -> Change {
         Change {
             hash: 0,
             name: name.into(),
             label: None,
-            kind: String::new(),
+            kind: if name.starts_with("IsGet.") { BOOL } else { "" }.into(),
             change: change.into(),
         }
     }

@@ -1,104 +1,163 @@
 //! Our code in the game: the hook from `zootr-hook` and its table, written
 //! into `main` by a cheat file, an exefs patch, and an IPS for a Switch.
-//! Offsets are game 1.1.1's, see `docs/research/binary.md`.
+//! Each build of the game has its own [`Hook`]: its offsets, `main`'s
+//! build ID, and the code `build.rs` compiled against them. The sites and
+//! the table are built here; `files` writes them out and manages the files.
 
-use std::path::{Path, PathBuf};
-
-use anyhow::{Context, Result, ensure};
+use anyhow::{Result, ensure};
 pub use zootr_hook::OFFSETS;
 use zootr_hook::entry;
 use zootr_hook::look::LookSpec;
 use zootr_hook::{
-    CAVE, Credit, DEV, FAR, LIST, MENU_CYCLE, PANIC, SLOTS, Shared, Spot, TABLE, encode,
+    Build, Credit, DEV, MENU_CYCLE, SLOTS, Shared, Spot, V65536, V131072, encode, list,
 };
 
-use crate::{menu_slots, progressive};
+use crate::game::Release;
+use crate::menu_slots;
 
-/// The hook's code, built by `build.rs`.
-const HOOK: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook.bin"));
-/// The hook's far code, written at `FAR`.
-const FAR_CODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/far.bin"));
-/// Where the recorder, and the free space after rodata and bss, end.
-const CAVE_END: u32 = 0x17f_58e0;
-/// Where the far code's room ends: the first word past `FAR` the Mac's
-/// game rewrites, which a cheat can't write over.
-const FAR_END: u32 = 0x17f_8a1c;
-const TABLE_END: u32 = 0x484_d000;
-const LIST_END: u32 = 0x4e9_b000;
-const _: () = assert!(LIST + size_of::<Shared>() as u32 <= PANIC && LIST.is_multiple_of(8));
-const _: () = assert!(PANIC + 16 == LIST_END);
+mod files;
+pub use files::{EXEFS, SeedTable, exefs, install, remove, remove_cheat, split};
+
+/// The hook as `build.rs` built it for one build of the game.
+pub struct Hook {
+    pub release: Release,
+    /// The offsets it was compiled against, which the patch is written for.
+    pub build: Build,
+    /// `main`'s build ID, as its NSO header's 32 byte field holds it. Its
+    /// first 8 bytes name the cheat file and the rest, trailing zeros left
+    /// out, the exefs patch's `@nsobid`, so a build these offsets weren't
+    /// found in never loads either.
+    pub id: [u8; 32],
+    /// The cave's code and the far code.
+    code: &'static [u8],
+    far: &'static [u8],
+    /// How many of the cave's bytes are code, before its strings.
+    #[cfg(test)]
+    code_end: &'static str,
+}
+
+/// Each build's hook, in [`Release`]'s order.
+static HOOKS: [Hook; 2] = [
+    Hook {
+        release: Release::V100,
+        build: V65536,
+        id: [
+            0x33, 0xfa, 0x6c, 0x2c, 0x23, 0x84, 0x82, 0x82, 0xa7, 0x7e, 0x8b, 0x88, 0xa0, 0xa9,
+            0x3f, 0x48, 0x87, 0xc5, 0x59, 0x20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        code: include_bytes!(concat!(env!("OUT_DIR"), "/v65536/hook.bin")),
+        far: include_bytes!(concat!(env!("OUT_DIR"), "/v65536/far.bin")),
+        #[cfg(test)]
+        code_end: env!("HOOK_CODE_V65536"),
+    },
+    Hook {
+        release: Release::V111,
+        build: V131072,
+        id: [
+            0xe0, 0xf3, 0xcc, 0xfa, 0xf5, 0x00, 0x65, 0xae, 0x4e, 0xa0, 0x1e, 0xb5, 0xae, 0xb1,
+            0x3b, 0x1a, 0x45, 0xda, 0x33, 0x48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        code: include_bytes!(concat!(env!("OUT_DIR"), "/v131072/hook.bin")),
+        far: include_bytes!(concat!(env!("OUT_DIR"), "/v131072/far.bin")),
+        #[cfg(test)]
+        code_end: env!("HOOK_CODE_V131072"),
+    },
+];
+
 /// The physics step's `cbz` over the call into Havok's trace recorder, and
-/// where it skips to. Made a `b`, the recorder never runs and holds `CAVE`.
-const GATE: (u32, u32) = (0x17d_59bc, 0x17d_59c4);
+/// where it skips to. Made a `b`, the recorder never runs and holds the
+/// cave.
+const fn gate(b: &Build) -> (u32, u32) {
+    (b.branches.gate, b.branches.gate_to)
+}
 /// Link's "can he catch the Boomerang" check's `tbz` into its child test
 /// (the age override, then `PlayerGameParam.IsChild`), and where it skips
 /// to: whether the Boomerang is back. Made a `b`, the adult catches it as
 /// the child does, and every selector that asks gets the same answer.
-const CATCH: (u32, u32) = (0x41_0250, 0x41_0258);
+const fn catch(b: &Build) -> (u32, u32) {
+    (b.branches.catch, b.branches.catch_to)
+}
 /// The `b`s written over the game's own code, each `(at, to)`.
-const SKIPS: [(u32, u32); 3] = [GATE, CATCH, gear::BOOTS];
+const fn skips(b: &Build) -> [(u32, u32); 3] {
+    [gate(b), catch(b), gear::boots(b)]
+}
 /// Each call site and the hook entry its `bl` goes to, as an offset into
 /// the hook. The event request's string argument calls, where an opening
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
 /// to `seed_guide`, so a child Bow says "Shoot Arrow". The equipment
-/// slots' child tests go to `gear_child` ([`gear::CALLS`]).
-const CALLS: [(u32, u32); 7] = [
-    (0x2ae_0828, entry::CONTENT_NAME),
-    (0x2ae_08cc, entry::CONTENT_NAME),
-    (0x2ef_6560, entry::DROP_ACTOR),
-    (0x2ef_4888, entry::DROP_ACTOR),
-    (0x4b_01a4, entry::SEED_GUIDE),
-    gear::CALLS[0],
-    gear::CALLS[1],
-];
+/// slots' child tests go to `gear_child` ([`gear::calls`]).
+const fn calls(b: &Build) -> [(u32, u32); 7] {
+    let [gear_request, gear_actor] = gear::calls(b);
+    [
+        (b.calls.content1, entry::CONTENT_NAME),
+        (b.calls.content2, entry::CONTENT_NAME),
+        (b.calls.drop1, entry::DROP_ACTOR),
+        (b.calls.drop2, entry::DROP_ACTOR),
+        (b.calls.seed_guide, entry::SEED_GUIDE),
+        gear_request,
+        gear_actor,
+    ]
+}
 /// The run node's call to the speed setter and the hook entry it goes to,
 /// `run_speed`, which scales the speed in the Bunny Hood in a seed with
 /// the setting.
-const RUN_CALL: (u32, u32) = (0x93_4990, entry::RUN_SPEED);
+const fn run_call(b: &Build) -> (u32, u32) {
+    (b.calls.run, entry::RUN_SPEED)
+}
 /// The controller device's three `GetNpadStates` calls (full key,
 /// handheld, joy dual) and their hook entries, which run the trade slot's
 /// cycle with the three Items page hooks, in a seed with [`MENU_CYCLE`].
-const NPAD_CALLS: [(u32, u32); 3] = [
-    (0x346_966c, entry::NPAD_FULL),
-    (0x346_9698, entry::NPAD_HANDHELD),
-    (0x346_94f8, entry::NPAD_DUAL),
-];
+const fn npad_calls(b: &Build) -> [(u32, u32); 3] {
+    [
+        (b.calls.npad_full, entry::NPAD_FULL),
+        (b.calls.npad_handheld, entry::NPAD_HANDHELD),
+        (b.calls.npad_dual, entry::NPAD_DUAL),
+    ]
+}
 /// The game's stubs for `nn::hid::GetNpadStates` those calls go to, in
 /// the same order. The hook reaches them through its slots.
-const NPAD_STUBS: [u32; 3] = [0x3c4_2800, 0x3c4_2830, 0x3c4_27f0];
+const fn npad_stubs(b: &Build) -> [u32; 3] {
+    [
+        b.imports.npad_full,
+        b.imports.npad_handheld,
+        b.imports.npad_dual,
+    ]
+}
 /// Each hooked function and the entry the `b` over its `pacibsp` goes to.
 /// Link's update runs the mailbox's requests and the dev switches in a
 /// seed with [`DEV`], and springs ice traps. The nock sets Link's
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
-const HOOKS: &[(u32, u32)] = &[
-    (OFFSETS.map_loaded, entry::MAP_LOADED),
-    (OFFSETS.chest_made, entry::CHEST_MADE),
-    (OFFSETS.granted, entry::GRANTED),
-    (OFFSETS.link_update, entry::LINK_UPDATE),
-    (OFFSETS.picked, entry::PICKED),
-    (OFFSETS.items_built, entry::ITEMS_BUILT),
-    (OFFSETS.items_left, entry::ITEMS_LEFT),
-    (OFFSETS.ui_update, entry::UI_UPDATE),
-    (OFFSETS.taken, entry::TAKEN),
-    (OFFSETS.nock, entry::NOCKED),
-    (OFFSETS.emptied, entry::EMPTIED),
-    (OFFSETS.equipment_built, entry::EQUIPMENT_BUILT),
-    (OFFSETS.equipment_left, entry::EQUIPMENT_LEFT),
-    (OFFSETS.resident_create, entry::RESIDENT_MADE),
-];
-/// `main`'s build ID, as its NSO header's 32 byte field holds it. Its first
-/// 8 bytes name the cheat file and the rest, trailing zeros left out, the
-/// exefs patch's `@nsobid`, so a build these offsets weren't found in never
-/// loads either.
-pub const BUILD_ID: [u8; 32] = [
-    0xe0, 0xf3, 0xcc, 0xfa, 0xf5, 0x00, 0x65, 0xae, 0x4e, 0xa0, 0x1e, 0xb5, 0xae, 0xb1, 0x3b, 0x1a,
-    0x45, 0xda, 0x33, 0x48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
-/// The engine's limit on one cheat's opcode words.
-const WORDS: usize = 0x100;
+const fn hooks(b: &Build) -> [(u32, u32); 14] {
+    let e = &b.entries;
+    [
+        (e.map_loaded, entry::MAP_LOADED),
+        (e.chest_made, entry::CHEST_MADE),
+        (e.granted, entry::GRANTED),
+        (e.link_update, entry::LINK_UPDATE),
+        (e.picked, entry::PICKED),
+        (e.items_built, entry::ITEMS_BUILT),
+        (e.items_left, entry::ITEMS_LEFT),
+        (e.ui_update, entry::UI_UPDATE),
+        (e.taken, entry::TAKEN),
+        (e.nock, entry::NOCKED),
+        (e.emptied, entry::EMPTIED),
+        (e.equipment_built, entry::EQUIPMENT_BUILT),
+        (e.equipment_left, entry::EQUIPMENT_LEFT),
+        (e.resident_create, entry::RESIDENT_MADE),
+    ]
+}
+/// Whether build `b`'s shared state fits under its panic word, 8 byte
+/// aligned, with the list's end right after the panic word.
+const fn lists_fit(b: &Build) -> bool {
+    let (list, r) = (list(b), &b.regions);
+    list + size_of::<Shared>() as u32 <= r.panic
+        && list.is_multiple_of(8)
+        && r.panic + 16 == r.list_end
+}
+const _: () = assert!(lists_fit(&V65536) && lists_fit(&V131072));
 
 /// Bytes to write at an offset into `main`.
 #[derive(Debug, PartialEq)]
@@ -118,72 +177,19 @@ fn branch(from: u32, to: u32, link: bool) -> [u8; 4] {
     (op | ((delta >> 2) as u32 & 0x03ff_ffff)).to_le_bytes()
 }
 
-/// The calls and hooked functions, each branching to its hook entry.
-fn sites() -> impl Iterator<Item = Patch> {
-    let calls = CALLS.into_iter().chain(NPAD_CALLS);
-    let calls = calls.map(|(at, entry)| (at, entry, true));
-    let hooks = HOOKS.iter().map(|&(at, entry)| (at, entry, false));
-    let run = (RUN_CALL.0, RUN_CALL.1, true);
-    let hud = (gear::HUD.0, gear::HUD.1, true);
-    calls
-        .chain(hooks)
-        .chain([hud, run])
-        .map(|(at, entry, link)| Patch {
-            at,
-            bytes: branch(at, CAVE + entry, link).to_vec(),
-        })
-}
-
-/// Where each of the hook's slots branches, in their order: past each
-/// hooked function's `pacibsp`, then to each controller read's stub.
-fn slot_targets() -> impl Iterator<Item = u32> {
-    HOOKS.iter().map(|&(at, _)| at + 4).chain(NPAD_STUBS)
-}
-
-/// The hook, with each slot's `b` written in.
-fn hook_code() -> Vec<u8> {
-    let mut code = HOOK.to_vec();
-    for (i, to) in slot_targets().enumerate() {
-        let slot = SLOTS + 4 * i as u32;
-        code[slot as usize..][..4].copy_from_slice(&branch(CAVE + slot, to, false));
-    }
-    code
-}
-
-/// What the patch writes over a hooked function's `pacibsp`, if `at` is one.
-pub fn site(at: u32) -> Option<Vec<u8>> {
-    sites().find(|p| p.at == at).map(|p| p.bytes)
-}
-
-/// `bytes` at `at`, padded to a word, or an error past `end`.
-fn fit(at: u32, mut bytes: Vec<u8>, end: u32, what: &str) -> Result<Patch> {
+/// `bytes` at `at`, padded to a word, or an error past `end` naming
+/// `release`'s `what`.
+fn fit(at: u32, mut bytes: Vec<u8>, end: u32, release: Release, what: &str) -> Result<Patch> {
     // Writes go a word at a time.
     bytes.resize(bytes.len().next_multiple_of(4), 0);
     let free = (end - at) as usize;
     ensure!(
         bytes.len() <= free,
-        "the {what} needs {} bytes, {free} are free",
+        "the {} {what} needs {} bytes, {free} are free",
+        release.name(),
         bytes.len()
     );
     Ok(Patch { at, bytes })
-}
-
-/// The skips, the hook and its far code.
-fn code() -> Result<Vec<Patch>> {
-    let skips = SKIPS.map(|(at, to)| Patch {
-        at,
-        bytes: branch(at, to, false).to_vec(),
-    });
-    let code = fit(CAVE, hook_code(), CAVE_END, "hook")?;
-    let far = fit(FAR, FAR_CODE.to_vec(), FAR_END, "far code")?;
-    Ok(skips.into_iter().chain([code, far]).collect())
-}
-
-/// The skips, the hook, its far code and every call site: the same for
-/// every seed, since each hook entry checks its own setting in the table.
-/// A game that builds the exefs patch in rebuilds only when this changes.
-pub fn code_patches() -> Result<Vec<Patch>> {
-    Ok(code()?.into_iter().chain(sites()).collect())
 }
 
 /// The table's writes: its body, then its magic, so a table caught
@@ -199,257 +205,143 @@ fn table_writes(Patch { at, mut bytes }: Patch) -> [Patch; 2] {
     ]
 }
 
-/// The skips, the hook, its table for `lines`, the [`zootr_hook::KEYED`]
-/// lines `keyed`, `flags` (with [`DEV`] always, so the mailbox answers in
-/// every seed), `credits` and `spots`, then the calls and function hooks
-/// that reach it, every one in every seed.
-pub fn patches<A: AsRef<str>>(
-    lines: &[&[(A, A)]],
-    keyed: &[Vec<(String, String)>],
-    flags: u32,
-    credits: &[(&str, Credit)],
-    spots: &[Spot],
-    look: Option<&LookSpec>,
-) -> Result<Vec<Patch>> {
-    let owned: Vec<Vec<(&str, &str)>> = (lines.iter())
-        .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
-        .collect();
-    let lines: Vec<&[(&str, &str)]> = owned.iter().map(Vec::as_slice).collect();
-    let keyed: Vec<Vec<(&str, &str)>> = (keyed.iter())
-        .map(|l| l.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect())
-        .collect();
-    let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
-    let flags = flags | DEV;
-    let cycled = menu_slots::ALL.iter().filter(|_| flags & MENU_CYCLE != 0);
-    let actors: Vec<_> = cycled.clone().map(|s| s.actors()).collect();
-    let slots: Vec<_> = cycled.zip(&actors).map(|(s, a)| s.spec(a)).collect();
-    let table = encode(flags, &lines, &keyed, credits, &slots, spots, look);
-    let table = fit(TABLE, table, TABLE_END, "table")?;
-    Ok((code()?.into_iter())
-        .chain(table_writes(table))
-        .chain(sites())
-        .collect())
-}
-
-/// One type 0 write into `main`: 8 bytes where aligned, else 4.
-fn writes(p: &Patch) -> impl Iterator<Item = (Vec<String>, usize)> + '_ {
-    let mut at = 0;
-    std::iter::from_fn(move || {
-        let rest = p.bytes.get(at..).filter(|r| !r.is_empty())?;
-        let addr = p.at + at as u32;
-        let width = match addr.is_multiple_of(8) && rest.len() >= 8 {
-            true => 8,
-            false => 4,
-        };
-        let value = |b: &[u8]| format!("{:08X}", u32::from_le_bytes(b.try_into().unwrap()));
-        let mut words = vec![format!("0{width}000000"), format!("{addr:08X}")];
-        // Atmosphère takes an 8 byte value high word first.
-        words.extend(rest[..width].chunks(4).rev().map(value));
-        at += width;
-        Some((words, width / 4 + 2))
-    })
-}
-
-/// Atmosphère master codes writing `patches` in order, each cheat under the
-/// engine's word limit. Each patch is whole words.
-pub fn cheat(patches: &[Patch]) -> String {
-    let mut cheats: Vec<(usize, Vec<String>)> = vec![];
-    for (words, n) in patches.iter().flat_map(writes) {
-        match cheats.last_mut() {
-            Some((used, lines)) if *used + n <= WORDS => {
-                *used += n;
-                lines.push(words.join(" "));
-            }
-            _ => cheats.push((n, vec![words.join(" ")])),
+impl Hook {
+    /// The hook built for `release`.
+    pub fn of(release: Release) -> &'static Self {
+        match release {
+            Release::V100 => &HOOKS[0],
+            Release::V111 => &HOOKS[1],
         }
     }
-    let total = cheats.len();
-    let mut out = String::new();
-    for (i, (_, lines)) in cheats.iter().enumerate() {
-        out += &format!("{{zootr {}/{total}}}\n{}\n\n", i + 1, lines.join("\n"));
+
+    /// Every build's hook.
+    pub fn all() -> &'static [Self] {
+        &HOOKS
     }
-    out
-}
 
-/// `main`'s build ID in hex, trailing zeros left out: how an exefs patch
-/// names the build it fits.
-fn build_id() -> String {
-    let used = BUILD_ID.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
-    BUILD_ID[..used]
-        .iter()
-        .map(|b| format!("{b:02X}"))
-        .collect()
-}
+    /// The calls and hooked functions, each branching to its hook entry.
+    fn sites(&self) -> impl Iterator<Item = Patch> + use<> {
+        let b = &self.build;
+        let cave = b.regions.cave;
+        let calls = calls(b).into_iter().chain(npad_calls(b));
+        let calls = calls.map(|(at, entry)| (at, entry, true));
+        let hooks = hooks(b).into_iter().map(|(at, entry)| (at, entry, false));
+        let (run, run_entry) = run_call(b);
+        let (hud, hud_entry) = gear::hud(b);
+        calls
+            .chain(hooks)
+            .chain([(hud, hud_entry, true), (run, run_entry, true)])
+            .map(move |(at, entry, link)| Patch {
+                at,
+                bytes: branch(at, cave + entry, link).to_vec(),
+            })
+    }
 
-/// The NSO header before `main`'s image, which exefs patch offsets count.
-const NSO_HEADER: u32 = 0x100;
-/// The most bytes one IPS record holds. Its size field is 2 bytes, and a
-/// size of 0 means a run, so no record is empty.
-const IPS_RECORD: usize = 0xffff;
-const IPS_END: &[u8; 4] = b"EEOF";
-// A record at the offset `EEOF` would read as the end.
-const _: () = assert!(NSO_HEADER + LIST_END < u32::from_be_bytes(*IPS_END));
+    /// Where each of the hook's slots branches, in their order: past each
+    /// hooked function's `pacibsp`, then to each controller read's stub.
+    fn slot_targets(&self) -> impl Iterator<Item = u32> + use<> {
+        let b = &self.build;
+        (hooks(b).into_iter())
+            .map(|(at, _)| at + 4)
+            .chain(npad_stubs(b))
+    }
 
-/// IPSwitch text writing `patches`, for loaders that patch `main` as it
-/// loads (targets that take no code cheats). Offsets
-/// count from `main`'s image, past its NSO header.
-pub fn pchtxt(patches: &[Patch]) -> String {
-    let id = build_id();
-    let mut out = format!("@nsobid-{id}\n@flag offset_shift {NSO_HEADER:#x}\n\n@enabled\n");
-    for p in patches {
-        for (i, chunk) in p.bytes.chunks(64).enumerate() {
-            let hex: String = chunk.iter().map(|b| format!("{b:02X}")).collect();
-            out += &format!("{:08X} {hex}\n", p.at as usize + 64 * i);
+    /// The hook, with each slot's `b` written in.
+    fn hook_code(&self) -> Vec<u8> {
+        let cave = self.build.regions.cave;
+        let mut code = self.code.to_vec();
+        for (i, to) in self.slot_targets().enumerate() {
+            let slot = SLOTS + 4 * i as u32;
+            code[slot as usize..][..4].copy_from_slice(&branch(cave + slot, to, false));
         }
+        code
     }
-    out + "@stop\n"
-}
 
-/// IPS32 writing `patches`, the same bytes as [`pchtxt`], for a Switch
-/// running Atmosphère, whose loader applies it as `main` loads: code and
-/// table both, since its cheats hold 0x400 words in all. Offsets count
-/// the NSO header. See `docs/research/console.md`.
-pub fn ips(patches: &[Patch]) -> Vec<u8> {
-    let mut out = b"IPS32".to_vec();
-    for p in patches {
-        for (i, chunk) in p.bytes.chunks(IPS_RECORD).enumerate() {
-            let at = NSO_HEADER + p.at + (IPS_RECORD * i) as u32;
-            out.extend(at.to_be_bytes());
-            out.extend((chunk.len() as u16).to_be_bytes());
-            out.extend(chunk);
-        }
+    /// What the patch writes over a hooked function's `pacibsp`, if `at` is
+    /// one.
+    pub fn site(&self, at: u32) -> Option<Vec<u8>> {
+        self.sites().find(|p| p.at == at).map(|p| p.bytes)
     }
-    out.extend(IPS_END);
-    out
-}
 
-/// Where a mod folder's cheat goes, named for the build it fits.
-pub fn path(mod_dir: &Path) -> PathBuf {
-    let id: String = BUILD_ID[..8].iter().map(|b| format!("{b:02X}")).collect();
-    mod_dir.join("cheats").join(format!("{id}.txt"))
-}
-
-/// Where a mod folder's exefs patch goes.
-pub fn exefs(mod_dir: &Path) -> PathBuf {
-    mod_dir.join("exefs").join(EXEFS)
-}
-
-/// The exefs patch's file name.
-pub const EXEFS: &str = "zootr.pchtxt";
-
-/// Where a mod folder's IPS goes: the path Atmosphère reads under
-/// `atmosphere/`, named for the build. No loader we run reads it, so
-/// nothing applies the patch twice and no built game sees the table.
-pub fn ips_path(mod_dir: &Path) -> PathBuf {
-    (mod_dir.join("exefs_patches/zootr")).join(format!("{}.ips", build_id()))
-}
-
-/// Writes patches as one file's bytes.
-type Writer = fn(&[Patch]) -> Vec<u8>;
-
-/// Our files in a mod folder and how each writes the patches: the cheat,
-/// and the same bytes as an exefs patch and an IPS.
-fn outputs(mod_dir: &Path) -> [(PathBuf, Writer); 3] {
-    [
-        (path(mod_dir), |p| cheat(p).into_bytes()),
-        (exefs(mod_dir), |p| pchtxt(p).into_bytes()),
-        (ips_path(mod_dir), ips),
-    ]
-}
-
-/// Write the cheat, exefs patch and IPS. Without `progressive` the table has
-/// no lines but the `keyed` ones (a prize chest's ammo). `credits` are
-/// what items set as they're found, by name, `spots` the twinned holders
-/// whose drops set a flag as they're taken (GameData holds them, the
-/// table their count).
-pub fn install(
-    mod_dir: &Path,
-    progressive: progressive::Lines,
-    keyed: &[Vec<(String, String)>],
-    flags: u32,
-    credits: &[(String, Credit)],
-    spots: &[Spot],
-    look: Option<&LookSpec>,
-) -> Result<()> {
-    let lines: Vec<_> = match progressive.progressive {
-        true => progressive.all().collect(),
-        false => Vec::new(),
-    };
-    let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-    let patches = patches(&lines, keyed, flags, &credits, spots, look)?;
-    for (path, write) in outputs(mod_dir) {
-        std::fs::create_dir_all(path.parent().unwrap())?;
-        std::fs::write(&path, write(&patches))
-            .with_context(|| format!("writing {}", path.display()))?;
+    /// The skips, the hook and its far code.
+    fn code(&self) -> Result<Vec<Patch>> {
+        let r = &self.build.regions;
+        let skips = skips(&self.build).map(|(at, to)| Patch {
+            at,
+            bytes: branch(at, to, false).to_vec(),
+        });
+        let code = fit(r.cave, self.hook_code(), r.cave_end, self.release, "hook")?;
+        // The far code's room ends at the first word past it the Mac's
+        // game rewrites, which a cheat can't write over.
+        let far = fit(
+            r.far,
+            self.far.to_vec(),
+            r.far_end,
+            self.release,
+            "far code",
+        )?;
+        Ok(skips.into_iter().chain([code, far]).collect())
     }
-    Ok(())
-}
 
-/// Rewrite `mod_dir`'s patches for a game that builds the exefs patch in:
-/// the exefs patch keeps [`code_patches`], the same for every seed, and
-/// the cheat writes the table alone, as data the game reads as it runs. A
-/// folder with no patch of ours stays as it is.
-pub fn split(mod_dir: &Path) -> Result<()> {
-    let text = match std::fs::read_to_string(exefs(mod_dir)) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        read => read.with_context(|| format!("reading {}", exefs(mod_dir).display()))?,
-    };
-    let table = table_of(&text)?;
-    std::fs::write(exefs(mod_dir), pchtxt(&code_patches()?))?;
-    std::fs::write(path(mod_dir), cheat(&table_writes(table)))?;
-    Ok(())
-}
-
-/// The table an exefs patch writes, from its lines between `TABLE` and
-/// `TABLE_END`.
-fn table_of(pchtxt: &str) -> Result<Patch> {
-    let mut lines = Vec::new();
-    for (at, hex) in pchtxt.lines().filter_map(|l| l.split_once(' ')) {
-        let Ok(at) = u32::from_str_radix(at, 16) else {
-            continue;
-        };
-        if (TABLE..TABLE_END).contains(&at) {
-            let bytes = (0..hex.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
-                .collect::<Option<Vec<u8>>>()
-                .context("a table line that isn't hex")?;
-            lines.push((at, bytes));
-        }
+    /// The skips, the hook, its far code and every call site: the same for
+    /// every seed, since each hook entry checks its own setting in the
+    /// table. A game that builds the exefs patch in rebuilds only when this
+    /// changes.
+    pub fn code_patches(&self) -> Result<Vec<Patch>> {
+        Ok(self.code()?.into_iter().chain(self.sites()).collect())
     }
-    lines.sort_by_key(|l| l.0);
-    let mut bytes = Vec::new();
-    for (at, line) in lines {
-        ensure!(
-            at == TABLE + bytes.len() as u32,
-            "a gap in the table's lines"
-        );
-        bytes.extend(line);
+
+    /// The skips, the hook, its table for `lines`, the
+    /// [`zootr_hook::KEYED`] lines `keyed`, `flags` (with [`DEV`] always, so
+    /// the mailbox answers in every seed), `credits` and `spots`, then the
+    /// calls and function hooks that reach it, every one in every seed.
+    pub fn patches<A: AsRef<str>>(
+        &self,
+        lines: &[&[(A, A)]],
+        keyed: &[Vec<(String, String)>],
+        flags: u32,
+        credits: &[(&str, Credit)],
+        spots: &[Spot],
+        look: Option<&LookSpec>,
+    ) -> Result<Vec<Patch>> {
+        let owned: Vec<Vec<(&str, &str)>> = (lines.iter())
+            .map(|l| l.iter().map(|(a, b)| (a.as_ref(), b.as_ref())).collect())
+            .collect();
+        let lines: Vec<&[(&str, &str)]> = owned.iter().map(Vec::as_slice).collect();
+        let keyed: Vec<Vec<(&str, &str)>> = (keyed.iter())
+            .map(|l| l.iter().map(|(a, b)| (a.as_str(), b.as_str())).collect())
+            .collect();
+        let keyed: Vec<&[(&str, &str)]> = keyed.iter().map(Vec::as_slice).collect();
+        let flags = flags | DEV;
+        let cycled = menu_slots::ALL.iter().filter(|_| flags & MENU_CYCLE != 0);
+        let actors: Vec<_> = cycled.clone().map(|s| s.actors()).collect();
+        let slots: Vec<_> = cycled.zip(&actors).map(|(s, a)| s.spec(a)).collect();
+        let table = encode(flags, &lines, &keyed, credits, &slots, spots, look);
+        let r = &self.build.regions;
+        let table = fit(r.table, table, r.table_end, self.release, "table")?;
+        Ok((self.code()?.into_iter())
+            .chain(table_writes(table))
+            .chain(self.sites())
+            .collect())
     }
-    ensure!(!bytes.is_empty(), "an exefs patch with no table");
-    ensure!(bytes.len() % 4 == 0, "a table that isn't whole words");
-    Ok(Patch { at: TABLE, bytes })
 }
 
-/// Take our cheat and exefs patch off `mod_dir`, leaving any others.
-pub fn remove(mod_dir: &Path) -> Result<()> {
-    outputs(mod_dir).iter().try_for_each(|(path, _)| take(path))
-}
-
-/// Take the cheat alone off `mod_dir`, for a game that reads the exefs
-/// patch. A game that reads both runs the hook twice, and reapplies the
-/// cheat many times a second.
-pub fn remove_cheat(mod_dir: &Path) -> Result<()> {
-    take(&path(mod_dir))
-}
-
-/// Delete `path` if it's there.
-fn take(path: &Path) -> Result<()> {
-    match std::fs::remove_file(path) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-            Err(e).with_context(|| format!("removing {}", path.display()))
-        }
-        _ => Ok(()),
+/// What the port checks another build's rooms against: 1.1.1's hook and
+/// far code, and the table a seed with every flag and the progressive
+/// lines writes (a seed's credits and ammo lines come on top, which
+/// `the_fullest_table_fits` counts).
+pub(crate) fn needs() -> crate::port::Needs {
+    use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, ICE_TRAPS};
+    let h = Hook::of(Release::V111);
+    let flags = BUNNY_HOOD | MENU_CYCLE | ICE_TRAPS | FREE_BOMBCHUS;
+    let p = (h.patches(&crate::progressive::LINES, &[], flags, &[], &[], None))
+        .expect("the table fits 1.1.1's room");
+    let r = &h.build.regions;
+    let table = p.iter().filter(|p| (r.table..r.table_end).contains(&p.at));
+    crate::port::Needs {
+        cave: h.hook_code().len() as u32,
+        far: h.far.len() as u32,
+        table: table.map(|p| p.bytes.len() as u32).sum(),
     }
 }
 
@@ -459,23 +351,28 @@ mod gear;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
     use std::ops::Range;
 
+    use crate::progressive;
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, HEADER, Header, ICE_TRAPS, MAGIC, Table, fnv};
 
     use super::*;
 
     /// Every flag that adds a site.
-    const ALL: u32 = BUNNY_HOOD | MENU_CYCLE;
+    pub(super) const ALL: u32 = BUNNY_HOOD | MENU_CYCLE;
     /// A holder that stands until picked, which adds the take's site.
-    const SPOT: Spot = Spot {
+    pub(super) const SPOT: Spot = Spot {
         flag: 1,
         name: 2,
         at: [3, 4, 5],
         placed: 6,
         twin: 7,
     };
+    /// The 1.1.1 hook, which most tests check: the 1.0.0 one is the same
+    /// code against other offsets.
+    pub(super) fn v111() -> &'static Hook {
+        Hook::of(Release::V111)
+    }
 
     #[test]
     fn the_hooks_seed_hash_is_the_deku_seeds_name() {
@@ -487,6 +384,17 @@ mod tests {
             ounce_formats::murmur3(name.as_bytes()),
             zootr_hook::DEKU_SEED
         );
+    }
+
+    #[test]
+    fn each_release_has_its_own_hook() {
+        for h in Hook::all() {
+            assert_eq!(Hook::of(h.release).release, h.release);
+        }
+        let [a, b] = [Release::V100, Release::V111].map(Hook::of);
+        assert_ne!(a.id, b.id);
+        assert_ne!(a.build.regions.cave, b.build.regions.cave);
+        assert_eq!(b.build.regions.cave, OFFSETS.regions.cave);
     }
 
     #[test]
@@ -504,73 +412,93 @@ mod tests {
             |l: &Vec<(String, String)>| -> usize { l.iter().map(|(a, b)| a.len() + b.len()).sum() };
         keyed.sort_by_key(|l| std::cmp::Reverse(size(l)));
         keyed.truncate(crate::gifts::PRIZE_CHESTS.len());
-        for keys in [
-            DungeonKeys::Vanilla,
-            DungeonKeys::Rings,
-            DungeonKeys::Singles,
-        ] {
-            let credits = crate::key_tints::credits(true, keys, true);
-            let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
-            let p = patches(&progressive::LINES, &keyed, ALL, &credits, &[SPOT], None);
-            assert!(p.is_ok(), "{keys:?}: {}", p.unwrap_err());
+        for h in Hook::all() {
+            for keys in [
+                DungeonKeys::Vanilla,
+                DungeonKeys::Rings,
+                DungeonKeys::Singles,
+            ] {
+                let credits = crate::key_tints::credits(true, keys, true);
+                let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
+                let p = h.patches(&progressive::LINES, &keyed, ALL, &credits, &[SPOT], None);
+                assert!(
+                    p.is_ok(),
+                    "{} {keys:?}: {}",
+                    h.release.name(),
+                    p.unwrap_err()
+                );
+            }
         }
     }
 
     /// Where the table's two writes start in `patches`: after the skips,
     /// the hook and its far code.
-    const TABLE_AT: usize = SKIPS.len() + 2;
+    pub(super) const TABLE_AT: usize = skips(&OFFSETS).len() + 2;
     /// Where the sites start in `patches`, after the table.
-    const SITES_AT: usize = TABLE_AT + 2;
+    pub(super) const SITES_AT: usize = TABLE_AT + 2;
 
-    /// `patches` without its table's two writes.
-    fn without_table(p: Vec<Patch>) -> Vec<Patch> {
+    /// `h`'s `patches` without its table's two writes.
+    fn without_table(h: &Hook, p: Vec<Patch>) -> Vec<Patch> {
+        let r = &h.build.regions;
         p.into_iter()
-            .filter(|p| !(TABLE..TABLE_END).contains(&p.at))
+            .filter(|p| !(r.table..r.table_end).contains(&p.at))
             .collect()
     }
 
     #[test]
     fn every_seed_writes_the_same_code_whatever_its_settings() {
-        let code = code_patches().unwrap();
-        for (flags, spots) in [(0, &[][..]), (ALL | ICE_TRAPS | FREE_BOMBCHUS, &[SPOT])] {
-            let p = patches(&progressive::LINES, &[], flags, &[], spots, None).unwrap();
-            assert_eq!(without_table(p), code, "{flags}");
+        for h in Hook::all() {
+            let code = h.code_patches().unwrap();
+            for (flags, spots) in [(0, &[][..]), (ALL | ICE_TRAPS | FREE_BOMBCHUS, &[SPOT])] {
+                let p = h.patches(&progressive::LINES, &[], flags, &[], spots, None);
+                assert_eq!(without_table(h, p.unwrap()), code, "{flags}");
+            }
         }
     }
 
     #[test]
     fn every_seed_s_table_answers_the_mailbox() {
-        let p = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
-        let magic = p.iter().find(|p| p.at == TABLE).unwrap();
-        let body = p.iter().find(|p| p.at == TABLE + 4).unwrap();
-        let header = Header::read(&[&magic.bytes[..], &body.bytes].concat());
-        assert_ne!(header.flags & DEV, 0);
+        for h in Hook::all() {
+            let table = h.build.regions.table;
+            let p = h
+                .patches(&progressive::LINES, &[], 0, &[], &[], None)
+                .unwrap();
+            let magic = p.iter().find(|p| p.at == table).unwrap();
+            let body = p.iter().find(|p| p.at == table + 4).unwrap();
+            let header = Header::read(&[&magic.bytes[..], &body.bytes].concat());
+            assert_ne!(header.flags & DEV, 0);
+        }
     }
 
     #[test]
     fn the_code_and_table_go_in_their_places_and_read_back() {
-        let p = patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap();
-        let [code, far, body, magic, ..] = &p[SKIPS.len()..] else {
-            panic!("patches")
-        };
-        assert_eq!((code.at, code.bytes.len()), (CAVE, HOOK.len()));
-        assert_eq!((far.at, &far.bytes[..FAR_CODE.len()]), (FAR, FAR_CODE));
-        assert_eq!((magic.at, &magic.bytes[..]), (TABLE, &MAGIC[..]));
-        assert_eq!(magic.at % 8, 0, "the header is read in place");
-        assert_eq!(body.at, TABLE + 4);
-        let bytes = [&magic.bytes[..], &body.bytes].concat();
-        let header = Header::read(&bytes);
-        let lines = &bytes[HEADER..][..header.size as usize];
-        let table = Table::parse(&header, lines).unwrap();
-        for line in progressive::LINES {
-            let (_, read, _) = table.find(line[1].0.as_bytes()).unwrap();
-            let read: Vec<_> = read.collect();
-            let names: Vec<_> = read.iter().map(|l| (l.drop, l.pouch)).collect();
-            let want: Vec<_> = line
-                .iter()
-                .map(|(d, p)| (d.as_bytes(), p.as_bytes()))
-                .collect();
-            assert_eq!(names, want);
+        for h in Hook::all() {
+            let r = &h.build.regions;
+            let p = h
+                .patches(&progressive::LINES, &[], 0, &[], &[], None)
+                .unwrap();
+            let [code, far, body, magic, ..] = &p[TABLE_AT - 2..] else {
+                panic!("patches")
+            };
+            assert_eq!((code.at, code.bytes.len()), (r.cave, h.code.len()));
+            assert_eq!((far.at, &far.bytes[..h.far.len()]), (r.far, h.far));
+            assert_eq!((magic.at, &magic.bytes[..]), (r.table, &MAGIC[..]));
+            assert_eq!(magic.at % 8, 0, "the header is read in place");
+            assert_eq!(body.at, r.table + 4);
+            let bytes = [&magic.bytes[..], &body.bytes].concat();
+            let header = Header::read(&bytes);
+            let lines = &bytes[HEADER..][..header.size as usize];
+            let table = Table::parse(&header, lines).unwrap();
+            for line in progressive::LINES {
+                let (_, read, _) = table.find(line[1].0.as_bytes()).unwrap();
+                let read: Vec<_> = read.collect();
+                let names: Vec<_> = read.iter().map(|l| (l.drop, l.pouch)).collect();
+                let want: Vec<_> = line
+                    .iter()
+                    .map(|(d, p)| (d.as_bytes(), p.as_bytes()))
+                    .collect();
+                assert_eq!(names, want);
+            }
         }
     }
 
@@ -578,37 +506,48 @@ mod tests {
     fn each_slot_branches_past_its_pacibsp_or_to_its_stub() {
         let word =
             |b: &[u8], at: u32| u32::from_le_bytes(b[at as usize..][..4].try_into().unwrap());
-        let code = hook_code();
-        let resumes = HOOKS.iter().map(|&(at, _)| at + 4);
-        let targets: Vec<_> = resumes.chain(NPAD_STUBS).collect();
-        assert_eq!(targets.len(), HOOKS.len() + NPAD_CALLS.len());
-        for (i, &to) in targets.iter().enumerate() {
-            let slot = SLOTS + 4 * i as u32;
-            // brk #0 until the patch fills it.
-            assert_eq!(word(HOOK, slot), 0xd420_0000, "slot {i}");
-            assert_eq!(code[slot as usize..][..4], branch(CAVE + slot, to, false));
+        for h in Hook::all() {
+            let (b, cave) = (&h.build, h.build.regions.cave);
+            let code = h.hook_code();
+            let resumes = hooks(b).into_iter().map(|(at, _)| at + 4);
+            let targets: Vec<_> = resumes.chain(npad_stubs(b)).collect();
+            assert_eq!(targets.len(), hooks(b).len() + npad_calls(b).len());
+            for (i, &to) in targets.iter().enumerate() {
+                let slot = SLOTS + 4 * i as u32;
+                // brk #0 until the patch fills it.
+                assert_eq!(word(h.code, slot), 0xd420_0000, "slot {i}");
+                assert_eq!(code[slot as usize..][..4], branch(cave + slot, to, false));
+            }
+            assert_eq!(code[..SLOTS as usize], h.code[..SLOTS as usize]);
+            let end = SLOTS as usize + 4 * targets.len();
+            assert_eq!(code[end..], h.code[end..]);
+            // Past the last slot is code, not another slot left unfilled.
+            assert_ne!(word(h.code, end as u32), 0xd420_0000);
         }
-        assert_eq!(code[..SLOTS as usize], HOOK[..SLOTS as usize]);
-        let end = SLOTS as usize + 4 * targets.len();
-        assert_eq!(code[end..], HOOK[end..]);
-        // Past the last slot is code, not another slot left unfilled.
-        assert_ne!(word(HOOK, end as u32), 0xd420_0000);
     }
 
     #[test]
     fn the_gate_skips_the_recorder() {
-        let gate = &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[0];
-        assert_eq!(gate.at, 0x17d_59bc);
-        // b 0x17d59c4
-        assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
+        for h in Hook::all() {
+            let gate = &h
+                .patches(&progressive::LINES, &[], 0, &[], &[], None)
+                .unwrap()[0];
+            assert_eq!(gate.at, h.build.branches.gate);
+            // b gate_to, two words on
+            assert_eq!(gate.bytes, 0x1400_0002u32.to_le_bytes());
+        }
     }
 
     #[test]
     fn the_catch_skips_the_child_test() {
-        let catch = &patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap()[1];
-        assert_eq!(catch.at, 0x41_0250);
-        // b 0x410258, over tbz w9, #8, 0x4102f0
-        assert_eq!(catch.bytes, 0x1400_0002u32.to_le_bytes());
+        for h in Hook::all() {
+            let catch = &h
+                .patches(&progressive::LINES, &[], 0, &[], &[], None)
+                .unwrap()[1];
+            assert_eq!(catch.at, h.build.branches.catch);
+            // b catch_to, over tbz w9, #8, catch_orig
+            assert_eq!(catch.bytes, 0x1400_0002u32.to_le_bytes());
+        }
     }
 
     #[test]
@@ -628,25 +567,31 @@ mod tests {
         // mov x18, x0 and ldrb w18, [x9, #0x12]
         assert!(x18(&0xaa00_03f2u32.to_le_bytes()).is_some());
         assert!(x18(&0x3940_4932u32.to_le_bytes()).is_some());
-        for (at, bytes, code) in pieces() {
-            for (i, word) in bytes[..code].chunks(4).enumerate() {
-                assert_eq!(x18(word), None, "at {:#x}", at as usize + i * 4);
+        for h in Hook::all() {
+            for (at, bytes, code) in pieces(h) {
+                for (i, word) in bytes[..code].chunks(4).enumerate() {
+                    assert_eq!(x18(word), None, "at {:#x}", at as usize + i * 4);
+                }
             }
         }
     }
 
-    /// Each piece of the hook: where it goes, its bytes, and how many of
-    /// them are code. The cave's strings follow its code.
-    fn pieces() -> [(u32, &'static [u8], usize); 2] {
-        let code: usize = env!("HOOK_CODE").parse().unwrap();
-        [(CAVE, HOOK, code), (FAR, FAR_CODE, FAR_CODE.len())]
+    /// Each piece of `h`: where it goes, its bytes, and how many of them
+    /// are code. The cave's strings follow its code.
+    fn pieces(h: &Hook) -> [(u32, &'static [u8], usize); 2] {
+        let code: usize = h.code_end.parse().unwrap();
+        let r = &h.build.regions;
+        [(r.cave, h.code, code), (r.far, h.far, h.far.len())]
     }
 
     #[test]
     fn page_relative_addresses_land_in_the_hook() {
-        let hook = pieces().map(|(at, bytes, _)| i64::from(at)..i64::from(at) + bytes.len() as i64);
-        for (base, bytes, code) in pieces() {
-            page_relative_addresses_land_in(&hook, base, bytes, code);
+        for h in Hook::all() {
+            let hook =
+                pieces(h).map(|(at, bytes, _)| i64::from(at)..i64::from(at) + bytes.len() as i64);
+            for (base, bytes, code) in pieces(h) {
+                page_relative_addresses_land_in(&hook, base, bytes, code);
+            }
         }
     }
 
@@ -678,18 +623,23 @@ mod tests {
 
     #[test]
     fn calls_and_hooks_branch_to_the_hook() {
-        let p = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
-        assert_eq!(p[SITES_AT..], sites().collect::<Vec<_>>());
-        let at = |i: usize| u32::from_le_bytes(p[SITES_AT + i].bytes[..].try_into().unwrap());
-        assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
-        assert_eq!(
-            at(CALLS.len() + NPAD_CALLS.len()) >> 26,
-            0b000101,
-            "a hook is a b"
-        );
-        let run = p.last().unwrap();
-        assert_eq!(run.at, RUN_CALL.0);
-        assert_eq!(run.bytes, branch(RUN_CALL.0, CAVE + RUN_CALL.1, true));
+        for h in Hook::all() {
+            let b = &h.build;
+            let p = h.patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None);
+            let p = p.unwrap();
+            assert_eq!(p[SITES_AT..], h.sites().collect::<Vec<_>>());
+            let at = |i: usize| u32::from_le_bytes(p[SITES_AT + i].bytes[..].try_into().unwrap());
+            assert_eq!(at(0) >> 26, 0b100101, "a call stays a bl");
+            assert_eq!(
+                at(calls(b).len() + npad_calls(b).len()) >> 26,
+                0b000101,
+                "a hook is a b"
+            );
+            let (run, entry) = run_call(b);
+            let last = p.last().unwrap();
+            assert_eq!(last.at, run);
+            assert_eq!(last.bytes, branch(run, b.regions.cave + entry, true));
+        }
         assert_eq!(branch(0x100, 0x104, true), 0x9400_0001u32.to_le_bytes());
         assert_eq!(branch(0x104, 0x100, true), 0x97ff_ffffu32.to_le_bytes());
         assert_eq!(branch(0x100, 0x108, false), 0x1400_0002u32.to_le_bytes());
@@ -700,167 +650,9 @@ mod tests {
     fn a_table_too_big_for_the_space_is_refused() {
         let name = "Item_".repeat(40);
         let big = vec![(name.as_str(), name.as_str()); 20];
-        assert!(patches(&[&big], &[], 0, &[], &[], None).is_err());
-    }
-
-    #[test]
-    fn the_cheat_writes_in_order_under_the_word_limit() {
-        let p = [
-            Patch {
-                at: 0x10,
-                bytes: (0..16).collect(),
-            },
-            Patch {
-                at: 0x2c,
-                bytes: vec![1, 2, 3, 4],
-            },
-        ];
-        assert_eq!(
-            cheat(&p),
-            "{zootr 1/1}\n\
-             08000000 00000010 07060504 03020100\n\
-             08000000 00000018 0F0E0D0C 0B0A0908\n\
-             04000000 0000002C 04030201\n\n"
-        );
-        let text = cheat(&patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap());
-        let cheats: Vec<_> = text.split("\n\n").filter(|c| !c.is_empty()).collect();
-        let total = cheats.len();
-        for (i, c) in cheats.iter().enumerate() {
-            assert!(c.starts_with(&format!("{{zootr {}/{total}}}\n", i + 1)));
-            let words = c.lines().skip(1).flat_map(|l| l.split(' ')).count();
-            assert!(words <= WORDS, "{words}");
+        for h in Hook::all() {
+            assert!(h.patches(&[&big], &[], 0, &[], &[], None).is_err());
         }
-        // The sites may straddle two cheats, so look at every write.
-        let last: Vec<_> = text.lines().rev().filter(|l| l.starts_with('0')).collect();
-        let sites: Vec<_> = sites().map(|p| format!(" {:08X} ", p.at)).collect();
-        assert!(sites.iter().rev().zip(last).all(|(at, l)| l.contains(at)));
-    }
-
-    #[test]
-    fn the_exefs_patch_writes_the_same_bytes_in_64_byte_lines() {
-        let p = [Patch {
-            at: 0x17d_59bc,
-            bytes: (0..66).collect(),
-        }];
-        let text = pchtxt(&p);
-        let lines: Vec<_> = text.lines().collect();
-        assert_eq!(lines[0], "@nsobid-E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348");
-        assert_eq!(lines[1..4], ["@flag offset_shift 0x100", "", "@enabled"]);
-        assert!(lines[4].starts_with("017D59BC 00010203") && lines[4].len() == 9 + 128);
-        assert_eq!(lines[5..], ["017D59FC 4041", "@stop"]);
-    }
-
-    /// An IPS32 file's records, as `(offset, bytes)`.
-    fn ips_records(ips: &[u8]) -> Vec<(u32, Vec<u8>)> {
-        assert_eq!(ips[..5], *b"IPS32");
-        let (mut at, mut out) = (5, vec![]);
-        while ips[at..at + 4] != *b"EEOF" {
-            let offset = u32::from_be_bytes(ips[at..at + 4].try_into().unwrap());
-            let size = u16::from_be_bytes(ips[at + 4..at + 6].try_into().unwrap()) as usize;
-            out.push((offset, ips[at + 6..at + 6 + size].to_vec()));
-            at += 6 + size;
-        }
-        assert_eq!(at + 4, ips.len(), "nothing after EEOF");
-        out
-    }
-
-    /// Every byte `writes` puts in `main`'s image, by its offset.
-    fn bytes_at(writes: impl IntoIterator<Item = (u32, Vec<u8>)>) -> BTreeMap<u32, u8> {
-        let mut out = BTreeMap::new();
-        for (at, bytes) in writes {
-            out.extend((at..).zip(bytes));
-        }
-        out
-    }
-
-    #[test]
-    fn the_ips_counts_the_nso_header_big_endian() {
-        let p = [Patch {
-            at: 0x17d_59bc,
-            bytes: vec![1, 2, 3, 4],
-        }];
-        let mut want = b"IPS32".to_vec();
-        want.extend([0x01, 0x7d, 0x5a, 0xbc, 0x00, 0x04, 1, 2, 3, 4]);
-        want.extend(b"EEOF");
-        assert_eq!(ips(&p), want);
-    }
-
-    #[test]
-    fn a_patch_past_a_record_splits_and_no_record_is_empty() {
-        let p = [
-            Patch {
-                at: 0x1000,
-                bytes: (0..0x2_0002).map(|i| i as u8).collect(),
-            },
-            Patch {
-                at: 0x9_0000,
-                bytes: vec![],
-            },
-        ];
-        let records = ips_records(&ips(&p));
-        let sizes: Vec<_> = records.iter().map(|(_, b)| b.len()).collect();
-        assert_eq!(sizes, [0xffff, 0xffff, 4]);
-        let offsets: Vec<_> = records.iter().map(|(at, _)| *at).collect();
-        assert_eq!(offsets, [0x1100, 0x1100 + 0xffff, 0x1100 + 0x1_fffe]);
-        let back: Vec<u8> = records.into_iter().flat_map(|(_, b)| b).collect();
-        assert_eq!(back, p[0].bytes);
-    }
-
-    #[test]
-    fn the_ips_writes_what_the_exefs_patch_writes() {
-        let p = patches(&progressive::LINES, &[], ALL, &[], &[SPOT], None).unwrap();
-        let ips = ips_records(&ips(&p)).into_iter();
-        let ips = bytes_at(ips.map(|(at, b)| (at - 0x100, b)));
-        let text = pchtxt(&p);
-        let pchtxt = bytes_at(text.lines().filter_map(|l| {
-            let (at, hex) = l.split_once(' ')?;
-            let at = u32::from_str_radix(at, 16).ok()?;
-            let bytes = (0..hex.len()).step_by(2);
-            Some((
-                at,
-                bytes
-                    .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-                    .collect(),
-            ))
-        }));
-        assert!(
-            ips.keys().any(|at| (TABLE..TABLE_END).contains(at)),
-            "the table"
-        );
-        assert_eq!(ips, pchtxt);
-    }
-
-    #[test]
-    fn the_ips_is_named_as_atmosphere_reads_it() {
-        let at = ips_path(Path::new("m"));
-        assert!(at.starts_with("m/exefs_patches/zootr"), "{}", at.display());
-        let name = at.file_name().unwrap().to_str().unwrap();
-        assert_eq!(name, "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips");
-        // Atmosphère's rule: hex, an even length, at most a whole ID's.
-        let id = name.strip_suffix(".ips").unwrap();
-        assert!(
-            id.len().is_multiple_of(2)
-                && id.len() <= 64
-                && id.chars().all(|c| c.is_ascii_hexdigit())
-        );
-    }
-
-    #[test]
-    fn the_build_id_is_the_dumps() {
-        let dump = Path::new("../../dump/oot.nup");
-        if !dump.exists() {
-            return;
-        }
-        let nup = nup_format::Nup::open(dump).unwrap();
-        let title = crate::game::TITLE | 0x800;
-        let update = nup.packages().iter().find(|p| p.title_id == title);
-        let exefs = update.and_then(|p| p.exefs).unwrap();
-        let Some(nup_format::Node::File(main)) = nup.find(exefs, "main") else {
-            panic!("no exefs/main")
-        };
-        let header = nup.read(main).unwrap();
-        assert_eq!(header[0x40..0x60], BUILD_ID);
-        assert!(path(Path::new("m")).ends_with("cheats/E0F3CCFAF50065AE.txt"));
     }
 
     /// `main` as the Mac's game runs it: the dump's, but for the words it
@@ -869,132 +661,204 @@ mod tests {
     pub(super) const PC_MAIN: &str =
         "../../dump/0400486024DEC000_build/patched_v131072/main.patched.bin";
 
+    /// FNV-1a over 64 bits, enough to tell two patches apart.
+    fn fingerprint(bytes: &[u8]) -> u64 {
+        bytes.iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+        })
+    }
+
+    /// One hash for each thing `h`'s patch writes, for a fixed seed (every
+    /// setting that adds a site, a spot, credits and the progressive
+    /// lines), and how many of them hold without the dump: the seed's
+    /// outputs carry game names, which only the dump gives, so without it
+    /// they hold stand-ins and only the code is pinned.
+    fn pins(h: &Hook) -> ([(&'static str, u64); 8], usize) {
+        let credits = [
+            ("Key_01", Credit::Bool(0x1234_5678)),
+            ("Key_02", Credit::Int(0xdead_beef, -3)),
+            ("Key_03", Credit::Add(0xfeed_face, 1)),
+        ];
+        let all = ALL | ICE_TRAPS | FREE_BOMBCHUS;
+        let seed = (h.patches(&progressive::LINES, &[], all, &credits, &[SPOT], None)).unwrap();
+        let flat = |p: &[Patch]| -> Vec<u8> {
+            (p.iter())
+                .flat_map(|p| {
+                    p.at.to_le_bytes()
+                        .into_iter()
+                        .chain(p.bytes.iter().copied())
+                })
+                .collect()
+        };
+        let sites: Vec<_> = h.sites().collect();
+        let got = [
+            ("hook", fingerprint(h.code)),
+            ("far", fingerprint(h.far)),
+            ("code", fingerprint(&flat(&h.code_patches().unwrap()))),
+            ("sites", fingerprint(&flat(&sites))),
+            ("patches", fingerprint(&flat(&seed))),
+            ("pchtxt", fingerprint(h.pchtxt(&seed).as_bytes())),
+            ("ips", fingerprint(&files::ips(&seed))),
+            ("cheat", fingerprint(files::cheat(&seed).as_bytes())),
+        ];
+        let pinned = if crate::game::no_names() { 4 } else { 8 };
+        (got, pinned)
+    }
+
+    /// Pins the 1.1.1 patch: one hash for each thing the patch writes, for
+    /// a fixed seed (every setting that adds a site, a spot, credits and
+    /// the progressive lines). Moving an offset, or the table the offsets
+    /// come from, changes none of them. A change that is meant to change
+    /// the patch updates these in the same commit and says why.
+    #[test]
+    fn the_1_1_1_patch_is_pinned() {
+        let (got, pinned) = pins(v111());
+        let want = [
+            ("hook", 0xe07e_c926_1640_d3a7),
+            ("far", 0xc4ad_4cb3_788d_2dc6),
+            ("code", 0x239a_7257_4280_4086),
+            ("sites", 0x0209_eeb8_fec6_37d2),
+            ("patches", 0xaaeb_45bb_d473_e72e),
+            ("pchtxt", 0x1b45_94a8_d22e_dc95),
+            ("ips", 0x0925_074c_306f_92d4),
+            ("cheat", 0x2402_0a13_e2c6_c98d),
+        ];
+        assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
+    }
+
+    /// The same pins for 1.0.0's patch, the same code built against
+    /// `V65536`.
+    #[test]
+    fn the_1_0_0_patch_is_pinned() {
+        let (got, pinned) = pins(Hook::of(Release::V100));
+        let want = [
+            ("hook", 0x2b23_a33a_a53b_e220),
+            ("far", 0x4a3b_2218_b11e_471a),
+            ("code", 0x60a6_280c_eab2_6b39),
+            ("sites", 0x6a43_a440_d683_4bc4),
+            ("patches", 0xaacd_a342_08b9_47f9),
+            ("pchtxt", 0xd015_27d2_4851_ab58),
+            ("ips", 0x4b05_bbfd_066c_be5b),
+            ("cheat", 0xaf80_8828_1c76_4918),
+        ];
+        assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
+    }
+
     #[test]
     fn every_word_the_patch_writes_over_holds_what_we_expect() {
-        let Ok(main) = std::fs::read(PC_MAIN) else {
+        if let Ok(main) = std::fs::read(PC_MAIN) {
+            words_hold_what_we_expect(&main, v111());
+            the_1_1_1_rooms_hold_what_we_expect(&main);
+        }
+        if let Some((_, main)) = crate::game::dumped_main(Release::V111) {
+            words_hold_what_we_expect(main, v111());
+            the_1_1_1_rooms_hold_what_we_expect(main);
+        }
+    }
+
+    #[test]
+    fn every_word_the_1_0_0_patch_writes_over_holds_what_we_expect() {
+        let Some((_, main)) = crate::game::dumped_main(Release::V100) else {
             return;
         };
+        words_hold_what_we_expect(main, Hook::of(Release::V100));
+    }
+
+    /// The checks on a build's `main` with its hook `h`: each site holds
+    /// the word the patch expects to replace, each call goes where the
+    /// table says, and the rooms are free and big enough.
+    fn words_hold_what_we_expect(main: &[u8], h: &Hook) {
+        let b = &h.build;
         let word = |at: u32| u32::from_le_bytes(main[at as usize..][..4].try_into().unwrap());
-        let room = |at: u32, end: u32| &main[at as usize..end as usize];
-        assert_eq!(word(GATE.0), 0x3400_0048, "cbz w8, 0x17d59c4");
-        assert_eq!(word(CATCH.0), 0x3640_0509, "tbz w9, #8, 0x4102f0");
-        for (at, _) in CALLS.into_iter().chain([RUN_CALL]) {
-            assert_eq!(word(at) >> 26, 0x25, "{at:#x} isn't a bl");
+        let imm = |from: u32, to: u32, shift: u32| ((to - from) / 4) << shift;
+        let (gate, (catch, _)) = (gate(b), catch(b));
+        assert_eq!(
+            word(gate.0),
+            0x3400_0008 | imm(gate.0, gate.1, 5),
+            "cbz w8, gate_to"
+        );
+        let orig = b.branches.catch_orig;
+        assert_eq!(
+            word(catch),
+            0x3640_0009 | imm(catch, orig, 5),
+            "tbz w9, #8, catch_orig"
+        );
+        let (boots, boots_to) = gear::boots(b);
+        assert_eq!(
+            word(boots),
+            0x3600_0000 | imm(boots, boots_to, 5),
+            "tbz w0, #0, boots_to"
+        );
+        assert_eq!(word(gear::hud(b).0), 0x3957_0108, "ldrb w8, [x8, #0x5c0]");
+        let f = &b.funcs;
+        let callees = [
+            f.setter,
+            f.setter,
+            f.reader,
+            f.reader,
+            f.childhood,
+            f.childhood,
+            f.childhood,
+            f.run_setter,
+        ];
+        for ((at, _), to) in calls(b).into_iter().chain([run_call(b)]).zip(callees) {
+            assert_eq!(word(at).to_le_bytes(), branch(at, to, true), "{at:#x}");
         }
-        for (&(at, _), stub) in NPAD_CALLS.iter().zip(NPAD_STUBS) {
+        for ((at, _), stub) in npad_calls(b).into_iter().zip(npad_stubs(b)) {
             assert_eq!(word(at).to_le_bytes(), branch(at, stub, true), "{at:#x}");
         }
-        for &(at, _) in HOOKS {
+        for (at, _) in hooks(b) {
             assert_eq!(word(at), 0xd503_237f, "{at:#x} isn't a pacibsp");
         }
-        // Havok's trace recorder, and a function only its dispatcher
-        // calls, as 1.1.1 has them, untouched by the Mac's game.
-        assert_eq!(fnv(room(CAVE, CAVE_END)), 0xc734_cad6, "the cave");
-        assert_eq!(fnv(room(FAR, FAR_END)), 0x7aea_f248, "the far code's room");
+        let r = &b.regions;
         assert!(
-            room(TABLE, TABLE_END).iter().all(|&b| b == 0),
-            "the table's room"
+            r.cave_end - r.cave >= h.hook_code().len() as u32,
+            "the cave"
         );
-        // Each patch starts at a place checked above.
-        let sites = SKIPS.iter().chain(&CALLS).chain(&NPAD_CALLS).chain(HOOKS);
-        let checked: Vec<u32> = (sites.map(|&(at, _)| at))
-            .chain([RUN_CALL.0, gear::HUD.0, CAVE, FAR, TABLE, TABLE + 4])
+        assert!(
+            r.far_end - r.far >= h.far.len() as u32,
+            "the far code's room"
+        );
+        let table = &main[r.table as usize..r.table_end as usize];
+        assert!(table.iter().all(|&b| b == 0), "the table's room");
+    }
+
+    /// The 1.1.1 checks no other build shares: the recorder and the far
+    /// function as 1.1.1 has them, untouched by the Mac's game, and every
+    /// patch starting at a place checked above.
+    fn the_1_1_1_rooms_hold_what_we_expect(main: &[u8]) {
+        let (h, r) = (v111(), &v111().build.regions);
+        let b = &h.build;
+        let room = |at: u32, end: u32| &main[at as usize..end as usize];
+        assert_eq!(fnv(room(r.cave, r.cave_end)), 0xc734_cad6, "the cave");
+        assert_eq!(
+            fnv(room(r.far, r.far_end)),
+            0x7aea_f248,
+            "the far code's room"
+        );
+        let sites = (skips(b).into_iter())
+            .chain(calls(b))
+            .chain(npad_calls(b))
+            .chain(hooks(b));
+        let checked: Vec<u32> = (sites.map(|(at, _)| at))
+            .chain([
+                run_call(b).0,
+                gear::hud(b).0,
+                r.cave,
+                r.far,
+                r.table,
+                r.table + 4,
+            ])
             .collect();
-        for p in patches(&progressive::LINES, &[], 0, &[], &[], None).unwrap() {
+        for p in h
+            .patches(&progressive::LINES, &[], 0, &[], &[], None)
+            .unwrap()
+        {
             assert!(
                 checked.contains(&p.at),
                 "nothing checks what {:#x} holds",
                 p.at
             );
         }
-    }
-
-    #[test]
-    fn install_writes_and_remove_takes_away_only_ours() {
-        let dir = std::env::temp_dir().join(format!("zootr-patch-{}", std::process::id()));
-        let other = dir.join("cheats/OTHER.txt");
-        std::fs::create_dir_all(other.parent().unwrap()).unwrap();
-        std::fs::write(&other, "").unwrap();
-        install(
-            &dir,
-            crate::progressive::Lines::climbing(),
-            &[],
-            0,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
-        assert!(
-            std::fs::read_to_string(path(&dir))
-                .unwrap()
-                .starts_with("{zootr 1/")
-        );
-        install(&dir, Default::default(), &[], 0, &[], &[], None).unwrap();
-        let dev = std::fs::read_to_string(path(&dir)).unwrap();
-        assert!(
-            dev.contains(&format!("{:08X}", OFFSETS.link_update)),
-            "{dev}"
-        );
-        let exefs = dir.join("exefs/zootr.pchtxt");
-        assert!(
-            std::fs::read_to_string(&exefs)
-                .unwrap()
-                .contains(&format!("{:08X} ", OFFSETS.link_update))
-        );
-        install(&dir, Default::default(), &[], BUNNY_HOOD, &[], &[], None).unwrap();
-        let hood = std::fs::read_to_string(path(&dir)).unwrap();
-        assert!(hood.contains(&format!("{:08X}", RUN_CALL.0)), "{hood}");
-        assert!(std::fs::read(ips_path(&dir)).unwrap().starts_with(b"IPS32"));
-        remove(&dir).unwrap();
-        assert!(!path(&dir).exists() && !exefs.exists() && !ips_path(&dir).exists());
-        assert!(other.exists());
-        std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn the_split_leaves_the_code_to_the_exefs_patch_and_the_table_to_the_cheat() {
-        let dir = std::env::temp_dir().join(format!("zootr-split-{}", std::process::id()));
-        let lines = progressive::Lines::climbing();
-        install(&dir, lines, &[], ALL, &[], &[SPOT], None).unwrap();
-        let lines: Vec<_> = lines.all().collect();
-        let whole = patches(&lines, &[], ALL, &[], &[SPOT], None).unwrap();
-        split(&dir).unwrap();
-        assert_eq!(
-            std::fs::read(ips_path(&dir)).unwrap(),
-            ips(&whole),
-            "the IPS keeps it all"
-        );
-        let exefs = std::fs::read_to_string(exefs(&dir)).unwrap();
-        assert_eq!(exefs, pchtxt(&code_patches().unwrap()));
-        let cheat = std::fs::read_to_string(path(&dir)).unwrap();
-        assert_eq!(cheat, self::cheat(&whole[TABLE_AT..SITES_AT]));
-        let addrs: Vec<u32> = (cheat.lines())
-            .filter(|l| l.starts_with('0'))
-            .filter_map(|l| l.split(' ').nth(1))
-            .map(|a| u32::from_str_radix(a, 16).unwrap())
-            .collect();
-        assert!(addrs.iter().all(|a| (TABLE..TABLE_END).contains(a)));
-        assert_eq!(addrs.last(), Some(&TABLE), "the magic goes last");
-        std::fs::remove_dir_all(&dir).unwrap();
-        split(&dir).unwrap();
-        assert!(!dir.exists(), "no patch, nothing written");
-    }
-
-    #[test]
-    fn a_patch_the_split_cant_read_is_an_error() {
-        let dir = std::env::temp_dir().join(format!("zootr-unread-{}", std::process::id()));
-        std::fs::create_dir_all(exefs(&dir).parent().unwrap()).unwrap();
-        std::fs::write(exefs(&dir), [0xFF, 0xFE]).unwrap();
-        assert!(split(&dir).is_err(), "not text isn't no patch");
-        std::fs::remove_dir_all(&dir).unwrap();
-    }
-
-    #[test]
-    fn a_table_that_isnt_whole_words_is_an_error() {
-        let line = |hex: &str| format!("{TABLE:08X} {hex}\n");
-        assert!(table_of(&line("0102")).is_err());
-        assert!(table_of(&line("0102030405")).is_err());
-        assert_eq!(table_of(&line("01020304")).unwrap().bytes, [1, 2, 3, 4]);
     }
 }

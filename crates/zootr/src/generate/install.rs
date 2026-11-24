@@ -92,8 +92,10 @@ pub fn install<T>(
         });
         match wrote {
             Err(e) if run.replaced() => {
+                // A fresh error, so a stop doesn't pass for one that left
+                // the targets as they were.
                 if let Err(off) = take_off(targets) {
-                    return Err(e.context(format!("the mod stayed on ({off:#}) after")));
+                    bail!("the mod stayed on ({off:#}) after: {e:#}");
                 }
                 Err(match progress::stopped(&e) {
                     Some(_) => Stopped { took_off: true }.into(),
@@ -105,8 +107,8 @@ pub fn install<T>(
     })
 }
 
-/// Take the mod off every target, its romfs and settings line, so the game
-/// runs vanilla until the next install.
+/// Take the mod off every target, its romfs and the settings lines that
+/// point into it, so the game runs vanilla until the next install.
 pub fn uninstall(targets: &[Target]) -> Result<()> {
     guarded(targets, || take_off(targets))
 }
@@ -131,7 +133,7 @@ fn take_off_one(t: &Target) -> Result<()> {
     }
     patch::remove(&t.mod_dir)?;
     if let Some(line) = &t.settings_file {
-        line.remove()?;
+        line.remove(t.control.as_deref())?;
     }
     Ok(())
 }
@@ -142,26 +144,25 @@ mod tests {
     use crate::config::SettingsFile;
     use crate::generate::tests::Scratch;
 
+    /// A seed's table with the progressive lines and nothing else.
+    fn climbing() -> crate::patch::SeedTable<'static> {
+        crate::patch::SeedTable {
+            progressive: crate::progressive::Lines::climbing(),
+            ..Default::default()
+        }
+    }
+
     /// Install and uninstall refuse to overlap, so their tests take turns.
     static TURNS: Mutex<()> = Mutex::new(());
 
     #[test]
-    fn uninstalling_takes_the_romfs_cheat_and_settings_lines_off_every_target() {
+    fn uninstalling_takes_the_romfs_cheat_and_mod_settings_lines_off_every_target() {
         let _turn = TURNS.lock().unwrap();
         let dir = Scratch::new("uninstall");
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
-        crate::patch::install(
-            &mod_dir,
-            crate::progressive::Lines::climbing(),
-            &[],
-            0,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
+        crate::patch::install(&mod_dir, crate::game::Release::V111, &climbing()).unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
         let target = |line| Target {
@@ -180,14 +181,15 @@ mod tests {
         };
         let line = SettingsFile {
             file: env.clone(),
-            lines: vec!["KEY={romfs}".into()],
+            lines: vec!["KEY={romfs}".into(), "FOCUS=1".into()],
         };
         let targets = [target(None), target(Some(line))];
         uninstall(&targets).unwrap();
         uninstall(&targets).unwrap();
         assert!(!mod_dir.join("romfs").exists() && mod_dir.join("spoiler.txt").exists());
-        assert!(!crate::patch::path(&mod_dir).exists());
-        assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\n");
+        let v111 = crate::patch::Hook::of(crate::game::Release::V111);
+        assert!(!v111.path(&mod_dir).exists());
+        assert_eq!(std::fs::read_to_string(&env).unwrap(), "A=1\nFOCUS=1\n");
         assert!(uninstall(&[]).is_err());
     }
 
@@ -254,8 +256,10 @@ mod tests {
             rebuild: None,
             game: None,
         };
-        let has = |m: &str| crate::patch::path(&dir.join(m)).exists();
-        let ips = |m: &str| crate::patch::ips_path(&dir.join(m)).is_file();
+        use crate::game::Release;
+        use crate::patch::Hook;
+        let has = |m: &str, r| Hook::of(r).path(&dir.join(m)).exists();
+        let ips = |m: &str, r| Hook::of(r).ips_path(&dir.join(m)).is_file();
         // Either way round: a folder written first without a reader still
         // hands the cheat to the copy that has one.
         for order in [["reads", "not"], ["not", "reads"]] {
@@ -269,26 +273,18 @@ mod tests {
             };
             let targets = order.map(|m| target(m, line(m)));
             install(&targets, &Run::silent(), |d| {
-                crate::patch::install(
-                    d,
-                    crate::progressive::Lines::climbing(),
-                    &[],
-                    0,
-                    &[],
-                    &[],
-                    None,
-                )
+                crate::patch::install(d, Release::V111, &climbing())
             })
             .unwrap();
-            assert!(has("reads") && !has("not"), "{order:?}");
+            assert!(has("reads", Release::V111) && !has("not", Release::V111));
             assert!(
-                ips("reads") && ips("not"),
+                ips("reads", Release::V111) && ips("not", Release::V111),
                 "{order:?}: every folder has the IPS"
             );
             assert!(dir.join("not/exefs/zootr.pchtxt").is_file());
         }
         // A game that builds the exefs patch in gets it without the table,
-        // which comes as a cheat.
+        // which comes as a cheat, for the build the patch names: 1.0.0's here.
         let _ = std::fs::remove_dir_all(&*dir);
         let built = Target {
             rebuild: Some(crate::config::Rebuild::default()),
@@ -296,21 +292,14 @@ mod tests {
             ..target("built", "R={romfs}")
         };
         install(&[built], &Run::silent(), |d| {
-            crate::patch::install(
-                d,
-                crate::progressive::Lines::climbing(),
-                &[],
-                0,
-                &[],
-                &[],
-                None,
-            )
+            crate::patch::install(d, Release::V100, &climbing())
         })
         .unwrap();
         let exefs = std::fs::read_to_string(dir.join("built/exefs/zootr.pchtxt")).unwrap();
-        let code = crate::patch::code_patches().unwrap();
-        assert_eq!(exefs, crate::patch::pchtxt(&code));
-        assert!(has("built") && ips("built"));
+        let v100 = Hook::of(Release::V100);
+        assert_eq!(exefs, v100.pchtxt(&v100.code_patches().unwrap()));
+        assert!(has("built", Release::V100) && ips("built", Release::V100));
+        assert!(!has("built", Release::V111) && !ips("built", Release::V111));
     }
 
     #[test]
@@ -414,6 +403,21 @@ mod tests {
             message.contains("removing") && message.ends_with(": broke"),
             "{message}"
         );
+        std::fs::remove_file(&stuck).unwrap();
+        // A stop there says so too, never that the targets are as they were.
+        fresh();
+        let run = Run::silent();
+        let err = install(&targets, &run, |_| {
+            run.mark_replaced();
+            std::fs::remove_dir_all(&stuck)?;
+            std::fs::write(&stuck, "")?;
+            run.stopper().stop();
+            run.check()
+        })
+        .unwrap_err();
+        assert!(progress::stopped(&err).is_none());
+        let message = format!("{err:#}");
+        assert!(message.contains("stayed on"), "{message}");
         std::fs::remove_file(&stuck).unwrap();
         // And the lock it held is free for the next install.
         fresh();

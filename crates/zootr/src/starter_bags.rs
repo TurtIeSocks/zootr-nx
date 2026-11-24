@@ -7,7 +7,7 @@ use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_f
 
 use crate::bombchu_bags;
 use crate::checks::swap_strings;
-use crate::key_tints::{POUCH_TEXT, TEXT_PARTS};
+use crate::copies::{POUCH_TEXT, TEXT_PARTS};
 use crate::known::{Name, actor, field, item};
 use crate::settings::{Bombchus, NewGame};
 use crate::standins::{Tables, actor_path, component, doc, path_of, raw, renamed, with_ref};
@@ -402,8 +402,7 @@ mod tests {
         for pack in NUTS.packs {
             let file = ounce_formats::pack_file(pack);
             assert!(written.contains(&file), "{file}");
-            let raw = std::fs::read(dir.join("romfs").join(&file)).unwrap();
-            let data = romfs.dicts().decompress(&file, &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &file);
             let sarc = roead::sarc::Sarc::new(data).unwrap();
             let param = sarc.get_data(&pouch_param(NUTS.param)).unwrap();
             let doc = BymlDoc::parse(param).unwrap();
@@ -411,8 +410,7 @@ mod tests {
         }
         let small = NUTS.bags[0];
         let file = ounce_formats::pack_file(small);
-        let raw = std::fs::read(dir.join("romfs").join(&file)).unwrap();
-        let data = romfs.dicts().decompress(&file, &raw).unwrap();
+        let data = crate::game::read_built(&romfs, &dir, &file);
         let pack = ActorPack::from_bytes(small, data).unwrap();
         let param = pack.actor_param().unwrap().unwrap();
         for key in GET_REFS {
@@ -428,16 +426,14 @@ mod tests {
         let own = actor_path(small);
         for heir in &NUTS.bags[1..] {
             let file = ounce_formats::pack_file(heir);
-            let raw = std::fs::read(dir.join("romfs").join(&file)).unwrap();
-            let data = romfs.dicts().decompress(&file, &raw).unwrap();
+            let data = crate::game::read_built(&romfs, &dir, &file);
             let heir = ActorPack::from_bytes(heir, data).unwrap();
             assert_eq!(heir.raw(&own), pack.raw(&own), "{}", heir.name);
         }
         // Sized by its bytes alone, the game crashed loading a chest
         // holding the bag: past its bytes, it costs what the Medium's does.
         let table = romfs.restbl_rel().unwrap();
-        let written = std::fs::read(dir.join("romfs").join(&table)).unwrap();
-        let written = romfs.dicts().decompress(&table, &written).unwrap();
+        let written = crate::game::read_built(&romfs, &dir, &table);
         let restbl = ounce_formats::Restbl::parse(&written).unwrap();
         let medium = ActorPack::load(&romfs, NUTS.bags[1]).unwrap();
         let over = |name, size: usize| {

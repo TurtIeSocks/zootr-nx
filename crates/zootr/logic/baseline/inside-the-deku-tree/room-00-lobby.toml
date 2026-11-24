@@ -41,10 +41,28 @@ needs = "always"
 why = "in reach from its room"
 
 [[check]]
+hash = 1922216023914752593
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
 hash = 8579518566955184384
 name = "Deku Tree Map Chest"
 needs = "always"
 why = "0.1 m from its room's floor, within a big chest's reach (1.35 m)"
+
+[[check]]
+hash = 16164791133086825945
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
+
+[[check]]
+hash = 16355617740219907263
+name = "Recovery Heart"
+needs = "always"
+why = "in reach from its room"
 
 [[exit]]
 hash = 0xb5731c2c
