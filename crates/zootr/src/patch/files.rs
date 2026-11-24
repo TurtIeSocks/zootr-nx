@@ -151,30 +151,40 @@ fn outputs(h: &Hook, mod_dir: &Path, patches: &[Patch]) -> [(PathBuf, Vec<u8>); 
     ]
 }
 
-/// Write the cheat, exefs patch and IPS for `release`'s `main`, and take
-/// off any other build's. Without `progressive` the table has no lines
-/// but the `keyed` ones (a prize chest's ammo). `credits` are what items
-/// set as they're found, by name, `spots` the twinned holders whose drops
-/// set a flag as they're taken (GameData holds them, the table their
-/// count).
-#[allow(clippy::too_many_arguments)]
-pub fn install(
-    mod_dir: &Path,
-    release: Release,
-    progressive: progressive::Lines,
-    keyed: &[Vec<(String, String)>],
-    flags: u32,
-    credits: &[(String, Credit)],
-    spots: &[Spot],
-    look: Option<&LookSpec>,
-) -> Result<()> {
-    let lines: Vec<_> = match progressive.progressive {
-        true => progressive.all().collect(),
+/// What a seed's table holds. Without `progressive` the table has no
+/// lines but the `keyed` ones (a prize chest's ammo). `credits` are what
+/// items set as they're found, by name, `spots` the twinned holders whose
+/// drops set a flag as they're taken (GameData holds them, the table
+/// their count), and `look` how the hook sizes an ice trap's shells.
+#[derive(Default)]
+pub struct SeedTable<'a> {
+    pub progressive: progressive::Lines,
+    pub keyed: &'a [Vec<(String, String)>],
+    pub flags: u32,
+    pub credits: &'a [(String, Credit)],
+    pub spots: &'a [Spot],
+    pub look: Option<&'a LookSpec>,
+}
+
+/// Write the cheat, exefs patch and IPS for `release`'s `main` with the
+/// seed's `table`, and take off any other build's.
+pub fn install(mod_dir: &Path, release: Release, table: &SeedTable) -> Result<()> {
+    let lines: Vec<_> = match table.progressive.progressive {
+        true => table.progressive.all().collect(),
         false => Vec::new(),
     };
-    let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
+    let credits: Vec<_> = (table.credits.iter())
+        .map(|(n, c)| (n.as_str(), *c))
+        .collect();
     let h = Hook::of(release);
-    let patches = h.patches(&lines, keyed, flags, &credits, spots, look)?;
+    let patches = h.patches(
+        &lines,
+        table.keyed,
+        table.flags,
+        &credits,
+        table.spots,
+        table.look,
+    )?;
     remove(mod_dir)?;
     for (path, bytes) in outputs(h, mod_dir, &patches) {
         std::fs::create_dir_all(path.parent().unwrap())?;
@@ -459,23 +469,17 @@ mod tests {
         std::fs::create_dir_all(other.parent().unwrap()).unwrap();
         std::fs::write(&other, "").unwrap();
         let (h, release) = (v111(), Release::V111);
-        install(
-            &dir,
-            release,
-            crate::progressive::Lines::climbing(),
-            &[],
-            0,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
+        let climbing = SeedTable {
+            progressive: crate::progressive::Lines::climbing(),
+            ..Default::default()
+        };
+        install(&dir, release, &climbing).unwrap();
         assert!(
             std::fs::read_to_string(h.path(&dir))
                 .unwrap()
                 .starts_with("{zootr 1/")
         );
-        install(&dir, release, Default::default(), &[], 0, &[], &[], None).unwrap();
+        install(&dir, release, &SeedTable::default()).unwrap();
         let dev = std::fs::read_to_string(h.path(&dir)).unwrap();
         let update = h.build.entries.link_update;
         assert!(dev.contains(&format!("{update:08X}")), "{dev}");
@@ -485,17 +489,11 @@ mod tests {
                 .unwrap()
                 .contains(&format!("{update:08X} "))
         );
-        install(
-            &dir,
-            release,
-            Default::default(),
-            &[],
-            BUNNY_HOOD,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
+        let hood = SeedTable {
+            flags: BUNNY_HOOD,
+            ..Default::default()
+        };
+        install(&dir, release, &hood).unwrap();
         let hood = std::fs::read_to_string(h.path(&dir)).unwrap();
         assert!(
             hood.contains(&format!("{:08X}", run_call(&h.build).0)),
@@ -508,17 +506,7 @@ mod tests {
         );
         // Another build's install takes this one's files off.
         let v100 = Hook::of(Release::V100);
-        install(
-            &dir,
-            v100.release,
-            Default::default(),
-            &[],
-            0,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
+        install(&dir, v100.release, &SeedTable::default()).unwrap();
         assert!(!h.path(&dir).exists() && !h.ips_path(&dir).exists());
         assert!(v100.path(&dir).exists() && v100.ips_path(&dir).exists());
         remove(&dir).unwrap();
@@ -535,7 +523,13 @@ mod tests {
         for h in Hook::all() {
             let r = &h.build.regions;
             let lines = progressive::Lines::climbing();
-            install(&dir, h.release, lines, &[], ALL, &[], &[SPOT], None).unwrap();
+            let table = SeedTable {
+                progressive: lines,
+                flags: ALL,
+                spots: &[SPOT],
+                ..Default::default()
+            };
+            install(&dir, h.release, &table).unwrap();
             let lines: Vec<_> = lines.all().collect();
             let whole = h.patches(&lines, &[], ALL, &[], &[SPOT], None).unwrap();
             split(&dir).unwrap();

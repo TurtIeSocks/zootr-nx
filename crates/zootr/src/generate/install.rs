@@ -144,6 +144,14 @@ mod tests {
     use crate::config::SettingsFile;
     use crate::generate::tests::Scratch;
 
+    /// A seed's table with the progressive lines and nothing else.
+    fn climbing() -> crate::patch::SeedTable<'static> {
+        crate::patch::SeedTable {
+            progressive: crate::progressive::Lines::climbing(),
+            ..Default::default()
+        }
+    }
+
     /// Install and uninstall refuse to overlap, so their tests take turns.
     static TURNS: Mutex<()> = Mutex::new(());
 
@@ -154,17 +162,7 @@ mod tests {
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
         std::fs::write(mod_dir.join("spoiler.txt"), "").unwrap();
-        crate::patch::install(
-            &mod_dir,
-            crate::game::Release::V111,
-            crate::progressive::Lines::climbing(),
-            &[],
-            0,
-            &[],
-            &[],
-            None,
-        )
-        .unwrap();
+        crate::patch::install(&mod_dir, crate::game::Release::V111, &climbing()).unwrap();
         let env = dir.join("env.txt");
         std::fs::write(&env, "A=1\nKEY=x\n").unwrap();
         let target = |line| Target {
@@ -275,16 +273,7 @@ mod tests {
             };
             let targets = order.map(|m| target(m, line(m)));
             install(&targets, &Run::silent(), |d| {
-                crate::patch::install(
-                    d,
-                    Release::V111,
-                    crate::progressive::Lines::climbing(),
-                    &[],
-                    0,
-                    &[],
-                    &[],
-                    None,
-                )
+                crate::patch::install(d, Release::V111, &climbing())
             })
             .unwrap();
             assert!(has("reads", Release::V111) && !has("not", Release::V111));
@@ -303,16 +292,7 @@ mod tests {
             ..target("built", "R={romfs}")
         };
         install(&[built], &Run::silent(), |d| {
-            crate::patch::install(
-                d,
-                Release::V100,
-                crate::progressive::Lines::climbing(),
-                &[],
-                0,
-                &[],
-                &[],
-                None,
-            )
+            crate::patch::install(d, Release::V100, &climbing())
         })
         .unwrap();
         let exefs = std::fs::read_to_string(dir.join("built/exefs/zootr.pchtxt")).unwrap();

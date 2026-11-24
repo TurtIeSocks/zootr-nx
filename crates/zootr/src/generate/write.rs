@@ -270,16 +270,15 @@ pub fn write_mod(
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
     let release = Release::of(romfs.root());
-    patch::install(
-        mod_dir,
-        release,
-        Lines::of(new_game),
-        &keyed,
-        hook_flags(new_game),
-        &credits(new_game),
-        &spots,
-        look.as_ref(),
-    )?;
+    let table = patch::SeedTable {
+        progressive: Lines::of(new_game),
+        keyed: &keyed,
+        flags: hook_flags(new_game),
+        credits: &credits(new_game),
+        spots: &spots,
+        look: look.as_ref(),
+    };
+    patch::install(mod_dir, release, &table)?;
     Ok(Written {
         defaults,
         actors,
