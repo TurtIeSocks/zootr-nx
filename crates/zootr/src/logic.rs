@@ -713,10 +713,14 @@ pub(super) mod tests {
     }
 
     /// The edges from `from` to `to`, both as adult Link.
-    pub(super) fn adult_edges<'a>(world: &'a World, from: &Name, to: &Name) -> Vec<&'a Edge> {
+    pub(super) fn adult_edges<'a>(
+        world: &'a World,
+        from: &impl ToString,
+        to: &impl ToString,
+    ) -> Vec<&'a Edge> {
         let at =
-            |node: &Name| (world.places.iter()).position(|p| p == &(node.to_string(), Era::Adult));
-        let (from, to) = (at(from), at(to));
+            |node: String| (world.places.iter()).position(|p| p.0 == node && p.1 == Era::Adult);
+        let (from, to) = (at(from.to_string()), at(to.to_string()));
         (world.edges.iter())
             .filter(|e| e.from == from && Some(e.to) == to)
             .collect()
@@ -744,7 +748,9 @@ pub(super) mod tests {
             return;
         };
         let world = world(&romfs, &[]);
-        let doors = adult_edges(&world, map::INSIDE_THE_DEKU_TREE, map::GOHMA_STAGE);
+        // The Deku Tree is live, so its door leaves from Gohma's room.
+        let room = format!("{}#10", map::INSIDE_THE_DEKU_TREE);
+        let doors = adult_edges(&world, &room, map::GOHMA_STAGE);
         let mut have = Have::default();
         for item in [
             "item:hylian-shield-chest",

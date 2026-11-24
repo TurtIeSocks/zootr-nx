@@ -365,7 +365,13 @@ mod tests {
         let book = Book::load_from(&dir).unwrap();
         let room = (book.rooms.iter())
             .filter(|r| r.node == deku().node.get())
-            .find(|r| !r.file.check.is_empty() && !dir.join(confirmed_path(r)).exists())
+            .find(|r| !r.file.check.is_empty())
+            .unwrap();
+        // Every Deku room may be confirmed already: start this one bare.
+        let _ = fs::remove_file(dir.join(confirmed_path(room)));
+        let book = Book::load_from(&dir).unwrap();
+        let room = (book.rooms.iter())
+            .find(|r| r.node == deku().node.get() && r.file.room == room.file.room)
             .unwrap();
         let (number, hash) = (room.file.room, room.file.check[0].hash);
         let path = dir.join(confirmed_path(room));

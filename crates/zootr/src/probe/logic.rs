@@ -228,6 +228,36 @@ pub(super) fn doors(
     Ok(())
 }
 
+/// Fills seeds 1 to `seeds` and prints how many logic beats within its
+/// tries, and the last failure's reason.
+pub(super) fn seeds(
+    romfs: &Romfs,
+    seeds: u64,
+    settings: &[(String, serde_json::Value)],
+) -> Result<()> {
+    use crate::settings::{NewGame, Settings};
+    let new_game = NewGame::from_settings(&settings.iter().cloned().collect::<Settings>(), &[])?;
+    let checks = crate::checks::dealt(romfs, &new_game)?;
+    let book = crate::rules::Book::load()?;
+    let ctx = crate::rules::Ctx::new(&new_game);
+    let world = crate::logic::World::build(romfs, &book, &ctx, &checks)?;
+    let fixed = crate::shuffle::Fixed::new();
+    let run = crate::progress::Run::silent();
+    let (mut beaten, mut last) = (0, None);
+    for seed in 1..=seeds {
+        let deal = crate::shuffle::deal(&checks, &fixed, &new_game)?;
+        match crate::fill::fill(&world, &checks, deal, seed, &new_game, &run) {
+            Ok(_) => beaten += 1,
+            Err(e) => last = Some(format!("seed {seed}: {e:#}")),
+        }
+    }
+    println!("{beaten}/{seeds} seeds beatable");
+    if let Some(last) = last {
+        println!("last failure: {last}");
+    }
+    Ok(())
+}
+
 /// Each dealt check with what logic says it needs, one line per era, or
 /// with `never` only those no age can get.
 pub(super) fn checks(

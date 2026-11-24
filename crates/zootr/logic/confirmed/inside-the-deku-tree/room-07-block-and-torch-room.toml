@@ -1,0 +1,12 @@
+# Settled by playtest. Overrides baseline/ by key.
+room = 7
+name = "Block And Torch Room"
+
+[[flag]]
+hash = 0xf85ceb3f
+name = "Inside The Deku Tree Room H Cleared"
+needs = "sticks or fire"
+why = "one torch is lit, so a Deku Stick lights the rest, as fire does"
+evidence = [
+    "playtest 2026-11-24, the maintainer: one torch burns already, so sticks or fire light the rest",
+]
