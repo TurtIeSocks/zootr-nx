@@ -567,7 +567,7 @@ mod tests {
     fn the_item_add_starts_with_a_pacibsp_in_each_release() {
         // 1.0.0's is sloperinaGZ's, from its per-build table.
         let adds = [
-            (Release::V111, zootr_hook::OFFSETS.granted),
+            (Release::V111, zootr_hook::OFFSETS.entries.granted),
             (Release::V100, 0x113_78f0),
         ];
         for (release, at) in adds {

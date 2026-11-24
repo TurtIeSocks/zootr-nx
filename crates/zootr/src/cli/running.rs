@@ -475,7 +475,7 @@ pub(super) fn mem(cmd: MemCommand) -> Result<()> {
         MemCommand::Write { .. } | MemCommand::Key { set: Some(_), .. }
     );
     let game = attach(writes)?;
-    let main = game.global() - u64::from(crate::patch::OFFSETS.gamedata);
+    let main = game.global() - u64::from(crate::patch::OFFSETS.got.gamedata);
     let address = |text: &str| address(text, main);
     match cmd {
         MemCommand::Actors { prefix } => {

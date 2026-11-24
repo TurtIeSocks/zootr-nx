@@ -112,17 +112,17 @@ impl Game {
         // Child Link where he stands, and the player checks.
         g.write(LINK + 0x31c, &f32s(&POSITION));
         g.write(LINK + 0x328, &f32s(&ROTATION));
-        g.write(LINK, &u64s(&[at(o.player_vtable)]));
+        g.write(LINK, &u64s(&[at(o.vtables.player)]));
         g.write(LINK + 0x270, &u64s(&[LINK + 0x800]));
         g.write(LINK + 0x800 + 0x320, &u64s(&[MOVEMENT]));
         g.write(MOVEMENT + 0x18, &u64s(&[LINK]));
-        g.write(OWNER, &u64s(&[at(o.move_vtable)]));
+        g.write(OWNER, &u64s(&[at(o.vtables.movement)]));
         g.write(OWNER + 0x10, &u64s(&[RESOURCE]));
         g.write(RESOURCE + 0x58, b"Player\0");
         // GameData and the events (none playing) through main's globals.
         g.write(CELLS, &u64s(&[GAMEDATA, EVENTS]));
-        g.write(at(o.gamedata), &u64s(&[CELLS]));
-        g.write(at(o.events), &u64s(&[CELLS + 8]));
+        g.write(at(o.got.gamedata), &u64s(&[CELLS]));
+        g.write(at(o.got.events), &u64s(&[CELLS + 8]));
         Some(g)
     }
 
@@ -211,17 +211,17 @@ impl Game {
         let (x0, x1, x2) = (x(R::X0), x(R::X1), x(R::X2));
         match offset {
             _ if offset == hooked + 4 => 0,
-            _ if offset == o.get_bool => {
+            _ if offset == o.funcs.get_bool => {
                 let value = self.bools.get(&(x2 as u32));
                 self.write(x1, &[value.copied().unwrap_or(false) as u8]);
                 1
             }
-            _ if offset == o.set_bool => {
+            _ if offset == o.funcs.set_bool => {
                 self.bools.insert(x2 as u32, x1 & 1 == 1);
                 self.calls.push(Call::SetBool(x2 as u32, x1 & 1 == 1));
                 0
             }
-            _ if offset == o.resident_create => {
+            _ if offset == o.entries.resident_create => {
                 let made = if self.creates.is_empty() {
                     1
                 } else {
@@ -230,19 +230,19 @@ impl Game {
                 self.calls.push(Call::Create(x0, x1));
                 made
             }
-            _ if offset == o.cancel_sleep => {
+            _ if offset == o.funcs.cancel_sleep => {
                 let followed = self.u64(CAMERA_COMPONENT + 0xfe0);
                 self.calls
                     .push(Call::Wake(x0, self.f32s(x1), self.f32s(x2), followed));
                 1
             }
-            _ if offset == o.request_pause || offset == o.release_pause => {
+            _ if offset == o.funcs.request_pause || offset == o.funcs.release_pause => {
                 let name = self.u64(self.u64(x0 + 0x20));
                 let text: Vec<u8> = (0..)
                     .map(|i| self.read::<1>(name + i)[0])
                     .take_while(|&b| b != 0)
                     .collect();
-                let what = if offset == o.request_pause {
+                let what = if offset == o.funcs.request_pause {
                     "request"
                 } else {
                     "release"
@@ -253,33 +253,33 @@ impl Game {
             }
             // A drawn bow is any word but 0, and its projectile's name one
             // letter, whose hash is `projectile`.
-            _ if offset == o.drawn_bow => self.projectile.is_some() as u64,
-            _ if offset == o.shootable => 1,
-            _ if offset == o.name_copy => {
+            _ if offset == o.funcs.drawn_bow => self.projectile.is_some() as u64,
+            _ if offset == o.funcs.shootable => 1,
+            _ if offset == o.funcs.name_copy => {
                 let text = self.u64(x0);
                 self.write(text, b"x\0");
                 0
             }
-            _ if offset == o.hash => self.projectile.map_or(0, u64::from),
+            _ if offset == o.funcs.hash => self.projectile.map_or(0, u64::from),
             _ => panic!("the hook ran the game's code at {offset:#x}"),
         }
     }
 
     /// The game makes the residents: the hook keeps the manager.
     fn area_loaded(&mut self) {
-        self.call(OFFSETS.resident_create, MANAGER);
+        self.call(OFFSETS.entries.resident_create, MANAGER);
         self.calls.clear();
     }
 
     /// Link's update (the mailbox), as long as he's there.
     fn link_update(&mut self) {
-        self.call(OFFSETS.link_update, LINK);
+        self.call(OFFSETS.entries.link_update, LINK);
     }
 
     /// The UI's update `n` times: the swap's frames.
     fn frames(&mut self, n: usize) {
         for _ in 0..n {
-            self.call(OFFSETS.ui_update, 0);
+            self.call(OFFSETS.entries.ui_update, 0);
         }
     }
 

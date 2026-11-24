@@ -22,8 +22,6 @@ const SCRATCH: u64 = 0x3000_0000;
 const SENTINEL: u64 = 0x4000_0000;
 /// What a stubbed game function returns in `x0`, distinct at every width.
 const MARK: u64 = 0x0123_4567_89ab_cdef;
-/// Where `main`'s text, every instruction the game has, ends.
-const TEXT_END: u32 = 0x3c4_61d0;
 /// Where the run may go without counting as game code: the hook's pieces.
 const OURS: [Range<u32>; 2] = [CAVE..CAVE_END, FAR..FAR_END];
 /// Instructions a run may take before it counts as a loop.
@@ -77,18 +75,19 @@ struct Reads(usize, usize, u32);
 /// What each original a call site calls reads, from Ghidra's decompiler
 /// (2026-11-23), or what the hook forwards where that is more.
 fn reads(callee: u32) -> Reads {
+    let (f, i) = (OFFSETS.funcs, OFFSETS.imports);
     match callee {
         // The event request's string setter: (request, key, value).
-        0xfe_3fe0 => Reads(3, 0, 0),
+        c if c == f.setter => Reads(3, 0, 0),
         // The drop reader: Ghidra sees two and no result, the hook
         // forwards four and a word.
-        0xbd_1c00 => Reads(4, 0, 64),
+        c if c == f.reader => Reads(4, 0, 64),
         // The child test: (link) -> a ushort.
-        0x4b_6db0 => Reads(1, 0, 16),
+        c if c == f.childhood => Reads(1, 0, 16),
         // The run node's speed setter: (state, dir) and the speed in s0.
-        0x93_52f0 => Reads(2, 1, 0),
+        c if c == f.run_setter => Reads(2, 1, 0),
         // nn::hid::GetNpadStates' stubs: (states, count, id) -> an int.
-        0x3c4_27f0 | 0x3c4_2800 | 0x3c4_2830 => Reads(3, 0, 32),
+        c if [i.npad_full, i.npad_handheld, i.npad_dual].contains(&c) => Reads(3, 0, 32),
         _ => panic!("what does {callee:#x} read?"),
     }
 }
@@ -135,7 +134,7 @@ impl Machine {
             .unwrap();
         // Every instruction outside the hook is the game's: the first one
         // past the start stops the run, unless it's where the run ends.
-        uc.add_code_hook(BASE, at(TEXT_END), |uc, pc, _| {
+        uc.add_code_hook(BASE, at(OFFSETS.regions.text_end), |uc, pc, _| {
             let ours = OURS.iter().any(|r| r.contains(&((pc - BASE) as u32)));
             let run = uc.get_data_mut();
             if !ours && pc != run.start && pc != run.until && run.left.is_none() {

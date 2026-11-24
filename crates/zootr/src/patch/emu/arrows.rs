@@ -47,7 +47,7 @@ fn an_empty_bow_with_a_null_on_the_way_to_link_leaves_the_game_alone() {
             g.write(at, &u64s(&[if Some(i) == broken { 0 } else { to }]));
         }
         g.write(FLAGS, &NO_ARROWS.to_le_bytes());
-        g.call(OFFSETS.emptied, NODE);
+        g.call(OFFSETS.entries.emptied, NODE);
         g.u64(FLAGS) as u32
     };
     assert_eq!(run(None), NO_SEEDS, "every pointer intact");

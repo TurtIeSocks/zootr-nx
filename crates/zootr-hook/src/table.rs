@@ -4,6 +4,7 @@
 //! wrote. The hook only reads it: a cheat that writes it many
 //! times a second would put back anything the hook wrote.
 
+use crate::build::Offsets;
 use crate::look::Look;
 #[cfg(not(target_os = "none"))]
 use crate::look::LookSpec;
@@ -80,117 +81,6 @@ impl Header {
     }
 }
 
-/// Where the game keeps what the hook needs, relative to `main`.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Offsets {
-    /// The event argument setter `content_name` wraps.
-    pub setter: u32,
-    /// The drop reader `drop_actor` wraps.
-    pub reader: u32,
-    /// The pouch count query.
-    pub count: u32,
-    /// The pointer to the pouch manager.
-    pub manager: u32,
-    /// The name hash an `ActorHolder` keys its slots by.
-    pub hash: u32,
-    /// Requests a holder slot's actor be deleted.
-    pub delete: u32,
-    /// Creates an actor in a holder slot.
-    pub create: u32,
-    /// A holder slot's vtable.
-    pub slot_vtable: u32,
-    /// The hooked functions: map loaded, chest content made, pouch add,
-    /// Link's update, a pickup window opening, and a pickup going into
-    /// the pouch, with a window or without.
-    pub map_loaded: u32,
-    pub chest_made: u32,
-    pub granted: u32,
-    pub link_update: u32,
-    pub picked: u32,
-    pub taken: u32,
-    /// The hooked nock, then the drawn bow's component, its projectile's
-    /// name, and the copy of that name into a fixed string.
-    pub nock: u32,
-    pub drawn_bow: u32,
-    pub shootable: u32,
-    pub name_copy: u32,
-    /// The hooked out of ammo handler, which picks the empty message.
-    pub emptied: u32,
-    /// Link's child test, which the bow draw's guide asks.
-    pub childhood: u32,
-    /// The game's own `malloc`.
-    pub malloc: u32,
-    /// Builds an event request in place.
-    pub make_arg: u32,
-    /// Asks the event manager to start a request.
-    pub request: u32,
-    /// Sets and releases the actor links a request holds.
-    pub set_link: u32,
-    pub release_link: u32,
-    /// What an empty actor link points at.
-    pub link_empty: u32,
-    /// GameData's Bool getter and setter, and its UInt64 getter, by name
-    /// hash.
-    pub get_bool: u32,
-    pub set_bool: u32,
-    pub get_u64: u32,
-    /// The pointers to the event manager, GameData and the world.
-    pub events: u32,
-    pub gamedata: u32,
-    pub world: u32,
-    /// Sets the world clock, in seconds since midnight.
-    pub set_time: u32,
-    /// The player actor's vtable, and its movement component's.
-    pub player_vtable: u32,
-    pub move_vtable: u32,
-    /// Moves a character controller to a point, and the vtable of Link's
-    /// controller, which holds it.
-    pub move_to: u32,
-    pub controller_vtable: u32,
-    /// Sets the speed and direction Player asks the controller for.
-    pub run_setter: u32,
-    /// The hooked functions: the Items page built (entered), the Items page
-    /// left, the UI update each frame, and the Equipment page built and
-    /// left.
-    pub items_built: u32,
-    pub items_left: u32,
-    pub ui_update: u32,
-    pub equipment_built: u32,
-    pub equipment_left: u32,
-    /// Sets an Items page cell's actor, and a cell button's unfocus and
-    /// focus, which refresh the item detail panel.
-    pub cell_set: u32,
-    pub unfocus: u32,
-    pub focus: u32,
-    /// Seeks a layout animation to a frame, which colours an Items page
-    /// cell's icon: usable, or on a button.
-    pub anim_frame: u32,
-    /// The item kind on a button for an age (the manager, child, 1).
-    pub equipped: u32,
-    /// Whether Link wears the named equipment (the pouch menu, a pointer
-    /// to the name), and the pointer to the pouch menu.
-    pub worn: u32,
-    pub pouch_menu: u32,
-    /// Applies a cell layout's animation frames (the cell, 0).
-    pub redraw: u32,
-    /// Loads an Equipment cell's picture by name (its picture, &name, 0, 0).
-    pub icon: u32,
-    /// The pointer to the effect system, which holds the effect file
-    /// the ice's [`Look`] sizes.
-    pub effects: u32,
-    /// The resident actors' create (the manager, child), which makes the
-    /// player of that age and has the other age's go, on every area load,
-    /// and their wake (the manager, &position, &3x3 rotation). See
-    /// `docs/research/character-select.md`.
-    pub resident_create: u32,
-    pub cancel_sleep: u32,
-    /// The request and release pause nodes' bodies (`SeqOneShotRequestPause`,
-    /// `SeqOneShotReleasePause`), each taking the node.
-    pub request_pause: u32,
-    pub release_pause: u32,
-}
-
 /// The table at `TABLE`. Each line is a level count, [`KEYED`] or not,
 /// then each level lowest first: the actor it drops, then the pouch name
 /// it's owned as, each a length byte and the name with a NUL.
@@ -218,7 +108,7 @@ impl<'a> Table<'a> {
         let (slots, rest) = rest.split_at_checked(header.slots as usize)?;
         let look = rest.get(..header.look as usize)?;
         (header.magic == *MAGIC).then_some(Self {
-            offsets: &crate::OFFSETS,
+            offsets: &crate::RUNTIME,
             flags: header.flags,
             lines,
             credits,

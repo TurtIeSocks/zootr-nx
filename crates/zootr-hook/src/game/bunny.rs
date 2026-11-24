@@ -35,7 +35,7 @@ pub unsafe extern "C" fn run_speed(state: usize, dir: *const f32, speed: f32) {
     };
     // SAFETY: the offset was found in this build of `main`.
     unsafe {
-        let setter: Setter = func(main(), OFFSETS.run_setter);
+        let setter: Setter = func(main(), OFFSETS.funcs.run_setter);
         setter(state, dir, speed)
     }
 }
