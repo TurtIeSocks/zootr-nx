@@ -3,9 +3,8 @@
 //! the game plays by name: an asset, or a container whose children are
 //! calls too. [`copy_call`] gives one user a call another has,
 //! [`add_case`] a case another's switch has, [`nest`] puts a call of
-//! one user inside a tree another has, and [`copy_property`] and
-//! [`copy_action`] give one user the calls another plays when a property
-//! changes or during an action.
+//! one user inside a tree another has, and [`copy_property`] gives one
+//! user the calls another plays when a property changes.
 //!
 //! Every offset a call or container holds is relative to a table the whole
 //! file shares (asset params, conditions, property names), or to the
@@ -16,10 +15,6 @@ use anyhow::{Context, Result, bail, ensure};
 
 use crate::crc32;
 use crate::reader::Reader;
-
-mod triggers;
-
-pub use triggers::{action_names, copy_action, copy_property, property_names};
 
 const VERSION: u32 = 0x22;
 const DATA_SIZE: usize = 0x04;
@@ -48,8 +43,6 @@ const LOCAL: usize = 0x08;
 // the user's calls.
 const TRIGGER_TABLES: [usize; 6] = [0x10, 0x10, 0x28, 0x18, 0x20, 0];
 const TRIGGER_CALL: usize = 0x08;
-const ACTION_SLOTS: usize = 0;
-const ACTIONS: usize = 1;
 const ACTION_TRIGGERS: usize = 2;
 const PROPERTIES: usize = 3;
 const PROPERTY_TRIGGERS: usize = 4;
@@ -197,6 +190,161 @@ pub fn nest(file: &[u8], from: &str, key: &str, case: &str, to: &str) -> Result<
     calls.extend(&tree.rest);
     let own_params = r.bytes(b.containers, b.triggers - b.containers)?;
     rebuilt(file, &b, calls, own_params, &tree, b.count)
+}
+
+/// `file` with the triggers on user `from`'s local property that plays
+/// `plays` given to user `to`, each playing `to`'s call of the same name
+/// under the same condition. The property joins `to`'s locals if it isn't
+/// one, so the game keeps its value for `to` too. `to` must have every
+/// call they play and no triggers on the property yet.
+pub fn copy_property(file: &[u8], from: &str, plays: &str, to: &str) -> Result<Vec<u8>> {
+    let r = Reader(file);
+    let (a, b) = (user(file, from)?, user(file, to)?);
+    let (theirs, mine) = (properties(file, &a)?, properties(file, &b)?);
+    let (their_triggers, _) = trigger_table(file, &a, PROPERTY_TRIGGERS)?;
+    let trigger_at = |t: usize| their_triggers + t * TRIGGER_TABLES[PROPERTY_TRIGGERS];
+    let played = |t: usize| -> Result<&str> {
+        let call = trigger_call(file, &a, trigger_at(t) + TRIGGER_CALL)?;
+        Ok(std::str::from_utf8(call_name(
+            file,
+            a.calls + call * CALL,
+        )?)?)
+    };
+    let mut k = None;
+    for (i, p) in theirs.iter().enumerate() {
+        for t in p.first..=p.last {
+            if played(t)? == plays {
+                k = Some(i);
+            }
+        }
+    }
+    let k = k.with_context(|| format!("no property of {from}'s plays {plays}"))?;
+    let prop = &theirs[k];
+    let name = String::from_utf8_lossy(prop.name);
+    let has = |n: &[u8]| mine.iter().any(|p| p.name == n);
+    ensure!(!has(prop.name), "{to} already has triggers on {name}");
+    ensure!(r.u32(prop.at + IS_GLOBAL)? == 0, "{name} is global");
+    let mut triggers = Vec::new();
+    for t in prop.first..=prop.last {
+        ensure!(
+            r.u32(trigger_at(t) + OVERWRITE)? == NO_OVERWRITE,
+            "a trigger on {name} overwrites its call's params"
+        );
+        let call = played(t)?;
+        let own = find(file, &b, call)?.with_context(|| format!("{to} has no {call}"))?;
+        let mut entry = r
+            .bytes(trigger_at(t), TRIGGER_TABLES[PROPERTY_TRIGGERS])?
+            .to_vec();
+        put(
+            &mut entry,
+            TRIGGER_CALL,
+            &((own * CALL) as u64).to_le_bytes(),
+        );
+        triggers.extend(entry);
+    }
+    // It goes after each property it follows in `from` that `to` has, and
+    // its triggers before theirs from there on.
+    let place = theirs[..k].iter().filter(|p| has(p.name)).count();
+    let (my_triggers, my_count) = trigger_table(file, &b, PROPERTY_TRIGGERS)?;
+    let first = mine.get(place).map_or(my_count, |p| p.first);
+    let added = prop.last - prop.first + 1;
+    let size = TRIGGER_TABLES[PROPERTIES];
+    let entry = |at: usize, first: usize, last: usize| -> Result<Vec<u8>> {
+        let mut entry = r.bytes(at, size)?.to_vec();
+        put(&mut entry, FIRST_TRIGGER, &(first as u32).to_le_bytes());
+        put(&mut entry, LAST_TRIGGER, &(last as u32).to_le_bytes());
+        Ok(entry)
+    };
+    let mut props = Vec::new();
+    for p in &mine {
+        let by = if p.first >= first { added } else { 0 };
+        props.push(entry(p.at, p.first + by, p.last + by)?);
+    }
+    props.insert(place, entry(prop.at, first, first + added - 1)?);
+    let locals = local_names(file, &b)?;
+    let local = match locals.contains(&prop.name) {
+        true => None,
+        false => {
+            let theirs = local_names(file, &a)?;
+            let k = (theirs.iter().position(|l| *l == prop.name))
+                .with_context(|| format!("{name} isn't among {from}'s locals"))?;
+            let entry = r.bytes(a.base + USER_HEADER + LOCAL * k, LOCAL)?;
+            let at = locals.partition_point(|l| *l < prop.name);
+            Some((b.base + USER_HEADER + LOCAL * at, entry))
+        }
+    };
+    // Spliced from the end back, so each place in `file` still holds.
+    let (props_at, _) = trigger_table(file, &b, PROPERTIES)?;
+    let mut out = file.to_vec();
+    let at = my_triggers + first * TRIGGER_TABLES[PROPERTY_TRIGGERS];
+    out.splice(at..at, triggers);
+    out.splice(props_at..props_at + size * mine.len(), props.concat());
+    let w = |out: &mut Vec<u8>, at: usize, v: u32| put(out, at, &v.to_le_bytes());
+    if let Some((at, entry)) = local {
+        out.splice(at..at, entry.iter().copied());
+        put(
+            &mut out,
+            b.base + LOCALS,
+            &(locals.len() as u16 + 1).to_le_bytes(),
+        );
+        let triggers = r.u64(b.base + TRIGGERS)? + LOCAL as u64;
+        put(&mut out, b.base + TRIGGERS, &triggers.to_le_bytes());
+    }
+    for (t, more) in [(PROPERTIES, 1), (PROPERTY_TRIGGERS, added)] {
+        let count = r.u32(b.base + TRIGGER_COUNTS + 4 * t)? + more as u32;
+        w(&mut out, b.base + TRIGGER_COUNTS + 4 * t, count);
+    }
+    moved_past(file, &b, &mut out)?;
+    Ok(out)
+}
+
+/// A property of a user's with triggers: where its entry is, its name,
+/// and its first and last trigger.
+struct Property<'a> {
+    at: usize,
+    name: &'a [u8],
+    first: usize,
+    last: usize,
+}
+
+/// `user`'s properties with triggers, in their order.
+fn properties<'a>(file: &'a [u8], user: &User) -> Result<Vec<Property<'a>>> {
+    let r = Reader(file);
+    let (at, count) = trigger_table(file, user, PROPERTIES)?;
+    (0..count)
+        .map(|k| {
+            let at = at + k * TRIGGER_TABLES[PROPERTIES];
+            let (first, last) = (r.u32(at + FIRST_TRIGGER)?, r.u32(at + LAST_TRIGGER)?);
+            ensure!(first <= last, "a property with no triggers isn't read yet");
+            Ok(Property {
+                at,
+                name: name_at(file, r.u64(at)? as usize)?,
+                first: first as usize,
+                last: last as usize,
+            })
+        })
+        .collect()
+}
+
+/// Each of `user`'s properties with triggers, and the calls they play.
+pub fn property_names<'a>(file: &'a [u8], user_name: &str) -> Result<Vec<(&'a str, Vec<&'a str>)>> {
+    let u = user(file, user_name)?;
+    let (triggers, _) = trigger_table(file, &u, PROPERTY_TRIGGERS)?;
+    (properties(file, &u)?.into_iter())
+        .map(|p| {
+            let calls = (p.first..=p.last)
+                .map(|t| {
+                    let at = triggers + t * TRIGGER_TABLES[PROPERTY_TRIGGERS] + TRIGGER_CALL;
+                    let call = trigger_call(file, &u, at)?;
+                    Ok(std::str::from_utf8(call_name(
+                        file,
+                        u.calls + call * CALL,
+                    )?)?)
+                })
+                .collect::<Result<_>>()?;
+            Ok((std::str::from_utf8(p.name)?, calls))
+        })
+        .collect()
 }
 
 /// Fails unless every switch among `a`'s calls `calls` reads a property
