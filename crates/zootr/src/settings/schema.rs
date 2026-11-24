@@ -193,6 +193,12 @@ fn check_defs() -> Vec<SettingDef> {
             "The fourteen heart pieces lying out in the world are checks. One that holds something else shows it, spinning where the piece was",
         ),
         toggle(
+            LOOSE_ITEMS,
+            place::CHECKS,
+            "Loose Items",
+            "Every rupee and Recovery Heart lying loose in the world is a check, and so are the Deku Nut, Seed and Stick on Lake Hylia's bed. Each is taken once, as in the game. One that holds something else shows it where the rupee or heart was",
+        ),
+        toggle(
             COWS,
             place::CHECKS,
             "Cows",
@@ -238,7 +244,7 @@ fn breakable_defs() -> Vec<SettingDef> {
             POTS,
             place::BREAKABLES,
             "Pots",
-            "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. A broken pot may come back when the area reloads, so its item may too",
+            "Each pot is a check, flying pots included. One placed with no drop of its own brings a Recovery Heart, a Deku Stick and the like to the pool. Its item stays until Link picks it up. After that the pot drops what it always did",
         ),
         toggle(
             CRATES,

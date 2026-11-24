@@ -277,6 +277,7 @@ pub(crate) const MAPS_COMPASSES: &str = "maps-compasses";
 pub(crate) const SHOPS: &str = "shopsanity";
 pub(crate) const SHOP_SLOTS: &str = "shop-slots";
 pub(crate) const FREESTANDING: &str = "freestanding";
+pub(crate) const LOOSE_ITEMS: &str = "loose-items";
 pub(crate) const SKULLTULAS: &str = "gold-skulltulas";
 pub(crate) const BOSS_HEARTS: &str = "boss-hearts";
 pub(crate) const POTS: &str = "pots";

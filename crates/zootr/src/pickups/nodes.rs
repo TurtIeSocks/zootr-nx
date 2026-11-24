@@ -274,8 +274,9 @@ mod tests {
                 by_graph.entry(graph).or_default().insert(node);
             }
         }
-        // Two of them are loose rupees or hearts, which no setting deals yet.
-        assert_eq!((loud.len(), by_graph.len()), (94, 29));
+        // Five of them lie loose: two of Hyrule Field's green rupees and
+        // Lake Hylia's Deku Nut, Seed and Stick.
+        assert_eq!((loud.len(), by_graph.len()), (97, 29));
         let donor = donor(&romfs).unwrap();
         for (graph, nodes) in &by_graph {
             let rel = format!("{LOGIC}/{graph}.ainb");

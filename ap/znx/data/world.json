@@ -201,6 +201,17 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "160199974268797383",
+      "id": 1435,
+      "name": "Deku Tree Lower Green Rupee (1) 2",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [
         {
           "place": "gerudo-valley-adult",
@@ -821,6 +832,24 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "578077075299673958",
+      "id": 1436,
+      "name": "Hyrule Field Southwest Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -882,6 +911,24 @@
       "unprovable": false,
       "when": {
         "setting": "crates"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "629760094542173614",
+      "id": 1437,
+      "name": "Hyrule Field East Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -986,6 +1033,24 @@
     {
       "at": [
         {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "693126994387192480",
+      "id": 1438,
+      "name": "Hyrule Field East Blue Rupee (5)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "zora-fountain-child",
           "rule": true
         }
@@ -1073,6 +1138,26 @@
       "unprovable": false,
       "when": {
         "setting": "freestanding"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "place-0aa7cf4a-child",
+          "rule": true
+        },
+        {
+          "place": "place-0aa7cf4a-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "729508615351641392",
+      "id": 1439,
+      "name": "Deku Tree Lower Recovery Heart 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -1254,6 +1339,24 @@
     {
       "at": [
         {
+          "place": "fire-temple-adult",
+          "rule": {
+            "ref": 115
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "876976950103637140",
+      "id": 1440,
+      "name": "Fire Temple Upper Recovery Heart 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kakariko-village-adult",
           "rule": {
             "count": 1,
@@ -1375,6 +1478,30 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "991975198297951915",
+      "id": 1441,
+      "name": "Death Mountain Trail Red Rupee (20)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -1568,6 +1695,22 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "1135865174486388723",
+      "id": 1442,
+      "name": "Kokiri Forest South Recovery Heart 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -1784,6 +1927,22 @@
       "unprovable": false,
       "when": {
         "ref": 66
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "1214219023609128151",
+      "id": 1443,
+      "name": "Kokiri Forest South Recovery Heart 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -2018,6 +2177,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1308828964686406569",
+      "id": 1444,
+      "name": "Zora's River Southwest Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "1337254747199514230",
@@ -2116,6 +2299,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1391937830947703725",
+      "id": 1445,
+      "name": "Zora's River Southwest Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -2262,6 +2469,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1482691670641189285",
+      "id": 1446,
+      "name": "Zora's River East Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -2348,6 +2579,40 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "1564209214895161222",
+      "id": 1447,
+      "name": "Kokiri Forest South Blue Rupee (5)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1586568880795558629",
+      "id": 1448,
+      "name": "Hyrule Field Southwest Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -2571,6 +2836,28 @@
       "unprovable": true,
       "when": {
         "setting": "keys=start"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1718356088455579946",
+      "id": 1449,
+      "name": "Graveyard East Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -2909,6 +3196,26 @@
     {
       "at": [
         {
+          "place": "deku-tree-child",
+          "rule": true
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "1922216023914752593",
+      "id": 1450,
+      "name": "Deku Tree Upper Recovery Heart 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "death-mountain-crater-adult",
           "rule": {
             "ref": 96
@@ -3118,6 +3425,40 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "2056926167552020049",
+      "id": 1451,
+      "name": "Kokiri Forest East Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2067586981487636357",
+      "id": 1452,
+      "name": "Hyrule Field East Green Rupee (1) 8",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -3165,6 +3506,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2137181062354999972",
+      "id": 1453,
+      "name": "Death Mountain Crater North Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -3320,6 +3685,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2207729956021615024",
+      "id": 1454,
+      "name": "Zora's Fountain East Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "lost-woods-adult",
           "rule": {
             "ref": 89
@@ -3357,6 +3740,26 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "place-0aa7cf4a-child",
+          "rule": true
+        },
+        {
+          "place": "place-0aa7cf4a-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "2222711177065858733",
+      "id": 1455,
+      "name": "Deku Tree Lower Recovery Heart 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -3416,6 +3819,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2298283628328435720",
+      "id": 1456,
+      "name": "Zora's River East Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-fortress-adult",
           "rule": {
             "ref": 41
@@ -3440,6 +3867,30 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2314514470754031061",
+      "id": 1457,
+      "name": "Hyrule Field Northeast Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -3655,6 +4106,22 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "2512122383157745514",
+      "id": 1458,
+      "name": "Kokiri Forest East Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -3925,6 +4392,28 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2669035957658688527",
+      "id": 1459,
+      "name": "Graveyard Southeast Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -4654,6 +5143,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "3211747475593407179",
+      "id": 1460,
+      "name": "Kokiri Forest South Recovery Heart 8",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "dodongos-cavern-adult",
           "rule": {
             "ref": 108
@@ -4685,6 +5190,28 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3236392495739397075",
+      "id": 1461,
+      "name": "Graveyard Northeast Green Rupee (1)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -4839,6 +5366,30 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3328888660444152381",
+      "id": 1462,
+      "name": "Zora's River East Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -5257,6 +5808,46 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3661284024861567877",
+      "id": 1463,
+      "name": "Zora's River West Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "3669266735444406174",
+      "id": 1464,
+      "name": "Kokiri Forest East Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
             "ref": 115
@@ -5270,6 +5861,24 @@
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3689958676603857333",
+      "id": 1465,
+      "name": "Hyrule Field East Green Rupee (1) 7",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -5653,6 +6262,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3922348358728399997",
+      "id": 1466,
+      "name": "Zora's River West Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "dodongos-cavern-adult",
           "rule": {
             "ref": 108
@@ -5845,6 +6478,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4077060633972129211",
+      "id": 1467,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "deku-tree-child",
           "rule": {
             "ref": 122
@@ -5858,6 +6509,30 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4077912846886775366",
+      "id": 1468,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -5948,6 +6623,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4175716627569108253",
+      "id": 1469,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 10",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -5959,6 +6652,28 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4184471392680640567",
+      "id": 1470,
+      "name": "Graveyard East Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -6433,6 +7148,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "4462556192312188043",
+      "id": 1471,
+      "name": "Kokiri Forest East Green Rupee (1) 8",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "haunted-wasteland-child",
           "rule": true
         }
@@ -6444,6 +7175,22 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "4490005694725260163",
+      "id": 1472,
+      "name": "Kokiri Forest North Blue Rupee (5)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -6555,6 +7302,24 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4525337806931267688",
+      "id": 1473,
+      "name": "Hyrule Field Southwest Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "4529748032854378492",
@@ -6629,6 +7394,46 @@
       "unprovable": false,
       "when": {
         "ref": 1
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "4576019929976975366",
+      "id": 1474,
+      "name": "Kokiri Forest East Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4582064739131737845",
+      "id": 1475,
+      "name": "Zora's River East Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -6782,6 +7587,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4690834361593581821",
+      "id": 1476,
+      "name": "Zora's River Northwest Green Rupee (1)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-adult",
           "rule": {
             "ref": 83
@@ -6889,6 +7718,22 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "4751294038826612236",
+      "id": 1477,
+      "name": "Kokiri Forest South Recovery Heart 7",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -7275,6 +8120,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5008999164523690598",
+      "id": 1478,
+      "name": "Death Mountain Trail North Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "goron-city-child",
           "rule": {
             "ref": 85
@@ -7620,6 +8489,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5230435736251084516",
+      "id": 1479,
+      "name": "Zora's River Southwest Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": {
             "ref": 119
@@ -7772,6 +8665,24 @@
       "unprovable": false,
       "when": {
         "setting": "keys=start"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5355103373173124554",
+      "id": 1480,
+      "name": "Hyrule Field East Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -8028,6 +8939,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5568633841506517325",
+      "id": 1481,
+      "name": "Zora's Fountain East Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "lost-woods-child",
           "rule": {
             "ref": 76
@@ -8132,6 +9061,30 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5620885265123329978",
+      "id": 1482,
+      "name": "Hyrule Field Northeast Blue Rupee (5) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -8412,6 +9365,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5767588505352617062",
+      "id": 1483,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 8",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -8597,6 +9568,17 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "5920725837809443985",
+      "id": 1484,
+      "name": "Deku Tree Lower Recovery Heart 1",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [
         {
           "place": "king-dodongo-room-child",
@@ -8777,6 +9759,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6048109687318133293",
+      "id": 1485,
+      "name": "Zora's River East Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-castle-child",
           "rule": true
         }
@@ -8804,6 +9810,22 @@
       "id": 136,
       "name": "Bottom of the Well Business Scrub Seed Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "6079532033038180376",
+      "id": 1486,
+      "name": "Kokiri Forest Northeast Blue Rupee (5)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [
@@ -9173,6 +10195,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6307624256587354938",
+      "id": 1487,
+      "name": "Death Mountain Trail North Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "dodongos-cavern-adult",
           "rule": {
             "ref": 108
@@ -9342,6 +10388,44 @@
     {
       "at": [
         {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "6454478348589065391",
+      "id": 1488,
+      "name": "Zora's Domain Northwest Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-valley-adult",
           "rule": {
             "ref": 123
@@ -9399,6 +10483,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6511717208019100686",
+      "id": 1489,
+      "name": "Zora's Fountain East Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -9448,6 +10550,26 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        },
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "6618764049130440222",
+      "id": 1490,
+      "name": "Kokiri Forest Southwest Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -9644,6 +10766,30 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6794008535785537922",
+      "id": 1491,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -10480,6 +11626,30 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7268667473541116466",
+      "id": 1492,
+      "name": "Hyrule Field Northeast Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
             "ref": 115
@@ -10590,6 +11760,24 @@
       "id": 48,
       "name": "Dream World Gold Rupee (200) Chest 7",
       "unprovable": true
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7369210492575735847",
+      "id": 1493,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [
@@ -10728,6 +11916,24 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7430539662759067881",
+      "id": 1494,
+      "name": "Zora's Fountain East Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -11626,6 +12832,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "8217415107461137996",
+      "id": 1495,
+      "name": "Kokiri Forest South Recovery Heart 10",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "forest-temple-adult",
           "rule": {
             "ref": 88
@@ -11639,6 +12861,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8235277831792843095",
+      "id": 1496,
+      "name": "Hyrule Field East Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -11790,6 +13030,28 @@
       "unprovable": false,
       "when": {
         "setting": "keys=start"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8404733154085657768",
+      "id": 1497,
+      "name": "Graveyard East Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -11962,6 +13224,17 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "8632533875205065781",
+      "id": 1498,
+      "name": "Deku Tree Recovery Heart",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [
         {
           "place": "bottom-of-the-well-child",
@@ -12001,6 +13274,22 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "8686048425858269244",
+      "id": 1499,
+      "name": "Kokiri Forest East Green Rupee (1) 7",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -12498,6 +13787,24 @@
     {
       "at": [
         {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8955407423151725378",
+      "id": 1500,
+      "name": "Hyrule Field East Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "lost-woods-child",
           "rule": {
             "ref": 76
@@ -12556,12 +13863,52 @@
         }
       ],
       "forbid": [],
+      "hash": "8976284932613239030",
+      "id": 1501,
+      "name": "Hyrule Field Southwest Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
       "hash": "8977808724731648233",
       "id": 779,
       "name": "Hyrule Field Southwest Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Golden Scale",
+              "Silver Scale"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8980892284071798868",
+      "id": 1502,
+      "name": "Hyrule Field Deku Stick",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -12580,6 +13927,28 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8987278980043647768",
+      "id": 1503,
+      "name": "Graveyard East Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -12706,6 +14075,35 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "9056903661273588275",
+      "id": 1504,
+      "name": "Deku Tree Lower Recovery Heart 5",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9058546130605800023",
+      "id": 1505,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [
         {
           "place": "kakariko-village-child",
@@ -12816,6 +14214,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9089638521355540295",
+      "id": 1506,
+      "name": "Death Mountain Crater North Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "desert-colossus-child",
           "rule": {
             "ref": 76
@@ -12863,6 +14285,30 @@
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9119591811446675392",
+      "id": 1507,
+      "name": "Zora's River South Green Rupee (1)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -13278,6 +14724,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "9333984718219537434",
+      "id": 1508,
+      "name": "Kokiri Forest South Recovery Heart 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": true
         }
@@ -13325,6 +14787,17 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [],
+      "forbid": [],
+      "hash": "9391308054738304433",
+      "id": 1509,
+      "name": "Deku Tree Green Rupee (1)",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -13702,6 +15175,28 @@
     {
       "at": [
         {
+          "place": "hyrule-field-child",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Golden Scale",
+              "Silver Scale"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9602474208541439570",
+      "id": 1510,
+      "name": "Hyrule Field Deku Seeds (3)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "forest-temple-adult",
           "rule": {
             "ref": 88
@@ -13798,6 +15293,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9631182645511745726",
+      "id": 1511,
+      "name": "Zora's River East Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "9634924691849556346",
@@ -13824,6 +15343,22 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "9667799371071602538",
+      "id": 1512,
+      "name": "Kokiri Forest East Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -13956,6 +15491,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "9778104484775444655",
+      "id": 1513,
+      "name": "Kokiri Forest Southeast Recovery Heart 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": {
             "ref": 119
@@ -14027,6 +15578,28 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Golden Scale",
+              "Silver Scale"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9807262312429560898",
+      "id": 1514,
+      "name": "Hyrule Field Deku Nut",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -14149,6 +15722,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9871945473853767030",
+      "id": 1515,
+      "name": "Zora's River West Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-adult",
           "rule": {
             "ref": 130
@@ -14218,6 +15815,30 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9924885918140405518",
+      "id": 1516,
+      "name": "Hyrule Field Southwest Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "market-child",
           "rule": {
             "ref": 72
@@ -14267,6 +15888,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9972535766636368278",
+      "id": 1517,
+      "name": "Death Mountain Trail North Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "sacred-forest-meadow-child",
           "rule": {
             "ref": 19
@@ -14280,6 +15925,24 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9989181491842997674",
+      "id": 1518,
+      "name": "Hyrule Field Southwest Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -14314,6 +15977,24 @@
       "id": 72,
       "name": "Desert Colossus West Mirror Shield Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10016653679204206712",
+      "id": 1519,
+      "name": "Hyrule Field Southwest Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [
@@ -14773,6 +16454,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10247339190834717086",
+      "id": 1520,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 7",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "inside-ganons-castle-adult",
           "rule": {
             "ref": 133
@@ -14894,6 +16593,22 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "10327775662812412709",
+      "id": 1521,
+      "name": "Kokiri Forest East Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -15043,6 +16758,17 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "10420058391592786882",
+      "id": 1522,
+      "name": "Deku Tree Lower Green Rupee (1) 1",
+      "unprovable": true,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [
         {
           "place": "hyrule-field-adult",
@@ -15162,6 +16888,24 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10518148330968147601",
+      "id": 1523,
+      "name": "Zora's Fountain East Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -15340,6 +17084,44 @@
     {
       "at": [
         {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "10666689264325218801",
+      "id": 1524,
+      "name": "Zora's Domain Northwest Blue Rupee (5) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-training-ground-adult",
           "rule": {
             "ref": 125
@@ -15456,6 +17238,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10848757081092766316",
+      "id": 1525,
+      "name": "Hyrule Field Southwest Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -15682,6 +17482,24 @@
     {
       "at": [
         {
+          "place": "fire-temple-adult",
+          "rule": {
+            "ref": 115
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10973307894322368710",
+      "id": 1526,
+      "name": "Fire Temple Upper Recovery Heart 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "goron-city-adult",
           "rule": {
             "ref": 97
@@ -15821,6 +17639,30 @@
       "id": 80,
       "name": "Forest Temple Upper Fairy Bow Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11105674007629451672",
+      "id": 1527,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [
@@ -16051,6 +17893,22 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "11219803099333988363",
+      "id": 1528,
+      "name": "Kokiri Forest Northeast Green Rupee (1)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -16508,6 +18366,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "11501932305561522817",
+      "id": 1529,
+      "name": "Kokiri Forest South Recovery Heart 9",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": {
             "count": 1,
@@ -16759,6 +18633,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11633715633323756970",
+      "id": 1530,
+      "name": "Zora's River Southwest Blue Rupee (5) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -16813,6 +18711,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11672626208313429634",
+      "id": 1531,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "water-temple-adult",
           "rule": {
             "ref": 104
@@ -16861,6 +18777,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11712600857155855626",
+      "id": 1532,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -16889,6 +18823,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11743429110701869711",
+      "id": 1533,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 9",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -17010,6 +18962,24 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11917730692592781756",
+      "id": 1534,
+      "name": "Hyrule Field East Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -17227,6 +19197,22 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "12079876816721924835",
+      "id": 1535,
+      "name": "Kokiri Forest East Green Rupee (1) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -17615,6 +19601,60 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "12317452644253046635",
+      "id": 1536,
+      "name": "Kokiri Forest Southeast Recovery Heart 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "12326682905628388229",
+      "id": 1537,
+      "name": "Zora's Domain Northwest Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-adult",
           "rule": {
             "ref": 130
@@ -17842,6 +19882,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12472730518306029279",
+      "id": 1538,
+      "name": "Death Mountain Trail North Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "inside-ganons-castle-adult",
           "rule": {
             "ref": 133
@@ -18043,6 +20107,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12599391464019187002",
+      "id": 1539,
+      "name": "Death Mountain Crater Purple Rupee (50)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": true
         }
@@ -18187,6 +20275,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "12744945159394614918",
+      "id": 1540,
+      "name": "Kokiri Forest South Recovery Heart 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
             "ref": 117
@@ -18253,6 +20357,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12818104578529512147",
+      "id": 1541,
+      "name": "Zora's River West Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -18449,6 +20577,28 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12976212884789503099",
+      "id": 1542,
+      "name": "Graveyard Southeast Green Rupee (1) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -18686,6 +20836,44 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "13117411709061323811",
+      "id": 1543,
+      "name": "Zora's Domain North Blue Rupee (5) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -19031,6 +21219,30 @@
       "unprovable": false,
       "when": {
         "setting": "freestanding"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13410543774724933525",
+      "id": 1544,
+      "name": "Zora's River Southwest Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -19630,6 +21842,38 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "13752432406165881016",
+      "id": 1545,
+      "name": "Kokiri Forest South Recovery Heart 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "13766700305743331316",
+      "id": 1546,
+      "name": "Kokiri Forest Southeast Recovery Heart 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "13784984248963672668",
@@ -19638,6 +21882,30 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13785854691967032815",
+      "id": 1547,
+      "name": "Hyrule Field Northeast Blue Rupee (5) 4",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -20043,6 +22311,24 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14062454289055492415",
+      "id": 1548,
+      "name": "Hyrule Field Southwest Red Rupee (20) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "place-b13887e8-child",
           "rule": {
             "ref": 75
@@ -20335,6 +22621,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "14381003020707329822",
+      "id": 1549,
+      "name": "Kokiri Forest East Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "forest-temple-adult",
           "rule": {
             "ref": 88
@@ -20348,6 +22650,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14398093248612909712",
+      "id": 1550,
+      "name": "Hyrule Field Northeast Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -21100,6 +23426,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14962149652005504200",
+      "id": 1551,
+      "name": "Death Mountain Crater Red Rupee (20)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "inside-ganons-castle-adult",
           "rule": {
             "ref": 133
@@ -21262,6 +23612,24 @@
     {
       "at": [
         {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15066348262714298279",
+      "id": 1552,
+      "name": "Zora's Fountain Northeast Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
             "ref": 115
@@ -21327,6 +23695,30 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15135356131305809944",
+      "id": 1553,
+      "name": "Hyrule Field Northeast Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -21431,6 +23823,22 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "15227875255265438204",
+      "id": 1554,
+      "name": "Kokiri Forest South Recovery Heart 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -21720,6 +24128,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15482102146451554097",
+      "id": 1555,
+      "name": "Zora's River Northeast Green Rupee (1)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -22635,6 +25067,26 @@
     {
       "at": [
         {
+          "place": "deku-tree-child",
+          "rule": true
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16164791133086825945",
+      "id": 1556,
+      "name": "Deku Tree Upper Recovery Heart 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "lost-woods-adult",
           "rule": {
             "ref": 80
@@ -22949,6 +25401,26 @@
     {
       "at": [
         {
+          "place": "deku-tree-child",
+          "rule": true
+        },
+        {
+          "place": "deku-tree-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16355617740219907263",
+      "id": 1557,
+      "name": "Deku Tree Upper Recovery Heart 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "water-temple-adult",
           "rule": {
             "ref": 104
@@ -23112,6 +25584,30 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16437715071442568790",
+      "id": 1558,
+      "name": "Hyrule Field Northeast Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "inside-ganons-castle-adult",
           "rule": {
             "ref": 133
@@ -23193,6 +25689,26 @@
     {
       "at": [
         {
+          "place": "place-0aa7cf4a-child",
+          "rule": true
+        },
+        {
+          "place": "place-0aa7cf4a-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16597323285320397604",
+      "id": 1559,
+      "name": "Deku Tree Lower Recovery Heart 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "goron-city-adult",
           "rule": {
             "ref": 97
@@ -23260,6 +25776,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16647730239269178270",
+      "id": 1560,
+      "name": "Kokiri Forest Southwest Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
             "ref": 102
@@ -23271,6 +25803,44 @@
       "id": 117,
       "name": "Bottom of the Well Lower Lens of Truth Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16664642180278451461",
+      "id": 1561,
+      "name": "Zora's Domain North Blue Rupee (5) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [
@@ -23402,6 +25972,30 @@
       "unprovable": true,
       "when": {
         "setting": "keys=start"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16794923646428529814",
+      "id": 1562,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -23571,6 +26165,22 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "16890252572970412506",
+      "id": 1563,
+      "name": "Kokiri Forest Southeast Recovery Heart 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "graveyard-adult",
           "rule": {
             "count": 1,
@@ -23656,6 +26266,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-fountain-adult",
+          "rule": {
+            "ref": 63
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16981113694024920682",
+      "id": 1564,
+      "name": "Zora's Fountain East Green Rupee (1) 5",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -24025,6 +26653,90 @@
     {
       "at": [
         {
+          "place": "zora-domain-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-adult-alternative-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Bottle",
+              "Bottle with Milk",
+              "Ruto's Letter"
+            ]
+          }
+        },
+        {
+          "place": "zora-domain-child",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "17151259896404091033",
+      "id": 1565,
+      "name": "Zora's Domain North Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17170677546946622823",
+      "id": 1566,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "graveyard-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Hookshot",
+              "Longshot"
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17177665557365847615",
+      "id": 1567,
+      "name": "Graveyard Southeast Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "desert-colossus-adult",
           "rule": true
         }
@@ -24052,6 +26764,22 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": true
+        }
+      ],
+      "forbid": [],
+      "hash": "17212015369679208115",
+      "id": 1568,
+      "name": "Kokiri Forest Purple Rupee (50)",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -24174,6 +26902,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 93
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 85
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17286901874670360605",
+      "id": 1569,
+      "name": "Death Mountain Trail North Green Rupee (1) 3",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "goron-city-child",
           "rule": {
             "ref": 61
@@ -24205,6 +26957,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17324353931517538893",
+      "id": 1570,
+      "name": "Zora's River Southwest Blue Rupee (5) 2",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -24520,6 +27296,30 @@
       "unprovable": false,
       "when": {
         "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 96
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17524442172396680694",
+      "id": 1571,
+      "name": "Death Mountain Crater Northeast Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -25305,6 +28105,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 80
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 76
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "18049114647202169539",
+      "id": 1572,
+      "name": "Zora's River Southwest Green Rupee (1) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "water-temple-adult",
           "rule": {
             "ref": 104
@@ -25426,6 +28250,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "18080167579417541655",
+      "id": 1573,
+      "name": "Hyrule Field East Green Rupee (1) 6",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
       }
     },
     {
@@ -25800,6 +28642,30 @@
       "id": 131,
       "name": "Gerudo Valley Northwest Red Rupee (20) Chest 1",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 130
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 119
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "18417667443552316769",
+      "id": 1574,
+      "name": "Hyrule Field Southwest Red Rupee (20) 1",
+      "unprovable": false,
+      "when": {
+        "setting": "loose-items"
+      }
     },
     {
       "at": [

@@ -44,3 +44,32 @@ why = "lies under Deku Scrub Brother One, out of reach until it's beaten"
 evidence = [
     "placed 0.6 to 0.9 m under Deku Scrub Brother One, named ScrubDekuRupee",
 ]
+
+# The three Recovery Hearts on the pool's floor, about 2.5 m under the
+# surface. Link's short dive reaches them with no scale.
+[[check]]
+hash = 729508615351641392
+name = "Heart In Water"
+needs = "always"
+why = "on the pool's floor, in reach of the dive Link has without a scale"
+evidence = [
+    "live 2026-11-24, a fresh file without a scale: warped beside it, A held dove and took it (its placement key went true)",
+]
+
+[[check]]
+hash = 2222711177065858733
+name = "Heart In Water"
+needs = "always"
+why = "on the pool's floor, in reach of the dive Link has without a scale"
+evidence = [
+    "live 2026-11-24, a fresh file without a scale: warped beside it, A held dove and took it (its placement key went true)",
+]
+
+[[check]]
+hash = 16597323285320397604
+name = "Heart In Water"
+needs = "always"
+why = "on the pool's floor, in reach of the dive Link has without a scale"
+evidence = [
+    "live 2026-11-24, a fresh file without a scale: a dive steered toward it took it (its placement key went true)",
+]
