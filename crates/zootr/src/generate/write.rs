@@ -269,9 +269,10 @@ pub fn write_mod(
     let keyed: Vec<_> = (parts.rupees.iter())
         .filter_map(|r| ammo::line(ammo::copied(r)?))
         .collect();
+    let release = Release::of(romfs.root());
     patch::install(
         mod_dir,
-        Release::of(romfs.root()),
+        release,
         Lines::of(new_game),
         &keyed,
         hook_flags(new_game),
@@ -284,6 +285,7 @@ pub fn write_mod(
         actors,
         files,
         stand_ins: parts.stand_ins,
+        release,
     })
 }
 

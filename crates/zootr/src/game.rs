@@ -214,6 +214,22 @@ impl Release {
         }
     }
 
+    /// What a seed made for it should say about it, if anything.
+    pub const fn notice(self) -> Option<&'static str> {
+        match self {
+            Self::V100 => {
+                Some("Base game (1.0.0) support is experimental and not verified in game")
+            }
+            Self::V111 => None,
+        }
+    }
+
+    /// The update, which every seed was made for before seeds kept their
+    /// build, so a report leaves it out.
+    pub fn is_update(&self) -> bool {
+        *self == Self::V111
+    }
+
     /// The package that holds it: title and version.
     const fn package(self) -> (u64, u32) {
         match self {

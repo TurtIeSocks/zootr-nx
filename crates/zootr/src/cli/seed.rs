@@ -170,6 +170,9 @@ fn install(
             ", spoiler.txt beside each mod"
         },
     );
+    if let Some(notice) = report.written.release.notice() {
+        println!("{notice}");
+    }
     if installed || unplaced || args.history {
         let label = Label {
             name: args.name,

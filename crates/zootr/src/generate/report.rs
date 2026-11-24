@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::game::Release;
 use crate::names::{Names, pretty};
 use crate::shuffle::Placement;
 use crate::{checks, gifts, shops};
@@ -148,6 +149,9 @@ pub struct Written {
     #[serde(skip)]
     #[cfg_attr(feature = "specta", specta(skip))]
     pub stand_ins: Vec<(u64, String)>,
+    /// The build of the game the mod was made for.
+    #[serde(default, skip_serializing_if = "Release::is_update")]
+    pub release: Release,
 }
 
 /// An item Link gets outside the shuffle, in the round that collects it.
@@ -256,6 +260,10 @@ impl Report {
         let width = self.spots.iter().map(|s| s.name().chars().count());
         let width = width.max().unwrap_or(0);
         let mut out = format!("seed {}\nicons {}\n", self.seed, icons.join(" · "));
+        let release = self.written.release;
+        if let Some(notice) = release.notice() {
+            out += &format!("game {}\n{notice}\n", release.name());
+        }
         if !self.entrances.is_empty() {
             let width = self.entrances.iter().map(|d| d.name().chars().count());
             let width = width.max().unwrap_or(0);
@@ -379,6 +387,7 @@ mod tests {
                 actors: 2,
                 files: 3,
                 stand_ins: vec![],
+                release: Release::V111,
             },
         }
     }
@@ -389,6 +398,30 @@ mod tests {
         assert_eq!(json["seed"], u64::MAX.to_string());
         assert_eq!(json["files"], 3);
         assert_eq!(serde_json::from_value::<Report>(json).unwrap(), report());
+    }
+
+    #[test]
+    fn a_seed_says_its_build_only_when_it_is_the_base_game() {
+        let update = Report {
+            spots: vec![],
+            ..report()
+        };
+        let json = serde_json::to_value(&update).unwrap();
+        assert!(json.get("release").is_none(), "1.1.1 reports as before");
+        assert_eq!(update.spoiler(&[]), format!("seed {}\nicons \n", u64::MAX));
+        let mut base = update.clone();
+        base.written.release = Release::V100;
+        let json = serde_json::to_value(&base).unwrap();
+        assert_eq!(json["release"], "1.0.0");
+        assert_eq!(serde_json::from_value::<Report>(json).unwrap(), base);
+        assert_eq!(
+            base.spoiler(&[]),
+            format!(
+                "seed {}\nicons \ngame 1.0.0\n\
+                 Base game (1.0.0) support is experimental and not verified in game\n",
+                u64::MAX
+            )
+        );
     }
 
     #[test]
