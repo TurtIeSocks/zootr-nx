@@ -153,9 +153,11 @@ impl Lines {
     }
 
     /// `actor`'s line as [`line`](Self::line) gives it, if progressive
-    /// items climb it.
+    /// items climb it. A line left with one level (Double Magic without the Magic
+    /// Meter) isn't climbed: its holder always gives that level.
     pub fn climbs(self, actor: &str) -> Option<&'static [Level]> {
-        self.progressive.then(|| self.line(actor)).flatten()
+        let line = self.progressive.then(|| self.line(actor)).flatten()?;
+        (line.len() > 1).then_some(line)
     }
 
     /// Whether this seed has `actor`: a level its lines keep, or an item
@@ -206,6 +208,24 @@ pub fn in_line(actor: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_line_left_with_one_level_is_not_climbed() {
+        needs_names!();
+        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
+        // With magic from the first magic item, the Magic Meter is no level,
+        // so Double Magic stands alone and always gives itself.
+        let unshuffled = Lines {
+            magic_meter: false,
+            ..Lines::climbing()
+        };
+        assert_eq!(unshuffled.climbs(double), None);
+        let shuffled = Lines {
+            magic_meter: true,
+            ..Lines::climbing()
+        };
+        assert_eq!(shuffled.climbs(double).map(<[_]>::len), Some(2));
+    }
 
     #[test]
     fn every_strength_level_is_strength_and_no_other_line_is() {
