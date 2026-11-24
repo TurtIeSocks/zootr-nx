@@ -393,13 +393,20 @@ impl Nup {
                 return Err(corrupt("name is not UTF-8"));
             }
         }
+        // No two child ranges share a slot, and each node is listed once at
+        // most and a root never, so the tree is a tree: no node is reached
+        // twice and MAX_DEPTH only caps depth.
+        let mut covered = vec![false; self.children.len()];
         for d in &self.dirs {
-            if u64::from(d.first) + u64::from(d.count) > self.children.len() as u64 {
+            let range = (d.first as usize).checked_add(d.count as usize);
+            let Some(slots) = range.and_then(|end| covered.get_mut(d.first as usize..end)) else {
                 return Err(corrupt("child range out of bounds"));
+            };
+            if slots.iter().any(|&c| c) {
+                return Err(corrupt("child ranges overlap"));
             }
+            slots.fill(true);
         }
-        // Each node is listed once at most and a root never, so the tree is
-        // a tree: no node is reached twice and MAX_DEPTH only caps depth.
         let mut listed = vec![false; self.dirs.len() + self.files.len()];
         for p in &self.packages {
             listed[p.root.0 as usize] = true;
