@@ -15,7 +15,7 @@ use anyhow::{Context, Result, ensure};
 use archipelago_rs::{self as ap, ClientStatus, ConnectionOptions, ConnectionState, ItemHandling};
 use ounce_formats::Romfs;
 
-use super::death::{Death, Deaths, Done};
+use super::death::{Count, Death, Deaths, Done};
 use super::ids::Ids;
 use super::notice::Notices;
 use super::seed::Dealt;
@@ -519,7 +519,7 @@ pub struct Live {
     goal: u32,
     received: u32,
     /// [`DEATHS`] at the last look.
-    deaths: Option<i64>,
+    deaths: Count,
 }
 
 impl Live {
@@ -532,7 +532,7 @@ impl Live {
             given: spots.iter().filter(|s| s.given).map(|s| s.hash).collect(),
             goal: live::hash(&steps::saved(flow::DEFEAT_GANON))?,
             received: live::hash(RECEIVED)?,
-            deaths: None,
+            deaths: Count::default(),
         })
     }
 
@@ -589,10 +589,7 @@ impl Game for Live {
     }
 
     fn died(&mut self) -> Result<bool> {
-        let n: i64 = self.get(DEATHS)?.parse()?;
-        let died = self.deaths.is_some_and(|last| n > last);
-        self.deaths = Some(n);
-        Ok(died)
+        Ok(self.deaths.died(self.get(DEATHS)?.parse()?))
     }
 
     fn kill(&mut self) -> Result<()> {
