@@ -340,8 +340,8 @@ fn colors_preview(
     };
     let png = preview::Previews::default().png(romfs, id, texture, picked.as_ref(), view)?;
     std::fs::write(out, png)?;
-    let textures = preview::textures(crate::colors::palette(id)?);
-    println!("{} ({} of {})", out.display(), texture + 1, textures.len());
+    let sheets = preview::sheets(crate::colors::palette(id)?);
+    println!("{} ({} of {})", out.display(), texture + 1, sheets.len());
     Ok(())
 }
 

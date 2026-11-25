@@ -659,14 +659,14 @@ pub(super) enum AudioCommand {
 pub(super) enum ColorsCommand {
     /// Every palette: its id, group, name and vanilla colours.
     List,
-    /// Write the preview the app shows: one of a palette's textures,
+    /// Write the preview the app shows: one of a palette's textures or materials,
     /// painted as a seed paints it, as a PNG.
     Preview {
         id: String,
         /// `#rrggbb` (`#a,#b` for a colour per slot), or `vanilla`.
         color: String,
         out: PathBuf,
-        /// Which of the palette's textures, from 0.
+        /// Which of the palette's textures, then materials, from 0.
         #[arg(long, default_value_t = 0)]
         texture: usize,
         /// Grey every texel the palette leaves alone.

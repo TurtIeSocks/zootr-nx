@@ -16,32 +16,33 @@ interface PreviewPanelProps {
   palette: PaletteView;
   /** The colour to paint, as the picker has it now, or null for vanilla. */
   picked: Picked | null;
-  /** The colour as saved, which the texture thumbnails show: they skip
-   * the drag's steps, so several textures don't flood the backend. */
+  /** The colour as saved, which the thumbnails show: they skip the
+   * drag's steps, so several sheets don't flood the backend. */
   saved: Picked | null;
   /** A line under the title: why it shows vanilla, say. */
   note?: string;
 }
 
 /** The selected palette's game texture, painted by the seed's own code as
- * the picker moves. A wipe slides between vanilla and the pick, What
- * Changes greys the texels the palette leaves alone, and a palette that
- * paints several textures shows each. */
+ * the picker moves, or a sphere lit with a material's colours where it
+ * writes params. A wipe slides between vanilla and the pick, What Changes
+ * greys the texels the palette leaves alone, and a palette with several
+ * sheets shows each. */
 export function PreviewPanel({
   palette,
   picked,
   saved,
   note,
 }: PreviewPanelProps) {
-  const [texture, setTexture] = useState(0);
+  const [sheet, setSheet] = useState(0);
   const [changes, setChanges] = useState(false);
   /** The divider, as a percent from the left: vanilla shows left of it,
    * the pick right of it. At 0 the pick fills the frame. */
   const [wipe, setWipe] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new palette starts at its first texture
-  useEffect(() => setTexture(0), [palette.id]);
-  const t = Math.min(texture, palette.textures - 1);
-  const shot = { id: palette.id, texture: t, changes };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new palette starts at its first sheet
+  useEffect(() => setSheet(0), [palette.id]);
+  const t = Math.min(sheet, palette.sheets - 1);
+  const shot = { id: palette.id, sheet: t, changes };
   const after = useLoadedImage(previewUrl({ ...shot, picked }));
   const before = useLoadedImage(previewUrl({ ...shot, picked: null }));
 
@@ -98,17 +99,17 @@ export function PreviewPanel({
           />
           <Label htmlFor="colors-changes">What changes</Label>
         </div>
-        {palette.textures > 1 && (
+        {palette.sheets > 1 && (
           <fieldset className="grid grid-cols-6 gap-1">
             <legend className="sr-only">Texture</legend>
-            {Array.from({ length: palette.textures }, (_, i) => (
+            {Array.from({ length: palette.sheets }, (_, i) => (
               <Thumb
-                // biome-ignore lint/suspicious/noArrayIndexKey: textures are numbered
+                // biome-ignore lint/suspicious/noArrayIndexKey: sheets are numbered
                 key={i}
-                label={`Texture ${i + 1} of ${palette.textures}`}
-                url={previewUrl({ id: palette.id, texture: i, picked: saved })}
+                label={`Preview ${i + 1} of ${palette.sheets}`}
+                url={previewUrl({ id: palette.id, sheet: i, picked: saved })}
                 pressed={i === t}
-                onPress={() => setTexture(i)}
+                onPress={() => setSheet(i)}
               />
             ))}
           </fieldset>
@@ -126,7 +127,7 @@ interface ThumbProps {
   onPress: () => void;
 }
 
-/** One of a palette's textures, small: pressing it shows it large. */
+/** One of a palette's sheets, small: pressing it shows it large. */
 function Thumb({ label, url, pressed, onPress }: ThumbProps) {
   const { src } = useLoadedImage(url);
   return (
