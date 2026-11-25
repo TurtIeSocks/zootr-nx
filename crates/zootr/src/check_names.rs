@@ -142,13 +142,14 @@ const FILES: &[(&str, &str)] = &[
 /// Archipelago name (`ap::names::area`). The remake's Hyrule Field map
 /// holds Lake Hylia and Lon Lon Ranch too, so its checks take whichever
 /// of the three they stand in. Kokiri Forest's map holds the bridge to the
-/// Lost Woods, where OoTR's `LW Gift from Saria` stands.
+/// Lost Woods, where OoTR's `LW Gift from Saria` stands. Desert Colossus's
+/// map holds the Spirit Temple's two hand chests, which keep OoTR's names.
 const PREFIXES: &[(&str, &[&str])] = &[
     ("Bottom of the Well", &["Bottom of the Well"]),
     ("Death Mountain Crater", &["DMC"]),
     ("Death Mountain Trail", &["DMT"]),
     ("Deku Tree", &["Deku Tree"]),
-    ("Desert Colossus", &["Colossus"]),
+    ("Desert Colossus", &["Colossus", "Spirit Temple"]),
     ("Dodongo's Cavern", &["Dodongos Cavern"]),
     ("Dream World", &["Dream World"]),
     ("Fire Temple", &["Fire Temple"]),
