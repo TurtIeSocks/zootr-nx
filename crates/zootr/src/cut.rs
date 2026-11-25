@@ -17,8 +17,11 @@ use crate::{arrivals, gifts};
 
 /// A scene's entry point, which every call into its sub-flows comes from.
 const ENTRY: &Name = flag::ENTRY_POINT0;
-/// Actions copied into a caller as they are.
-const COPIED: [&Name; 7] = [
+/// Actions copied into a caller as they are. Putting away an item Link
+/// holds up is one: the caller held it up before the scene (Talon's wake
+/// takes the cucco), and without it the item stays over him.
+const COPIED: [&Name; 8] = [
+    flow::EVENT_DELETE_SHOW_ITEM,
     flow::EVENT_TRIGGER_SET_GAME_DATA_BOOL,
     flow::EVENT_TRIGGER_SET_GAME_DATA_STRING64,
     flow::EVENT_TRIGGER_COPY_GAME_DATA_STRING64,
