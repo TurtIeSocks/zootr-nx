@@ -1085,7 +1085,7 @@
       "forbid": [],
       "hash": "697465442349235192",
       "id": 519,
-      "name": "Zora's Fountain North Pot 2",
+      "name": "ZF Near Jabu Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3992,7 +3992,7 @@
       "forbid": [],
       "hash": "2207729956021615024",
       "id": 1454,
-      "name": "Zora's Fountain East Green Rupee (1) 6",
+      "name": "ZF Bottom Green Rupee 12",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -5596,7 +5596,7 @@
       "forbid": [],
       "hash": "3291474312194526326",
       "id": 151,
-      "name": "Zora's Fountain Great Fairy of Farore",
+      "name": "ZF Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -6831,7 +6831,7 @@
       "forbid": [],
       "hash": "4077060633972129211",
       "id": 1467,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 2",
+      "name": "ZF Bottom Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6996,7 +6996,7 @@
       "forbid": [],
       "hash": "4175716627569108253",
       "id": 1469,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 10",
+      "name": "ZF Bottom Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9336,7 +9336,7 @@
       "forbid": [],
       "hash": "5568633841506517325",
       "id": 1481,
-      "name": "Zora's Fountain East Green Rupee (1) 3",
+      "name": "ZF Bottom Green Rupee 14",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9767,7 +9767,7 @@
       "forbid": [],
       "hash": "5767588505352617062",
       "id": 1483,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 8",
+      "name": "ZF Bottom Green Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10889,7 +10889,7 @@
       "forbid": [],
       "hash": "6511717208019100686",
       "id": 1489,
-      "name": "Zora's Fountain East Green Rupee (1) 4",
+      "name": "ZF Bottom Green Rupee 15",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -11786,7 +11786,7 @@
       "forbid": [],
       "hash": "7152962033963346563",
       "id": 338,
-      "name": "Zora's Fountain South Gold Skulltula Token",
+      "name": "ZF GS Above the Log",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12223,7 +12223,7 @@
       "forbid": [],
       "hash": "7369210492575735847",
       "id": 1493,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 6",
+      "name": "ZF Bottom Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -12404,7 +12404,7 @@
       "forbid": [],
       "hash": "7430539662759067881",
       "id": 1494,
-      "name": "Zora's Fountain East Green Rupee (1) 1",
+      "name": "ZF Bottom Green Rupee 10",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -12806,7 +12806,7 @@
       "forbid": [],
       "hash": "7692213673625838330",
       "id": 752,
-      "name": "Zora's Fountain North Pot 4",
+      "name": "ZF Near Jabu Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13124,7 +13124,7 @@
       "forbid": [],
       "hash": "8030885465575590602",
       "id": 291,
-      "name": "Zora's Fountain Northeast Piece of Heart",
+      "name": "ZF Bottom Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -14713,7 +14713,7 @@
       "forbid": [],
       "hash": "9058546130605800023",
       "id": 1505,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 5",
+      "name": "ZF Bottom Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15709,7 +15709,7 @@
       "forbid": [],
       "hash": "9537398183107003742",
       "id": 356,
-      "name": "Zora's Fountain East Gold Skulltula Token",
+      "name": "ZF GS Hidden Cave",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -17121,7 +17121,7 @@
       "forbid": [],
       "hash": "10247339190834717086",
       "id": 1520,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 7",
+      "name": "ZF Bottom Green Rupee 11",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -17578,7 +17578,7 @@
       "forbid": [],
       "hash": "10518148330968147601",
       "id": 1523,
-      "name": "Zora's Fountain East Green Rupee (1) 2",
+      "name": "ZF Bottom Green Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -17957,7 +17957,7 @@
       "forbid": [],
       "hash": "10835121848480419248",
       "id": 843,
-      "name": "Zora's Fountain North Pot 1",
+      "name": "ZF Near Jabu Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18523,7 +18523,7 @@
       "forbid": [],
       "hash": "11141668837643914565",
       "id": 849,
-      "name": "Zora's Fountain Southeast Pot 1",
+      "name": "ZF Hidden Cave Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18900,7 +18900,7 @@
       "forbid": [],
       "hash": "11382955502959013110",
       "id": 852,
-      "name": "Zora's Fountain North Pot 3",
+      "name": "ZF Near Jabu Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19559,7 +19559,7 @@
       "forbid": [],
       "hash": "11672626208313429634",
       "id": 1531,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 1",
+      "name": "ZF Bottom Green Rupee 13",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19646,7 +19646,7 @@
       "forbid": [],
       "hash": "11712600857155855626",
       "id": 1532,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 4",
+      "name": "ZF Bottom Green Rupee 9",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19707,7 +19707,7 @@
       "forbid": [],
       "hash": "11743429110701869711",
       "id": 1533,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 9",
+      "name": "ZF Bottom Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20690,7 +20690,7 @@
       "forbid": [],
       "hash": "12389449717548603491",
       "id": 879,
-      "name": "Zora's Fountain Southeast Pot 3",
+      "name": "ZF Hidden Cave Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20726,7 +20726,7 @@
       "forbid": [],
       "hash": "12406896586250888098",
       "id": 296,
-      "name": "Zora's Fountain East Piece of Heart",
+      "name": "ZF Iceberg Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -23465,7 +23465,7 @@
       "forbid": [],
       "hash": "14131098108744088630",
       "id": 924,
-      "name": "Zora's Fountain Southeast Pot 4",
+      "name": "ZF Hidden Cave Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24683,7 +24683,7 @@
       "forbid": [],
       "hash": "15055117029957340138",
       "id": 108,
-      "name": "Zora's Fountain Southeast Purple Rupee (50) Chest",
+      "name": "ZF Scarecrow Chest",
       "unprovable": false
     },
     {
@@ -24716,7 +24716,7 @@
       "forbid": [],
       "hash": "15066348262714298279",
       "id": 1552,
-      "name": "Zora's Fountain Northeast Green Rupee (1) 3",
+      "name": "ZF Bottom Green Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27535,7 +27535,7 @@
       "forbid": [],
       "hash": "16981113694024920682",
       "id": 1564,
-      "name": "Zora's Fountain East Green Rupee (1) 5",
+      "name": "ZF Bottom Green Rupee 16",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28307,7 +28307,7 @@
       "forbid": [],
       "hash": "17355397719442343054",
       "id": 401,
-      "name": "Zora's Fountain Southeast Gold Skulltula Token",
+      "name": "ZF GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -29374,7 +29374,7 @@
       "forbid": [],
       "hash": "18012345028628492631",
       "id": 1041,
-      "name": "Zora's Fountain Southeast Pot 2",
+      "name": "ZF Hidden Cave Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
