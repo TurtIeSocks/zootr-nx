@@ -178,7 +178,7 @@
       "forbid": [],
       "hash": "139743615625578751",
       "id": 502,
-      "name": "Forest Temple Pot 1",
+      "name": "Forest Temple 1F Center Room Left Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -374,7 +374,7 @@
       "forbid": [],
       "hash": "204034068196251074",
       "id": 504,
-      "name": "Forest Temple Pot 13",
+      "name": "Forest Temple 1F Green Poe Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1301,7 +1301,7 @@
       "forbid": [],
       "hash": "845052341770025044",
       "id": 523,
-      "name": "Forest Temple Lower Pot 3",
+      "name": "Forest Temple B2 Basement Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1893,7 +1893,7 @@
       "forbid": [],
       "hash": "1171460703078800858",
       "id": 449,
-      "name": "Forest Temple Upper Small Key Chest 1",
+      "name": "Forest Temple 1F First Room Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -3590,7 +3590,7 @@
       "forbid": [],
       "hash": "2014780391754316762",
       "id": 321,
-      "name": "Forest Temple Upper Gold Skulltula Token 4",
+      "name": "Forest Temple 1F GS Raised Island Courtyard",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -3764,7 +3764,7 @@
       "forbid": [],
       "hash": "2110020506516121812",
       "id": 573,
-      "name": "Forest Temple Upper Pot 5",
+      "name": "Forest Temple 2F Upper Stalfos Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4710,7 +4710,7 @@
       "forbid": [],
       "hash": "2723241463527082223",
       "id": 586,
-      "name": "Forest Temple Pot 7",
+      "name": "Forest Temple 1F Lower Stalfos Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5193,7 +5193,7 @@
       "forbid": [],
       "hash": "3072474196008424241",
       "id": 325,
-      "name": "Forest Temple Lower Gold Skulltula Token",
+      "name": "Forest Temple B2 GS Basement",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -5346,7 +5346,7 @@
       "forbid": [],
       "hash": "3174893090599461927",
       "id": 428,
-      "name": "Forest Temple Map Chest",
+      "name": "Forest Temple 1F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -5760,7 +5760,7 @@
       "forbid": [],
       "hash": "3433400840978782007",
       "id": 454,
-      "name": "Forest Temple Upper Small Key Chest 2",
+      "name": "Forest Temple 2F Red Poe Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -6596,7 +6596,7 @@
       "forbid": [],
       "hash": "3947004986900705772",
       "id": 633,
-      "name": "Forest Temple Pot 10",
+      "name": "Forest Temple 1F Level Island Courtyard Hall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7038,7 +7038,7 @@
       "forbid": [],
       "hash": "4243968346728704417",
       "id": 638,
-      "name": "Forest Temple Upper Pot 8",
+      "name": "Forest Temple 2F Blue Poe Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8521,7 +8521,7 @@
       "forbid": [],
       "hash": "5080915951880062416",
       "id": 662,
-      "name": "Forest Temple Pot 11",
+      "name": "Forest Temple 1F Level Island Courtyard Hall Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8890,7 +8890,7 @@
       "forbid": [],
       "hash": "5306318520835485827",
       "id": 462,
-      "name": "Forest Temple Upper Boss Key Chest",
+      "name": "Forest Temple 3F Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -10437,7 +10437,7 @@
       "forbid": [],
       "hash": "6298504646306157744",
       "id": 703,
-      "name": "Forest Temple Upper Pot 3",
+      "name": "Forest Temple 2F Upper Stalfos Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10682,7 +10682,7 @@
       "forbid": [],
       "hash": "6449977980406424425",
       "id": 467,
-      "name": "Forest Temple Lower Small Key Chest",
+      "name": "Forest Temple B1 Well Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -11348,7 +11348,7 @@
       "forbid": [],
       "hash": "6916546705775293667",
       "id": 721,
-      "name": "Forest Temple Lower Pot 1",
+      "name": "Forest Temple B1 Well Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11402,7 +11402,7 @@
       "forbid": [],
       "hash": "6948525240950728236",
       "id": 431,
-      "name": "Forest Temple Upper Compass Chest",
+      "name": "Forest Temple 2F Blue Poe Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -12477,7 +12477,7 @@
       "forbid": [],
       "hash": "7535137041266964235",
       "id": 468,
-      "name": "Forest Temple Small Key Chest 2",
+      "name": "Forest Temple 1F Floormaster Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -13308,7 +13308,7 @@
       "forbid": [],
       "hash": "8229370832781285891",
       "id": 762,
-      "name": "Forest Temple Pot 5",
+      "name": "Forest Temple 1F Center Room Left Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13539,7 +13539,7 @@
       "forbid": [],
       "hash": "8451893348143348779",
       "id": 767,
-      "name": "Forest Temple Lower Pot 6",
+      "name": "Forest Temple B2 Basement Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13899,7 +13899,7 @@
       "forbid": [],
       "hash": "8740962919121236974",
       "id": 771,
-      "name": "Forest Temple Pot 8",
+      "name": "Forest Temple 1F Lower Stalfos Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14561,7 +14561,7 @@
       "forbid": [],
       "hash": "9038700938965170329",
       "id": 62,
-      "name": "Forest Temple Lower Arrows (10) Chest",
+      "name": "Forest Temple B2 Basement Chest",
       "unprovable": false
     },
     {
@@ -15703,7 +15703,7 @@
       "forbid": [],
       "hash": "9600596241209359414",
       "id": 799,
-      "name": "Forest Temple Pot 3",
+      "name": "Forest Temple 1F Center Room Left Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15743,7 +15743,7 @@
       "forbid": [],
       "hash": "9611679337718327541",
       "id": 800,
-      "name": "Forest Temple Lower Pot 2",
+      "name": "Forest Temple B1 Well Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16610,7 +16610,7 @@
       "forbid": [],
       "hash": "10045766070541814618",
       "id": 815,
-      "name": "Forest Temple Upper Pot 10",
+      "name": "Forest Temple 3F Frozen Eye Switch Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18082,7 +18082,7 @@
       "forbid": [],
       "hash": "10970805784153267902",
       "id": 363,
-      "name": "Forest Temple Upper Gold Skulltula Token 3",
+      "name": "Forest Temple 2F GS Level Island Courtyard",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -18232,7 +18232,7 @@
       "forbid": [],
       "hash": "11081821111317815057",
       "id": 364,
-      "name": "Forest Temple Upper Gold Skulltula Token 1",
+      "name": "Forest Temple 1F GS First Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -18270,7 +18270,7 @@
       "forbid": [],
       "hash": "11082303891540711688",
       "id": 80,
-      "name": "Forest Temple Upper Fairy Bow Chest",
+      "name": "Forest Temple 2F Bow Chest",
       "unprovable": false
     },
     {
@@ -19466,7 +19466,7 @@
       "forbid": [],
       "hash": "11701653450964348630",
       "id": 861,
-      "name": "Forest Temple Upper Pot 4",
+      "name": "Forest Temple 2F Upper Stalfos Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20014,7 +20014,7 @@
       "forbid": [],
       "hash": "12084337161955511012",
       "id": 869,
-      "name": "Forest Temple Upper Pot 7",
+      "name": "Forest Temple 2F Blue Poe Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20179,7 +20179,7 @@
       "forbid": [],
       "hash": "12190827011300834192",
       "id": 873,
-      "name": "Forest Temple Pot 4",
+      "name": "Forest Temple 1F Center Room Right Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21665,7 +21665,7 @@
       "forbid": [],
       "hash": "13098892055243633233",
       "id": 894,
-      "name": "Forest Temple Upper Pot 1",
+      "name": "Forest Temple 2F Upper Stalfos Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23373,7 +23373,7 @@
       "forbid": [],
       "hash": "14169869109292081997",
       "id": 927,
-      "name": "Forest Temple Pot 9",
+      "name": "Forest Temple 1F Level Island Courtyard Hall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23488,7 +23488,7 @@
       "forbid": [],
       "hash": "14344239269960841819",
       "id": 933,
-      "name": "Forest Temple Upper Pot 6",
+      "name": "Forest Temple 2F Blue Poe Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23540,7 +23540,7 @@
       "forbid": [],
       "hash": "14386060266040640728",
       "id": 934,
-      "name": "Forest Temple Upper Pot 9",
+      "name": "Forest Temple 3F Frozen Eye Switch Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24049,7 +24049,7 @@
       "forbid": [],
       "hash": "14776684749746592758",
       "id": 482,
-      "name": "Forest Temple Small Key Chest 1",
+      "name": "Forest Temple 1F First Stalfos Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -25594,7 +25594,7 @@
       "forbid": [],
       "hash": "15881257994982213730",
       "id": 968,
-      "name": "Forest Temple Lower Pot 4",
+      "name": "Forest Temple B2 Basement Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25707,7 +25707,7 @@
       "forbid": [],
       "hash": "15920957434854338961",
       "id": 112,
-      "name": "Forest Temple Upper Purple Rupee (50) Chest",
+      "name": "Forest Temple 2F Eye Switch Chest",
       "unprovable": false
     },
     {
@@ -26246,7 +26246,7 @@
       "forbid": [],
       "hash": "16258156194217221025",
       "id": 984,
-      "name": "Forest Temple Pot 2",
+      "name": "Forest Temple 1F Center Room Right Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26339,7 +26339,7 @@
       "forbid": [],
       "hash": "16313270500968203353",
       "id": 985,
-      "name": "Forest Temple Pot 12",
+      "name": "Forest Temple 1F Green Poe Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26951,7 +26951,7 @@
       "forbid": [],
       "hash": "16714728970292620430",
       "id": 996,
-      "name": "Forest Temple Pot 6",
+      "name": "Forest Temple 1F Center Room Right Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27319,7 +27319,7 @@
       "forbid": [],
       "hash": "16950648795519753327",
       "id": 425,
-      "name": "Forest Temple Phantom Ganon",
+      "name": "Forest Temple B2 Phantom Ganon",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -28591,7 +28591,7 @@
       "forbid": [],
       "hash": "17612196129225973969",
       "id": 404,
-      "name": "Forest Temple Upper Gold Skulltula Token 2",
+      "name": "Forest Temple 1F GS Lobby",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -28955,7 +28955,7 @@
       "forbid": [],
       "hash": "17869964928823963066",
       "id": 1036,
-      "name": "Forest Temple Lower Pot 5",
+      "name": "Forest Temple B2 Basement Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29258,7 +29258,7 @@
       "forbid": [],
       "hash": "18069611988256927347",
       "id": 1043,
-      "name": "Forest Temple Upper Pot 2",
+      "name": "Forest Temple 2F Upper Stalfos Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29713,7 +29713,7 @@
       "forbid": [],
       "hash": "18379569660496940670",
       "id": 417,
-      "name": "Forest Temple Heart Container",
+      "name": "Forest Temple B2 Phantom Ganon Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
