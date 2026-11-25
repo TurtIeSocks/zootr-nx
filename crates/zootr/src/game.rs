@@ -437,6 +437,14 @@ pub(crate) fn dev_dump() -> Option<Romfs> {
     .clone()
 }
 
+/// Whether this run holds the checks that only need to catch up after a
+/// merge, like a committed derive against a fresh one. CI sets
+/// `ZOOTR_AFTER_MERGE` everywhere but a PR's run (`dump-tests.sh`).
+#[cfg(test)]
+pub(crate) fn after_merge() -> bool {
+    std::env::var_os("ZOOTR_AFTER_MERGE").is_some()
+}
+
 /// The file at `rel` a test's [`ModBuilder`](ounce_formats::ModBuilder)
 /// wrote under `dir`, decompressed.
 #[cfg(test)]
