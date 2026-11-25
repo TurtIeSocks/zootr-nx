@@ -29,6 +29,8 @@ mod quests;
 mod scene;
 mod tables;
 
+pub(crate) use scene::reads as graph_reads;
+
 pub use query::*;
 pub use quest_gates::Gate;
 
