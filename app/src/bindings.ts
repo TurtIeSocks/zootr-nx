@@ -835,8 +835,6 @@ export type PaletteView = {
 	vanilla: string[],
 	/**  Each slot's name, when it has more than one: what Split shows. */
 	names: string[],
-	/**  The palette it moves with while left vanilla, by label. */
-	follows: string | null,
 	/**
 	 *  How many pictures it previews on: its textures, then a lit sphere
 	 *  for each material whose colors it writes.

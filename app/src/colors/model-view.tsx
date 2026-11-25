@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { Pause, Play } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { PaletteView, Picked } from "@/bindings";
+import { Tip } from "@/components/tip";
+import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { useUi } from "@/stores/ui";
-import { Loading } from "./loading";
 import {
   drop,
   frame,
@@ -21,6 +23,8 @@ interface ModelViewProps {
   palette: PaletteView;
   /** The color to paint, as the picker has it now, or null for vanilla. */
   picked: Picked | null;
+  /** Laid over the model: a note. */
+  children?: ReactNode;
 }
 
 /** Turns, in radians a second, while nobody drags. */
@@ -35,9 +39,9 @@ interface Stage {
   shown: Model | null;
 }
 
-/** A turning stage in `el`, lit by the sky and one light. Returns it and
- * how to take it down. */
-function stage(el: HTMLElement): [Stage, () => void] {
+/** A turning stage in `el`, lit by the sky and one light. A drag stops
+ * the turning and tells `onStop`. Returns it and how to take it down. */
+function stage(el: HTMLElement, onStop: () => void): [Stage, () => void] {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   el.appendChild(renderer.domElement);
@@ -54,6 +58,7 @@ function stage(el: HTMLElement): [Stage, () => void] {
   controls.autoRotateSpeed = (TURN * 60) / (2 * Math.PI);
   controls.addEventListener("start", () => {
     controls.autoRotate = false;
+    onStop();
   });
   const size = () => {
     const { clientWidth: w, clientHeight: h } = el;
@@ -104,13 +109,13 @@ function show(s: Stage, next: Model): Model {
 /** The palette's model in the bind pose, turning, with its albedos as the
  * seed paints them: drag to orbit, scroll to zoom. Another palette's
  * model swaps in only the shapes that differ. No game shaders. */
-export function ModelView({ palette, picked }: ModelViewProps) {
+export function ModelView({ palette, picked, children }: ModelViewProps) {
   const view = useUi((s) => s.colors.views[palette.id] ?? 0);
   const setView = (i: number) =>
     useUi.setPath("colors.views", (s) => ({ ...s, [palette.id]: i }));
   const v = Math.min(view, palette.views.length - 1);
   const [failed, setFailed] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [turning, setTurning] = useState(true);
   const box = useRef<HTMLDivElement>(null);
   const at = useRef<Stage | null>(null);
   const [model, setModel] = useState<Model | null>(null);
@@ -118,7 +123,7 @@ export function ModelView({ palette, picked }: ModelViewProps) {
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const [s, close] = stage(el);
+    const [s, close] = stage(el, () => setTurning(false));
     at.current = s;
     return () => {
       at.current = null;
@@ -130,19 +135,24 @@ export function ModelView({ palette, picked }: ModelViewProps) {
   useEffect(() => {
     let alive = true;
     setFailed(false);
-    setLoading(true);
     loadModel(palette.id, v)
       .then((next) => {
         const s = at.current;
         if (alive && s) setModel(show(s, next));
         else drop(next);
       })
-      .catch(() => alive && setFailed(true))
-      .finally(() => alive && setLoading(false));
+      .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
   }, [palette.id, v]);
+
+  const toggleTurning = () => {
+    const controls = at.current?.controls;
+    if (!controls) return;
+    controls.autoRotate = !turning;
+    setTurning(!turning);
+  };
 
   // Vanilla albedos load once a part; painted ones again as the pick
   // moves, the newest pick only, one round in flight.
@@ -157,7 +167,22 @@ export function ModelView({ palette, picked }: ModelViewProps) {
         aria-label={`${palette.label} on its model`}
         className="relative aspect-square w-full cursor-grab overflow-hidden rounded-md border border-line bg-surface-sunken active:cursor-grabbing"
       >
-        {loading && <Loading label={`Reading ${palette.label}'s model`} />}
+        {children}
+        <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-white text-xs">
+          Drag to turn, scroll to zoom
+        </span>
+        <Tip tip={turning ? "Stop turning" : "Turn on its own"}>
+          <Button
+            size="icon-sm"
+            variant="secondary"
+            aria-label={turning ? "Stop turning" : "Turn on its own"}
+            aria-pressed={turning}
+            onClick={toggleTurning}
+            className="absolute right-2 bottom-2"
+          >
+            {turning ? <Pause /> : <Play />}
+          </Button>
+        </Tip>
         {failed && (
           <p className="absolute inset-0 grid place-items-center p-4 text-center text-ink-muted text-sm">
             This model couldn't be drawn

@@ -7,7 +7,6 @@ import { Switch } from "@/components/ui/switch";
 import { previewUrl } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { type Ui, useUi } from "@/stores/ui";
-import { Loading } from "./loading";
 import { ModelView } from "./model-view";
 import { useLoadedImage } from "./use-loaded-image";
 
@@ -19,7 +18,7 @@ const TABS: readonly { id: Tab; label: string }[] = [
   { id: "model", label: "Model" },
 ];
 
-/** A corner label on the wipe's sides. */
+/** A label over the preview: the wipe's sides, or a note. */
 const TAG =
   "absolute top-2 rounded bg-black/60 px-1.5 py-0.5 text-white text-xs";
 
@@ -31,7 +30,8 @@ interface PreviewPanelProps {
   /** The color as saved, which the thumbnails show: they skip the
    * drag's steps, so several sheets don't flood the backend. */
   saved: Picked | null;
-  /** A line under the title: why it shows vanilla, say. */
+  /** Why the preview shows vanilla, say. Laid over it, so its coming and
+   * going moves nothing. */
   note?: string;
 }
 
@@ -61,9 +61,12 @@ export function PreviewPanel({
   const tab = useUi((s) => s.colors.tab);
   const setTab = (t: Tab) => useUi.setPath("colors.tab", t);
   const onModel = tab === "model" && palette.views.length > 0;
+  const tag = note && (
+    <span className={cn(TAG, "inset-x-0 z-10 mx-auto w-fit")}>{note}</span>
+  );
 
   return (
-    <Card title={palette.label} description={note}>
+    <Card title={palette.label}>
       {palette.views.length > 0 && (
         <div className="px-4 pt-4">
           <Segmented
@@ -76,11 +79,14 @@ export function PreviewPanel({
       )}
       {onModel ? (
         <div className="p-4">
-          <ModelView palette={palette} picked={picked} />
+          <ModelView palette={palette} picked={picked}>
+            {tag}
+          </ModelView>
         </div>
       ) : (
         <div className="flex flex-col gap-3 p-4">
           <div className="relative aspect-square w-full overflow-hidden rounded-md border border-line bg-surface-sunken">
+            {tag}
             {before.src && (
               <img
                 src={before.src}
@@ -108,9 +114,6 @@ export function PreviewPanel({
                   <span className={cn(TAG, "right-2")}>Picked</span>
                 )}
               </>
-            )}
-            {!after.src && !after.failed && (
-              <Loading label={`Reading ${palette.label}`} />
             )}
             {(after.failed || before.failed) && !after.src && (
               <p className="absolute inset-0 grid place-items-center p-4 text-center text-ink-muted text-sm">

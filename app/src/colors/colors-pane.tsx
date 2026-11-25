@@ -32,7 +32,6 @@ import {
   setPick,
   swatchOf,
   toggleLock,
-  vanillaLabel,
   withSlot,
 } from "@/lib/colors";
 import { useRequest } from "@/lib/request";
@@ -43,6 +42,7 @@ import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig } from "@/stores/config";
 import { applyCosmetics, useSeeds } from "@/stores/seeds";
 import { HudPreview } from "./hud-preview";
+import { Loading } from "./loading";
 import { PreviewPanel } from "./preview-panel";
 
 const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
@@ -52,9 +52,9 @@ const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
   { id: "hud", label: "HUD", icon: Heart },
 ];
 
-/** A palette's three-way switch, its first option named for it. */
-const modes = (palette: PaletteView): { id: Mode; label: string }[] => [
-  { id: "vanilla", label: vanillaLabel(palette) },
+/** A palette's three-way switch. */
+const MODES: { id: Mode; label: string }[] = [
+  { id: "vanilla", label: "Vanilla" },
   { id: "random", label: "Random" },
   { id: "color", label: "Color" },
 ];
@@ -95,23 +95,36 @@ export function ColorsPane() {
   );
 }
 
+/** Each catalog read, by the dump and game assets setting it was read
+ * with. Reading checks every palette against the dump, which takes a
+ * while, so the pane reads it the first time it opens and keeps it until
+ * the app quits. */
+const catalogs = new Map<string, PaletteView[]>();
+
 /** Every palette, and why the catalog couldn't be read. */
 function useCatalog() {
   const [game] = useConfig.usePath("config.game");
   const [art] = useConfig.usePath("config.game_assets");
-  const [palettes, setPalettes] = useState<PaletteView[]>([]);
+  const key = `${game}\n${art}`;
+  const [palettes, setPalettes] = useState(() => catalogs.get(key));
   const [error, setError] = useState<string>();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: checked again against a new dump or with game assets turned on
   useEffect(() => {
+    const kept = catalogs.get(key);
+    setPalettes(kept);
+    if (kept) return;
     let live = true;
     call(commands.colorsCatalog())
-      .then((p) => live && setPalettes(p))
+      .then((p) => {
+        // Kept even when the pane closed while it read.
+        catalogs.set(key, p);
+        if (live) setPalettes(p);
+      })
       .catch((e) => live && setError(message(e)));
     return () => {
       live = false;
     };
-  }, [game, art]);
-  return { palettes, error };
+  }, [key]);
+  return { palettes: palettes ?? [], loading: !palettes && !error, error };
 }
 
 /** The ids Randomize all and Reset all may change: every palette this
@@ -172,7 +185,7 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
 }
 
 /** The palettes by group, and the preview beside them. */
-function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
+function Palettes({ palettes, loading, error }: ReturnType<typeof useCatalog>) {
   const [colors] = useConfig.usePath("config.colors");
   const [art] = useConfig.usePath("config.game_assets");
   const [game] = useConfig.usePath("config.game");
@@ -232,7 +245,7 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
               saved={saved(current)}
               note={
                 colors[current.id] === "random"
-                  ? "Random: drawn when the seed is built. Shown in vanilla"
+                  ? "Random: drawn at build, shown in vanilla"
                   : undefined
               }
             />
@@ -248,6 +261,12 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
   );
 
   if (error) return <p className="text-danger text-sm">{error}</p>;
+  if (loading)
+    return (
+      <div className="relative h-48">
+        <Loading label="Reading the palettes from the game" />
+      </div>
+    );
   return (
     <FolderTabs
       label="Palette groups"
@@ -338,11 +357,11 @@ function PaletteRow({
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Segmented
-          options={modes(palette)}
+          options={MODES}
           value={mode}
           onValueChange={setMode}
           disabled={off}
-          aria-label={`${palette.label}: ${vanillaLabel(palette).toLowerCase()}, random or a color`}
+          aria-label={`${palette.label}: vanilla, random or a color`}
         />
         {mode === "random" ? (
           <span className="text-ink-muted text-xs">Drawn at build</span>

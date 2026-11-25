@@ -42,11 +42,6 @@ export const withSlot = (picked: Picked, slot: number, hex: string): Picked =>
         split: (picked.split ?? []).map((s, i) => (i === slot - 1 ? hex : s)),
       };
 
-/** The first option of a palette's switch: vanilla, or the palette it
- * moves with while left alone. */
-export const vanillaLabel = (palette: PaletteView) =>
-  palette.follows ? `With ${palette.follows}` : "Vanilla";
-
 /** Sets palette `id` to `pick`. Vanilla leaves the draft, as it's what an
  * unnamed palette is. */
 export const setPick =

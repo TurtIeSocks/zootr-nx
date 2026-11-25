@@ -15,6 +15,7 @@ import { useSeeds } from "@/stores/seeds";
 const setConfig = vi.fn((_c: FullConfig) =>
   Promise.resolve({ status: "ok", data: [] }),
 );
+const readCatalog = vi.fn(async () => ({ status: "ok", data: CATALOG }));
 
 const palette = (
   id: string,
@@ -27,7 +28,6 @@ const palette = (
   group,
   vanilla: ["#40522b"],
   names: [],
-  follows: null,
   sheets: 2,
   views: [],
   problem,
@@ -44,7 +44,6 @@ const CATALOG = [
     vanilla: ["#bc7224", "#aa6e2e"],
     names: ["Hair", "Shade"],
   },
-  { ...palette("brows", "Eyebrows", "link"), follows: "Hair" },
   palette("goron-tunic", "Goron Tunic", "link", "the dump's color differs"),
   palette("bow", "Fairy Bow", "gear"),
   {
@@ -56,7 +55,7 @@ const CATALOG = [
 
 vi.mock("@/bindings", () => ({
   commands: {
-    colorsCatalog: async () => ({ status: "ok", data: CATALOG }),
+    colorsCatalog: () => readCatalog(),
     colorsDraw: async (ids: string[]) => ({
       status: "ok",
       data: Object.fromEntries(ids.map((id) => [id, "#123456"])),
@@ -132,7 +131,7 @@ test("Reset All leaves a locked palette and one this dump can't paint", async ()
   );
 });
 
-test("Randomize All sets each unlocked palette to Random, followers too", async () => {
+test("Randomize All sets each unlocked palette to Random", async () => {
   show(full({ color_locks: ["bow"] }));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }));
@@ -141,7 +140,6 @@ test("Randomize All sets each unlocked palette to Random, followers too", async 
       "kokiri-tunic": "random",
       leather: "random",
       hair: "random",
-      brows: "random",
       hearts: "random",
     }),
   );
@@ -188,7 +186,6 @@ test("a palette with a model gets a Model tab, one without keeps its texture", a
 test("Split gives each slot a picker, starting where the slots followed", async () => {
   show(full({ colors: { hair: { hex: "#3050d0" } } }));
   await screen.findByText("Kokiri Tunic");
-  expect(within("Eyebrows").textContent).toContain("With Hair");
   press("Hair", "Split");
   await waitFor(() =>
     expect(saved()?.colors).toEqual({
@@ -205,4 +202,18 @@ test("Split off goes back to one color", async () => {
   await waitFor(() =>
     expect(saved()?.colors).toEqual({ hair: { hex: "#3050d0", split: [] } }),
   );
+});
+
+test("the palettes read once, with a spinner, and open at once after", async () => {
+  const config = full({ game: "/fake/once" });
+  readCatalog.mockClear();
+  show(config);
+  expect(
+    screen.getByRole("status", { name: "Reading the palettes from the game" }),
+  ).toBeTruthy();
+  await screen.findByText("Kokiri Tunic");
+  cleanup();
+  show(config);
+  expect(screen.getByText("Kokiri Tunic")).toBeTruthy();
+  expect(readCatalog).toHaveBeenCalledTimes(1);
 });

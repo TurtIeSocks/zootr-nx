@@ -174,21 +174,20 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
     Ok(())
 }
 
-/// The palette `id` moves with while it isn't picked, if any.
+/// The palette `id` always moves with, if any. A follower isn't offered
+/// to pick: the brows go with the hair.
 pub fn leader(id: &str) -> Option<&'static Palette> {
     let (_, leader) = catalog::FOLLOWS.iter().find(|(f, _)| *f == id)?;
     palette(leader).ok()
 }
 
-/// `colors` with each palette that follows another, and isn't picked
-/// itself, moved as its leader moved: the brows with the hair.
+/// `colors` with each palette that follows another moved as its leader
+/// moved, whatever it held: the brows with the hair, or vanilla with it.
 fn with_followers(colors: &Colors) -> Result<Colors> {
     let mut out = colors.clone();
     for &(follower, leader) in catalog::FOLLOWS {
-        let Some(picked) = colors
-            .get(leader)
-            .filter(|_| !colors.contains_key(follower))
-        else {
+        out.remove(follower);
+        let Some(picked) = colors.get(leader) else {
             continue;
         };
         let (leader, follower_palette) = (palette(leader)?, palette(follower)?);
@@ -622,7 +621,7 @@ mod tests {
     }
 
     #[test]
-    fn the_brows_follow_the_hair_unless_picked() {
+    fn the_brows_always_follow_the_hair() {
         let hair = Picked::of([40, 60, 200]);
         let colors: Colors = [("hair".to_owned(), hair.clone())].into();
         let brows = with_followers(&colors).unwrap()["brows"].slots(palette("brows").unwrap());
@@ -635,14 +634,12 @@ mod tests {
             (brows_turn - hair_turn).abs() < 0.02,
             "{brows_turn} against {hair_turn}"
         );
+        // A pick of their own, from an older config, gives way to the hair.
         let own = Picked::of([200, 20, 20]);
         let both: Colors = [("hair".to_owned(), hair), ("brows".to_owned(), own.clone())].into();
-        assert_eq!(with_followers(&both).unwrap()["brows"], own);
-        assert!(
-            !with_followers(&Colors::new())
-                .unwrap()
-                .contains_key("brows")
-        );
+        assert_ne!(with_followers(&both).unwrap()["brows"], own);
+        let alone: Colors = [("brows".to_owned(), own)].into();
+        assert!(!with_followers(&alone).unwrap().contains_key("brows"));
     }
 
     #[test]
@@ -695,7 +692,8 @@ mod tests {
                         if vanilla != [1.0; 3] {
                             assert_ne!(got[..3], vanilla, "{} {model} {material}", palette.id);
                         }
-                        if i == 0 {
+                        // A follower (the brows) takes its leader's turn, not pink.
+                        if i == 0 && leader(palette.id).is_none() {
                             let got = oklch::from_linear([got[0], got[1], got[2]]);
                             let near = (paint::hsv(got).0 - paint::hsv(pink).0).abs();
                             assert!(near < 0.03, "{} {material} is {got:?}", palette.id);

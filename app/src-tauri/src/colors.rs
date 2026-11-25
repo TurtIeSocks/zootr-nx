@@ -36,8 +36,6 @@ pub struct PaletteView {
     vanilla: Vec<String>,
     /// Each slot's name, when it has more than one: what Split shows.
     names: Vec<String>,
-    /// The palette it moves with while left vanilla, by label.
-    follows: Option<String>,
     /// How many pictures it previews on: its textures, then a lit sphere
     /// for each material whose colors it writes.
     sheets: u32,
@@ -172,7 +170,6 @@ pub async fn colors_catalog(app: AppHandle) -> Res<Vec<PaletteView>> {
             group: p.group,
             vanilla: p.vanilla.iter().map(|&c| colors::hex(c)).collect(),
             names: p.names.iter().map(|&n| n.to_owned()).collect(),
-            follows: colors::leader(p.id).map(|l| l.label.to_owned()),
             sheets: sheets(p).len() as u32,
             views: colors::model::labels(p.id)
                 .into_iter()
@@ -183,7 +180,9 @@ pub async fn colors_catalog(app: AppHandle) -> Res<Vec<PaletteView>> {
                 checked.err().map(|e| format!("{e:#}"))
             }),
         };
-        Ok(PALETTES.iter().map(view).collect())
+        // A palette that follows another (the brows) isn't picked on its own.
+        let own = PALETTES.iter().filter(|p| colors::leader(p.id).is_none());
+        Ok(own.map(view).collect())
     })
     .await
 }
