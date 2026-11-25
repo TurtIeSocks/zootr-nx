@@ -61,6 +61,7 @@ pub const GERUDO_VALLEY_0000: &Name = &n!(0x8917ba151e72b519);
 pub const GERUDO_VALLEY_0010: &Name = &n!(0x8914b4151e707510);
 pub const GERUDO_VALLEY_0020: &Name = &n!(0x891ec6151e78e82b);
 pub const GORON_0000: &Name = &n!(0x001d65ec7e6f715d);
+pub const GORON_0010: &Name = &n!(0x0019dfec7e6c57d4);
 pub const GORON_0020: &Name = &n!(0x002451ec7e756e0f);
 pub const GORON_0025: &Name = &n!(0x00244cec7e756590);
 pub const GORON_0028: &Name = &n!(0x002459ec7e757ba7);
