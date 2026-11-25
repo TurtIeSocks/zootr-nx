@@ -223,7 +223,7 @@
       "forbid": [],
       "hash": "161402875664343852",
       "id": 1087,
-      "name": "Gerudo Valley East Rock 5",
+      "name": "GV Near Small Bridge Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -479,7 +479,7 @@
       "forbid": [],
       "hash": "239101719535991464",
       "id": 1090,
-      "name": "Gerudo Valley Southwest Rock 2",
+      "name": "GV Near Bridge Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1522,7 +1522,7 @@
       "forbid": [],
       "hash": "946934829814115422",
       "id": 528,
-      "name": "Gerudo Valley Northwest Pot 6",
+      "name": "GV Storms Grotto Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4930,7 +4930,7 @@
       "forbid": [],
       "hash": "2810966902921961370",
       "id": 1110,
-      "name": "Gerudo Valley Northwest Rock 4",
+      "name": "GV Near Tent Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5778,7 +5778,7 @@
       "forbid": [],
       "hash": "3407692112799570510",
       "id": 613,
-      "name": "Gerudo Valley Northwest Pot 3",
+      "name": "GV Storms Grotto Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6514,7 +6514,7 @@
       "forbid": [],
       "hash": "3887186300719322791",
       "id": 1119,
-      "name": "Gerudo Valley East Rock 1",
+      "name": "GV Near Small Bridge Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7962,7 +7962,7 @@
       "forbid": [],
       "hash": "4664881360046400269",
       "id": 1127,
-      "name": "Gerudo Valley Southwest Rock 1",
+      "name": "GV Near Bridge Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10055,7 +10055,7 @@
       "forbid": [],
       "hash": "5968807343188866308",
       "id": 1141,
-      "name": "Gerudo Valley Northwest Rock 2",
+      "name": "GV Near Tent Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10370,7 +10370,7 @@
       "forbid": [],
       "hash": "6205043616869463865",
       "id": 43,
-      "name": "Gerudo Valley Northwest Red Rupee (20) Chest 2",
+      "name": "GV Storms Grotto Child Invisible Chest",
       "unprovable": false
     },
     {
@@ -10838,7 +10838,7 @@
       "forbid": [],
       "hash": "6463521162691873710",
       "id": 137,
-      "name": "Gerudo Valley Southeast Business Scrub Seed Chest",
+      "name": "GV Octorok Grotto Chest",
       "unprovable": false
     },
     {
@@ -11031,7 +11031,7 @@
       "forbid": [],
       "hash": "6693656883402690485",
       "id": 1148,
-      "name": "Gerudo Valley East Rock 4",
+      "name": "GV Near Small Bridge Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -11349,7 +11349,7 @@
       "forbid": [],
       "hash": "6896071498853277403",
       "id": 720,
-      "name": "Gerudo Valley Northwest Pot 1",
+      "name": "GV Storms Grotto Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11554,7 +11554,7 @@
       "forbid": [],
       "hash": "7003280842759835681",
       "id": 215,
-      "name": "Gerudo Valley Carpenter Boss: Poacher's Saw",
+      "name": "GV Trade Saw",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -13539,7 +13539,7 @@
       "forbid": [],
       "hash": "8326970197618554626",
       "id": 344,
-      "name": "Gerudo Valley West Gold Skulltula Token 1",
+      "name": "GV GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -13776,7 +13776,7 @@
       "forbid": [],
       "hash": "8621559146002641352",
       "id": 1161,
-      "name": "Gerudo Valley Northwest Rock 6",
+      "name": "GV Near Tent Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15178,7 +15178,7 @@
       "forbid": [],
       "hash": "9231973890535833762",
       "id": 790,
-      "name": "Gerudo Valley Northwest Pot 2",
+      "name": "GV Storms Grotto Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16194,7 +16194,7 @@
       "forbid": [],
       "hash": "9796879244811108931",
       "id": 307,
-      "name": "Gerudo Valley Cow",
+      "name": "GV Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -16851,7 +16851,7 @@
       "forbid": [],
       "hash": "10113245881984180973",
       "id": 1175,
-      "name": "Gerudo Valley Northwest Rock 5",
+      "name": "GV Near Tent Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17993,7 +17993,7 @@
       "forbid": [],
       "hash": "10851977283896645114",
       "id": 844,
-      "name": "Gerudo Valley Northwest Pot 7",
+      "name": "GV Storms Grotto Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18684,7 +18684,7 @@
       "forbid": [],
       "hash": "11208975108919442439",
       "id": 1184,
-      "name": "Gerudo Valley East Rock 2",
+      "name": "GV Near Small Bridge Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19226,7 +19226,7 @@
       "forbid": [],
       "hash": "11535915511003753934",
       "id": 368,
-      "name": "Gerudo Valley West Gold Skulltula Token 2",
+      "name": "GV GS Pillar",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19329,7 +19329,7 @@
       "forbid": [],
       "hash": "11582029116926037889",
       "id": 132,
-      "name": "Gerudo Valley Running Man's Race",
+      "name": "GV Running Man Race",
       "unprovable": false,
       "when": {
         "setting": "running-race"
@@ -19931,7 +19931,7 @@
       "forbid": [],
       "hash": "11999890871333516817",
       "id": 1190,
-      "name": "Gerudo Valley East Rock 3",
+      "name": "GV Near Small Bridge Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21491,7 +21491,7 @@
       "forbid": [],
       "hash": "12925874919748100001",
       "id": 1200,
-      "name": "Gerudo Valley Northwest Rock 1",
+      "name": "GV Near Tent Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21921,7 +21921,7 @@
       "forbid": [],
       "hash": "13179280208744162657",
       "id": 896,
-      "name": "Gerudo Valley Northwest Pot 4",
+      "name": "GV Storms Grotto Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22546,7 +22546,7 @@
       "forbid": [],
       "hash": "13584527502619061465",
       "id": 377,
-      "name": "Gerudo Valley Northwest Gold Skulltula Token",
+      "name": "GV GS Behind Tent",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -22658,7 +22658,7 @@
       "forbid": [],
       "hash": "13612880783193811229",
       "id": 98,
-      "name": "Gerudo Valley Southwest Red Rupee (20) Chest",
+      "name": "GV Chest",
       "unprovable": false
     },
     {
@@ -22673,7 +22673,7 @@
       "forbid": [],
       "hash": "13616202327675692596",
       "id": 1208,
-      "name": "Gerudo Valley Northwest Rock 3",
+      "name": "GV Near Tent Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23394,7 +23394,7 @@
       "forbid": [],
       "hash": "14087790011470090944",
       "id": 1214,
-      "name": "Gerudo Valley East Rock 6",
+      "name": "GV Near Small Bridge Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24421,7 +24421,7 @@
       "forbid": [],
       "hash": "14928885472468269852",
       "id": 946,
-      "name": "Gerudo Valley Northwest Pot 8",
+      "name": "GV Storms Grotto Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24976,7 +24976,7 @@
       "forbid": [],
       "hash": "15265071047503310220",
       "id": 390,
-      "name": "Gerudo Valley East Gold Skulltula Token",
+      "name": "GV GS Small Bridge",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25137,7 +25137,7 @@
       "forbid": [],
       "hash": "15334540056586068351",
       "id": 955,
-      "name": "Gerudo Valley Northwest Pot 5",
+      "name": "GV Storms Grotto Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25722,7 +25722,7 @@
       "forbid": [],
       "hash": "15856256242099990922",
       "id": 110,
-      "name": "Gerudo Valley South Piece of Heart Chest",
+      "name": "GV Cucco Ledge Chest",
       "unprovable": false
     },
     {
@@ -26199,7 +26199,7 @@
       "forbid": [],
       "hash": "16129198288828948135",
       "id": 300,
-      "name": "Gerudo Valley Piece of Heart",
+      "name": "GV Waterfall Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -28974,7 +28974,7 @@
       "forbid": [],
       "hash": "17750686910716887133",
       "id": 128,
-      "name": "Gerudo Valley Northwest Green Rupee (1) Chest",
+      "name": "GV Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -29983,7 +29983,7 @@
       "forbid": [],
       "hash": "18413589940135955604",
       "id": 131,
-      "name": "Gerudo Valley Northwest Red Rupee (20) Chest 1",
+      "name": "GV Storms Grotto Adult Invisible Chest",
       "unprovable": false
     },
     {
