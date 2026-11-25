@@ -1665,7 +1665,7 @@
       "forbid": [],
       "hash": "1029712040059298120",
       "id": 9,
-      "name": "Ganon's Castle Lower Blue Rupee (5) Chest 3",
+      "name": "Ganons Castle Light Trial Third Left Chest",
       "unprovable": false
     },
     {
@@ -1718,7 +1718,7 @@
       "forbid": [],
       "hash": "1055635021226486472",
       "id": 532,
-      "name": "Ganon's Castle Upper Pot 16",
+      "name": "Ganons Castle Tower Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2043,7 +2043,7 @@
       "forbid": [],
       "hash": "1185671408211081309",
       "id": 535,
-      "name": "Ganon's Castle Upper Pot 4",
+      "name": "Ganons Castle Tower Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2237,7 +2237,7 @@
       "forbid": [],
       "hash": "1233314011453258338",
       "id": 538,
-      "name": "Ganon's Castle Upper Pot 20",
+      "name": "Ganons Castle Tower Boss Rush Pot 9",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2273,7 +2273,7 @@
       "forbid": [],
       "hash": "1256062463004045470",
       "id": 540,
-      "name": "Ganon's Castle Upper Pot 13",
+      "name": "Ganons Castle Tower Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2327,7 +2327,7 @@
       "forbid": [],
       "hash": "1281722240804523266",
       "id": 543,
-      "name": "Ganon's Castle Pot 10",
+      "name": "Ganons Castle Shadow Trial Like Like Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2836,7 +2836,7 @@
       "forbid": [],
       "hash": "1589383710068100920",
       "id": 557,
-      "name": "Ganon's Castle Pot 12",
+      "name": "Ganons Castle Shadow Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3330,7 +3330,7 @@
       "forbid": [],
       "hash": "1859372618147755286",
       "id": 562,
-      "name": "Ganon's Castle Upper Pot 22",
+      "name": "Ganons Castle Tower Boss Rush Pot 11",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4404,7 +4404,7 @@
       "forbid": [],
       "hash": "2505435043252537724",
       "id": 579,
-      "name": "Ganon's Castle Upper Pot 3",
+      "name": "Ganons Castle Tower Boss Rush Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4912,7 +4912,7 @@
       "forbid": [],
       "hash": "2803630097105565514",
       "id": 590,
-      "name": "Ganon's Castle Lower Pot 11",
+      "name": "Ganons Castle Light Trial Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5078,7 +5078,7 @@
       "forbid": [],
       "hash": "2912772990973191296",
       "id": 593,
-      "name": "Ganon's Castle Upper Pot 15",
+      "name": "Ganons Castle Tower Boss Rush Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5436,7 +5436,7 @@
       "forbid": [],
       "hash": "3176226373531822041",
       "id": 605,
-      "name": "Ganon's Castle Pot 9",
+      "name": "Ganons Castle Shadow Trial Like Like Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5506,7 +5506,7 @@
       "forbid": [],
       "hash": "3224502012561623799",
       "id": 607,
-      "name": "Ganon's Castle Lower Pot 1",
+      "name": "Ganons Castle Entrance Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7944,7 +7944,7 @@
       "forbid": [],
       "hash": "4656702765770784238",
       "id": 652,
-      "name": "Ganon's Castle Pot 2",
+      "name": "Ganons Castle Barrier Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8087,7 +8087,7 @@
       "forbid": [],
       "hash": "4733634471038136588",
       "id": 35,
-      "name": "Ganon's Castle Lower Green Rupee (1) Chest",
+      "name": "Ganons Castle Light Trial Lullaby Chest",
       "unprovable": false
     },
     {
@@ -8391,7 +8391,7 @@
       "forbid": [],
       "hash": "4938893066313137022",
       "id": 656,
-      "name": "Ganon's Castle Upper Pot 14",
+      "name": "Ganons Castle Tower Boss Rush Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8575,7 +8575,7 @@
       "forbid": [],
       "hash": "5049143857891510188",
       "id": 660,
-      "name": "Ganon's Castle Lower Pot 8",
+      "name": "Ganons Castle Light Trial Boulder Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8767,7 +8767,7 @@
       "forbid": [],
       "hash": "5141569671064688651",
       "id": 668,
-      "name": "Ganon's Castle Upper Pot 24",
+      "name": "Ganons Castle Tower Pot 12",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10127,7 +10127,7 @@
       "forbid": [],
       "hash": "6010734382728304229",
       "id": 695,
-      "name": "Ganon's Castle Upper Pot 9",
+      "name": "Ganons Castle Tower Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10563,7 +10563,7 @@
       "forbid": [],
       "hash": "6305081860636977403",
       "id": 705,
-      "name": "Ganon's Castle Lower Pot 9",
+      "name": "Ganons Castle Light Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11474,7 +11474,7 @@
       "forbid": [],
       "hash": "6946222676302551361",
       "id": 722,
-      "name": "Ganon's Castle Pot 16",
+      "name": "Ganons Castle Spirit Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11635,7 +11635,7 @@
       "forbid": [],
       "hash": "7047512893980601783",
       "id": 727,
-      "name": "Ganon's Castle Upper Pot 1",
+      "name": "Ganons Castle Tower Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12161,7 +12161,7 @@
       "forbid": [],
       "hash": "7330407673084744120",
       "id": 741,
-      "name": "Ganon's Castle Upper Pot 8",
+      "name": "Ganons Castle Tower Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12469,7 +12469,7 @@
       "forbid": [],
       "hash": "7461796063704896255",
       "id": 51,
-      "name": "Ganon's Castle Lower Blue Rupee (5) Chest 2",
+      "name": "Ganons Castle Light Trial Second Right Chest",
       "unprovable": false
     },
     {
@@ -12935,7 +12935,7 @@
       "forbid": [],
       "hash": "7899179288432849355",
       "id": 138,
-      "name": "Ganon's Castle Business Scrub Seed Chest",
+      "name": "Ganons Castle Spirit Trial Crystal Switch Chest",
       "unprovable": false
     },
     {
@@ -13214,7 +13214,7 @@
       "forbid": [],
       "hash": "8069783618440617703",
       "id": 759,
-      "name": "Ganon's Castle Upper Pot 19",
+      "name": "Ganons Castle Tower Pot 9",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14303,7 +14303,7 @@
       "forbid": [],
       "hash": "8906715134377445150",
       "id": 775,
-      "name": "Ganon's Castle Lower Pot 2",
+      "name": "Ganons Castle Entrance Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15124,7 +15124,7 @@
       "forbid": [],
       "hash": "9187095075410950305",
       "id": 789,
-      "name": "Ganon's Castle Lower Pot 5",
+      "name": "Ganons Castle Water Trial Block Room Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15869,7 +15869,7 @@
       "forbid": [],
       "hash": "9619715366192254862",
       "id": 802,
-      "name": "Ganon's Castle Pot 4",
+      "name": "Ganons Castle Barrier Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16752,7 +16752,7 @@
       "forbid": [],
       "hash": "10063112203762670352",
       "id": 818,
-      "name": "Ganon's Castle Upper Pot 6",
+      "name": "Ganons Castle Tower Boss Rush Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16833,7 +16833,7 @@
       "forbid": [],
       "hash": "10109473840124398829",
       "id": 819,
-      "name": "Ganon's Castle Upper Pot 10",
+      "name": "Ganons Castle Tower Boss Rush Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17004,7 +17004,7 @@
       "forbid": [],
       "hash": "10177407372807102311",
       "id": 823,
-      "name": "Ganon's Castle Pot 1",
+      "name": "Ganons Castle Barrier Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17139,7 +17139,7 @@
       "forbid": [],
       "hash": "10254414568728732748",
       "id": 828,
-      "name": "Ganon's Castle Upper Pot 18",
+      "name": "Ganons Castle Tower Boss Rush Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17632,7 +17632,7 @@
       "forbid": [],
       "hash": "10523991816115269598",
       "id": 837,
-      "name": "Ganon's Castle Upper Pot 12",
+      "name": "Ganons Castle Tower Boss Rush Pot 10",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18029,7 +18029,7 @@
       "forbid": [],
       "hash": "10882124901681441302",
       "id": 846,
-      "name": "Ganon's Castle Pot 11",
+      "name": "Ganons Castle Shadow Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19758,7 +19758,7 @@
       "forbid": [],
       "hash": "11807736569286227819",
       "id": 863,
-      "name": "Ganon's Castle Pot 7",
+      "name": "Ganons Castle Shadow Trial Like Like Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19973,7 +19973,7 @@
       "forbid": [],
       "hash": "12010740629239674066",
       "id": 867,
-      "name": "Ganon's Castle Upper Pot 5",
+      "name": "Ganons Castle Tower Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20864,7 +20864,7 @@
       "forbid": [],
       "hash": "12505442962093959743",
       "id": 883,
-      "name": "Ganon's Castle Pot 13",
+      "name": "Ganons Castle Fire Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21020,7 +21020,7 @@
       "forbid": [],
       "hash": "12580230096078651207",
       "id": 886,
-      "name": "Ganon's Castle Lower Pot 10",
+      "name": "Ganons Castle Light Trial Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21887,7 +21887,7 @@
       "forbid": [],
       "hash": "13127045022912948619",
       "id": 895,
-      "name": "Ganon's Castle Pot 15",
+      "name": "Ganons Castle Spirit Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22838,7 +22838,7 @@
       "forbid": [],
       "hash": "13727300571360846696",
       "id": 916,
-      "name": "Ganon's Castle Pot 3",
+      "name": "Ganons Castle Barrier Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23340,7 +23340,7 @@
       "forbid": [],
       "hash": "14046623154429024571",
       "id": 101,
-      "name": "Ganon's Castle Lower Blue Rupee (5) Chest 1",
+      "name": "Ganons Castle Light Trial First Left Chest",
       "unprovable": false
     },
     {
@@ -23483,7 +23483,7 @@
       "forbid": [],
       "hash": "14131308900302015809",
       "id": 925,
-      "name": "Ganon's Castle Pot 6",
+      "name": "Ganons Castle Forest Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23742,7 +23742,7 @@
       "forbid": [],
       "hash": "14404733996390762670",
       "id": 102,
-      "name": "Ganon's Castle Lower Bombchus (5) Chest",
+      "name": "Ganons Castle Water Trial Right Chest",
       "unprovable": false
     },
     {
@@ -23773,7 +23773,7 @@
       "forbid": [],
       "hash": "14427616187459203223",
       "id": 935,
-      "name": "Ganon's Castle Lower Pot 7",
+      "name": "Ganons Castle Water Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23934,7 +23934,7 @@
       "forbid": [],
       "hash": "14558485053640356159",
       "id": 939,
-      "name": "Ganon's Castle Lower Pot 6",
+      "name": "Ganons Castle Water Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24496,7 +24496,7 @@
       "forbid": [],
       "hash": "14939864650084270773",
       "id": 947,
-      "name": "Ganon's Castle Lower Pot 3",
+      "name": "Ganons Castle Entrance Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24554,7 +24554,7 @@
       "forbid": [],
       "hash": "14962432460641118089",
       "id": 106,
-      "name": "Ganon's Castle Lower Red Rupee (20) Chest",
+      "name": "Ganons Castle Light Trial Invisible Enemies Chest",
       "unprovable": false
     },
     {
@@ -24749,7 +24749,7 @@
       "forbid": [],
       "hash": "15112722761056963440",
       "id": 950,
-      "name": "Ganon's Castle Lower Pot 4",
+      "name": "Ganons Castle Entrance Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25087,7 +25087,7 @@
       "forbid": [],
       "hash": "15320975652699461295",
       "id": 483,
-      "name": "Ganon's Castle Lower Small Key Chest",
+      "name": "Ganons Castle Light Trial Invisible Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -25544,7 +25544,7 @@
       "forbid": [],
       "hash": "15694138656577583423",
       "id": 962,
-      "name": "Ganon's Castle Pot 8",
+      "name": "Ganons Castle Shadow Trial Like Like Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26309,7 +26309,7 @@
       "forbid": [],
       "hash": "16197187735932467308",
       "id": 980,
-      "name": "Ganon's Castle Pot 5",
+      "name": "Ganons Castle Forest Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26716,7 +26716,7 @@
       "forbid": [],
       "hash": "16388263394523613039",
       "id": 991,
-      "name": "Ganon's Castle Upper Pot 21",
+      "name": "Ganons Castle Tower Pot 11",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26816,7 +26816,7 @@
       "forbid": [],
       "hash": "16440289444950368085",
       "id": 993,
-      "name": "Ganon's Castle Lower Pot 12",
+      "name": "Ganons Castle Light Trial Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27366,7 +27366,7 @@
       "forbid": [],
       "hash": "16888833971533850732",
       "id": 1001,
-      "name": "Ganon's Castle Upper Pot 23",
+      "name": "Ganons Castle Tower Boss Rush Pot 12",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27448,7 +27448,7 @@
       "forbid": [],
       "hash": "16913531450403950487",
       "id": 122,
-      "name": "Ganon's Castle Arrows (5) Chest 1",
+      "name": "Ganons Castle Forest Trial Chest",
       "unprovable": false
     },
     {
@@ -27677,7 +27677,7 @@
       "forbid": [],
       "hash": "17027579458987042843",
       "id": 1005,
-      "name": "Ganon's Castle Upper Pot 17",
+      "name": "Ganons Castle Tower Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27841,7 +27841,7 @@
       "forbid": [],
       "hash": "17092385671602176550",
       "id": 487,
-      "name": "Ganon's Castle Upper Boss Key Chest",
+      "name": "Ganons Castle Tower Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -28825,7 +28825,7 @@
       "forbid": [],
       "hash": "17654863825837636295",
       "id": 1025,
-      "name": "Ganon's Castle Pot 14",
+      "name": "Ganons Castle Fire Trial Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28843,7 +28843,7 @@
       "forbid": [],
       "hash": "17655972204814358216",
       "id": 1026,
-      "name": "Ganon's Castle Upper Pot 2",
+      "name": "Ganons Castle Tower Boss Rush Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28888,7 +28888,7 @@
       "forbid": [],
       "hash": "17657623307936361670",
       "id": 127,
-      "name": "Ganon's Castle Golden Gauntlets Chest",
+      "name": "Ganons Castle Shadow Trial Golden Gauntlets Chest",
       "unprovable": false
     },
     {
@@ -28903,7 +28903,7 @@
       "forbid": [],
       "hash": "17668076197895283103",
       "id": 1027,
-      "name": "Ganon's Castle Upper Pot 7",
+      "name": "Ganons Castle Tower Boss Rush Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29101,7 +29101,7 @@
       "forbid": [],
       "hash": "17841467755509540953",
       "id": 1034,
-      "name": "Ganon's Castle Upper Pot 11",
+      "name": "Ganons Castle Tower Pot 10",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29860,7 +29860,7 @@
       "forbid": [],
       "hash": "18277713685010400796",
       "id": 130,
-      "name": "Ganon's Castle Arrows (5) Chest 2",
+      "name": "Ganons Castle Shadow Trial Front Chest",
       "unprovable": false
     },
     {
