@@ -30,6 +30,10 @@ const LOADING: u32 = 0xef2b_60c2;
 /// Left set by an area whose exit a teleport skips, it hides the
 /// minimap.
 const NO_MINIMAP: u32 = 0x9a4d_d779;
+/// The played flag of the Temple of Time scene adult Link sees on his first
+/// walk in: his map page and minimap stay hidden until it's set
+/// (`docs/research/menus.md`). A dev age change skips that walk.
+const ADULT_MAP: u32 = 0xc1b2_9b0a;
 
 /// The event an entrance asks for to change maps.
 const EVENT: &[u8] = b"Dm_SY_BancChangeGo\0";
@@ -148,6 +152,15 @@ pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
     let set: SetBool = unsafe { func(main, o.set_bool) };
     unsafe { set(gd, value as u32, hash) }
+}
+
+/// Make Link `child` or adult. Adult also marks [`ADULT_MAP`]'s scene
+/// played, so his map shows.
+pub(super) unsafe fn set_child(main: usize, o: &Offsets, gd: usize, child: bool) {
+    unsafe { set_bool(main, o, gd, CHILD, child) };
+    if !child {
+        unsafe { set_bool(main, o, gd, ADULT_MAP, true) };
+    }
 }
 
 /// The system counter and its ticks per second.
@@ -477,10 +490,10 @@ unsafe fn age(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome
     let Some(child) = (unsafe { get_bool(main, o, gd, CHILD) }) else {
         return Outcome::NoAge;
     };
-    unsafe { set_bool(main, o, gd, CHILD, !child) };
+    unsafe { set_child(main, o, gd, !child) };
     let outcome = unsafe { teleport(main, o, mail, actor) };
     if !matches!(outcome, Outcome::Done | Outcome::Unanswered) {
-        unsafe { set_bool(main, o, gd, CHILD, child) };
+        unsafe { set_child(main, o, gd, child) };
     }
     outcome
 }

@@ -139,7 +139,7 @@ fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, 
     steps::dev_branch(romfs, &mut rewrites)?;
     if let Some(spawn) = boot(new_game) {
         let owned = new_game.start.owned();
-        flags.extend(spawn::boot(romfs, &mut rewrites, &spawn, &owned)?);
+        flags.extend(spawn::boot(romfs, all, &mut rewrites, &spawn, &owned)?);
     }
     Ok((rewrites, flags))
 }

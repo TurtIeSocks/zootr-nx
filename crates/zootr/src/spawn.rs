@@ -8,7 +8,9 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::ainb::Patch;
 use ounce_formats::{Actor, EventKind, Flowchart, Params, Romfs, Value};
 
+use crate::arrivals;
 use crate::cutscenes::played_flag;
+use crate::events::Flows;
 use crate::flows::{self, Rewrites};
 use crate::known::{Name, actor, field, flag, flow, map, scene};
 use crate::starting::{self, OPENING};
@@ -212,6 +214,7 @@ fn first_map(romfs: &Romfs, rewrites: &mut Rewrites, map: &str, spot: &str) -> R
 /// Returns the GameData edits it needs.
 pub fn boot(
     romfs: &Romfs,
+    flows: &Flows,
     rewrites: &mut Rewrites,
     spawn: &str,
     owned: &[&str],
@@ -232,10 +235,23 @@ pub fn boot(
     // Child Link first stands in the Temple after a swap, never through its
     // door, so the scene of his first entry would fire on his way out.
     let entered = played_flag(scene::TIME_TEMPLE_0000);
-    Ok(vec![
+    let mut edits = vec![
         format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
         format!("{entered}=true"),
-    ])
+    ];
+    edits.extend(adult_map(flows));
+    Ok(edits)
+}
+
+/// Adult Link's map page and minimap stay hidden until the scene of his
+/// first walk into the Temple has played (`docs/research/menus.md`), and a
+/// start past that walk never plays it. Its played flag, and the visit its
+/// banner marks.
+fn adult_map(flows: &Flows) -> Vec<String> {
+    let scene = scene::TIME_TEMPLE_0065;
+    let mut edits = vec![format!("{}=true", played_flag(scene))];
+    edits.extend(arrivals::visits(flows, [scene.get()]));
+    edits
 }
 
 /// `MAP/SPOT` of [`ADULT_START`].
@@ -253,7 +269,8 @@ mod tests {
     /// A spawn's rewrites and GameData edits, for a start holding `owned`.
     fn booted(romfs: &Romfs, spawn: &str, owned: &[&str]) -> (Rewrites, Vec<String>) {
         let mut rewrites = Rewrites::new();
-        let flags = boot(romfs, &mut rewrites, spawn, owned).unwrap();
+        let flows = Flows::load(romfs).unwrap();
+        let flags = boot(romfs, &flows, &mut rewrites, spawn, owned).unwrap();
         (rewrites, flags)
     }
 
@@ -317,9 +334,12 @@ mod tests {
                 .collect();
             let (rewrites, flags) = booted(&romfs, &adult_start(), &owned);
             let entered = played_flag(scene::TIME_TEMPLE_0000);
+            let map = played_flag(scene::TIME_TEMPLE_0065);
             let edits = [
                 format!("{}=false", flag::SEQUENCE_IS_CHILDHOOD),
                 format!("{entered}=true"),
+                format!("{map}=true"),
+                format!("{}.{}=true", field::IS_VISIT_LOCATION, flag::MARKET),
             ];
             assert_eq!(flags, edits);
             let flow = Flowchart::parse(&rewrites[&flows::rel(OPENING)]);
@@ -373,8 +393,9 @@ mod tests {
         };
         let known = destinations(&romfs).unwrap();
         assert!(known.contains(&adult_start()));
+        let flows = Flows::load(&romfs).unwrap();
         let refused = |spawn: &str| {
-            boot(&romfs, &mut Rewrites::new(), spawn, &[])
+            boot(&romfs, &flows, &mut Rewrites::new(), spawn, &[])
                 .unwrap_err()
                 .to_string()
         };
