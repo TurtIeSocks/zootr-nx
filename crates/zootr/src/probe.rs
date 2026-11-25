@@ -210,8 +210,9 @@ pub enum Probe {
         /// Instead, the call each action and property trigger plays.
         #[arg(long, conflicts_with_all = ["tree", "children"])]
         triggers: bool,
-        /// Each call's kind (asset or container) and its param offset:
-        /// calls that share an offset play the same thing.
+        /// Each call's kind (asset or container), its param offset (calls
+        /// that share one play the same thing) and an asset's names, by
+        /// field bit: `1:` is the stream it plays, `2:` its category.
         #[arg(long, conflicts_with_all = ["tree", "children", "triggers"])]
         params: bool,
     },
@@ -600,8 +601,15 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
                 let names = ounce_formats::xlink_calls(&file, &user)?;
                 for (name, call) in names.iter().zip(&table) {
                     if name.to_lowercase().contains(&grep) {
-                        let kind = if call.container { "container" } else { "asset" };
-                        println!("{name}\t{kind}\t{:#x}", call.param);
+                        let (kind, names) = match call.container {
+                            true => ("container", String::new()),
+                            false => {
+                                let names = ounce_formats::xlink_asset_names(&file, call.param)?;
+                                let names = names.iter().map(|(bit, n)| format!("{bit}:{n}"));
+                                ("asset", names.collect::<Vec<_>>().join(" "))
+                            }
+                        };
+                        println!("{name}\t{kind}\t{:#x}\t{names}", call.param);
                     }
                 }
                 return Ok(());
