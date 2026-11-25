@@ -1,0 +1,52 @@
+# Ice Cavern. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# Only an adult walks in. Past the Freezards, the Spinning Blade Room hub
+# opens the rest: blue fire melts the red ice to the Compass Room and the
+# Block Puzzle, and the stalagmites there are cleared by a blade, the
+# hammer or an explosive.
+
+# Room 3, Spinning Blade Room: the Skulltula is reached once the Freezards in the corridor are dead.
+[[check]]
+hash = 7165255787572043804
+name = "Spinning Blade Room Gold Skulltula"
+needs = "(adult-sword or hammer or explosives or hookshot or fire)"
+setting = "gold-skulltulas"
+
+# Room 5, Map Room: red ice around the chest, melted by the room's own blue fire (playtest), past the Freezards and the silver rupees that need the stalagmites cleared.
+[[check]]
+hash = 11498802739257120175
+name = "Ice Cavern Upper Map Chest"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and (melee or hammer or explosives) and blue-fire"
+
+# Room 6, Compass Room: the Skulltula sits behind red ice, so blue fire after the Freezards.
+[[check]]
+hash = 1612219105489330028
+name = "Compass Room Gold Skulltula"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and blue-fire"
+setting = "gold-skulltulas"
+
+# Room 6, Compass Room: behind red ice and a stalagmite, so blue fire and a way to clear it after the Freezards.
+[[check]]
+hash = 13542013937093159888
+name = "Ice Cavern Compass Chest"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and blue-fire and (melee or hammer or explosives)"
+
+# Room 8, Block Puzzle: the chest rides a block that only the Song of Time raises (playtest), past the red ice and the stalagmites.
+[[check]]
+hash = 4128092231168513176
+name = "Ice Cavern Red Rupee (20) Chest"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and blue-fire and (melee or hammer or explosives) and song-of-time"
+
+# Room 8, Block Puzzle: the Skulltula is in the room itself, so the red ice and the stalagmites, then the Hookshot hit.
+[[check]]
+hash = 14822647495538506998
+name = "Block Puzzle Gold Skulltula"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and blue-fire and (melee or hammer or explosives)"
+setting = "gold-skulltulas"
+
+# Room 10, Iron Boots Room: past the block puzzle and its red ice barricade, and the chest appears once the White Wolfos dies, which anything but the Boomerang and Hookshot manages (playtest).
+[[check]]
+hash = 6859289214373847284
+name = "Ice Cavern Iron Boots Chest"
+needs = "(adult-sword or hammer or explosives or hookshot or fire) and blue-fire and (melee or hammer or explosives) and (melee or hammer or slingshot or bow or explosives or dins-fire)"

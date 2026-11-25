@@ -1,0 +1,133 @@
+# Gerudo Training Ground. Rules from Ship's routes for the original game, on
+# the playtest list (Ship-first rules, 2026-11-24).
+#
+# Only an adult walks in. Small keys are counted apart, so a chest behind
+# nothing but locked doors needs nothing here. The Sand Room's Stalfos must
+# fall before the Boulder Room, and the Hookshot then opens the slope to the
+# Heavy Block Room.
+
+# Room 0, Entrance: the lobby chest opens when an arrow or a seed hits the eye switch.
+[[check]]
+hash = 2436665354602612279
+name = "Gerudo Training Ground Blue Rupee (5) Chest"
+needs = "bow or slingshot"
+
+# Room 1, Stalfos Room: the chest appears once the two Stalfos in the sand room are dead, which takes a blade, the hammer, a Bombchu or the Bow.
+[[check]]
+hash = 13501407288943710656
+name = "Gerudo Training Ground Small Key Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow)"
+
+# Room 3, Wolfos Room: past the Stalfos and the Hookshot slope, and the chest appears once the Wolfos pack is dead. (guess: the chest before the heavy block)
+[[check]]
+hash = 4519534997122863169
+name = "Gerudo Training Ground Blue Rupee (5) Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and (melee or hammer or bow or slingshot or explosives or dins-fire)"
+
+# Room 4, Statue Room: the chest appears once the eye statue is shot. The Bow does that from the statue's lower floor, reached over the Hookshot slope and the Lens of Truth platform, or through the hammer room. (guess: the eye statue chest)
+[[check]]
+hash = 11563468890171962383
+name = "Gerudo Training Ground Small Key Chest"
+needs = "hookshot and bow and (lens or hammer)"
+
+# Room 5, Hammer Room: the switch that opens the chest takes a hammer blow, and the room is reached with the Hookshot across the lava room's ledge. (guess: the hammer room switch chest)
+[[check]]
+hash = 4372363658229299619
+name = "Gerudo Training Ground Small Key Chest"
+needs = "hookshot and hammer"
+
+# Room 7, Dinolfos Room: a cow bone decoration high in the room that Ship does not list. (guess: it lies in the room behind the Beamos and Dinolfos, so their kill)
+[[check]]
+hash = 3373427369268924584
+name = "Gerudo Cow Bone Decoration B 01"
+needs = "explosives and (melee or hammer or bow or slingshot)"
+
+# Room 7, Dinolfos Room: the chest appears once the Beamos is blown up and the Dinolfos pair is dead.
+[[check]]
+hash = 4709724720801091788
+name = "Gerudo Training Ground Small Key Chest"
+needs = "explosives and (melee or hammer or bow or slingshot)"
+
+# Room 8, Central Maze: a chest on the right side of the maze, behind locked doors only. (guess: the right central chest)
+[[check]]
+hash = 196331300747102419
+name = "Gerudo Training Ground Bombchus (5) Chest"
+needs = "always"
+
+# Room 8, Central Maze: the key lies on the right side of the maze, behind locked doors only. (guess: the free-standing key)
+[[check]]
+hash = 1883068192328530224
+name = "Gerudo Training Ground Small Key Chest"
+needs = "always"
+
+# Room 8, Central Maze: the large chest at the end of the maze path, behind locked doors only.
+[[check]]
+hash = 1941083939696166170
+name = "Gerudo Training Ground Ice Arrows Chest"
+needs = "always"
+
+# Room 8, Central Maze: a chest high above the maze. (guess: the hidden ceiling chest needs the Lens of Truth, the one by the scarecrow needs the Bow shot at the eye statue and the Hookshot up through the Lens of Truth platform, so both, to be safe)
+[[check]]
+hash = 4320448574091221496
+name = "Gerudo Training Ground Small Key Chest"
+needs = "lens and hookshot and bow"
+
+# Room 8, Central Maze: a chest on the maze path behind locked doors only. (guess: the second path chest)
+[[check]]
+hash = 8186301369655588602
+name = "Gerudo Training Ground Red Rupee (20) Chest"
+needs = "always"
+
+# Room 8, Central Maze: a chest high above the maze. (guess: the hidden ceiling chest needs the Lens of Truth, the one by the scarecrow needs the Bow shot at the eye statue and the Hookshot up through the Lens of Truth platform, so both, to be safe)
+[[check]]
+hash = 9911316961118170383
+name = "Gerudo Training Ground Small Key Chest"
+needs = "lens and hookshot and bow"
+
+# Room 8, Central Maze: a chest on the maze path behind locked doors only. (guess: the first path chest)
+[[check]]
+hash = 10696620323243142689
+name = "Gerudo Training Ground Purple Rupee (50) Chest"
+needs = "always"
+
+# Room 8, Central Maze: a chest on the maze path behind locked doors only. (guess: the third path chest)
+[[check]]
+hash = 10743352138513225188
+name = "Gerudo Training Ground Arrows (3) Chest"
+needs = "always"
+
+# Room 8, Central Maze: a chest on the right side of the maze, behind locked doors only. (guess: the right side chest)
+[[check]]
+hash = 11683433230229591151
+name = "Gerudo Training Ground Arrows (3) Chest"
+needs = "always"
+
+# Room 9, Underwater Room: the lava room's silver rupees need the Hookshot and the Song of Time, and the chest then wants the silver rupees under water, found in Iron Boots and kept breathing by the Zora Tunic.
+[[check]]
+hash = 3717705376223508790
+name = "Gerudo Training Ground Small Key Chest"
+needs = "hookshot and song-of-time and iron-boots and zora-tunic"
+
+# Room 10, Like Like Room: past the heavy block, which needs the Silver Gauntlets, and the door opened by the Lens of Truth platform. The chest sits clear of the Like Like. (guess: the fourth heavy block chest)
+[[check]]
+hash = 3750231902048775592
+name = "Gerudo Training Ground Bombs (5) Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens"
+
+# Room 10, Like Like Room: the chest shows only with the Lens of Truth, and the Like Like must be got past with the Hookshot.
+[[check]]
+hash = 5329807728555596183
+name = "Gerudo Training Ground Small Key Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens"
+
+# Room 10, Like Like Room: the chest appears once the Like Like is dead. (guess: one of the two heavy block chests that open that way)
+[[check]]
+hash = 6897789835137994741
+name = "Gerudo Training Ground Red Rupee (20) Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens and (melee or hammer or explosives or slingshot or dins-fire or bow)"
+
+# Room 10, Like Like Room: the chest appears once the Like Like is dead. (guess: not in Ship, taken as the other heavy block chest that opens that way)
+[[check]]
+hash = 11754783663699171680
+name = "Gerudo Training Ground Business Scrub Seed Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens and (melee or hammer or explosives or slingshot or dins-fire or bow)"
