@@ -2,7 +2,6 @@ import { expect, test } from "vitest";
 import { type FullConfig, full } from "@/lib/config";
 import {
   checkLabels,
-  clear,
   itemLabels,
   load,
   place,
@@ -52,7 +51,7 @@ test("the draft matches a saved plando whatever its key order", () => {
   expect(unsaved(empty)).toBe(false);
 });
 
-test("pins land in the draft, then save, load, drop and clear", () => {
+test("pins land in the draft, then save, load and drop", () => {
   let c = full({});
   const apply = (change: (c: FullConfig) => Partial<FullConfig>) => {
     c = { ...c, ...change(c) };
@@ -63,8 +62,7 @@ test("pins land in the draft, then save, load, drop and clear", () => {
   expect(c.place).toEqual({ 7: "Item_A" });
   apply(saveAs("A"));
   expect(c.plandos).toEqual({ A: { 7: "Item_A" } });
-  apply(clear());
-  expect(c.place).toEqual({});
+  apply(place("7", "Item_C"));
   expect(c.plandos.A).toEqual({ 7: "Item_A" });
   apply(load("A"));
   expect(c.place).toEqual({ 7: "Item_A" });

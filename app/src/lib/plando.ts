@@ -43,6 +43,3 @@ export const place =
 export const unplace =
   (hash: string): Change =>
   (c) => ({ place: without(c.place, hash) });
-
-/** An empty draft: the next seed shuffles every check. */
-export const clear = (): Change => () => ({ place: {} });

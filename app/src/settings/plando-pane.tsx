@@ -1,7 +1,6 @@
 import { Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { commands, type PlandoCheck, type PlandoOptions } from "@/bindings";
-import { ArmedButton } from "@/components/armed-button";
 import { Card } from "@/components/card";
 import { NameField } from "@/components/name-field";
 import { DumpError } from "@/components/needs-dump";
@@ -14,7 +13,6 @@ import { call, message } from "@/lib/api";
 import { count } from "@/lib/format";
 import {
   checkLabels,
-  clear,
   itemLabels,
   type Plando,
   place,
@@ -22,6 +20,7 @@ import {
 } from "@/lib/plando";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
+import { PaneResetButton } from "@/settings/reset-button";
 import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
 import { useConfig, useDevTools } from "@/stores/config";
@@ -35,6 +34,7 @@ export function PlandoPane() {
         title="Plando"
         help="plando"
         description="Pin items to checks. The next seed you generate gets the pins on this page and shuffles everything else around them. Each change saves as you make it."
+        actions={<PaneResetButton pane="plando" />}
       />
       <SavedSets
         kind="place"
@@ -241,20 +241,7 @@ function Placements({ plando, options }: PlacementsProps) {
     .sort((a, b) => sortKey(a.check).localeCompare(sortKey(b.check)));
 
   return (
-    <Card
-      title="Pinned"
-      meta={count(rows.length, "check")}
-      action={
-        <ArmedButton
-          size="sm"
-          verb="clear"
-          disabled={busy || rows.length === 0}
-          onAct={() => store(clear())}
-        >
-          Clear
-        </ArmedButton>
-      }
-    >
+    <Card title="Pinned" meta={count(rows.length, "check")}>
       {rows.length === 0 ? (
         <p className="px-4 pb-4 text-ink-muted text-sm">
           Nothing pinned yet. Generate shuffles every check.

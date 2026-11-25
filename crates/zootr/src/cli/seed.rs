@@ -116,11 +116,11 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
 
 pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
-    let extras = generate::Extras {
-        colors: crate::colors::resolve(&args.draft()?, seed)?,
-        audio: crate::audio::resolve(&args.audio_draft()?, seed)?,
-        ..args.extras()
+    let drafts = generate::Drafts {
+        colors: args.draft()?,
+        audio: args.audio_draft()?,
     };
+    let extras = args.extras().styled(drafts, seed)?;
     install(game, seed, args.settings(), extras, args.install)
 }
 

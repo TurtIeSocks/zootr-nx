@@ -173,7 +173,7 @@ test("Review lists the differences and puts the installed settings back", async 
   expect(await screen.findByText("Changed since FakeRun")).toBeTruthy();
   expect(screen.getByText("off")).toBeTruthy();
   expect(screen.getByText("on")).toBeTruthy();
-  fireEvent.click(button("Use the Last Seed's Settings"));
+  fireEvent.click(button("Back to the Last Seed"));
   await waitFor(() => expect(set).toHaveBeenCalled());
   expect(set.mock.calls[0]?.[0].settings).toEqual({});
 });

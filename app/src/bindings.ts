@@ -1269,6 +1269,12 @@ export type Summary = {
 	death_link: boolean,
 	/**  The build of the game the seed was made for. */
 	release: Release,
+	/**  The colors as the Colors pane asked for them ([`Extras::asked`]). */
+	colors: { [key in string]: Pick },
+	/**  The music as the Audio pane asked for it. */
+	audio: AudioDraft,
+	/**  The plando: chest hash to the item it holds. */
+	place: { [key in string]: string },
 };
 
 /**  Where a seed installs and the game runs. Nothing here knows which one it is. */

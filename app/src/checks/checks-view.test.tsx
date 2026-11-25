@@ -13,7 +13,6 @@ import type {
   DoorRow,
   DoorsEvent,
   Mark,
-  Summary,
 } from "@/bindings";
 import { ChecksView } from "@/checks/checks-view";
 import { row } from "@/checks/fixture";
@@ -21,6 +20,7 @@ import { init, useChecks } from "@/stores/checks";
 import { label } from "@/stores/live";
 import { useSeeds } from "@/stores/seeds";
 import { useUi } from "@/stores/ui";
+import { summary } from "@/test/fixtures";
 
 interface Ok {
   status: "ok";
@@ -217,9 +217,7 @@ test("a new seed loads its checks, keeping the old ones until they come", async 
       send = resolve;
     }),
   );
-  act(() =>
-    useSeeds.setPath("history.installed", { ...({} as Summary), id: 8 }),
-  );
+  act(() => useSeeds.setPath("history.installed", summary({ id: 8 })));
   expect(checksState).toHaveBeenCalledTimes(2);
   expect(screen.getByText("Front left")).toBeTruthy();
   await act(async () =>

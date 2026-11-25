@@ -130,6 +130,13 @@ pub struct Summary {
     death_link: bool,
     /// The build of the game the seed was made for.
     release: Release,
+    /// The colors as the Colors pane asked for them ([`Extras::asked`]).
+    colors: crate::colors::Draft,
+    /// The music as the Audio pane asked for it.
+    audio: crate::audio::Draft,
+    /// The plando: chest hash to the item it holds.
+    #[cfg_attr(feature = "specta", specta(type = BTreeMap<String, String>))]
+    place: Fixed,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -142,6 +149,7 @@ pub struct View {
 
 impl From<&Entry> for Summary {
     fn from(e: &Entry) -> Self {
+        let asked = e.extras.asked();
         Self {
             id: e.id,
             time: e.time,
@@ -156,7 +164,7 @@ impl From<&Entry> for Summary {
                 place: Fixed::new(),
                 ap: None,
                 release: None,
-                ..e.extras.clone()
+                ..e.extras.cosmetic_free()
             }
             .is_empty(),
             plando: !e.extras.place.is_empty(),
@@ -166,6 +174,9 @@ impl From<&Entry> for Summary {
                 .filter(|s| !s.is_empty()),
             death_link: e.extras.ap.as_ref().is_some_and(|a| a.death_link),
             release: e.report.written.release,
+            colors: asked.colors,
+            audio: asked.audio,
+            place: e.extras.place.clone(),
         }
     }
 }
@@ -368,9 +379,10 @@ impl History {
         id: u32,
         colors: crate::colors::Colors,
         audio: crate::audio::Audio,
+        drafts: crate::generate::Drafts,
     ) -> Result<()> {
         let extras = &mut self.get_mut(id)?.extras;
-        (extras.colors, extras.audio) = (colors, audio);
+        (extras.colors, extras.audio, extras.drafts) = (colors, audio, drafts);
         Ok(())
     }
 
@@ -596,6 +608,22 @@ pub(crate) mod tests {
         let place = Fixed::from([(1, item::HOOKSHOT.to_string())]);
         let give = vec![item::BOMB.to_string()];
         assert_eq!(flags(Extras::default()), (false, false));
+        let painted = Extras::default().styled(
+            crate::generate::Drafts {
+                colors: [(
+                    "hair".into(),
+                    crate::colors::Pick::Mode(crate::colors::Mode::Random),
+                )]
+                .into(),
+                ..Default::default()
+            },
+            1,
+        );
+        assert_eq!(
+            flags(painted.unwrap()),
+            (false, false),
+            "colors aren't a test"
+        );
         let plando = Extras {
             place: place.clone(),
             ..Default::default()

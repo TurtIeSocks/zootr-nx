@@ -15,6 +15,7 @@ import {
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { blocked, noDump, type Settings, unbuildable } from "@/lib/config";
+import { NO_PANES, type PaneChange, paneChanges, resetPane } from "@/lib/drift";
 import { count } from "@/lib/format";
 import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
@@ -73,7 +74,11 @@ interface Seeds {
   /** The settings that differ from the installed seed's, or from the
    * defaults with none installed. */
   drift: Change[];
-  /** How many settings differ from each entry's, by entry id. */
+  /** The palettes, pools, tracks and pins that differ from the same seed's,
+   * or from none set with none installed. */
+  paneDrift: PaneChange[];
+  /** How many settings and pane entries differ from each entry's, by entry
+   * id. */
   diffs: Record<number, number>;
   /** The running or last generate run's steps, or null before the first. */
   steps: Steps | null;
@@ -99,6 +104,7 @@ export const useSeeds = create<Seeds>()(
       unbuildable: "",
       running: false,
       drift: [],
+      paneDrift: [],
       diffs: {},
       steps: null,
       generating: false,
@@ -150,12 +156,12 @@ export const driftSince = (from: string) =>
 export const driftWords = (n: number, from: string) =>
   `${count(n, "change")} ${driftSince(from)} ${from}`;
 
+/** How many settings and pane entries drift holds. */
+export const useDriftCount = () =>
+  useSeeds((s) => s.drift.length + s.paneDrift.length);
+
 /** The drift count in words, as the drift bar and Play's pill say it. */
-export const useDriftWords = () =>
-  driftWords(
-    useSeeds((s) => s.drift.length),
-    useDriftFrom(),
-  );
+export const useDriftWords = () => driftWords(useDriftCount(), useDriftFrom());
 
 /** What `drift` is measured from, for its wording. */
 export const useDriftFrom = () =>
@@ -168,6 +174,7 @@ function derive() {
   const { status, history } = useSeeds.getState();
   const diff = (e: Summary) =>
     settingsChanges(schema, e.settings, config.settings);
+  const panes = (e: Summary) => paneChanges(e, config);
   useSeeds.setPath("blocked", blocked(status, config));
   useSeeds.setPath("unbuildable", unbuildable(status, config));
   useSeeds.setPath(
@@ -179,10 +186,13 @@ function derive() {
     "drift",
     keep(base ? diff(base) : settingsChanges(schema, {}, config.settings)),
   );
+  useSeeds.setPath("paneDrift", keep(paneChanges(base ?? NO_PANES, config)));
   useSeeds.setPath(
     "diffs",
     keep(
-      Object.fromEntries(history.entries.map((e) => [e.id, diff(e).length])),
+      Object.fromEntries(
+        history.entries.map((e) => [e.id, diff(e).length + panes(e).length]),
+      ),
     ),
   );
 }
@@ -393,6 +403,21 @@ export const clearHistory = () => run(() => call(commands.clearHistory()));
  * them back to the defaults. */
 export const takeSettings = (entry: Pick<Summary, "settings">) =>
   run(() => saveConfig({ settings: entry.settings }));
+
+/** Makes what drift measures from the current settings and panes: `base`'s,
+ * or the defaults with none. Locked palettes keep their picks. */
+export const takeSeed = (base: Summary | null) =>
+  run(() =>
+    saveConfig((c) => ({
+      settings: base?.settings ?? {},
+      ...Object.assign(
+        {},
+        ...(["colors", "audio", "plando"] as const).map((pane) =>
+          resetPane(pane, base ?? NO_PANES)(c),
+        ),
+      ),
+    })),
+  );
 
 /** A target's build status, for a game that bakes the hook patch in when
  * it's built. */

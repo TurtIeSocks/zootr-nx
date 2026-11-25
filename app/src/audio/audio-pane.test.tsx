@@ -104,12 +104,12 @@ test("Vanilla keeps a track out of its pool's shuffle", async () => {
   );
 });
 
-test("Shuffle All and Reset All", async () => {
+test("Randomize shuffles every pool, Reset to Defaults clears", async () => {
   show(full({ audio: { tracks: { market: "zora-domain" } } }));
   await screen.findByText("Market");
-  fireEvent.click(screen.getByRole("button", { name: "Shuffle All" }));
+  fireEvent.click(screen.getByRole("button", { name: "Randomize" }));
   await waitFor(() => expect(saved()?.audio?.pools?.fanfare).toBe("shuffle"));
-  fireEvent.click(screen.getByRole("button", { name: "Reset All" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
   await waitFor(() => expect(saved()?.audio).toEqual({}));
 });
 

@@ -117,7 +117,7 @@ test("lists a group's palettes and saves a mode", async () => {
   expect(screen.getByText(/can't be painted here/)).toBeTruthy();
 });
 
-test("Reset All leaves a locked palette and one this dump can't paint", async () => {
+test("Reset to Defaults leaves a locked palette", async () => {
   show(
     full({
       colors: { "kokiri-tunic": "random", leather: { hex: "#ff0000" } },
@@ -125,16 +125,16 @@ test("Reset All leaves a locked palette and one this dump can't paint", async ()
     }),
   );
   await screen.findByText("Kokiri Tunic");
-  fireEvent.click(screen.getByRole("button", { name: "Reset All" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset to Defaults" }));
   await waitFor(() =>
     expect(saved()?.colors).toEqual({ leather: { hex: "#ff0000" } }),
   );
 });
 
-test("Randomize All sets each unlocked palette to Random", async () => {
+test("Randomize sets each unlocked palette to Random", async () => {
   show(full({ color_locks: ["bow"] }));
   await screen.findByText("Kokiri Tunic");
-  fireEvent.click(screen.getByRole("button", { name: "Randomize All" }));
+  fireEvent.click(screen.getByRole("button", { name: "Randomize" }));
   await waitFor(() =>
     expect(saved()?.colors).toEqual({
       "kokiri-tunic": "random",
@@ -145,10 +145,10 @@ test("Randomize All sets each unlocked palette to Random", async () => {
   );
 });
 
-test("shift-click Randomize All draws colors now", async () => {
+test("shift-click Randomize draws colors now", async () => {
   show(full({}));
   await screen.findByText("Kokiri Tunic");
-  fireEvent.click(screen.getByRole("button", { name: "Randomize All" }), {
+  fireEvent.click(screen.getByRole("button", { name: "Randomize" }), {
     shiftKey: true,
   });
   await waitFor(() => expect(saved()?.colors?.bow).toEqual({ hex: "#123456" }));

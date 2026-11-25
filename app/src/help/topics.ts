@@ -87,7 +87,8 @@ export const TOPICS = {
     title: "Changes",
     body: [
       "Settings save as you change them. The game changes only when you Generate & Install.",
-      "Changes count from the last seed you made. An Archipelago slot doesn't count.",
+      "Changes count from the last seed you made, colors, music and pins included. An Archipelago slot doesn't count.",
+      "When only colors or music changed, Apply to Installed Seed paints the seed you have again, with the same shuffle.",
     ],
   },
   plando: {
@@ -103,7 +104,7 @@ export const TOPICS = {
     at: { section: "colors" },
     body: [
       "Recolor Link and his gear. Colors don't change the shuffle, and a share code leaves them out.",
-      "Random draws a color when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
+      "Random draws a color when the seed is built. Shift-click Randomize to draw them now and tweak them.",
     ],
   },
   audio: {

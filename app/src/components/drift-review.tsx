@@ -11,7 +11,7 @@ import { nameOf } from "@/lib/format";
 import {
   DEFAULTS_FROM,
   driftSince,
-  takeSettings,
+  takeSeed,
   useDriftBase,
   useDriftFrom,
   useSeeds,
@@ -30,12 +30,11 @@ interface DriftReviewProps {
 export function DriftReview({ children, side }: DriftReviewProps) {
   const [open, setOpen] = useState(false);
   const [drift] = useSeeds.usePath("drift");
+  const [panes] = useSeeds.usePath("paneDrift");
   const base = useDriftBase();
   const from = useDriftFrom();
   const restore =
-    from === DEFAULTS_FROM
-      ? "Use the Default Settings"
-      : "Use the Last Seed's Settings";
+    from === DEFAULTS_FROM ? "Back to the Defaults" : "Back to the Last Seed";
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
@@ -43,7 +42,7 @@ export function DriftReview({ children, side }: DriftReviewProps) {
         <p className="type-overline pb-1">
           Changed {driftSince(from)} {(base && nameOf(base)) || from}
         </p>
-        <ChangeList changes={drift} />
+        <ChangeList changes={drift} panes={panes} />
         <div className="-mx-3 my-2.5 h-px bg-line" />
         <div className="flex justify-end">
           <Button
@@ -51,7 +50,7 @@ export function DriftReview({ children, side }: DriftReviewProps) {
             size="sm"
             onClick={() => {
               setOpen(false);
-              takeSettings(base ?? { settings: {} });
+              takeSeed(base);
             }}
           >
             <RotateCcw />
