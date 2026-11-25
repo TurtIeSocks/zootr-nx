@@ -148,11 +148,11 @@ pub const BOOMERANG_MODEL: &str = "Model/Item_Boomerang.Item_Boomerang.bfres.zs"
 
 pub const MASTER_SWORD: Tex = tex("Tex/Mt_Weapon_Sword_Master_Alb.bntx.zs");
 // The Golden Gauntlets wear this silver too, so the Silver Gauntlets'
-// paint goes on a copy. Its metal map is theirs too: taking its shine off
-// left the Golden Gauntlets' plates flat white (seen live), so it stays.
+// paint goes on a copy, its metal map with it: taking the shine off the
+// shared one left the Golden Gauntlets' plates flat white (seen live).
 pub const SILVER_GAUNTLETS: Tex = Tex {
     path: "Tex/Mt_Silver_Armor_Adult_Gauntlet_Silver_Alb.bntx.zs",
-    metal: None,
+    metal: Some("Tex/Mt_Silver_Armor_Adult_Gauntlet_Silver_Mtl.bntx.zs"),
     copy: Some(Copy {
         mark: b'S',
         models: &[SILVER],

@@ -203,30 +203,44 @@ fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Resul
     let mut rgba = top_level(&data)?.rgba;
     paint_jobs(&mut rgba, jobs)?;
     let drawn = redraw(&data, &rgba, |_, _| false)?;
-    match &texture.copy {
-        None => builder.write(texture.path, &drawn)?,
-        Some(copy) => {
-            let (name, to) = (name(texture.path), marked(name(texture.path), copy.mark)?);
-            let drawn = rename(&drawn, name, &to)?;
-            // Each name the models know it by gets the copy under its own
-            // marked name. The file inside keeps the copy's: the texture
-            // table already serves one file under another name.
-            for (alias, models) in copies(texture.path, copy) {
-                let alias_to = marked(alias, copy.mark)?;
-                let path = texture.path.replace(name, &alias_to);
-                builder.add(&path, &drawn, texture.path)?;
-                for model in models {
-                    let data = builder.read(model)?;
-                    builder.write(model, &rename(&data, alias, &alias_to)?)?;
-                }
-            }
-        }
-    }
+    let copy = texture.copy.as_ref();
+    let names = copy.map(|c| (c.mark, copies(texture.path, c).collect()));
+    write_painted(builder, texture.path, &drawn, names)?;
     if let Some(metal) = texture.metal {
         let data = builder.read(metal)?;
         let mut rgba = top_level(&data)?.rgba;
         paint::matte(&mut rgba);
-        builder.write(metal, &redraw(&data, &rgba, |_, _| false)?)?;
+        let drawn = redraw(&data, &rgba, |_, _| false)?;
+        // A copied albedo's metal map is shared too, so it's copied with it.
+        let names = copy.map(|c| (c.mark, vec![(name(metal), c.models)]));
+        write_painted(builder, metal, &drawn, names)?;
+    }
+    Ok(())
+}
+
+/// A painted texture, written in place, or as a copy: each name its
+/// models know it by (with its mark and the models) gets the copy under
+/// its own marked name, renamed in those models. The file inside keeps
+/// the copy's name: the texture table already serves one file under
+/// another name.
+fn write_painted(
+    builder: &mut ModBuilder,
+    path: &str,
+    drawn: &[u8],
+    copy: Option<(u8, Vec<(&str, &[&str])>)>,
+) -> Result<()> {
+    let Some((mark, names)) = copy else {
+        return builder.write(path, drawn);
+    };
+    let (name, to) = (name(path), marked(name(path), mark)?);
+    let drawn = rename(drawn, name, &to)?;
+    for (alias, models) in names {
+        let alias_to = marked(alias, mark)?;
+        builder.add(&path.replace(name, &alias_to), &drawn, path)?;
+        for model in models {
+            let data = builder.read(model)?;
+            builder.write(model, &rename(&data, alias, &alias_to)?)?;
+        }
     }
     Ok(())
 }
@@ -341,13 +355,14 @@ pub(crate) fn name(path: &str) -> &str {
     name.strip_suffix(".bntx.zs").unwrap_or(name)
 }
 
-/// `name` with the letter before its `_Alb` made `mark`: a copy's name,
-/// as long as the texture's, as a rename needs.
+/// `name` with the letter before its `_Alb` (or a gradient's `_Gn0`, a
+/// metal map's `_Mtl`) made `mark`: a copy's name, as long as the
+/// texture's, as a rename needs.
 pub(crate) fn marked(name: &str, mark: u8) -> Result<String> {
     let at = name.len().checked_sub(5).context("too short")?;
     ensure!(
-        matches!(&name[at + 1..], "_Alb" | "_Gn0"),
-        "{name} isn't an albedo or a gradient"
+        matches!(&name[at + 1..], "_Alb" | "_Gn0" | "_Mtl"),
+        "{name} isn't an albedo, a gradient or a metal map"
     );
     Ok(format!(
         "{}{}{}",
@@ -417,6 +432,7 @@ mod tests {
     fn a_copy_is_named_as_long_as_its_texture() {
         assert_eq!(marked("Fake_Tile_A_Alb", b'K').unwrap(), "Fake_Tile_K_Alb");
         assert_eq!(marked("Fake_Hair_A_Gn0", b'L').unwrap(), "Fake_Hair_L_Gn0");
+        assert_eq!(marked("Fake_Tile_A_Mtl", b'S').unwrap(), "Fake_Tile_S_Mtl");
         assert!(marked("Fake_Tile_A_Nrm", b'K').is_err());
         assert_eq!(name("Tex/Fake_Tile_A_Alb.bntx.zs"), "Fake_Tile_A_Alb");
     }
@@ -481,6 +497,15 @@ mod tests {
                             for model in models {
                                 let data = crate::game::read_built(&romfs, &dir, model);
                                 assert!(has(&data, &to) && !has(&data, alias), "{model} names {to}");
+                            }
+                        }
+                        if let Some(metal) = texture.metal {
+                            let to = marked(super::name(metal), copy.mark).unwrap();
+                            assert!(dir.join("romfs").join(metal.replace(super::name(metal), &to)).exists());
+                            assert!(!dir.join("romfs").join(metal).exists(), "{metal} is left alone");
+                            for model in copy.models {
+                                let data = crate::game::read_built(&romfs, &dir, model);
+                                assert!(has(&data, &to), "{model} names {to}");
                             }
                         }
                         let to = marked(name, copy.mark).unwrap();
