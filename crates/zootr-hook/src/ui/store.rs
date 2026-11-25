@@ -3,6 +3,7 @@
 //! last frame, its cycle, and Link's choice for each age. All zeros is a fresh start, as the game's
 //! memory starts. The choice lives here, so it lasts until the game closes.
 
+use super::songs::{self, OneTap};
 use super::{Age, Buttons, Cycle, Frame, Input, MAX_SLOTS, MultiSlot, Page};
 
 /// What the UI thread saw of the menu on its last frame.
@@ -106,18 +107,44 @@ pub struct Store {
     input: Input,
     /// Each of the table's slots, by its place there.
     pub slots: [SlotState; MAX_SLOTS],
+    songs: OneTap,
+    /// The songbook, as the ocarina's input last saw it.
+    pub book: songs::Seen,
+}
+
+/// What the hook does to the controller this read.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Pads {
+    /// Buttons to keep from the game.
+    pub hide: Buttons,
+    /// Buttons to press for the game.
+    pub press: Buttons,
 }
 
 impl Store {
-    /// Takes the controller's buttons `now`, moves each slot's cycle on,
-    /// and returns the buttons to keep from the game.
-    pub fn read(&mut self, now: Buttons, slots: &[Option<MultiSlot>; MAX_SLOTS]) -> Buttons {
+    /// Takes the controller's buttons `now`, moves each slot's cycle and
+    /// the one-tap songs on (`ms` is the clock, `None` with that setting
+    /// off), and says what to keep from the game and press for it.
+    pub fn read(
+        &mut self,
+        now: Buttons,
+        slots: &[Option<MultiSlot>; MAX_SLOTS],
+        ms: Option<u64>,
+    ) -> Pads {
         self.input.step(now);
         let pressed = self.input.pressed();
-        let swallow = (self.slots.iter_mut().zip(slots))
+        let cycles = (self.slots.iter_mut().zip(slots))
             .filter_map(|(state, slot)| Some(state.step(pressed, slot.as_ref()?)))
             .fold(Buttons::NONE, |all, s| all | s);
-        self.input.hide(swallow)
+        let book = ms.map(|ms| songs::Frame {
+            book: self.book.at(ms),
+            ms,
+        });
+        let song = self.songs.step(pressed, book);
+        Pads {
+            hide: self.input.hide(cycles | song.swallow),
+            press: song.press,
+        }
     }
 
     /// Whether Link is cycling any slot.
@@ -133,6 +160,13 @@ mod tests {
 
     /// The table's slots: only the first.
     const ONE: [Option<MultiSlot>; MAX_SLOTS] = [Some(FAKE), None];
+
+    impl Store {
+        /// A read with the one-tap songs off: what's kept from the game.
+        fn cycle(&mut self, now: Buttons, slots: &[Option<MultiSlot>; MAX_SLOTS]) -> Buttons {
+            self.read(now, slots, None).hide
+        }
+    }
 
     fn fresh(held: &[usize]) -> Store {
         // SAFETY: the store is valid all zeros, as the game's memory starts.
@@ -154,14 +188,14 @@ mod tests {
     #[test]
     fn a_cycle_keeps_a_from_the_game_until_its_release_then_confirms() {
         let mut store = fresh(&[1, 2]);
-        assert_eq!(store.read(Buttons::A, &ONE), Buttons::A);
-        assert_eq!(store.read(Buttons::A, &ONE), Buttons::A, "still held");
-        assert_eq!(store.read(Buttons::NONE, &ONE), Buttons::NONE);
+        assert_eq!(store.cycle(Buttons::A, &ONE), Buttons::A);
+        assert_eq!(store.cycle(Buttons::A, &ONE), Buttons::A, "still held");
+        assert_eq!(store.cycle(Buttons::NONE, &ONE), Buttons::NONE);
         assert!(store.cycling());
-        assert_eq!(store.read(Buttons::D_RIGHT, &ONE), Buttons::D_RIGHT);
+        assert_eq!(store.cycle(Buttons::D_RIGHT, &ONE), Buttons::D_RIGHT);
         assert_eq!(store.slots[0].showing(&FAKE), Some(2));
-        store.read(Buttons::NONE, &ONE);
-        assert_eq!(store.read(Buttons::A, &ONE), Buttons::NONE, "to the game");
+        store.cycle(Buttons::NONE, &ONE);
+        assert_eq!(store.cycle(Buttons::A, &ONE), Buttons::NONE, "to the game");
         assert!(!store.cycling());
         assert_eq!(store.slots[0].showing(&FAKE), Some(2), "the choice");
     }
@@ -170,21 +204,21 @@ mod tests {
     fn a_cycle_starts_from_the_choice() {
         let mut store = fresh(&[1, 2]);
         store.slots[0].choose(2, &FAKE);
-        store.read(Buttons::A, &ONE);
+        store.cycle(Buttons::A, &ONE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(2));
-        store.read(Buttons::NONE, &ONE);
-        store.read(Buttons::D_RIGHT, &ONE);
+        store.cycle(Buttons::NONE, &ONE);
+        store.cycle(Buttons::D_RIGHT, &ONE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(1));
     }
 
     #[test]
     fn b_puts_back_what_was_shown() {
         let mut store = fresh(&[1, 2]);
-        store.read(Buttons::A, &ONE);
-        store.read(Buttons::NONE, &ONE);
-        store.read(Buttons::D_LEFT, &ONE);
+        store.cycle(Buttons::A, &ONE);
+        store.cycle(Buttons::NONE, &ONE);
+        store.cycle(Buttons::D_LEFT, &ONE);
         assert_eq!(store.slots[0].showing(&FAKE), Some(2));
-        assert_eq!(store.read(Buttons::B, &ONE), Buttons::B);
+        assert_eq!(store.cycle(Buttons::B, &ONE), Buttons::B);
         assert_eq!(store.slots[0].showing(&FAKE), Some(1));
     }
 
@@ -218,7 +252,7 @@ mod tests {
             Buttons::NONE,
             Buttons::A,
         ] {
-            store.read(press, &both);
+            store.cycle(press, &both);
         }
         assert_eq!(store.slots[0].showing(&BOTH), Some(1));
         store.slots[0].seen.child = true;
@@ -231,12 +265,63 @@ mod tests {
         store.slots[1] = store.slots[0];
         store.slots[0].seen.on_slot = false;
         let both = [Some(FAKE), Some(FAKE)];
-        assert_eq!(store.read(Buttons::A, &both), Buttons::A);
-        store.read(Buttons::NONE, &both);
+        assert_eq!(store.cycle(Buttons::A, &both), Buttons::A);
+        store.cycle(Buttons::NONE, &both);
         assert!(!store.slots[0].cycling());
         assert!(store.slots[1].cycling());
-        store.read(Buttons::D_RIGHT, &both);
+        store.cycle(Buttons::D_RIGHT, &both);
         assert_eq!(store.slots[0].showing(&FAKE), Some(1));
         assert_eq!(store.slots[1].showing(&FAKE), Some(2));
+    }
+
+    #[test]
+    fn a_tap_keeps_zl_from_the_game_until_it_s_let_go_after_the_song() {
+        use songs::{Book, GAP_MS, HOLD_MS, SETTLE_MS, Seen, Song};
+        let mut store = fresh(&[]);
+        let none = [None, None];
+        store.book = Seen {
+            book: Book::Open(Song::ZeldasLullaby.notes()),
+            ms: 0,
+        };
+        store.read(Buttons::ZL, &none, Some(0));
+        let tap = store.read(Buttons::ZL | Buttons::A, &none, Some(1));
+        assert_eq!(tap.hide, Buttons::ZL | Buttons::A);
+        // The ocarina's input sees the book shut.
+        store.book = Seen {
+            book: Book::Shut,
+            ms: 2,
+        };
+        store.read(Buttons::ZL, &none, Some(2));
+        let first = store.read(Buttons::ZL | Buttons::B, &none, Some(2 + SETTLE_MS));
+        assert_eq!(
+            first,
+            Pads {
+                hide: Buttons::ZL | Buttons::B,
+                press: Buttons::Y
+            }
+        );
+        let after = 2 + SETTLE_MS + 6 * (HOLD_MS + GAP_MS);
+        let done = store.read(Buttons::ZL, &none, Some(after));
+        assert_eq!(done.hide, Buttons::ZL, "held through the song");
+        assert_eq!(
+            store.read(Buttons::NONE, &none, Some(after + 1)).hide,
+            Buttons::NONE
+        );
+        let fresh_zl = store.read(Buttons::ZL, &none, Some(after + 2));
+        assert_eq!(fresh_zl.hide, Buttons::NONE, "a new ZL is the game's");
+    }
+
+    #[test]
+    fn a_book_last_seen_long_ago_reads_shut() {
+        use songs::{Book, FRESH_MS, Seen, Song};
+        let mut store = fresh(&[]);
+        let none = [None, None];
+        // The ocarina was put away with the book open.
+        store.book = Seen {
+            book: Book::Open(Song::ZeldasLullaby.notes()),
+            ms: 0,
+        };
+        let tap = store.read(Buttons::A, &none, Some(FRESH_MS + 1));
+        assert_eq!(tap, Pads::default(), "A is the game's");
     }
 }

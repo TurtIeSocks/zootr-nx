@@ -57,6 +57,7 @@ chest-size = "vanilla"
 chest-looks = true
 quiet-navi = true
 bunny-hood = true
+one-tap-songs = true
 scrubs = true
 running-race = true
 pots = true

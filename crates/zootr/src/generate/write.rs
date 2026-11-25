@@ -634,6 +634,10 @@ fn hook_flags(new_game: &NewGame) -> u32 {
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
         (Enabled::of(&new_game.on).gear(), zootr_hook::CHILD_GEAR),
+        (
+            new_game.on.contains(crate::settings::ONE_TAP_SONGS),
+            zootr_hook::ONE_TAP_SONGS,
+        ),
     ]
     .into_iter()
     .filter_map(|(on, bit)| on.then_some(bit))
@@ -708,5 +712,8 @@ mod tests {
         }
         assert_eq!(with("both-ages-iron-boots"), plain | zootr_hook::CHILD_GEAR);
         assert_eq!(with("both-ages-hammer"), plain);
+        let songs = crate::settings::ONE_TAP_SONGS;
+        assert_eq!(plain & zootr_hook::ONE_TAP_SONGS, 0);
+        assert_eq!(with(songs), plain | zootr_hook::ONE_TAP_SONGS);
     }
 }

@@ -76,6 +76,7 @@ pub const OPTIONS: &[&str] = &[
     "chest-looks",
     "quiet-navi",
     "bunny-hood",
+    "one-tap-songs",
     "scrubs",
     "running-race",
     "pots",

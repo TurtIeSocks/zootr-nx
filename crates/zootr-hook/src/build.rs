@@ -70,6 +70,9 @@ pub struct Entries {
     /// player of that age and has the other age's go, on every area load.
     /// See `docs/research/character-select.md`.
     pub resident_create: u32,
+    /// The ocarina's input, each frame it's out: `(ocarina, input)`. See
+    /// `docs/research/songbook.md`.
+    pub ocarina_input: u32,
 }
 
 /// The game's functions, called from the hook or read by the host.
@@ -271,7 +274,7 @@ pub struct Vtables {
 
 /// Where our pieces go in `main`, and where the room for each ends. The
 /// code goes over Havok's physics trace recorder, which a patch keeps from
-/// ever running, the far code (link section `.far`, what rarely runs) over
+/// ever running, the far code (link section `.far`, what the cave has no room for) over
 /// a function only the recorder's dispatcher calls, dead with it, the table
 /// in the zero padding after rodata, and the chest list in the zeroed page
 /// tail after bss. The padding after text stays free: every other code mod
@@ -406,6 +409,7 @@ pub const V131072: Build = Build {
         equipment_built: 0xa6_c800,
         equipment_left: 0xa7_0ff0,
         resident_create: 0x94_5610,
+        ocarina_input: 0x329_2070,
     },
     funcs: Funcs {
         setter: 0xfe_3fe0,

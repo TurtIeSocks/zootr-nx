@@ -80,7 +80,7 @@ pub(super) unsafe fn add_int(gd: usize, hash: u32, n: i32) {
 
 /// Where `hash`'s current value sits in the GameData table given by its
 /// slot, entry stride and value offset, like [`INT`].
-unsafe fn entry(
+pub(super) unsafe fn entry(
     gd: usize,
     (slot, stride, value): (usize, usize, usize),
     hash: u32,

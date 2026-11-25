@@ -66,7 +66,7 @@ pub use table::SlotSpec;
 pub use table::encode;
 pub use table::{
     BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
-    Levels, MAGIC, MENU_CYCLE, Slot, Table, after_grant, fnv, pick, pick_with,
+    Levels, MAGIC, MENU_CYCLE, ONE_TAP_SONGS, Slot, Table, after_grant, fnv, pick, pick_with,
 };
 
 /// The build everything here is made for: the hook is compiled against it,
@@ -106,7 +106,8 @@ pub const fn list(b: &Build) -> u32 {
 /// listed, then the full key, handheld and joy dual controller reads. The
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
-pub const SLOTS: u32 = 108;
+/// One word past the last entry.
+pub const SLOTS: u32 = entry::OCARINA_INPUT + 4;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says

@@ -17,6 +17,7 @@ mod look;
 mod menu;
 mod refill;
 mod rt;
+mod songbook;
 mod swap;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
@@ -140,6 +141,7 @@ global_asm!(
     "b gear_menu_entry",
     "b gear_worn_entry",
     "b gear_mark_entry",
+    "b ocarina_input_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -168,6 +170,8 @@ global_asm!(
     "equipment_left_resume:",
     "brk #0",
     "resident_made_resume:",
+    "brk #0",
+    "ocarina_input_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -297,6 +301,8 @@ global_asm!(
     "function_hook equipment_built, equipment_built_resume",
     "equipment_left_entry:",
     "function_hook equipment_left, equipment_left_resume",
+    "ocarina_input_entry:",
+    "function_hook ocarina_input, ocarina_input_resume",
     "resident_made_entry:",
     "function_hook resident_made, resident_made_resume",
 );

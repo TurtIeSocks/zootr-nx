@@ -349,6 +349,13 @@
   },
   {
     "default": false,
+    "description": "With the ocarina out and the songbook open (hold ZL), A on a song plays it, as if Link had entered its notes, instead of a preview",
+    "id": "one-tap-songs",
+    "kind": "toggle",
+    "label": "One-Tap Songs"
+  },
+  {
+    "default": false,
     "description": "Every Business Scrub outside the Dream World sells a check once. Scrubs that sold ammo on repeat sell their one item and leave",
     "id": "scrubs",
     "kind": "toggle",

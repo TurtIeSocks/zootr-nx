@@ -391,6 +391,12 @@ fn enhancement_defs() -> Vec<SettingDef> {
             "Enemies never show, so nothing grabs Link or knocks him back. Gold Skulltulas, scrubs, Big Poes, the Skull Kid and enemies that are checks stay. For the play harness's seeds",
         ),
         toggle(
+            ONE_TAP_SONGS,
+            place::COMFORT,
+            "One-Tap Songs",
+            "With the ocarina out and the songbook open (hold ZL), A on a song plays it, as if Link had entered its notes, instead of a preview",
+        ),
+        toggle(
             BUNNY_HOOD,
             place::GAMEPLAY,
             "Bunny Hood Speed",

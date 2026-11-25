@@ -264,6 +264,7 @@ const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
+pub(crate) const ONE_TAP_SONGS: &str = "one-tap-songs";
 pub(crate) const QUIET_ENEMIES: &str = "quiet-enemies";
 pub(crate) const DOOR_OF_TIME: &str = "door-of-time";
 /// The rule word for [`DOOR_OF_TIME`] open ([`value_word`]), which Starting
