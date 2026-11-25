@@ -24,6 +24,7 @@ pub const DOOR_OF_TIME_NAVI_REPEAT: &Name = &n!(0x5e2a17664a75eef5);
 pub const ENEMY_SCRUB_BUSINESS_COMMON: &Name = &n!(0x2a530c845c9c2e46);
 pub const ENTRY_LON_LON_RANCH: &Name = &n!(0x8e28ada2c31dd56c);
 pub const EVENT_CAMERA: &Name = &n!(0x48cf53d31ccc6a50);
+pub const EVENT_DELETE_SHOW_ITEM: &Name = &n!(0xc14c058a71b17cf6);
 pub const EVENT_DEMO_PRODUCT_SUPPORT_COMMENT: &Name = &n!(0x2389ac156cd4d5db);
 pub const EVENT_EVENT_FADE_IN: &Name = &n!(0xb69285a3c44c8bd8);
 pub const EVENT_EVENT_FADE_OUT: &Name = &n!(0x99d7194698bab91d);

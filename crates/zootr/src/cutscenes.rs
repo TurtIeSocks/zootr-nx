@@ -621,6 +621,24 @@ mod tests {
     }
 
     #[test]
+    fn talons_skipped_wake_puts_away_the_cucco_link_held_up() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let caller = flow::GOTO_HYRULE_CASTLE;
+        let puts_away = |f: &Flowchart| flows::render(f).contains(&**flow::EVENT_DELETE_SHOW_ITEM);
+        assert!(!puts_away(&flows::load(&romfs, caller).unwrap().unwrap()));
+        let (out, _) = skip(&romfs, &Flows::load(&romfs).unwrap(), &every()).unwrap();
+        let wake = Flowchart::parse(&out[&flows::rel(caller)])
+            .unwrap()
+            .unwrap();
+        assert!(puts_away(&wake));
+        let rendered = flows::render(&wake);
+        let transition = format!(r#"{}="{}""#, flow::EVENT_NAME, scene::HRL_CASTLE_0020);
+        assert!(!rendered.contains(&transition));
+    }
+
+    #[test]
     fn the_fields_arrival_still_sets_the_clock_and_the_owls_flag_comes_at_his_end() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
