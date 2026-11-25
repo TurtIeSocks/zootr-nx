@@ -2309,7 +2309,7 @@
       "forbid": [],
       "hash": "1279554567131519582",
       "id": 542,
-      "name": "Water Temple Lobby Pot 5",
+      "name": "Water Temple Lobby 2F Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6055,7 +6055,7 @@
       "forbid": [],
       "hash": "3585686260179499649",
       "id": 620,
-      "name": "Water Temple Lobby Pot 1",
+      "name": "Water Temple Lobby 3F Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6813,7 +6813,7 @@
       "forbid": [],
       "hash": "4025608826386451139",
       "id": 636,
-      "name": "Water Temple Lobby Pot 6",
+      "name": "Water Temple Lobby 2F Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9871,7 +9871,7 @@
       "forbid": [],
       "hash": "5848096526143037248",
       "id": 687,
-      "name": "Water Temple Lobby Pot 3",
+      "name": "Water Temple Lobby 3F Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12308,7 +12308,7 @@
       "forbid": [],
       "hash": "7397402781751080416",
       "id": 743,
-      "name": "Water Temple Lobby Pot 4",
+      "name": "Water Temple Lobby 3F Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15851,7 +15851,7 @@
       "forbid": [],
       "hash": "9614156843162683069",
       "id": 801,
-      "name": "Water Temple Lobby Pot 2",
+      "name": "Water Temple Lobby 3F Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"

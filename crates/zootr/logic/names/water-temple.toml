@@ -1,14 +1,17 @@
 # Water Temple. OoTR's name wherever the remake keeps the spot: matched
 # by each check's room and rule, and the remake guides for the Gold
-# Skulltulas. Pots go by room, numbered west to east.
+# Skulltulas. Pots go by room, numbered west to east, with the map's
+# floor (3F, B1) where a room spans several.
 
-# Room 0, Lobby
-3585686260179499649 = "Water Temple Lobby Pot 1"
-9614156843162683069 = "Water Temple Lobby Pot 2"
-5848096526143037248 = "Water Temple Lobby Pot 3"
-7397402781751080416 = "Water Temple Lobby Pot 4"
-1279554567131519582 = "Water Temple Lobby Pot 5"
-4025608826386451139 = "Water Temple Lobby Pot 6"
+# Room 0, Lobby. It spans several of the map's floors, so its pots name
+# theirs, as the map shows it with Link beside each one (playtested
+# 2026-11-25): four by the entrance on 3F, two below on 2F.
+3585686260179499649 = "Water Temple Lobby 3F Pot 1"
+9614156843162683069 = "Water Temple Lobby 3F Pot 2"
+5848096526143037248 = "Water Temple Lobby 3F Pot 3"
+7397402781751080416 = "Water Temple Lobby 3F Pot 4"
+1279554567131519582 = "Water Temple Lobby 2F Pot 1"
+4025608826386451139 = "Water Temple Lobby 2F Pot 2"
 
 # Room 1, high on the central pillar: OoTR's needs the Longshot, as ours does.
 11571778270592589517 = "Water Temple GS Central Pillar"
