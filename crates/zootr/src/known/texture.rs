@@ -2,6 +2,11 @@
 
 use super::Name;
 
+pub const COLLECT_HEART_BASE_00: &Name = &n!(0x12e24f87109bcf07);
+pub const MT_OBJ_T_BOX_A_01_ALB: &Name = &n!(0xf9f82743a5452c42);
+pub const MT_OBJ_T_BOX_A_01_MTL: &Name = &n!(0x6256f543e081ff24);
+pub const MT_OBJ_T_BOX_A_02_ALB_00: &Name = &n!(0x837fb1916cda9667);
+pub const MT_OBJ_T_BOX_A_02_MTL: &Name = &n!(0x6b35790f4acb5519);
 pub const MT_ROCK_LIFT_ROCK_A_01_ALB: &Name = &n!(0x48eb7b67d27eaecf);
 pub const OBJ_BROKEN_BOX_A_04_ALB: &Name = &n!(0x6f78c80b56acdb2a);
 pub const OBJ_HIDING_HOLE_BEEHIVE_A_ALB: &Name = &n!(0x668803578cc63b91);

@@ -554,6 +554,7 @@ const SIZES: [Size; 3] = [Size::Small, Size::Big, Size::Boss];
 
 /// Chest `gyaml`'s family and size, when it comes in more than one size.
 fn family_of(gyaml: &str) -> Option<(usize, Size)> {
+    let gyaml = &*crate::chest_looks::host(gyaml);
     FAMILIES.iter().enumerate().find_map(|(f, family)| {
         let at = family.iter().position(|g| *g == gyaml)?;
         Some((f, SIZES[at]))

@@ -177,6 +177,9 @@ pub enum Probe {
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
+    /// Paints each albedo a chest look shows (Chest Looks Match Contents)
+    /// and writes it to `out` as PNG, as a seed paints it
+    Chests { out: PathBuf },
     /// A save's pouch: each actor's `StockNum` and `IsGet`, where either
     /// is set. A slot number or a path to a `progress.sav`.
     Pouch {
@@ -567,6 +570,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
+        Probe::Chests { out } => crate::chest_looks::preview(romfs, &out),
         Probe::Materials { model } => materials(romfs, game, &model),
         Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),

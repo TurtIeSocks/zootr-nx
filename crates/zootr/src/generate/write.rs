@@ -581,7 +581,11 @@ impl<'a> Parts<'a> {
         if maps_move(new_game) {
             map_copies::write(romfs, builder, tables)?;
         }
-        crate::marks::write(romfs, builder, tables)?;
+        // One tag table for both: each adds its copies' rows.
+        let mut tags = crate::rsdb::Tags::load(romfs)?;
+        crate::marks::write(romfs, builder, tables, &mut tags)?;
+        crate::chest_looks::write(romfs, builder, tables, &mut tags)?;
+        tags.write(builder)?;
         foreign::write(romfs, builder, tables, &new_game.foreign, new_game.keys)?;
         ammo::write(romfs, builder, tables, &self.rupees)
     }

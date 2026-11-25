@@ -14,7 +14,9 @@ const SIDE: usize = 512;
 /// Writes one PNG per shape of each model whose path contains `pattern` to
 /// `out`, its triangles filled in UV space by the axis their normal leans
 /// on most: X red, Y green, Z blue, bright facing the positive way and
-/// dark the negative. Prints each shape's triangle count and UV bounds.
+/// dark the negative. Prints each shape's triangle count and UV bounds, and
+/// writes a TSV beside each PNG: a row a triangle, each corner's position,
+/// normal and UV, to find where a face of the model sits on the texture.
 pub(super) fn uvs(
     romfs: &ounce_formats::Romfs,
     game: &Path,
@@ -47,6 +49,7 @@ pub(super) fn uvs(
             let (mut lo, mut hi) = ([f32::MAX; 2], [f32::MIN; 2]);
             let mut stretch = Stretch::default();
             let mut heights = Heights::default();
+            let mut rows = String::new();
             for tri in tris.as_chunks::<3>().0 {
                 let at = [tri[0], tri[1], tri[2]].map(|i| [uv[i][0], uv[i][1]]);
                 for p in &at {
@@ -61,6 +64,14 @@ pub(super) fn uvs(
                 }
                 let n = normal[tri[0]];
                 fill(&mut rgba, at, facing([n[0], n[1], n[2]]));
+                for &i in tri {
+                    let (p, uv) = (position[i], uv[i]);
+                    rows += &format!("{:.4}\t{:.4}\t{:.4}\t", p[0], p[1], p[2]);
+                    rows += &format!("{:.3}\t{:.3}\t{:.3}\t", n[0], n[1], n[2]);
+                    rows += &format!("{:.4}\t{:.4}\t", uv[0], uv[1]);
+                }
+                rows.pop();
+                rows.push('\n');
             }
             let name = format!("{model}__{shape}");
             let picture = Texture {
@@ -69,6 +80,7 @@ pub(super) fn uvs(
                 height: SIDE,
                 rgba,
             };
+            std::fs::write(out.join(format!("{name}.tsv")), rows)?;
             std::fs::write(
                 out.join(format!("{name}.png")),
                 crate::sprites::png(&picture)?,

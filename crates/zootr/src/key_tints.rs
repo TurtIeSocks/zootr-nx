@@ -82,26 +82,51 @@ pub const FILES: [&str; 14] = [
     "Tex/Mt_Item_Dungeon_BossKey_Rgh.bntx.zs",
 ];
 
-/// A dungeon's colour: a temple's its medallion song's, the Training
-/// Ground the Temple of Time's.
-const SONGS: [(&Name, &Name); 6] = [
+/// A temple's colour: its medallion song's.
+const SONGS: [(&Name, &Name); 5] = [
     (flag::FOREST_TEMPLE, item::MELODY_FOREST_MINUET),
     (flag::FIRE_TEMPLE, item::MELODY_FIRE_BOLERO),
     (flag::WATER_TEMPLE, item::MELODY_WATER_SERENADE),
     (flag::SHADOW_TEMPLE, item::MELODY_SHADOW_NOCTURNE),
     (flag::SPIRIT_TEMPLE, item::MELODY_SPIRIT_REQUIEM),
-    (flag::GERUDO_TRAINING_GROUND, item::MELODY_LIGHT_PRELUDE),
 ];
-/// The rest. Ganon's black is lifted so the key still reads as metal.
-const OWN: [(&Name, Colour); 2] = [
-    (flow::BOTTOM_OF_THE_WELL, [110, 35, 150]),
+/// The rest. Ganon's black is lifted so the key still reads as metal. The
+/// Training Ground's is cream, not Prelude of Light's yellow, which a chest
+/// would show near the gold look's. Ivory read as plain silver in game.
+const OWN: [(&Name, Colour); 3] = [
+    (flow::BOTTOM_OF_THE_WELL, [40, 185, 190]),
+    (flag::GERUDO_TRAINING_GROUND, [235, 215, 160]),
     (flag::INSIDE_GANON_CASTLE, [45, 45, 50]),
 ];
 
 /// The Gerudo Fortress's keys are their own actors already, one for each
 /// thief. They show the small key model after the dungeons'.
 const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
-const FORTRESS_COLOUR: Colour = [90, 55, 30];
+const FORTRESS_COLOUR: Colour = [215, 40, 150];
+
+/// How many dungeons' keys have a colour: [`DUNGEONS`], then the Gerudo
+/// Fortress.
+pub(crate) const KEY_DUNGEONS: usize = FORTRESS_MODEL;
+
+/// Key dungeon `n`'s colour, counting from 1 as [`KEY_DUNGEONS`] does.
+pub(crate) fn key_colour(n: usize) -> Option<Colour> {
+    match n {
+        FORTRESS_MODEL => Some(FORTRESS_COLOUR),
+        n if (1..=DUNGEONS.len()).contains(&n) => colour(dungeon(n).name),
+        _ => None,
+    }
+}
+
+/// The key dungeon, as [`KEY_DUNGEONS`] counts, whose key `item` is when it
+/// says so itself: a dungeon's tinted key, key copy or ring, or a Fortress
+/// key.
+pub(crate) fn key_dungeon(item: &str) -> Option<usize> {
+    if item.starts_with(FORTRESS_KEY) {
+        return Some(FORTRESS_MODEL);
+    }
+    let tinted = (1..=DUNGEONS.len()).find(|n| chest_key(*n) == item);
+    tinted.or_else(|| copied_as(item).map(|(_, n)| n))
+}
 
 fn colour(dungeon: &Name) -> Option<Colour> {
     let song = SONGS.iter().find(|(d, _)| *d == dungeon);
@@ -111,7 +136,7 @@ fn colour(dungeon: &Name) -> Option<Colour> {
 
 /// Dungeon `n`'s small key as a chest's content. On the floor it's the
 /// model's own name.
-fn chest_key(n: usize) -> String {
+pub(crate) fn chest_key(n: usize) -> String {
     format!("{MADE}SmallKey{n:02}")
 }
 
