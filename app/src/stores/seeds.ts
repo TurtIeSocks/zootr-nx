@@ -354,11 +354,11 @@ export async function install(id: number) {
     useSeeds.setPath("installing", null);
   }
 }
-/** Installs the installed seed again in the Colors draft's colours: the
- * same shuffle, painted again. */
-export const applyColors = () =>
+/** Installs the installed seed again in the Colors and Audio drafts: the
+ * same shuffle, painted and scored again. */
+export const applyCosmetics = () =>
   run(() =>
-    stepping((steps) => call(commands.applyColors(steps)), { total: 1 }),
+    stepping((steps) => call(commands.applyCosmetics(steps)), { total: 1 }),
   );
 /** Rebuilds a target's game, its output in the step log, and says whether
  * it finished rather than stopped. Throws why it failed, or why the build

@@ -362,8 +362,15 @@ impl History {
     }
 
     /// The colours seed `id` installs with from now on.
-    pub fn recolor(&mut self, id: u32, colors: crate::colors::Colors) -> Result<()> {
-        self.get_mut(id)?.extras.colors = colors;
+    /// Entry `id` in other cosmetics: its colours and music.
+    pub fn restyle(
+        &mut self,
+        id: u32,
+        colors: crate::colors::Colors,
+        audio: crate::audio::Audio,
+    ) -> Result<()> {
+        let extras = &mut self.get_mut(id)?.extras;
+        (extras.colors, extras.audio) = (colors, audio);
         Ok(())
     }
 

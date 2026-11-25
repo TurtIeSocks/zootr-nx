@@ -29,6 +29,7 @@ use zootr::share;
 
 mod app_log;
 mod archipelago;
+mod audio;
 mod checks;
 mod colors;
 mod dev_panel;
@@ -382,34 +383,36 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
     blocking(move || reinstall(&app, steps, id, false)).await
 }
 
-/// Reinstall the installed seed in the Colors draft's colours: the same
-/// shuffle, painted again. Its history entry keeps the new colours.
+/// Reinstall the installed seed in the Colors and Audio drafts: the same
+/// shuffle, painted and scored again. Its history entry keeps them.
 #[tauri::command]
 #[specta::specta]
-async fn apply_colors(app: AppHandle, steps: Channel<progress::StepEvent>) -> Res<()> {
+async fn apply_cosmetics(app: AppHandle, steps: Channel<progress::StepEvent>) -> Res<()> {
     blocking(move || reinstall(&app, steps, colors::installed()?, true)).await
 }
 
-/// Install history entry `id` again, in the draft's colours when
-/// `recolor`.
+/// Install history entry `id` again, in the drafts' cosmetics when
+/// `restyle`.
 fn reinstall(
     app: &AppHandle,
     steps: Channel<progress::StepEvent>,
     id: u32,
-    recolor: bool,
+    restyle: bool,
 ) -> anyhow::Result<()> {
     let entry = History::load()?.get(id)?.clone();
     let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
-    if recolor {
-        extras.colors = zootr::colors::resolve(&Config::load()?.colors, seed)?;
+    if restyle {
+        let config = Config::load()?;
+        extras.colors = zootr::colors::resolve(&config.colors, seed)?;
+        extras.audio = zootr::audio::resolve(&config.audio, seed)?;
     }
     let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
     // Loaded again: History may have changed during the build.
     let done = built.and_then(|_| {
         let mut history = History::load()?;
         history.get(id)?;
-        if recolor {
-            history.recolor(id, extras.colors)?;
+        if restyle {
+            history.restyle(id, extras.colors, extras.audio)?;
         }
         history.install(Some(id));
         history.save()
@@ -676,15 +679,16 @@ impl Icons {
     }
 }
 
-/// A PNG served to the UI, or a 404 that the log says why of.
-fn png_response(
-    png: anyhow::Result<Vec<u8>>,
+/// A file served to the UI as `mime`, or a 404 that the log says why of.
+fn served(
+    body: anyhow::Result<Vec<u8>>,
+    mime: &str,
     uri: &tauri::http::Uri,
 ) -> tauri::http::Response<Vec<u8>> {
-    let response = match png {
-        Ok(png) => tauri::http::Response::builder()
-            .header(tauri::http::header::CONTENT_TYPE, "image/png")
-            .body(png),
+    let response = match body {
+        Ok(body) => tauri::http::Response::builder()
+            .header(tauri::http::header::CONTENT_TYPE, mime)
+            .body(body),
         Err(e) => {
             log::debug!("Nothing for {uri}: {e:#}");
             tauri::http::Response::builder().status(404).body(vec![])
@@ -741,7 +745,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             plando_options,
             colors::colors_catalog,
             colors::colors_draw,
-            apply_colors,
+            apply_cosmetics,
+            audio::audio_catalog,
             save_editor::save_slots,
             save_editor::save_presets,
             save_editor::save_items,
@@ -840,14 +845,20 @@ pub fn run() -> tauri::Result<()> {
                 let png = app
                     .state::<colors::ColorPreviews>()
                     .serve(uri.path(), uri.query().unwrap_or_default());
-                responder.respond(png_response(png, uri));
+                responder.respond(served(png, "image/png", uri));
             });
         })
         .register_asynchronous_uri_scheme_protocol(ICONS, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             std::thread::spawn(move || {
                 let png = (app.state::<Icons>()).read(request.uri().path().trim_start_matches('/'));
-                responder.respond(png_response(png, request.uri()));
+                responder.respond(served(png, "image/png", request.uri()));
+            });
+        })
+        .register_asynchronous_uri_scheme_protocol(audio::SCHEME, |_, request, responder| {
+            std::thread::spawn(move || {
+                let wav = audio::serve(request.uri().path());
+                responder.respond(served(wav, "audio/wav", request.uri()));
             });
         })
         .setup(move |app| {

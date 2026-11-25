@@ -10,8 +10,6 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use super::{STREAMS, TRACKS};
-
 const RATE: usize = 48_000;
 /// Both sides are averaged down by this before matching: 8 kHz keeps
 /// enough of the music to match and makes each FFT six times smaller.
@@ -30,16 +28,6 @@ pub struct Window {
     pub best: Option<(String, f32, f32)>,
 }
 
-/// A stream by a track's id (its song) or its own name.
-fn stream_name(name: &str) -> Result<&str> {
-    match TRACKS.iter().find(|t| t.id == name) {
-        Some(t) => {
-            (t.song).with_context(|| format!("{name} has no song: its music is in sections"))
-        }
-        None => Ok(name),
-    }
-}
-
 /// The windows of `dump` from `from` to `to` seconds, `step` long, each
 /// matched against `names`.
 pub fn listen(
@@ -52,11 +40,7 @@ pub fn listen(
     let streams = names
         .iter()
         .map(|n| {
-            let name = stream_name(n)?;
-            let path = format!("{STREAMS}{name}.bwav");
-            let found = crate::game::search(game, &path)?;
-            let (_, data) = (found.into_iter().find(|(p, _)| *p == path))
-                .with_context(|| format!("no stream {name}"))?;
+            let (name, data) = super::stream(game, n)?;
             let channels = ounce_formats::bwav::decode(&data)?;
             Ok((name.to_owned(), down(&mono(&channels))))
         })

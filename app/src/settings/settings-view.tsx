@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AudioPane } from "@/audio/audio-pane";
 import { ColorsPane } from "@/colors/colors-pane";
 import { InlineError } from "@/components/callout";
 import { useRequest } from "@/lib/request";
@@ -34,6 +35,7 @@ const PANES: Partial<Record<string, ReactNode>> = {
   test: <Test />,
   plando: <PlandoPane />,
   colors: <ColorsPane />,
+  audio: <AudioPane />,
 };
 
 /** The test setup's form, reset whenever the saved setup changes. */

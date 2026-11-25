@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig } from "@/stores/config";
-import { applyColors, useSeeds } from "@/stores/seeds";
+import { applyCosmetics, useSeeds } from "@/stores/seeds";
 import { PreviewPanel } from "./preview-panel";
 
 const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
@@ -59,7 +59,7 @@ export function ColorsPane() {
       <PageHeader
         title="Colors"
         help="colors"
-        description="Recolour Link and his gear. The next seed you generate is painted this way; Apply paints the installed seed again without a new shuffle. Each change saves as you make it."
+        description="Recolour Link and his gear. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
         actions={<Actions palettes={catalog.palettes} />}
       />
       <SavedSets
@@ -141,12 +141,15 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
       >
         Reset All
       </Button>
-      <Tip tip={why} wrap>
+      <Tip
+        tip={why ?? "Plays the Colors and Audio panes in the installed seed"}
+        wrap
+      >
         <Button
           disabled={busy || generating || !!why}
-          onClick={() => run(applyColors)}
+          onClick={() => run(applyCosmetics)}
         >
-          Apply to Installed Seed
+          Apply Cosmetics to Seed
         </Button>
       </Tip>
     </div>

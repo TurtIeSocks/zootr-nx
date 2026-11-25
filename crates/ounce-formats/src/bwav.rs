@@ -98,6 +98,46 @@ fn adpcm(data: &[u8], n: usize, coefs: &[i32]) -> Vec<i16> {
     out
 }
 
+/// `channels` as a 16-bit stereo WAV: even channels mixed to the left,
+/// odd to the right, a mono stream on both.
+pub fn wav(channels: &[Vec<i16>], rate: u32) -> Vec<u8> {
+    let n = channels.iter().map(Vec::len).min().unwrap_or(0);
+    let side = |odd: usize| -> Vec<&Vec<i16>> {
+        let picked: Vec<_> = channels.iter().skip(odd).step_by(2).collect();
+        if picked.is_empty() {
+            channels.iter().collect()
+        } else {
+            picked
+        }
+    };
+    let (left, right) = (side(0), side(1));
+    let mix = |side: &[&Vec<i16>], i: usize| {
+        let sum: i32 = side.iter().map(|c| c[i] as i32).sum();
+        (sum / side.len().max(1) as i32) as i16
+    };
+    let data = (n * 4) as u32;
+    let mut out = Vec::with_capacity(44 + data as usize);
+    out.extend_from_slice(b"RIFF");
+    out.extend_from_slice(&(36 + data).to_le_bytes());
+    out.extend_from_slice(b"WAVEfmt ");
+    // A 16-byte PCM format chunk: format 1, two channels, the rate, bytes a
+    // second, bytes a frame, bits a sample.
+    out.extend_from_slice(&16u32.to_le_bytes());
+    out.extend_from_slice(&1u16.to_le_bytes());
+    out.extend_from_slice(&2u16.to_le_bytes());
+    out.extend_from_slice(&rate.to_le_bytes());
+    out.extend_from_slice(&(rate * 4).to_le_bytes());
+    out.extend_from_slice(&4u16.to_le_bytes());
+    out.extend_from_slice(&16u16.to_le_bytes());
+    out.extend_from_slice(b"data");
+    out.extend_from_slice(&data.to_le_bytes());
+    for i in 0..n {
+        out.extend_from_slice(&mix(&left, i).to_le_bytes());
+        out.extend_from_slice(&mix(&right, i).to_le_bytes());
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,5 +182,20 @@ mod tests {
         coefs[0] = 2048;
         let ramp = stream(coefs, 3, -1, &[[0x00, 0x11, 0x10, 0, 0, 0, 0, 0]]);
         assert_eq!(decode(&ramp).unwrap(), [vec![1, 2, 3]]);
+    }
+
+    #[test]
+    fn a_wav_is_stereo_whatever_the_stream_has() {
+        let sample = |b: &[u8], frame: usize, side: usize| {
+            let at = 44 + frame * 4 + side * 2;
+            i16::from_le_bytes([b[at], b[at + 1]])
+        };
+        let mono = wav(&[vec![100, -100]], 48000);
+        assert_eq!(&mono[..4], b"RIFF");
+        assert_eq!(mono.len(), 44 + 2 * 4);
+        assert_eq!((sample(&mono, 1, 0), sample(&mono, 1, 1)), (-100, -100));
+        // Four channels: 0 and 2 to the left, 1 and 3 to the right.
+        let four = wav(&[vec![10], vec![20], vec![30], vec![40]], 48000);
+        assert_eq!((sample(&four, 0, 0), sample(&four, 0, 1)), (20, 30));
     }
 }

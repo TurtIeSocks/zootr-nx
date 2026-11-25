@@ -11,6 +11,7 @@ pub mod listen;
 mod pick;
 
 use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_calls, xlink_copy_call};
@@ -112,6 +113,55 @@ impl Track {
             b => format!("{}-{}s", edges[b - 2], edges[b - 1]),
         }
     }
+}
+
+/// A stream by a track's id (its song) or its own name.
+pub fn stream_name(name: &str) -> Result<&str> {
+    match TRACKS.iter().find(|t| t.id == name) {
+        Some(t) => {
+            (t.song).with_context(|| format!("{name} has no song: its music is in sections"))
+        }
+        None => Ok(name),
+    }
+}
+
+/// The BWAV of `name` (a track's id or a stream's name) from the dump at
+/// `game`, with the stream's name.
+pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
+    let name = stream_name(name)?;
+    let path = format!("{STREAMS}{name}.bwav");
+    let found = crate::game::search(game, &path)?;
+    let (_, data) = (found.into_iter().find(|(p, _)| *p == path))
+        .with_context(|| format!("no stream {name}"))?;
+    Ok((name, data))
+}
+
+/// `name`'s stream as a stereo WAV.
+pub fn wav(game: &Path, name: &str) -> Result<Vec<u8>> {
+    let (_, data) = stream(game, name)?;
+    let rate = ounce_formats::bwav::header(&data)?.rate;
+    Ok(ounce_formats::bwav::wav(
+        &ounce_formats::bwav::decode(&data)?,
+        rate,
+    ))
+}
+
+/// Track `id`'s song as a WAV file, decoded once a dump and kept in its
+/// cache, since finding a stream walks the whole dump.
+pub fn song_wav(game: &Path, id: &str) -> Result<PathBuf> {
+    let song = track(id)?
+        .song
+        .with_context(|| format!("{id} has no song: its music is in sections"))?;
+    let file = crate::game::cached(game, "audio")?.join(format!("{song}.wav"));
+    if !file.exists() {
+        let wav = wav(game, song)?;
+        std::fs::create_dir_all(file.parent().context("a cache folder")?)?;
+        // Written whole, then renamed: a play racing the decode never reads half.
+        let part = file.with_extension("part");
+        std::fs::write(&part, wav)?;
+        std::fs::rename(&part, &file)?;
+    }
+    Ok(file)
 }
 
 pub fn track(id: &str) -> Result<&'static Track> {
