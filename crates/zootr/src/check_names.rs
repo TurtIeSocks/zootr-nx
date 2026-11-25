@@ -22,6 +22,7 @@ const FILES: &[(&str, &str)] = &[
         "lost-woods.toml",
         include_str!("../logic/names/lost-woods.toml"),
     ),
+    ("market.toml", include_str!("../logic/names/market.toml")),
     (
         "sacred-forest-meadow.toml",
         include_str!("../logic/names/sacred-forest-meadow.toml"),
