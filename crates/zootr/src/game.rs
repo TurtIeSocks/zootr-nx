@@ -47,6 +47,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::ageless_items::FILES)
         .chain(crate::ageless::files::FILES)
         .chain(crate::marks::FILES)
+        .chain(crate::chest_looks::FILES)
         .chain(crate::colors::files())
         .chain([crate::audio::TABLE])
         .filter(move |f| seen.insert(*f))

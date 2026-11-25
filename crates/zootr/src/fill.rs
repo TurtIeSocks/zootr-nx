@@ -19,11 +19,15 @@ use crate::shuffle::{Deal, Placement};
 /// Deals tried before a seed gives up.
 pub const TRIES: u64 = 20;
 
-/// What a new game starts with: its starting items, what presets hand
-/// over, and what their edits own or set.
+/// What a new game starts with: its starting items, every dungeon key
+/// copy with keys from the start, what presets hand over, and what their
+/// edits own or set.
 pub fn start(new_game: &NewGame) -> Have {
     let mut have = Have::default();
     new_game.start.owned().into_iter().for_each(|i| have.add(i));
+    if new_game.keys == crate::settings::DungeonKeys::Start {
+        crate::keys::SINGLES.iter().for_each(|k| have.add(k));
+    }
     new_game.give.iter().for_each(|i| have.add(i));
     for edit in &new_game.defaults {
         let Some((name, "true")) = edit.split_once('=') else {
@@ -53,7 +57,7 @@ fn fixed<'a>(checks: &'a [ItemCheck], deal: &Deal<'a>) -> HashMap<u64, &'a str> 
     let mut at: HashMap<u64, &str> = checks
         .iter()
         .filter(|c| !free.contains(&c.hash))
-        .map(|c| (c.hash, c.item.as_str()))
+        .map(|c| (c.hash, crate::keys::held(c)))
         .collect();
     at.extend(deal.placed.iter().map(|p| (p.check.hash, p.item)));
     at
@@ -231,7 +235,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let settings = crate::settings::favorites::randomizer_and(settings.clone());
         let new_game = NewGame::from_settings(&settings, &[]).unwrap();
-        let checks = crate::checks::all(&romfs).unwrap();
+        let checks = crate::checks::dealt(&romfs, &new_game).unwrap();
         let world = World::build(
             &romfs,
             &Book::load().unwrap(),
@@ -278,7 +282,7 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let settings = crate::settings::favorites::randomizer();
         let new_game = NewGame::from_settings(&settings, &[]).unwrap();
-        let checks = crate::checks::all(&romfs).unwrap();
+        let checks = crate::checks::dealt(&romfs, &new_game).unwrap();
         let book = Book::load().unwrap();
         let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
         let start = start(&new_game);
@@ -319,7 +323,7 @@ mod tests {
     fn a_stop_between_tries_ends_the_fill_with_stopped() {
         let Some(romfs) = dev_dump() else { return };
         let new_game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
-        let checks = crate::checks::all(&romfs).unwrap();
+        let checks = crate::checks::dealt(&romfs, &new_game).unwrap();
         let book = Book::load().unwrap();
         let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));

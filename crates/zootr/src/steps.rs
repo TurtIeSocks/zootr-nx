@@ -173,9 +173,10 @@ pub fn dev_branch(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     })
 }
 
-/// [`dev_branch`]'s event row: the map change's, starting its entry.
+/// [`dev_branch`]'s event row: the map change's, starting its entry, run
+/// beside play so a received item doesn't flicker the HUD (issue #458).
 pub fn dev_event(events: &mut rsdb::Events) -> Result<()> {
-    events.copy(&arg(DEV_EVENT), BANC)
+    events.copy_beside_play(&arg(DEV_EVENT), BANC)
 }
 
 /// A switch on the bool argument `name`, to `yes` when it holds, else `no`.

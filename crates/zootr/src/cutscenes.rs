@@ -219,6 +219,10 @@ const MOVES: [&str; 5] = [
     "EventGet",
     "TimeElapsed",
 ];
+/// Actions an object's own game runs inside a scene, by part of their
+/// name: the spinning pot spins, reads its face and drops its prize in its
+/// roulette and drop scenes. Skipped, a bomb left the game waiting on it.
+const GAME_ACTIONS: [&str; 1] = ["GoronLargePot"];
 
 /// Whether one of the skips above handles `name` by itself, which the cut of
 /// the other story scenes leaves alone.
@@ -243,6 +247,7 @@ pub(crate) fn changes(actor: &str, action: &str) -> bool {
     let trigger = action.starts_with("EventTrigger") || action.starts_with("EventGet");
     (STATE_ACTORS.iter().any(|a| *a == actor) && trigger)
         || MOVES.iter().any(|m| action.contains(m))
+        || GAME_ACTIONS.iter().any(|g| action.contains(g))
         || events::saves(actor, action)
 }
 
@@ -349,16 +354,19 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
     let catalogue = Catalogue::load(romfs)?;
     let picked = catalogue.picked(skips);
     let cuts = catalogue.cut(skips, all);
-    let at_end = |n: &str| {
-        [&FLAG_AT_END[..], &ZELDA, &IMPA]
-            .iter()
-            .any(|g| g.iter().any(|x| *x == n))
+    // A logic graph reading the played flag waits for the scene, so it's
+    // set where the scene would play, as for these.
+    let at_end = |c: &Cutscene| {
+        c.graph
+            || [&FLAG_AT_END[..], &ZELDA, &IMPA]
+                .iter()
+                .any(|g| g.iter().any(|x| **x == c.name))
     };
-    let swapped = |n: &str| at_end(n) || n == FIELD_ARRIVAL;
+    let swapped = |c: &Cutscene| at_end(c) || c.name == FIELD_ARRIVAL;
     let names: BTreeSet<&str> = picked
         .iter()
+        .filter(|c| !swapped(c))
         .map(|c| c.name.as_str())
-        .filter(|n| !swapped(n))
         .collect();
     let callers: BTreeSet<&String> = picked.iter().flat_map(|c| &c.flows).collect();
     for flow in callers {
@@ -366,7 +374,7 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
         let data = relinked(&romfs.read(&rel)?, &names).with_context(|| format!("in {flow}"))?;
         out.insert(rel, data);
     }
-    for c in picked.iter().filter(|c| swapped(&c.name)) {
+    for c in picked.iter().filter(|c| swapped(c)) {
         for flow in &c.flows {
             flows::edit(romfs, &mut out, flow, |f| {
                 if c.name == FIELD_ARRIVAL {
@@ -396,7 +404,7 @@ pub fn skip(romfs: &Romfs, all: &Flows, skips: &Skips) -> Result<(Rewrites, Vec<
     }
     let mut flags: Vec<String> = picked
         .iter()
-        .filter(|c| c.flag && !at_end(&c.name))
+        .filter(|c| c.flag && !at_end(c))
         .map(|c| played_set(&c.name))
         .collect();
     flags.extend(
@@ -798,5 +806,46 @@ mod tests {
         assert!(!out.contains_key(&flows::rel(flow::SAGE_OF_FIRE)));
         let goron = |f: &String| f.contains("Dm_Goron_") || f == "IsVisitLocation.GoronCity=true";
         assert!(flags.iter().all(goron), "{flags:?}");
+    }
+
+    /// The pot's roulette spins it, reads its face and drops its prize. Cut,
+    /// a bomb in the pot left the game waiting.
+    #[test]
+    fn the_spinning_pots_scenes_play() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let catalogue = Catalogue::load(&romfs).unwrap();
+        for n in [scene::GORON_0040, scene::GORON_0045] {
+            let c = catalogue.get(n).unwrap();
+            assert!(!c.tier.skippable(), "{n}: {:?}", c.tier);
+        }
+    }
+
+    /// Goron City's graph lights the torches and starts the pot once the
+    /// pot's first scene has played. Set at new game, the pot spun from
+    /// the first visit.
+    #[test]
+    fn a_flag_a_graph_reads_is_set_where_its_scene_would_play() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let catalogue = Catalogue::load(&romfs).unwrap();
+        assert!(catalogue.get(scene::GORON_0010).unwrap().graph);
+        let skips = Skips {
+            areas: BTreeSet::from(["goron"]),
+            ..Default::default()
+        };
+        let (out, flags) = skip(&romfs, &Flows::load(&romfs).unwrap(), &skips).unwrap();
+        assert!(!flags.contains(&played_set(scene::GORON_0010)), "{flags:?}");
+        let rel = flows::rel(flow::GORON_CITY_LARGE_POT);
+        let pot = flows::render(&Flowchart::parse(&out[&rel]).unwrap().unwrap());
+        let plays = format!(r#"{}="{}""#, flow::EVENT_NAME, scene::GORON_0010);
+        assert!(!pot.contains(&plays), "{pot}");
+        assert!(pot.contains(&format!(
+            r#"{}="{PLAYED}.{}" Index=-1 Value=true"#,
+            field::GAME_DATA_NAME,
+            scene::GORON_0010
+        )));
     }
 }

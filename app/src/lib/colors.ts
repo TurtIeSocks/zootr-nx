@@ -1,5 +1,6 @@
 import type { PaletteView, Pick, Picked } from "@/bindings";
 import type { FullConfig } from "@/lib/config";
+import { schemeUrl } from "@/lib/platform";
 import { type Change, without } from "@/lib/saved-sets";
 
 /** The picker's preset swatches: plain colors with names, not a mode. */
@@ -86,7 +87,8 @@ export interface PreviewOf {
 
 const digits = (hex: string) => hex.replace(/^#/, "");
 
-const BASE = "zootr-colors://localhost";
+/** A path on the backend's colors scheme, as this platform reaches it. */
+const colorsUrl = (path: string) => schemeUrl("zootr-colors", path);
 
 /** `query` with `picked`'s colors, for a render painted with them. */
 function withColors(query: URLSearchParams, picked: Picked | null) {
@@ -101,17 +103,17 @@ function withColors(query: URLSearchParams, picked: Picked | null) {
 export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
   const query = withColors(new URLSearchParams({ t: String(sheet) }), picked);
   if (changes) query.set("v", "changes");
-  return `${BASE}/${id}.png?${query}`;
+  return colorsUrl(`${id}.png?${query}`);
 }
 
 /** Palette `id`'s model in view number `view`: the binary
  * `colors::model::mesh` writes. */
 export const modelUrl = (id: string, view: number) =>
-  `${BASE}/${id}.model?v=${view}`;
+  colorsUrl(`${id}.model?v=${view}`);
 
 /** Albedo `name` of palette `id`'s model, painted with `picked` when it's
  * one the palette paints. */
 export function albedoUrl(id: string, name: string, picked: Picked | null) {
   const query = withColors(new URLSearchParams({ a: name }), picked);
-  return `${BASE}/${id}.png?${query}`;
+  return colorsUrl(`${id}.png?${query}`);
 }

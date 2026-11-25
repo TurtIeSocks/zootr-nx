@@ -30,6 +30,7 @@ const track = (
   ms: 60000,
   looping: true,
   song,
+  gives_none: song ? null : "Its music is in sections",
 });
 
 const CATALOG = [

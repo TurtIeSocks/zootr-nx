@@ -127,6 +127,13 @@ fn game_data(node: &AinbNode) -> Vec<(&str, &str)> {
         .collect()
 }
 
+/// The GameData names `node` reads.
+pub(crate) fn reads(node: &AinbNode) -> impl Iterator<Item = &str> {
+    (game_data(node).into_iter())
+        .filter(|(k, _)| !writes(&node.name, k))
+        .map(|(_, v)| v)
+}
+
 /// Whether a node of class `class` writes the GameData under `key`: a copy
 /// writes its destination and reads its source, else the class says.
 fn writes(class: &str, key: &str) -> bool {

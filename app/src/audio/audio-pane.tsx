@@ -2,6 +2,7 @@ import {
   Clapperboard,
   Loader2,
   Map as MapIcon,
+  Mic,
   Music,
   Music2,
   Play,
@@ -58,6 +59,8 @@ const POOL_TABS: { id: Pool; label: string; icon: typeof Music }[] = [
   { id: "event", label: "Event", icon: Clapperboard },
   { id: "fanfare", label: "Fanfare", icon: Music },
   { id: "ocarina", label: "Ocarina", icon: Music2 },
+  { id: "voice-adult", label: "Adult voice", icon: Mic },
+  { id: "voice-child", label: "Child voice", icon: Mic },
 ];
 
 const POOL_MODES: { id: PoolMode; label: string }[] = [
@@ -90,7 +93,7 @@ export function AudioPane() {
       <PageHeader
         title="Audio"
         help="audio"
-        description="Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs. The next seed you generate plays it this way; Apply Cosmetics plays it in the installed seed without a new shuffle. Each change saves as you make it."
+        description="Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs, and Link's voice by age. The next seed you generate plays it this way; Apply Cosmetics plays it in the installed seed without a new shuffle. Each change saves as you make it."
         actions={<Actions />}
       />
       <SavedSets
@@ -257,8 +260,8 @@ function TrackRow({ track, catalog, draft, player }: TrackRowProps) {
           <span className="font-medium text-sm">{track.label}</span>
           <span className="text-ink-muted text-xs">
             <code>{length(shown)}</code>
-            {!track.song && (
-              <Tip tip="Its music is in sections, so it plays others' songs but gives none">
+            {track.gives_none && (
+              <Tip tip={track.gives_none}>
                 <span className="ml-2 text-ink-faint">receives only</span>
               </Tip>
             )}
@@ -335,7 +338,7 @@ function PlayButton({
     <Tip
       tip={
         id === null
-          ? "Its music is in sections: pick a song to listen"
+          ? "It gives no song of its own: pick one to listen"
           : on
             ? "Stop"
             : "Listen"

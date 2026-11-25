@@ -26,9 +26,10 @@ pub struct TrackView {
     /// The song's length in milliseconds.
     ms: u32,
     looping: bool,
-    /// Whether it gives a song another track can play. Without one, its
-    /// music is in sections: it only receives.
+    /// Whether it gives a song another track can play.
     song: bool,
+    /// Why it gives none, in player words: it only receives.
+    gives_none: Option<String>,
 }
 
 impl From<&Track> for TrackView {
@@ -42,6 +43,7 @@ impl From<&Track> for TrackView {
             ms: (t.secs * 1000.0).round() as u32,
             looping: t.looping,
             song: t.song.is_some(),
+            gives_none: t.gives_none().map(str::to_owned),
         }
     }
 }
@@ -62,10 +64,7 @@ pub fn serve(path: &str) -> anyhow::Result<Vec<u8>> {
     let id = id.strip_suffix(".wav").context("a song is a .wav")?;
     // Checked before the config: a bad URL never reads it.
     let track = zootr::audio::track(id)?;
-    ensure!(
-        track.song.is_some(),
-        "{id} has no song: its music is in sections"
-    );
+    ensure!(track.song.is_some(), "{id} has no song of its own");
     let game = icon_dump(&Config::load()?)?;
     Ok(std::fs::read(zootr::audio::song_wav(&game, id)?)?)
 }

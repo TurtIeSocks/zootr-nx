@@ -11,7 +11,9 @@ use super::args::NewGame;
 use super::logic_args::{LogicCommand, RoomEntry};
 use crate::known::{field, flag};
 use crate::rules::rooms::write;
-use crate::{arrivals, checks, cut, cutscenes, events, fill, flags, flows, items, logic, rules};
+use crate::{
+    arrivals, checks, cut, cutscenes, events, fill, flags, flows, items, keys, logic, rules,
+};
 
 pub(super) fn cutscenes(romfs: &Romfs) -> Result<()> {
     let catalogue = cutscenes::Catalogue::load(romfs)?;
@@ -151,9 +153,9 @@ pub(super) fn logic(romfs: &Romfs, new_game: &NewGame) -> Result<()> {
         &checks,
     )?;
     let start = fill::start(&new_game);
-    let vanilla: HashMap<u64, &str> = checks.iter().map(|c| (c.hash, c.item.as_str())).collect();
+    let vanilla: HashMap<u64, &str> = checks.iter().map(|c| (c.hash, keys::held(c))).collect();
     let play = world.play(&start, &vanilla);
-    let pool = checks.iter().map(|c| c.item.as_str());
+    let pool = checks.iter().map(keys::held);
     let all = world.play(&fill::everything(&start, pool), &vanilla);
     let (reach, reach_all) = (world.reach(&play.have), world.reach(&all.have));
     let total: HashSet<u64> = world.locations.iter().map(|l| l.hash).collect();

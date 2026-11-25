@@ -36,6 +36,10 @@ pub struct Cutscene {
     pub map: bool,
     /// Whether the save has a played flag for it.
     pub flag: bool,
+    /// Whether a logic graph reads its played flag, as "it happened": Goron
+    /// City's lights the torches and starts the pot. A skip sets it where
+    /// the scene would play, never from the start.
+    pub graph: bool,
 }
 
 #[derive(Clone)]
@@ -103,6 +107,11 @@ impl Catalogue {
                     .map(String::from),
             );
         }
+        let graphs = crate::gates::wiring(romfs)?.graphs;
+        let nodes = graphs.values().flat_map(|g| &g.nodes);
+        let graphed: BTreeSet<String> = played(nodes.flat_map(crate::flagmap::graph_reads))
+            .into_iter()
+            .collect();
         let gd = GameData::load(romfs)?;
         let exps = gd.read_by_exps();
         let mut out = Vec::new();
@@ -156,6 +165,7 @@ impl Catalogue {
                 flows: callers.get(name).cloned().unwrap_or_default(),
                 map: map.contains(name),
                 flag: has_flag,
+                graph: graphed.contains(name),
             });
         }
         Ok(Self(out))

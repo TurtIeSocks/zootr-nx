@@ -48,17 +48,17 @@ hash = 4709724720801091788
 name = "Gerudo Training Ground Small Key Chest"
 needs = "explosives and (melee or hammer or bow or slingshot)"
 
-# Room 8, Central Maze: a chest on the right side of the maze, behind locked doors only. (guess: the right central chest)
+# Room 8, Central Maze: a chest on the right side of the maze, reached from the lava room past the Beamos and the Dinolfos, then the Song of Time, or else through all nine locks. Its keys count 0, so the rule takes the lava room's way. (guess: the right central chest)
 [[check]]
 hash = 196331300747102419
 name = "Gerudo Training Ground Bombchus (5) Chest"
-needs = "always"
+needs = "explosives and (melee or hammer or bow or slingshot) and song-of-time"
 
-# Room 8, Central Maze: the key lies on the right side of the maze, behind locked doors only. (guess: the free-standing key)
+# Room 8, Central Maze: the key lies on the right side of the maze, reached from the lava room past the Beamos and the Dinolfos, then the Song of Time, or else through all nine locks. Its keys count 0, so the rule takes the lava room's way. (guess: the free-standing key)
 [[check]]
 hash = 1883068192328530224
 name = "Gerudo Training Ground Small Key Chest"
-needs = "always"
+needs = "explosives and (melee or hammer or bow or slingshot) and song-of-time"
 
 # Room 8, Central Maze: the large chest at the end of the maze path, behind locked doors only.
 [[check]]
@@ -96,11 +96,11 @@ hash = 10743352138513225188
 name = "Gerudo Training Ground Arrows (3) Chest"
 needs = "always"
 
-# Room 8, Central Maze: a chest on the right side of the maze, behind locked doors only. (guess: the right side chest)
+# Room 8, Central Maze: a chest on the right side of the maze, reached from the lava room past the Beamos and the Dinolfos, then the Song of Time, or else through all nine locks. Its keys count 0, so the rule takes the lava room's way. (guess: the right side chest)
 [[check]]
 hash = 11683433230229591151
 name = "Gerudo Training Ground Arrows (3) Chest"
-needs = "always"
+needs = "explosives and (melee or hammer or bow or slingshot) and song-of-time"
 
 # Room 9, Underwater Room: the lava room's silver rupees need the Hookshot and the Song of Time, and the chest then wants the silver rupees under water, found in Iron Boots and kept breathing by the Zora Tunic.
 [[check]]

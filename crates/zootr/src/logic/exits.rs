@@ -214,7 +214,7 @@ pub(super) mod tests {
         let book = crate::rules::Book::load().unwrap();
         let world = World::build(romfs, &book, &Ctx::new(new_game), &checks).unwrap();
         let added = crate::starter_bags::added(new_game);
-        let pool = checks.iter().map(|c| c.item.as_str()).chain(added);
+        let pool = checks.iter().map(crate::keys::held).chain(added);
         let all = crate::fill::everything(&crate::fill::start(new_game), pool);
         world.beaten(&world.play(&all, &HashMap::new()).have)
     }

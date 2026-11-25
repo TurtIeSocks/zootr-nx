@@ -1,10 +1,11 @@
-//! The music table's tracks and the ocarina songs by name: a seed's pools
-//! are assigned by name, and each track's song length and loop flag are
-//! kept here since the streams aren't in the extract cache (a dump test
-//! checks every one against its stream). The guard skips this file (`known/guard.rs`).
+//! The music table's tracks, the ocarina songs and Link's voice cues by
+//! name: a seed's pools are assigned by name, and each track's song
+//! length and loop flag are kept here since the streams aren't in the
+//! extract cache (a dump test checks every one against its stream). The
+//! guard skips this file (`known/guard.rs`).
 
 use super::Pool::{self, *};
-use super::Track;
+use super::{Track, Via};
 
 /// The music table: each track's graph, the streams its asset nodes play.
 pub const TABLE: &str = "Sound/Bgm/bgm.Product.111.byml.zs";
@@ -15,6 +16,16 @@ pub const STREAMS: &str = "Sound/Resource/Stream/";
 /// The SLink2 user whose calls play the ocarina songs: each song as Link
 /// plays it, and as a teacher plays it first.
 pub const OCARINA: &str = "Ocarina";
+
+/// The SLink2 users whose voice calls are adult and child Link's.
+const PLAYER_ADULT: &str = "Player_Adult";
+const PLAYER_CHILD: &str = "Player_Child";
+
+/// Link's banks: his short voice takes are kept in them, not streamed.
+pub const BANKS: [&str; 2] = [
+    "Sound/Resource/Player_Adult.bars.zs",
+    "Sound/Resource/Player_Child.bars.zs",
+];
 
 /// Keys never rewritten: the build-up a get fanfare holds while the chest
 /// opens, before its own stream.
@@ -34,14 +45,31 @@ const fn t(
         label,
         pool,
         graph,
+        via: Via::Table,
         song,
         secs,
         looping,
     }
 }
 
+/// An ocarina song: the call `graph` of `user`.
+const fn c(user: &'static str, track: Track) -> Track {
+    Track {
+        via: Via::Call(user),
+        ..track
+    }
+}
+
+/// A voice cue: the variants of `graph` in `user`.
+const fn v(user: &'static str, track: Track) -> Track {
+    Track {
+        via: Via::Cue(user),
+        ..track
+    }
+}
+
 #[rustfmt::skip]
-pub const TRACKS: [Track; 136] = [
+pub static TRACKS: [Track; 219] = [
     t("appear", "Appearance", Fanfare, "BGM_Appear", Some("BGM_Appear"), 6.13, false),
     t("boss-room", "Boss room (silence)", Fixed, "BGM_BossRoom", None, 0.00, false),
     t("bottom-of-the-well", "Bottom of the Well", Area, "BGM_BottomOfTheWell", Some("BGM_BottomOfTheWell"), 89.00, true),
@@ -155,28 +183,111 @@ pub const TRACKS: [Track; 136] = [
     t("zora-domain", "Zora's Domain", Area, "BGM_ZoraDomain", Some("BGM_ZoraDomain"), 88.88, true),
     t("zora-domain-frozen", "Zora's Domain, frozen", Area, "BGM_ZoraDomain_Frozen", Some("BGM_ZoraDomain_Frozen"), 97.56, true),
     // The ocarina songs: calls of the OCARINA user, not graphs.
-    t("played-zeldas-lullaby", "Zelda's Lullaby, played", Ocarina, "Melody_ZeldaLullaby", Some("Ocarina_ZeldaLullaby"), 10.74, false),
-    t("played-eponas-song", "Epona's Song, played", Ocarina, "Melody_EponaSong", Some("Ocarina_EponaSong"), 7.94, false),
-    t("played-sarias-song", "Saria's Song, played", Ocarina, "Melody_SariaSong", Some("Ocarina_SariaSong"), 6.2836, false),
-    t("played-suns-song", "Sun's Song, played", Ocarina, "Melody_SunSong", Some("Ocarina_SunSong"), 5.22, false),
-    t("played-song-of-time", "Song of Time, played", Ocarina, "Melody_TimeSong", Some("Ocarina_TimeSong"), 10.20, false),
-    t("played-song-of-storms", "Song of Storms, played", Ocarina, "Melody_StormSong", Some("Ocarina_StormSong"), 5.15, false),
-    t("played-minuet-of-forest", "Minuet of Forest, played", Ocarina, "Melody_ForestMinuet", Some("Ocarina_ForestMinuet"), 16.93, false),
-    t("played-bolero-of-fire", "Bolero of Fire, played", Ocarina, "Melody_FireBolero", Some("Ocarina_FireBolero"), 20.43, false),
-    t("played-serenade-of-water", "Serenade of Water, played", Ocarina, "Melody_WaterSerenade", Some("Ocarina_WaterSerenade"), 18.64, false),
-    t("played-nocturne-of-shadow", "Nocturne of Shadow, played", Ocarina, "Melody_ShadowNocturne", Some("Ocarina_ShadowNocturne"), 21.07, false),
-    t("played-requiem-of-spirit", "Requiem of Spirit, played", Ocarina, "Melody_SpiritRequiem", Some("Ocarina_SpiritRequiem"), 21.26, false),
-    t("played-prelude-of-light", "Prelude of Light, played", Ocarina, "Melody_LightPrelude", Some("Ocarina_LightPrelude"), 17.65, false),
-    t("taught-zeldas-lullaby", "Zelda's Lullaby, taught", Ocarina, "ExampleMelody_ZeldaLullaby", Some("ExampleMelody_ZeldaLullaby"), 5.59, false),
-    t("taught-eponas-song", "Epona's Song, taught", Ocarina, "ExampleMelody_EponaSong", Some("ExampleMelody_EponaSong"), 5.57, false),
-    t("taught-sarias-song", "Saria's Song, taught", Ocarina, "ExampleMelody_SariaSong", Some("ExampleMelody_SariaSong"), 4.38, false),
-    t("taught-suns-song", "Sun's Song, taught", Ocarina, "ExampleMelody_SunSong", Some("ExampleMelody_SunSong"), 3.56, false),
-    t("taught-song-of-time", "Song of Time, taught", Ocarina, "ExampleMelody_TimeSong", Some("ExampleMelody_TimeSong"), 5.61, false),
-    t("taught-song-of-storms", "Song of Storms, taught", Ocarina, "ExampleMelody_StormSong", Some("ExampleMelody_StormSong"), 4.50, false),
-    t("taught-minuet-of-forest", "Minuet of Forest, taught", Ocarina, "ExampleMelody_ForestMinuet", Some("ExampleMelody_ForestMinuet"), 5.64, false),
-    t("taught-bolero-of-fire", "Bolero of Fire, taught", Ocarina, "ExampleMelody_FireBolero", Some("ExampleMelody_FireBolero"), 4.32, false),
-    t("taught-serenade-of-water", "Serenade of Water, taught", Ocarina, "ExampleMelody_WaterSerenade", Some("ExampleMelody_WaterSerenade"), 4.80, false),
-    t("taught-nocturne-of-shadow", "Nocturne of Shadow, taught", Ocarina, "ExampleMelody_ShadowNocturne", Some("ExampleMelody_ShadowNocturne"), 4.94, false),
-    t("taught-requiem-of-spirit", "Requiem of Spirit, taught", Ocarina, "ExampleMelody_SpiritRequiem", Some("ExampleMelody_SpiritRequiem"), 6.00, false),
-    t("taught-prelude-of-light", "Prelude of Light, taught", Ocarina, "ExampleMelody_LightPrelude", Some("ExampleMelody_LightPrelude"), 4.15, false),
+    c(OCARINA, t("played-zeldas-lullaby", "Zelda's Lullaby, played", Ocarina, "Melody_ZeldaLullaby", Some("Ocarina_ZeldaLullaby"), 10.74, false)),
+    c(OCARINA, t("played-eponas-song", "Epona's Song, played", Ocarina, "Melody_EponaSong", Some("Ocarina_EponaSong"), 7.94, false)),
+    c(OCARINA, t("played-sarias-song", "Saria's Song, played", Ocarina, "Melody_SariaSong", Some("Ocarina_SariaSong"), 6.2836, false)),
+    c(OCARINA, t("played-suns-song", "Sun's Song, played", Ocarina, "Melody_SunSong", Some("Ocarina_SunSong"), 5.22, false)),
+    c(OCARINA, t("played-song-of-time", "Song of Time, played", Ocarina, "Melody_TimeSong", Some("Ocarina_TimeSong"), 10.20, false)),
+    c(OCARINA, t("played-song-of-storms", "Song of Storms, played", Ocarina, "Melody_StormSong", Some("Ocarina_StormSong"), 5.15, false)),
+    c(OCARINA, t("played-minuet-of-forest", "Minuet of Forest, played", Ocarina, "Melody_ForestMinuet", Some("Ocarina_ForestMinuet"), 16.93, false)),
+    c(OCARINA, t("played-bolero-of-fire", "Bolero of Fire, played", Ocarina, "Melody_FireBolero", Some("Ocarina_FireBolero"), 20.43, false)),
+    c(OCARINA, t("played-serenade-of-water", "Serenade of Water, played", Ocarina, "Melody_WaterSerenade", Some("Ocarina_WaterSerenade"), 18.64, false)),
+    c(OCARINA, t("played-nocturne-of-shadow", "Nocturne of Shadow, played", Ocarina, "Melody_ShadowNocturne", Some("Ocarina_ShadowNocturne"), 21.07, false)),
+    c(OCARINA, t("played-requiem-of-spirit", "Requiem of Spirit, played", Ocarina, "Melody_SpiritRequiem", Some("Ocarina_SpiritRequiem"), 21.26, false)),
+    c(OCARINA, t("played-prelude-of-light", "Prelude of Light, played", Ocarina, "Melody_LightPrelude", Some("Ocarina_LightPrelude"), 17.65, false)),
+    c(OCARINA, t("taught-zeldas-lullaby", "Zelda's Lullaby, taught", Ocarina, "ExampleMelody_ZeldaLullaby", Some("ExampleMelody_ZeldaLullaby"), 5.59, false)),
+    c(OCARINA, t("taught-eponas-song", "Epona's Song, taught", Ocarina, "ExampleMelody_EponaSong", Some("ExampleMelody_EponaSong"), 5.57, false)),
+    c(OCARINA, t("taught-sarias-song", "Saria's Song, taught", Ocarina, "ExampleMelody_SariaSong", Some("ExampleMelody_SariaSong"), 4.38, false)),
+    c(OCARINA, t("taught-suns-song", "Sun's Song, taught", Ocarina, "ExampleMelody_SunSong", Some("ExampleMelody_SunSong"), 3.56, false)),
+    c(OCARINA, t("taught-song-of-time", "Song of Time, taught", Ocarina, "ExampleMelody_TimeSong", Some("ExampleMelody_TimeSong"), 5.61, false)),
+    c(OCARINA, t("taught-song-of-storms", "Song of Storms, taught", Ocarina, "ExampleMelody_StormSong", Some("ExampleMelody_StormSong"), 4.50, false)),
+    c(OCARINA, t("taught-minuet-of-forest", "Minuet of Forest, taught", Ocarina, "ExampleMelody_ForestMinuet", Some("ExampleMelody_ForestMinuet"), 5.64, false)),
+    c(OCARINA, t("taught-bolero-of-fire", "Bolero of Fire, taught", Ocarina, "ExampleMelody_FireBolero", Some("ExampleMelody_FireBolero"), 4.32, false)),
+    c(OCARINA, t("taught-serenade-of-water", "Serenade of Water, taught", Ocarina, "ExampleMelody_WaterSerenade", Some("ExampleMelody_WaterSerenade"), 4.80, false)),
+    c(OCARINA, t("taught-nocturne-of-shadow", "Nocturne of Shadow, taught", Ocarina, "ExampleMelody_ShadowNocturne", Some("ExampleMelody_ShadowNocturne"), 4.94, false)),
+    c(OCARINA, t("taught-requiem-of-spirit", "Requiem of Spirit, taught", Ocarina, "ExampleMelody_SpiritRequiem", Some("ExampleMelody_SpiritRequiem"), 6.00, false)),
+    c(OCARINA, t("taught-prelude-of-light", "Prelude of Light, taught", Ocarina, "ExampleMelody_LightPrelude", Some("ExampleMelody_LightPrelude"), 4.15, false)),
+    v(PLAYER_ADULT, t("adult-sword-light", "Sword swing, light", VoiceAdult, "SwordAttack_S", Some("Vo_PlAdult_SwordAttack_S_01"), 0.45, false)),
+    v(PLAYER_ADULT, t("adult-sword", "Sword swing", VoiceAdult, "SwordAttack_M", Some("Vo_PlAdult_SwordAttack_M_01"), 0.35, false)),
+    v(PLAYER_ADULT, t("adult-sword-heavy", "Sword swing, heavy", VoiceAdult, "SwordAttack_B", Some("Vo_PlAdult_SwordAttack_B_01"), 0.57, false)),
+    v(PLAYER_ADULT, t("adult-jump-attack", "Jump attack", VoiceAdult, "JumpAttack", Some("Vo_PlAdult_JumpAttack_01"), 0.67, false)),
+    v(PLAYER_ADULT, t("adult-spin", "Spin attack", VoiceAdult, "RotaryCut_S", Some("Vo_PlAdult_RotaryCut_S_01"), 0.52, false)),
+    v(PLAYER_ADULT, t("adult-spin-charged", "Spin attack, charged", VoiceAdult, "RotaryCut_B", Some("Vo_PlAdult_RotaryCut_B_01"), 0.86, false)),
+    v(PLAYER_ADULT, t("adult-roll", "Roll", VoiceAdult, "RollAttack", Some("Vo_PlAdult_RollAttack_01"), 0.39, false)),
+    v(PLAYER_ADULT, t("adult-backflip", "Backflip", VoiceAdult, "BackFlip", Some("Vo_PlAdult_BackFlip_01"), 0.43, false)),
+    v(PLAYER_ADULT, t("adult-side-hop", "Side hop", VoiceAdult, "SideStep", Some("Vo_PlAdult_SideStep_01"), 0.39, false)),
+    v(PLAYER_ADULT, t("adult-jump", "Jump", VoiceAdult, "Jump_S", Some("Vo_PlAdult_Jump_S_01"), 0.33, false)),
+    v(PLAYER_ADULT, t("adult-jump-big", "Big jump", VoiceAdult, "Jump_B", Some("Vo_PlAdult_Jump_B_01"), 0.43, false)),
+    v(PLAYER_ADULT, t("adult-climb", "Climb", VoiceAdult, "Climb", Some("Vo_PlAdult_Climb_01"), 0.55, false)),
+    v(PLAYER_ADULT, t("adult-ledge", "Climb onto a ledge", VoiceAdult, "ReachingTop", Some("Vo_PlAdult_ReachingTop_01"), 0.37, false)),
+    v(PLAYER_ADULT, t("adult-push", "Push", VoiceAdult, "Push", Some("Vo_PlAdult_Push_01"), 1.42, false)),
+    v(PLAYER_ADULT, t("adult-lift", "Lift", VoiceAdult, "lifting", Some("Vo_PlAdult_lifting_01"), 0.30, false)),
+    v(PLAYER_ADULT, t("adult-lift-fail", "Lift, too heavy", VoiceAdult, "liftingImpossible", Some("Vo_PlAdult_liftingImpossible_01"), 1.70, false)),
+    v(PLAYER_ADULT, t("adult-throw", "Throw", VoiceAdult, "Throw", Some("Vo_PlAdult_ThrowingBom_01"), 0.40, false)),
+    v(PLAYER_ADULT, t("adult-throw-bomb", "Throw a bomb", VoiceAdult, "ThrowingBom", Some("Vo_PlAdult_ThrowingBom_01"), 0.40, false)),
+    v(PLAYER_ADULT, t("adult-throw-nut", "Throw a Deku Nut", VoiceAdult, "ThrowingNuts", Some("Vo_PlAdult_ThrowingNuts_01"), 0.36, false)),
+    v(PLAYER_ADULT, t("adult-shield", "Shield hit", VoiceAdult, "Shield_S", Some("Vo_PlAdult_Shield_S_01"), 0.43, false)),
+    v(PLAYER_ADULT, t("adult-shield-heavy", "Shield hit, heavy", VoiceAdult, "Shield_B", Some("Vo_PlAdult_Shield_B_01"), 0.62, false)),
+    v(PLAYER_ADULT, t("adult-hurt-light", "Hurt, light", VoiceAdult, "Damage_S", Some("Vo_PlAdult_Damage_S_01"), 0.54, false)),
+    v(PLAYER_ADULT, t("adult-hurt", "Hurt", VoiceAdult, "Damage_M", Some("Vo_PlAdult_Damage_M_01"), 0.62, false)),
+    v(PLAYER_ADULT, t("adult-hurt-heavy", "Hurt, heavy", VoiceAdult, "Damage_B", Some("Vo_PlAdult_Damage_B_01"), 1.16, false)),
+    v(PLAYER_ADULT, t("adult-burn", "Burned", VoiceAdult, "FireDamage_S", Some("Vo_PlAdult_FireDamage_S_01"), 0.71, false)),
+    v(PLAYER_ADULT, t("adult-burn-heavy", "Burned, badly", VoiceAdult, "FireDamage_L", Some("Vo_PlAdult_FireDamage_L_01"), 1.29, false)),
+    v(PLAYER_ADULT, t("adult-shock", "Shocked", VoiceAdult, "ElectricDamage_S", Some("Vo_PlAdult_ElectricDamage_S_01"), 0.77, false)),
+    v(PLAYER_ADULT, t("adult-shock-heavy", "Shocked, badly", VoiceAdult, "ElectricDamage_L", Some("Vo_PlAdult_ElectricDamage_L_01"), 1.34, false)),
+    v(PLAYER_ADULT, t("adult-freeze", "Frozen", VoiceAdult, "IceDamage", Some("Vo_PlAdult_IceDamage_01"), 0.53, false)),
+    v(PLAYER_ADULT, t("adult-lava", "Lava", VoiceAdult, "LavaDamage", Some("Vo_PlAdult_LavaDamage_01"), 1.47, false)),
+    v(PLAYER_ADULT, t("adult-hard-landing", "Hard landing", VoiceAdult, "LandingDamage", Some("Vo_PlAdult_LandingDamage_01"), 1.57, false)),
+    v(PLAYER_ADULT, t("adult-fall", "Falling", VoiceAdult, "FallingScream", Some("Vo_PlAdult_FallingScream_01"), 3.44, false)),
+    v(PLAYER_ADULT, t("adult-death", "Death", VoiceAdult, "Death", Some("Vo_PlAdult_Death_01"), 2.41, false)),
+    v(PLAYER_ADULT, t("adult-drown", "Drowning", VoiceAdult, "WaterDeath", Some("Vo_PlAdult_WaterDeath_01"), 0.97, false)),
+    v(PLAYER_ADULT, t("adult-surprised", "Surprised", VoiceAdult, "Surprised", Some("Vo_PlAdult_Surprised_01"), 0.45, false)),
+    v(PLAYER_ADULT, t("adult-wake", "Wake up", VoiceAdult, "WakeUp", Some("Vo_PlAdult_WakeUp_01"), 0.40, false)),
+    v(PLAYER_ADULT, t("adult-stretch", "Stretch", VoiceAdult, "Stretching", Some("Vo_PlAdult_Stretching_01"), 1.83, false)),
+    v(PLAYER_ADULT, t("adult-big-sword-light", "Two-handed swing, light", VoiceAdult, "BigSwordAttack_S", Some("Vo_PlAdult_BigSwordAttack_S_01"), 0.41, false)),
+    v(PLAYER_ADULT, t("adult-big-sword", "Two-handed swing", VoiceAdult, "BigSwordAttack_M", Some("Vo_PlAdult_BigSwordAttack_M_01"), 0.43, false)),
+    v(PLAYER_ADULT, t("adult-big-sword-heavy", "Two-handed swing, heavy", VoiceAdult, "BigSwordAttack_B", Some("Vo_PlAdult_BigSwordAttack_B_01"), 0.84, false)),
+    v(PLAYER_ADULT, t("adult-hammer", "Megaton Hammer", VoiceAdult, "Hammer", Some("Vo_PlAdult_Hammer_01"), 0.73, false)),
+    v(PLAYER_ADULT, t("adult-hookshot", "Hookshot", VoiceAdult, "HookShot", Some("Vo_PlAdult_HookShot_01"), 0.40, false)),
+    v(PLAYER_ADULT, t("adult-horse-mount", "Mount Epona", VoiceAdult, "HorseRide", Some("Vo_PlAdult_HorseRide_01"), 0.33, false)),
+    v(PLAYER_ADULT, t("adult-horse-dismount", "Dismount Epona", VoiceAdult, "HorseGetoff", Some("Vo_PlAdult_HorseGetoff_01"), 0.33, false)),
+    v(PLAYER_ADULT, t("adult-spur", "Spur Epona", VoiceAdult, "HorseSpurs_S", Some("Vo_PlAdult_HorseSpurs_S01"), 0.41, false)),
+    v(PLAYER_ADULT, t("adult-horse-jump", "Epona's jump", VoiceAdult, "HorseJumpoff", Some("Vo_PlAdult_HorseJumpoff_01"), 0.47, false)),
+    v(PLAYER_CHILD, t("child-sword-light", "Sword swing, light", VoiceChild, "SwordAttack_S", Some("Vo_PlChild_SwordAttack_S_01"), 0.25, false)),
+    v(PLAYER_CHILD, t("child-sword", "Sword swing", VoiceChild, "SwordAttack_M", Some("Vo_PlChild_SwordAttack_M_01"), 0.34, false)),
+    v(PLAYER_CHILD, t("child-sword-heavy", "Sword swing, heavy", VoiceChild, "SwordAttack_B", Some("Vo_PlChild_SwordAttack_B_01"), 0.68, false)),
+    v(PLAYER_CHILD, t("child-jump-attack", "Jump attack", VoiceChild, "JumpAttack", Some("Vo_PlChild_JumpAttack_01"), 0.59, false)),
+    v(PLAYER_CHILD, t("child-spin", "Spin attack", VoiceChild, "RotaryCut_S", Some("Vo_PlChild_RotaryCut_S_01"), 0.60, false)),
+    v(PLAYER_CHILD, t("child-spin-charged", "Spin attack, charged", VoiceChild, "RotaryCut_B", Some("Vo_PlChild_RotaryCut_B_01"), 1.00, false)),
+    v(PLAYER_CHILD, t("child-roll", "Roll", VoiceChild, "RollAttack", Some("Vo_PlChild_RollAttack_01"), 0.39, false)),
+    v(PLAYER_CHILD, t("child-backflip", "Backflip", VoiceChild, "BackFlip", Some("Vo_PlChild_BackFlip_01"), 0.27, false)),
+    v(PLAYER_CHILD, t("child-side-hop", "Side hop", VoiceChild, "SideStep", Some("Vo_PlChild_SideStep_01"), 0.21, false)),
+    v(PLAYER_CHILD, t("child-jump", "Jump", VoiceChild, "Jump_S", Some("Vo_PlChild_Jump_S_01"), 0.21, false)),
+    v(PLAYER_CHILD, t("child-jump-big", "Big jump", VoiceChild, "Jump_B", Some("Vo_PlChild_Jump_B_01"), 0.48, false)),
+    v(PLAYER_CHILD, t("child-climb", "Climb", VoiceChild, "Climb", Some("Vo_PlChild_Climb_01"), 0.73, false)),
+    v(PLAYER_CHILD, t("child-ledge", "Climb onto a ledge", VoiceChild, "ReachingTop", Some("Vo_PlChild_ReachingTop_01"), 0.11, false)),
+    v(PLAYER_CHILD, t("child-push", "Push", VoiceChild, "Push", Some("Vo_PlChild_Push_03_alt_01"), 0.58, false)),
+    v(PLAYER_CHILD, t("child-lift", "Lift", VoiceChild, "lifting", Some("Vo_PlChild_lifting_01"), 0.13, false)),
+    v(PLAYER_CHILD, t("child-lift-fail", "Lift, too heavy", VoiceChild, "liftingImpossible", Some("Vo_PlChild_liftingImpossible_01"), 1.26, false)),
+    v(PLAYER_CHILD, t("child-throw", "Throw", VoiceChild, "Throw", Some("Vo_PlChild_ThrowingBom_01"), 0.35, false)),
+    v(PLAYER_CHILD, t("child-throw-bomb", "Throw a bomb", VoiceChild, "ThrowingBom", Some("Vo_PlChild_ThrowingBom_01"), 0.35, false)),
+    v(PLAYER_CHILD, t("child-throw-nut", "Throw a Deku Nut", VoiceChild, "ThrowingNuts", Some("Vo_PlChild_ThrowingNuts_01"), 0.23, false)),
+    v(PLAYER_CHILD, t("child-shield", "Shield hit", VoiceChild, "Shield_S", Some("Vo_PlChild_Shield_S_01"), 0.33, false)),
+    v(PLAYER_CHILD, t("child-shield-heavy", "Shield hit, heavy", VoiceChild, "Shield_B", Some("Vo_PlChild_Shield_B_01"), 0.34, false)),
+    v(PLAYER_CHILD, t("child-hurt-light", "Hurt, light", VoiceChild, "Damage_S", Some("Vo_PlChild_Damage_S_01"), 0.60, false)),
+    v(PLAYER_CHILD, t("child-hurt", "Hurt", VoiceChild, "Damage_M", Some("Vo_PlChild_Damage_M_01"), 0.70, false)),
+    v(PLAYER_CHILD, t("child-hurt-heavy", "Hurt, heavy", VoiceChild, "Damage_B", Some("Vo_PlChild_Damage_B_01"), 0.94, false)),
+    v(PLAYER_CHILD, t("child-burn", "Burned", VoiceChild, "FireDamage_S", Some("Vo_PlChild_FireDamage_S_01"), 0.42, false)),
+    v(PLAYER_CHILD, t("child-burn-heavy", "Burned, badly", VoiceChild, "FireDamage_L", Some("Vo_PlChild_FireDamage_L_01"), 0.62, false)),
+    v(PLAYER_CHILD, t("child-shock", "Shocked", VoiceChild, "ElectricDamage_S", Some("Vo_PlChild_ElectricDamage_S_01"), 0.62, false)),
+    v(PLAYER_CHILD, t("child-shock-heavy", "Shocked, badly", VoiceChild, "ElectricDamage_L", Some("Vo_PlChild_ElectricDamage_L_01"), 1.32, false)),
+    v(PLAYER_CHILD, t("child-freeze", "Frozen", VoiceChild, "IceDamage", Some("Vo_PlChild_IceDamage_01"), 0.34, false)),
+    v(PLAYER_CHILD, t("child-lava", "Lava", VoiceChild, "LavaDamage", Some("Vo_PlChild_LavaSwallowedDamage_01"), 1.93, false)),
+    v(PLAYER_CHILD, t("child-hard-landing", "Hard landing", VoiceChild, "LandingDamage", Some("Vo_PlChild_LandingDamage_01_alt"), 0.99, false)),
+    v(PLAYER_CHILD, t("child-fall", "Falling", VoiceChild, "FallingScream", Some("Vo_PlChild_FallingScream_01"), 3.44, false)),
+    v(PLAYER_CHILD, t("child-death", "Death", VoiceChild, "Death", Some("Vo_PlChild_Death_01"), 1.12, false)),
+    v(PLAYER_CHILD, t("child-drown", "Drowning", VoiceChild, "WaterDeath", Some("Vo_PlChild_WaterDeath_01"), 0.73, false)),
+    v(PLAYER_CHILD, t("child-surprised", "Surprised", VoiceChild, "Surprised", Some("Vo_PlChild_Surprised_01"), 0.57, false)),
+    v(PLAYER_CHILD, t("child-wake", "Wake up", VoiceChild, "WakeUp", Some("Vo_PlChild_WakeUp_01"), 0.26, false)),
+    v(PLAYER_CHILD, t("child-stretch", "Stretch", VoiceChild, "Stretching", Some("Vo_PlChild_Stretching_01"), 1.22, false)),
 ];

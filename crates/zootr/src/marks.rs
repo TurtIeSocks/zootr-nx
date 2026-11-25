@@ -7,7 +7,7 @@
 //! them, so a kind the shuffle leaves out stays vanilla.
 
 mod files;
-mod paint;
+pub(crate) mod paint;
 mod shrubs;
 
 pub use files::FILES;
@@ -221,15 +221,26 @@ const WORDS: [(&str, &str); 1] = [("FlyingPot", "MarkedPot")];
 /// of [`WORDS`] swapped, so the copy is as long as the name, as a model's
 /// rename needs.
 pub fn marked(name: &str) -> Result<String> {
-    let mut parts: Vec<&str> = name.split('_').collect();
-    if let Some(class) = parts.iter().position(|p| *p == "A") {
-        parts[class] = "Z";
-        return Ok(parts.join("_"));
+    if let Some(copy) = lettered(name, MARK) {
+        return Ok(copy);
     }
+    let parts: Vec<&str> = name.split('_').collect();
     let (from, to) = (WORDS.iter())
         .find(|(from, _)| parts.contains(from))
         .with_context(|| format!("{name} has no class part or word to mark"))?;
     Ok(name.replacen(from, to, 1))
+}
+
+/// The class letter a marked copy takes.
+const MARK: char = 'Z';
+
+/// `name` with its class part `A` made `letter`, as long as `name`, as a
+/// model's rename needs. None without a class part.
+pub(crate) fn lettered(name: &str, letter: char) -> Option<String> {
+    let mut parts: Vec<String> = name.split('_').map(str::to_owned).collect();
+    let class = parts.iter().position(|p| p == "A")?;
+    parts[class] = letter.to_string();
+    Some(parts.join("_"))
 }
 
 /// The marked copy `actor` stands as while it holds a check, if it's a
@@ -247,9 +258,13 @@ pub(crate) fn texture_file(name: &str) -> String {
 /// Writes each marked model, its painted albedo, and each marked actor
 /// with its host's rows and tags. Without its Tag row a marked pot can't
 /// be lifted (spike, 2026-11-22).
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    tables: &mut Tables,
+    tags: &mut Tags,
+) -> Result<()> {
     let triforce = Mark::triforce(romfs)?;
-    let mut tags = Tags::load(romfs)?;
     for (albedo, style) in albedos() {
         write_albedo(romfs, builder, albedo, style, &triforce)?;
     }
@@ -274,9 +289,9 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         tags.copy(&name, host)?;
     }
     for host in SHRUBS {
-        shrubs::write(romfs, builder, tables, &mut tags, host)?;
+        shrubs::write(romfs, builder, tables, tags, host)?;
     }
-    tags.write(builder)
+    Ok(())
 }
 
 /// `model`'s marked copy, naming its marked albedos, and its color

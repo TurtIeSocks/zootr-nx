@@ -111,6 +111,9 @@ pub enum Probe {
         /// Also write each hit here, decompressed, under its romfs path.
         #[arg(long)]
         out: Option<PathBuf>,
+        /// Print each BWAV stream's length in seconds, and `loop` if it loops.
+        #[arg(long)]
+        length: bool,
     },
     /// A shape's Havok mesh by its name, like
     /// `<piece>__Airwall`: vertex and triangle counts and its
@@ -230,6 +233,9 @@ pub enum Probe {
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
+    /// Paints each albedo a chest look shows (Chest Looks Match Contents)
+    /// and writes it to `out` as PNG, as a seed paints it
+    Chests { out: PathBuf },
     /// A save's pouch: each actor's `StockNum` and `IsGet`, where either
     /// is set. A slot number or a path to a `progress.sav`.
     Pouch {
@@ -260,8 +266,9 @@ pub enum Probe {
         /// Instead, the call each action and property trigger plays.
         #[arg(long, conflicts_with_all = ["tree", "children"])]
         triggers: bool,
-        /// Each call's kind (asset or container) and its param offset:
-        /// calls that share an offset play the same thing.
+        /// Each call's kind (asset or container), its param offset (calls
+        /// that share one play the same thing) and an asset's names, by
+        /// field bit: `1:` is the stream it plays, `2:` its category.
         #[arg(long, conflicts_with_all = ["tree", "children", "triggers"])]
         params: bool,
     },
@@ -551,7 +558,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             settings();
             Ok(())
         }
-        Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
+        Probe::Files {
+            pattern,
+            out,
+            length,
+        } => files(romfs, game, &pattern, out.as_deref(), length),
         Probe::Mesh { name } => {
             let mesh = crate::nav::mesh::mesh(romfs, game, &name)?
                 .with_context(|| format!("the dump has no mesh {name}"))?;
@@ -620,6 +631,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
+        Probe::Chests { out } => crate::chest_looks::preview(romfs, &out),
         Probe::Materials { model } => colors::materials(romfs, game, &model),
         Probe::Model { model, raw } => colors::model(romfs, game, &model, raw.as_deref()),
         Probe::Band {
@@ -659,8 +671,15 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
                 let names = ounce_formats::xlink_calls(&file, &user)?;
                 for (name, call) in names.iter().zip(&table) {
                     if name.to_lowercase().contains(&grep) {
-                        let kind = if call.container { "container" } else { "asset" };
-                        println!("{name}\t{kind}\t{:#x}", call.param);
+                        let (kind, names) = match call.container {
+                            true => ("container", String::new()),
+                            false => {
+                                let names = ounce_formats::xlink_asset_names(&file, call.param)?;
+                                let names = names.iter().map(|(bit, n)| format!("{bit}:{n}"));
+                                ("asset", names.collect::<Vec<_>>().join(" "))
+                            }
+                        };
+                        println!("{name}\t{kind}\t{:#x}\t{names}", call.param);
                     }
                 }
                 return Ok(());

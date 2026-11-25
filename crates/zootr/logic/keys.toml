@@ -32,3 +32,272 @@ rooms = [
     { room = 14, keys = 1 },
     { room = 15, keys = 1 },
 ]
+
+# Four locks and four keys (the original game had six keys for five).
+# A: the central pillar's west door, low water, into the pillar (rooms 1
+# and 2). B: the hall's west wall at mid water, into the jet room (10).
+# C: the hall's west wall at high water, to the waterfall, Dark Link and
+# the Longshot (rooms 5, 6, 22, 7, 21). D: the hall's north wall, low,
+# the half-flooded passage on to the boulders and the Boss Key (24, 15).
+# Keys 1 to 3 (rooms 4, 8, 18) lie behind no lock. Key 4 (room 20) and
+# lock D both need the Longshot, found past C, so before it Link can
+# open only A, B and C, with three keys. A Longshot found outside the
+# temple lets him open D first: then C needs key 4, which also needs
+# the Bow. The remake's walkthrough opens A, B, C, then D.
+[[dungeon]]
+name = "water-temple"
+keys = 0
+rooms = [
+    { room = 1, keys = 3 },
+    { room = 2, keys = 3 },
+    { room = 5, keys = 3 },
+    { room = 6, keys = 3 },
+    { room = 7, keys = 3 },
+    { room = 10, keys = 3 },
+    { room = 21, keys = 3 },
+    { room = 22, keys = 3 },
+    { room = 15, keys = 4 },
+    { room = 24, keys = 4 },
+]
+
+# Nine locks, all inside the central maze (room 8), met one after another
+# on its single path, so each maze chest counts the locks before it, as in
+# Ship's route: the first path chest 4, the second 6, the third 7, the
+# Ice Arrows chest 9. The two key chests high above the maze are the
+# hidden ceiling chest (3) and the one by the scarecrow (0), and which is
+# which is a guess, so both count 3. The maze's right side counts 0: its
+# rule takes the lava room's way with the Song of Time, the vanilla way
+# to the ninth key. The other six key chests (rooms 1, 4, 5, 7, 9, 10)
+# lie behind no lock.
+[[dungeon]]
+name = "gerudo-training-ground"
+keys = 0
+checks = [
+    { hash = 10696620323243142689, keys = 4 },
+    { hash = 8186301369655588602, keys = 6 },
+    { hash = 10743352138513225188, keys = 7 },
+    { hash = 1941083939696166170, keys = 9 },
+    { hash = 4320448574091221496, keys = 3 },
+    { hash = 9911316961118170383, keys = 3 },
+]
+
+# Five locks, five keys, a chain from the entrance. Rooms 0 to 7, 26 and
+# 30 (the entrance, the whispering walls, the Beamos junction and its
+# side rooms) lie before any lock, so they take the default 0. The key in
+# room 6's chest needs no lock, so Link starts the chain with one key.
+#   Lock 1, east wall of the Beamos junction (room 5) at 96,86,1.4: leads
+#     to the guillotine corridor (room 8), then the huge pit (room 9) and
+#     everything off it: rooms 10 and 31 (the invisible blades, whose door
+#     has no lock here) and room 11 (falling spikes, a key chest).
+#     Ship's first locked exit. 1 key.
+#   Lock 2, south of the floor spikes room (room 12) at 56.9,52.5,45.5:
+#     leads from the pit (room 9) to room 12 and the skull pot room (13,
+#     the key lying in the open). Ship's floor spikes south door. Link
+#     could also have opened lock 1, so 2 keys.
+#   Lock 3, north end of room 12 at 56.9,56,26.5: leads to the wind room
+#     (14), the hint alcove (15) and the Gibdo room (16, a key chest).
+#     Ship's door onto the wind tunnel. 3 keys.
+#   Lock 4, north of the Gibdo room at 109.7,52,-27.1: leads to the boat
+#     room (17) and the boat (29), then the maze (18, 20, 21, the last key
+#     chest) and the chasm and boss door rooms (22 to 24). Ship's door to
+#     the dock. 4 keys.
+#   Lock 5, north of the maze hub (room 18) at -181.8,41.3,-61.8: leads to
+#     the spiked walls room (19, the Boss Key and a magic jar). Ship has no
+#     lock here: its fifth lock is the door before the boss door (room 22
+#     here), which has no chain in the remake, so rooms 22 to 24 count 4.
+#     Link could have opened locks 1 to 4 first, so 5 keys.
+# Every key chest can be taken in turn: room 6 (0), room 11 (1), room 13
+# (2), room 16 (3), room 21 (4), five keys in all.
+[[dungeon]]
+name = "shadow-temple"
+keys = 0
+rooms = [
+    { room = 8, keys = 1 },
+    { room = 9, keys = 1 },
+    { room = 10, keys = 1 },
+    { room = 11, keys = 1 },
+    { room = 31, keys = 1 },
+    { room = 12, keys = 2 },
+    { room = 13, keys = 2 },
+    { room = 14, keys = 3 },
+    { room = 15, keys = 3 },
+    { room = 16, keys = 3 },
+    { room = 17, keys = 4 },
+    { room = 18, keys = 4 },
+    { room = 20, keys = 4 },
+    { room = 21, keys = 4 },
+    { room = 22, keys = 4 },
+    { room = 23, keys = 4 },
+    { room = 24, keys = 4 },
+    { room = 29, keys = 4 },
+    { room = 19, keys = 5 },
+]
+
+# Five locks, five keys, one map both ages share. Keys are shared too, so
+# a key spent on one side can leave the other short.
+#   A (-33.6, 106.0, -55.3): the child side's first lock, room 5 to the
+#     foot of the climb, which we count as room 6. Ship's child boxes to
+#     sun-on-floor exit.
+#   B (33.6, 104.8, -39.5): the adult side's first lock, room 13 to room
+#     17, then the mirror room (18). Ship's adult hub to 1F mirror exit.
+#   C (-55.8, 132.1, 8.4): room 10 (sun block hall) to room 11 (right Iron
+#     Knuckle), then the right hand (12). Ship's skulltula stairs to child
+#     throne exit, 3 keys either way.
+#   E (18.0, 129.1, -39.4): the statue hall (7) to room 20, then 21 to 26
+#     (armos, red rupees, left Iron Knuckle, left hand, key alcove). Ship's
+#     statue room adult to pot stairs exit, 4 keys.
+#   F (29.3, 130.0, -17.5): room 21 to the moving wall room (27), then 28
+#     to 31 (boss key, mirrors, topmost chest). Ship's beamos pits to big
+#     wall exit, 5 keys.
+# All five match Ship's locked exits. The boss door (room 7 to 32) takes
+# the boss key, so it is left out. Rooms 32 and 33 follow Ship's way to
+# the boss door, which needs the 4F mirrors behind F.
+#
+# Ship counts the shared rooms by age: the child only reaches a shared
+# check for certain with all 5 keys (the adult may have spent 4 on B, C,
+# E and F), the adult with 3 (the child can only have spent A and C). A
+# check either age can make needs only 1 or 2, and one room can hold both
+# kinds, so one count per room cannot say it. Each room here takes its
+# adult-only check's 3 if it has one (statue hall 7: the hand key chest
+# and the west ledge skulltula; mirror room 18; alcove 19), else 2 where
+# every check takes either age (rooms 6, 8, 9, 10: Ship asks 1 key with
+# explosives, 2 without). The child-only 5 never binds a check in our
+# file. The right hand (12) takes Ship's 5, which it asks unless Link
+# holds the Longshot: one count can't follow that, and no key lies there.
+#
+# Check, from 0 keys: the child torch key (room 4) and the boulder room
+# key (room 16) sit behind no lock, 2 keys. The sun block ledge key (room
+# 9, 2) makes 3, the statue hand key (room 7, 3) makes 4, the key alcove
+# (room 26, 4) makes 5. All five are taken.
+[[dungeon]]
+name = "spirit-temple"
+keys = 0
+rooms = [
+    { room = 6, keys = 2 },
+    { room = 7, keys = 3 },
+    { room = 8, keys = 2 },
+    { room = 9, keys = 2 },
+    { room = 10, keys = 2 },
+    { room = 11, keys = 3 },
+    { room = 12, keys = 5 },
+    { room = 17, keys = 1 },
+    { room = 18, keys = 3 },
+    { room = 19, keys = 3 },
+    { room = 20, keys = 4 },
+    { room = 21, keys = 4 },
+    { room = 22, keys = 4 },
+    { room = 23, keys = 4 },
+    { room = 24, keys = 4 },
+    { room = 25, keys = 4 },
+    { room = 26, keys = 4 },
+    { room = 27, keys = 5 },
+    { room = 28, keys = 5 },
+    { room = 29, keys = 5 },
+    { room = 30, keys = 5 },
+    { room = 31, keys = 5 },
+    { room = 32, keys = 5 },
+    { room = 33, keys = 5 },
+]
+
+# Five locks, in one line, so each needs 1 plus the locks before it.
+# Lock A, at (0, 103, 44.5), is at the entrance: it shuts the first room
+# (0, with a key chest) off from the Skulltula hall (1) and so from the
+# rest. Ship's temple has no lock there, so every other count here is one
+# above Ship's. Lock B, at (-26, 103.5, 0), is Ship's lobby lock: lobby
+# (2) to the west hall (5), then the block rooms (6 to 8) and the bubble
+# lamp room (9) at their top; it needs 2. Lock C, at (-56.5, 124.5,
+# -11.4), is Ship's lock at the top of the block rooms: room 9 to the
+# twisted corridor (10), the Wallmaster hall (11) and the red Poe room
+# (16), which holds a key chest, then the bow room (17); it needs 3. Ship's
+# next two locks (into the red Poe room, and out of the blue Poe room)
+# are not in ours. Instead lock D, at (14.5, 114.5, -59.5), sits between
+# the bow room (17) and the blue Poe room (18), which leads on to the
+# corridors (19, 20); it needs 4. Lock E, at (56.5, 124.5, -11.5), is
+# Ship's last lock: room 20 to the twist switch room (23); it needs 5.
+# Other ways round: the Floormaster room (22) is off the courtyard's upper
+# floor, reached by hover boots from the block rooms (past lock B) or
+# from the boss key ledge (past lock C), so it takes 2. The courtyards
+# (12, 14, 15) and the rooms off them need only lock A. The rotating
+# floor room (27) opens once the three Poes fall, and the blue Poe is
+# behind lock D, so it takes 4. Check: the first room's chest needs 0,
+# the Stalfos room's and the well's need 1 (3 keys), the Floormaster
+# room's needs 2 (4 keys), the red Poe room's needs 3: all five taken.
+[[dungeon]]
+name = "forest-temple"
+keys = 1
+rooms = [
+    { room = 0, keys = 0 },
+    { room = 5, keys = 2 },
+    { room = 6, keys = 2 },
+    { room = 7, keys = 2 },
+    { room = 8, keys = 2 },
+    { room = 9, keys = 2 },
+    { room = 10, keys = 3 },
+    { room = 11, keys = 3 },
+    { room = 16, keys = 3 },
+    { room = 17, keys = 3 },
+    { room = 18, keys = 4 },
+    { room = 19, keys = 4 },
+    { room = 20, keys = 4 },
+    { room = 21, keys = 2 },
+    { room = 22, keys = 2 },
+    { room = 23, keys = 5 },
+    { room = 27, keys = 4 },
+]
+# The Boss Key chest names no room. It stands in the twisted corridor
+# once straightened, past lock C, like rooms 10 and 11.
+checks = [
+    { hash = 5306318520835485827, keys = 3 },
+]
+
+# Seven locks, in one line apart from the loop door. Lock 1, at (10.5,
+# 105, 0): foyer (0) to the lava room (1) and its bombable cell (22), and
+# the Like Like room (19) off it. Ship needs 2 keys here, 1 for a spare it
+# may spend on the loop door, but ours is shut off by Hammer pillars and
+# the Hammer lies past lock 5, so only 1 is needed (the near boss chest,
+# in room 2, is the one free key). Lock 2, at (68.3, 105, 0), is Ship's
+# lava geyser lock: lava room to the geyser corridor (21), 2 keys. Lock 3,
+# at (111.8, 107.6, 0), is the corridor's far end, Ship's lock into the
+# shortcut: up to the shortcut room (4) and on to the boulder maze (5),
+# the eye switch passage (6), the ledges (7, 8) and the upper hall (16),
+# 3 keys. Lock 4, at (41.7, 147, -8.6), is the maze's north door into the
+# eye switch passage (6). Ship has two locks between maze and fire wall
+# chase; ours has this one plus a free south door and the eye switch, so
+# Link may spend a key here but need not: rooms 6 and 16 stay at 3, and
+# lock 4 counts as a spare in the counts after it. Lock 5, at (5.2,
+# 150.6, 0.1), is Ship's last-but-one lock: the upper hall (16) to the fire
+# wall maze (10), 1 plus locks 1 to 4 is 5. Past it lie the maze, the
+# Flare Dancer room (24) and the Hammer's rooms (9, 12, 13, 14, 25, 27).
+# Lock 6, at (-44.5, 147, 8.7), shuts the Song of Time cage (11) from the
+# maze, but the cage's south door is free, matching Ship's upper way in,
+# so room 11 takes 5. Lock 7, at (7, 100, 3.8), is the loop door (needs
+# the Hammer): it is Ship's last lock and opens nothing, as the loop
+# (3, 15, 17, 18) is entered free from the foyer's west door, so those
+# take 0. The single lock on the upper Flare Dancer's shutter (-63.9, 148,
+# -6.6) and the boss door's lock are not key locks. Check: room 2's chest
+# needs 0; rooms 1 and 22 need 1 (3 keys); room 4's needs 3 (4 keys); both
+# boulder maze chests need 3 (6 keys); rooms 10 and 11 need 5: all 8 taken.
+[[dungeon]]
+name = "fire-temple"
+keys = 0
+rooms = [
+    { room = 1, keys = 1 },
+    { room = 4, keys = 3 },
+    { room = 5, keys = 3 },
+    { room = 6, keys = 3 },
+    { room = 7, keys = 3 },
+    { room = 8, keys = 3 },
+    { room = 9, keys = 5 },
+    { room = 10, keys = 5 },
+    { room = 11, keys = 5 },
+    { room = 12, keys = 5 },
+    { room = 13, keys = 5 },
+    { room = 14, keys = 5 },
+    { room = 16, keys = 3 },
+    { room = 19, keys = 1 },
+    { room = 21, keys = 2 },
+    { room = 22, keys = 1 },
+    { room = 24, keys = 5 },
+    { room = 25, keys = 5 },
+    { room = 27, keys = 5 },
+]

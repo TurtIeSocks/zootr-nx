@@ -283,10 +283,26 @@ pub(super) fn grep(romfs: &Romfs, game: &Path, needle: &str, path: &str) -> Resu
     Ok(())
 }
 
-pub(super) fn files(romfs: &Romfs, game: &Path, pattern: &str, out: Option<&Path>) -> Result<()> {
+pub(super) fn files(
+    romfs: &Romfs,
+    game: &Path,
+    pattern: &str,
+    out: Option<&Path>,
+    length: bool,
+) -> Result<()> {
     let found = crate::game::search(game, pattern)?;
     for (path, data) in &found {
-        println!("{:>10} {path}", data.len());
+        match ounce_formats::bwav::header(data) {
+            Ok(head) if length => {
+                let looping = if head.loop_start.is_some() {
+                    " loop"
+                } else {
+                    ""
+                };
+                println!("{:>10} {path} {:.2}{looping}", data.len(), head.seconds());
+            }
+            _ => println!("{:>10} {path}", data.len()),
+        }
         if let Some(out) = out {
             write_under(out, path, &romfs.dicts().decompress(path, data)?)?;
         }
