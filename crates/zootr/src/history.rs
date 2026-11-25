@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
 
-use crate::config::Config;
+use crate::config::{Config, Target};
 use crate::game::Release;
 use crate::generate::{Extras, Report, Spot};
 use crate::icons::icons;
@@ -440,12 +440,18 @@ impl History {
         self.entries.retain(|e| installed.contains(&e.id));
     }
 
-    /// What to warn when `mod_dir` holds another seed than the installed
-    /// one, as when an install elsewhere wrote over it without telling this
-    /// history. Names that seed when the history has it.
-    pub fn foreign_mod(&self, mod_dir: &Path) -> Option<String> {
+    /// What to warn when `target`'s mod folder holds another seed than the
+    /// installed one, as when an install elsewhere wrote over it without
+    /// telling this history. Names that seed when the history has it. A
+    /// target running another build than the seed's was skipped by its
+    /// install, so it keeps whatever it held.
+    pub fn foreign_mod(&self, target: &Target) -> Option<String> {
         let installed = self.installed_entry().ok()?;
-        let spoiler = std::fs::read_to_string(mod_dir.join(crate::generate::SPOILER)).ok()?;
+        if target.skips(installed.report.written.release).is_some() {
+            return None;
+        }
+        let spoiler =
+            std::fs::read_to_string(target.mod_dir.join(crate::generate::SPOILER)).ok()?;
         let seed = Report::spoiler_seed(&spoiler)?;
         if seed == installed.report.seed {
             return None;
@@ -684,14 +690,22 @@ pub(crate) mod tests {
         history.installed = Some(ours);
         let dir = std::env::temp_dir().join(format!("zootr-foreign-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
+        let target = Target {
+            mod_dir: dir.clone(),
+            ..crate::config::tests::target("FakeTarget", None)
+        };
         let spoiler = |seed: u64| {
             let text = report(seed).spoiler(&[]);
             std::fs::write(dir.join(crate::generate::SPOILER), text).unwrap();
         };
         spoiler(5);
-        assert_eq!(history.foreign_mod(&dir), None, "the installed seed's own");
+        assert_eq!(
+            history.foreign_mod(&target),
+            None,
+            "the installed seed's own"
+        );
         spoiler(9);
-        let warning = history.foreign_mod(&dir).unwrap();
+        let warning = history.foreign_mod(&target).unwrap();
         assert!(
             warning.starts_with("The mod folder holds #2 \"Other\", not #1 \"Ice\""),
             "{warning}"
@@ -699,7 +713,7 @@ pub(crate) mod tests {
         spoiler(3);
         assert!(
             history
-                .foreign_mod(&dir)
+                .foreign_mod(&target)
                 .unwrap()
                 .contains("a seed from elsewhere")
         );
