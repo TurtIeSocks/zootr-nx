@@ -415,7 +415,8 @@ impl Build<'_> {
             .filter(|c| !gifts::of(c).is_some_and(|g| g.is_sale()))
             .filter_map(|c| {
                 let (place, _) = book.check(c.hash)?.place.as_ref()?;
-                Some((place.as_str(), c.item.as_str()))
+                let item = gifts::egg::own(c).unwrap_or(&c.item);
+                Some((place.as_str(), item))
             })
             .collect();
         let sold = |item: &str| checks.iter().any(|c| shops::is_shop(c) && c.item == item);
@@ -503,7 +504,7 @@ pub(super) mod tests {
         };
         let off = sources(&[]);
         let on = sources(&[crate::settings::NPC_GIFTS]);
-        for name in ["Light Arrows", "Fire Arrows", "Ruto's Letter", "Weird Egg"] {
+        for name in ["Light Arrows", "Fire Arrows", "Ruto's Letter", "Cucco"] {
             assert!(off.iter().any(|n| n == name), "{name} without the gifts");
             assert!(!on.iter().any(|n| n == name), "{name} with the gifts");
         }

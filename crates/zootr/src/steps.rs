@@ -248,7 +248,7 @@ pub fn hold(
 }
 
 /// `flow`'s events moving `challenge` to one of `earlier`.
-fn rewinds(flow: &Flowchart, challenge: &str, earlier: &[String]) -> Vec<u16> {
+pub(crate) fn rewinds(flow: &Flowchart, challenge: &str, earlier: &[String]) -> Vec<u16> {
     running(flow, PROGRESS)
         .into_iter()
         .filter(|&e| match &flow.events[e as usize].kind {

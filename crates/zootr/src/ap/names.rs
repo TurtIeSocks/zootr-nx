@@ -53,6 +53,7 @@ const AREAS: &[(&Name, &str)] = &[
 /// [`PROGRESSIVE`] names the line.
 const ITEMS: &[(&Name, &str)] = &[
     (item::AGONY_STONE, "Stone of Agony"),
+    (item::ALARM_CUCCO, "Cucco"),
     (item::ARROW_FIRE, "Fire Arrows"),
     (item::ARROW_ICE, "Ice Arrows"),
     (item::ARROW_LIGHT, "Light Arrows"),

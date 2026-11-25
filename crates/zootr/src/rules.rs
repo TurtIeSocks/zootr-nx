@@ -643,7 +643,7 @@ mod tests {
             ("Market shooting gallery", Era::Child, vec![]),
             ("Kakariko shooting gallery", Era::Adult, vec![bow]),
             ("Lost Woods target", Era::Child, vec![sling]),
-            ("Talon's cuccos", Era::Child, vec![item::WEIRD_EGG]),
+            ("Talon's cuccos", Era::Child, vec![item::ALARM_CUCCO]),
             ("Deku Theater: Skull Mask", Era::Child, vec![letter]),
             (
                 "Deku Theater: Mask of Truth",
@@ -761,12 +761,11 @@ mod tests {
             gift("Poe collector").met(&letter, Era::Adult),
             "Ruto's letter is a bottle"
         );
-        // Talon sleeps by the courtyard's crates until the egg's cucco
-        // wakes him.
+        // Talon sleeps by the courtyard's crates until the cucco wakes him.
         for giver in ["Zelda's letter", "Impa"] {
             assert!(!gift(giver).met(&have(&[]), Era::Child), "{giver}");
             assert!(
-                gift(giver).met(&have(&[item::WEIRD_EGG]), Era::Child),
+                gift(giver).met(&have(&[item::ALARM_CUCCO]), Era::Child),
                 "{giver}"
             );
         }

@@ -359,12 +359,13 @@ era = "child"
 item = "item:rutos-letter"
 needs = "silver-scale"
 
-# Malon at the castle wall. Dealing her gift retires it.
+# Malon's egg at the castle wall, hatched on the way up to Talon. Dealing
+# her gift retires it: her check holds the cucco then.
 [[source]]
-name = "Weird Egg"
+name = "Cucco"
 place = "hyrule-castle"
 era = "child"
-item = "item:weird-egg"
+item = "item:cucco"
 needs = "always"
 
 [[source]]

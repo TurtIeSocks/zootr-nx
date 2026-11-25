@@ -124,6 +124,12 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
     })
 }
 
+/// `check`'s own item as the pool holds it: Weird Egg ✅ holds the cucco
+/// (`gifts::egg`).
+fn pooled(check: &ItemCheck) -> &str {
+    gifts::egg::own(check).unwrap_or_else(|| keys::pooled(check))
+}
+
 /// Some checks, by reference.
 type Checks<'a> = Vec<&'a ItemCheck>;
 
@@ -151,8 +157,8 @@ impl<'a> Dealer<'a, '_> {
     /// they couldn't swap.
     fn own(&self, c: &'a ItemCheck) -> &'a str {
         match gifts::is_gift(c) {
-            true => keys::pooled(c),
-            false => self.level(keys::pooled(c)),
+            true => pooled(c),
+            false => self.level(pooled(c)),
         }
     }
 
@@ -208,15 +214,15 @@ impl<'a> Dealer<'a, '_> {
         // With chests kept, a gift that may not hold its own item keeps it
         // too: only chests could take it off its hands.
         let keeps = |c: &'a ItemCheck| {
-            let held = allowed(c, self.level(keys::pooled(c)), new_game.progressive);
+            let held = allowed(c, self.level(pooled(c)), new_game.progressive);
             new_game.keep_chests && (!gifts::is_gift(c) || !held) && !placed_at(&c.hash)
         };
         // Kept checks hold their own item, placed like plando's.
         let (kept, chests): (Vec<_>, Vec<_>) =
             (unique_chests(self.checks, open)?.into_iter()).partition(|c| keeps(c));
-        let mut pool = Pool::of(&chests, keys::pooled);
+        let mut pool = Pool::of(&chests, pooled);
         for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
-            pool.take(p.item, keys::pooled(p.check));
+            pool.take(p.item, pooled(p.check));
         }
         let free: Vec<_> = chests.into_iter().filter(|c| !placed_at(&c.hash)).collect();
         if new_game.vanilla {
@@ -245,8 +251,8 @@ impl<'a> Dealer<'a, '_> {
         all.from.extend(pool.from);
         let mut owned = new_game.start.owned();
         if new_game.on.contains(MET_ZELDA) {
-            // Met Zelda leaves nothing for the egg to wake.
-            owned.push(item::WEIRD_EGG.get());
+            // Met Zelda leaves nothing for the cucco to wake.
+            owned.push(item::ALARM_CUCCO.get());
         }
         let slots = starting::swap_out(&mut all.items, &owned, |i| self.level(i));
         let started = (owned.into_iter().zip(slots))
@@ -689,7 +695,7 @@ mod tests {
         };
         let mut pool: Vec<_> = checks
             .iter()
-            .map(|c| plain(progressive::Lines::default().first(&c.item)))
+            .map(|c| plain(progressive::Lines::default().first(pooled(c))))
             .collect();
         pool.sort();
         for seed in 0..200 {
@@ -748,11 +754,22 @@ mod tests {
         needs_names!();
         let (checks, none) = (with_gifts(), Fixed::new());
         let p = shuffle(&checks, 7, &none, &progressive(true, &[])).unwrap();
+        // Weird Egg ✅ holds the cucco, so only Malon's flow changes.
+        let egg = |g: &gifts::Gift| g.item == item::WEIRD_EGG;
         for gift in &gifts::GIFTS {
-            assert_eq!(holding(&p, gift.hash()), gift.item);
+            let own = if egg(gift) {
+                item::ALARM_CUCCO
+            } else {
+                gift.item
+            };
+            assert_eq!(holding(&p, gift.hash()), own);
         }
         let d = drops(&checks, &p, Lines::default());
-        assert!(gifts::GIFTS.iter().all(|g| !d.contains_key(&g.hash())));
+        assert!(
+            gifts::GIFTS
+                .iter()
+                .all(|g| d.contains_key(&g.hash()) == egg(g))
+        );
     }
 
     #[test]
@@ -921,7 +938,7 @@ mod tests {
     }
 
     #[test]
-    fn met_zelda_pins_the_letter_and_deals_no_egg() {
+    fn met_zelda_pins_the_letter_and_deals_no_cucco() {
         needs_names!();
         let checks = with_gifts();
         let none = Fixed::new();
@@ -938,10 +955,13 @@ mod tests {
                 item::ZELDA_LETTER.get()
             );
             assert_eq!(count(&p, item::ZELDA_LETTER), 1, "seed {seed}");
+            assert_eq!(count(&p, item::ALARM_CUCCO), 0, "seed {seed}");
             assert_eq!(count(&p, item::WEIRD_EGG), 0, "seed {seed}");
         }
         let p = shuffle(&checks, 0, &none, &game(false, &[])).unwrap();
-        assert_eq!(count(&p, item::WEIRD_EGG), 1);
+        // Weird Egg ✅ holds the cucco, and nothing deals the egg.
+        assert_eq!(count(&p, item::ALARM_CUCCO), 1);
+        assert_eq!(count(&p, item::WEIRD_EGG), 0);
         // A plando can't put anything else at the letter's check.
         let hook = Fixed::from([(hash(item::ZELDA_LETTER), line(0)[0].0.to_string())]);
         assert!(deal(&checks, &hook, &met).is_err());

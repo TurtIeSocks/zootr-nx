@@ -130,6 +130,7 @@ pub const GET_STONE_OF_WATER_ARRIVE_JABU_JABU_BELLY: &Name = &n!(0x0ab8408689c85
 pub const GORON_CITY_LARGE_POT: &Name = &n!(0x0dd2a6788c6e980c);
 pub const GOSSIP_STONE: &Name = &n!(0x0fb50bb156e177ed);
 pub const GOTO_HYRULE_CASTLE: &Name = &n!(0x73360f174db8871a);
+pub const GOTO_HYRULE_CASTLE_EGGHATCH_AREABOOT: &Name = &n!(0x69d233ee3cde395f);
 pub const GOTO_ICE_CAVE: &Name = &n!(0x7ba9d0e5d06b558b);
 pub const GOTO_WATER_TEMPLE: &Name = &n!(0xa5f28a90862ba5a3);
 pub const HINT_DUNGEON_TUTORIAL_EVENT: &Name = &n!(0x7e1d9f52b19166d7);

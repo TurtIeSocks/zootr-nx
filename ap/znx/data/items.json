@@ -135,6 +135,11 @@
     "name": "Cojiro"
   },
   {
+    "class": "progression",
+    "id": 159,
+    "name": "Cucco"
+  },
+  {
     "class": "filler",
     "id": 155,
     "name": "Deku Nut"
@@ -631,11 +636,6 @@
   },
   {
     "class": "progression",
-    "id": 64,
-    "name": "Weird Egg"
-  },
-  {
-    "class": "progression",
     "id": 65,
     "name": "Zelda's Letter"
   },
@@ -788,5 +788,10 @@
     "class": "trap",
     "id": 132,
     "name": "Ice Trap"
+  },
+  {
+    "class": "progression",
+    "id": 64,
+    "name": "Weird Egg"
   }
 ]

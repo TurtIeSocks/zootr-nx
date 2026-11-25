@@ -120,6 +120,7 @@ fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, 
         crate::magic::quiet(romfs, &mut rewrites)?;
     }
     flags.push(starting::navi_guide());
+    flags.extend(gifts::egg::hatched(&new_game.on));
     trade_chain::cut_timers(romfs, &mut rewrites)?;
     crate::masks::write(romfs, new_game, &mut rewrites)?;
     // Rauru's gift, the Light Medallion or what was dealt there, comes in

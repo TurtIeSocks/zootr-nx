@@ -14,9 +14,15 @@ use crate::ap::rule;
 use crate::ap::seed::Seed;
 use crate::ap::when::{Counts, steps};
 use crate::ice_traps;
+use crate::known::{Name, item};
 use crate::progressive::Lines;
 use crate::settings::{IceTraps, PROGRESSIVE, Settings, choice_id};
 use crate::starter_bags;
+
+/// Items a release shipped that no pool deals any more, with their class
+/// then. Each keeps its id and name (`ap::released`), so players' YAMLs
+/// naming it still load. Weird Egg ✅ holds the cucco now (`gifts::egg`).
+const RETIRED: [(&Name, &str); 1] = [(item::WEIRD_EGG, "progression")];
 
 /// Each pool item's count in each seed, by its AP name: the pool before
 /// the trade, then what settings add, which the world trades in for
@@ -136,6 +142,10 @@ impl<'s> Counted<'s> {
         let trap = ice_traps::POOLED;
         let name = cx.names.item(trap)?;
         items.push(json!({ "id": ids.item(trap), "name": name, "class": "trap" }));
+        for (actor, class) in RETIRED {
+            let name = cx.names.item(actor)?;
+            items.push(json!({ "id": ids.item(actor), "name": name, "class": class }));
+        }
         Ok((items, pool))
     }
 
