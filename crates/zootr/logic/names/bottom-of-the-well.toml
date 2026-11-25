@@ -1,0 +1,107 @@
+# Bottom of the Well. OoTR's name wherever the remake keeps the spot:
+# chests matched by where they sit in the main hall (front and back,
+# left and right as Link enters from the south), their rule and vanilla
+# item, and the remake guides for the Gold Skulltulas. The remake's hall
+# differs from the original's in places, so several matches are marked.
+# Pots and grass go by room, numbered west to east.
+#
+# Every name carries its map floor after "Bottom of the Well", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# Main hall, by the entrance.
+8241360954609403613 = "Bottom of the Well B1 Near Entrance Pot 1"
+13514633590582184597 = "Bottom of the Well B1 Near Entrance Pot 2"
+
+# Main hall, left side: a scrub the remake added, and pots along the wall
+# and by the way down to the basement.
+15945446340598299551 = "Bottom of the Well B1 Deku Scrub" # guess: new scrub, on the hall's left side
+310141963798030249 = "Bottom of the Well B1 Left Side Pot 1"
+5265023541749704555 = "Bottom of the Well B1 Left Side Pot 2"
+4004629137260820818 = "Bottom of the Well B1 Left Side Pot 3"
+3525219158873909075 = "Bottom of the Well B1 Left Side Pot 4"
+9048011454024145970 = "Bottom of the Well B1 Left Side Pot 5"
+11499567238563790266 = "Bottom of the Well B1 Left Side Pot 6"
+8990185526417596110 = "Bottom of the Well B1 Left Side Pot 7"
+
+# Main hall chests behind the fake walls, the bomb walls and the
+# Skulltulas around the middle.
+8975637636514249074 = "Bottom of the Well B1 Front Left Fake Wall Chest" # guess: the fake wall chest left of the middle, mirroring the key chest on the right
+8397646530660039355 = "Bottom of the Well B1 Right Bottom Fake Wall Chest" # guess: the fake wall chest right of the middle, a key as in OoTR
+14911602953212243797 = "Bottom of the Well B1 Compass Chest"
+631709185320708287 = "Bottom of the Well B1 Center Skulltula Chest" # guess: inside the middle's lens walls by a Skulltula
+10905582354954996284 = "Bottom of the Well B1 Back Left Bombable Chest"
+2443543311722520559 = "Bottom of the Well B1 Center Skulltula Pot 1" # guess: beside the Center Skulltula Chest
+2092886772595448761 = "Bottom of the Well B1 Center Skulltula Pot 2" # guess: beside the Center Skulltula Chest
+11422150025867601433 = "Bottom of the Well B1 Back Center Pot 1"
+7012036174293450012 = "Bottom of the Well B1 Back Center Pot 2"
+
+# The moat around the middle, dry once Zelda's Lullaby is played at the
+# Triforce: two chests and eight pots.
+5429815628949128345 = "Bottom of the Well B1 Underwater Front Chest"
+12988877782812797760 = "Bottom of the Well B1 Underwater Right Chest" # guess: the moat's east chest, perhaps OoTR's Underwater Left Chest
+13474828754365101442 = "Bottom of the Well B1 Underwater Pot 1"
+11930162108790178481 = "Bottom of the Well B1 Underwater Pot 2"
+17838185570985597937 = "Bottom of the Well B1 Underwater Pot 3"
+3141423279806923469 = "Bottom of the Well B1 Underwater Pot 4"
+16040130639953056224 = "Bottom of the Well B1 Underwater Pot 5"
+9098987026005330221 = "Bottom of the Well B1 Underwater Pot 6"
+8604373745978042051 = "Bottom of the Well B1 Underwater Pot 7"
+5918144893760685177 = "Bottom of the Well B1 Underwater Pot 8"
+
+# The inner rooms behind the middle's fake walls: west (locked) and east.
+7460556442932201772 = "Bottom of the Well B1 GS West Inner Room"
+12165938013608963606 = "Bottom of the Well B1 GS East Inner Room"
+14099813182838914319 = "Bottom of the Well B1 West Inner Room Pot 1" # guess: just outside the west inner room's cell, or in it
+18246106759865127065 = "Bottom of the Well B1 West Inner Room Pot 2" # guess: just outside the west inner room's cell, or in it
+5777989807578063864 = "Bottom of the Well B1 West Inner Room Pot 3"
+5061848338283631993 = "Bottom of the Well B1 West Inner Room Pot 4"
+3443746144208684083 = "Bottom of the Well B1 West Inner Room Pot 5"
+
+# The Gibdo room in the west, with the freestanding key.
+17649154319341333603 = "Bottom of the Well B1 Freestanding Key"
+8650410172248468465 = "Bottom of the Well B1 Gibdo Room Pot 1"
+6677233868797591943 = "Bottom of the Well B1 Gibdo Room Pot 2"
+
+# The Fire Keese room over hidden pits.
+874970148260328653 = "Bottom of the Well B1 Fire Keese Chest"
+7569958918344529585 = "Bottom of the Well B1 Fire Keese Pot"
+
+# The Like Like's cage.
+3889761319471426870 = "Bottom of the Well B1 GS Like Like Cage"
+4922541437458008474 = "Bottom of the Well B1 Like Like Pot 1"
+3704217652444280802 = "Bottom of the Well B1 Like Like Pot 2"
+
+# The basement: the Map Chest behind its rocks.
+9466613428674883506 = "Bottom of the Well B2 Map Chest"
+13073030852500161257 = "Bottom of the Well B2 Basement Pot 1"
+10235645789362510550 = "Bottom of the Well B2 Basement Pot 2"
+17270686864803699583 = "Bottom of the Well B2 Basement Pot 3"
+13501470156752591346 = "Bottom of the Well B2 Basement Pot 4"
+8966676941469294681 = "Bottom of the Well B2 Basement Pot 5"
+9892629541424148846 = "Bottom of the Well B2 Basement Pot 6"
+1484084316515022872 = "Bottom of the Well B2 Basement Pot 7"
+190723038439219808 = "Bottom of the Well B2 Basement Grass 1"
+3254903088755265820 = "Bottom of the Well B2 Basement Grass 2"
+11617818015699856357 = "Bottom of the Well B2 Basement Grass 3"
+11915476117110695952 = "Bottom of the Well B2 Basement Grass 4"
+6392685632719229937 = "Bottom of the Well B2 Basement Grass 5"
+6866564903669243591 = "Bottom of the Well B2 Basement Grass 6"
+6274265974981062696 = "Bottom of the Well B2 Basement Grass 7"
+16329781527658340504 = "Bottom of the Well B2 Basement Grass 8"
+10321354188897701816 = "Bottom of the Well B2 Basement Grass 9"
+3864926409096901848 = "Bottom of the Well B2 Basement Grass 10"
+
+# Past the back waterfall: the invisible chest, the room before Dead
+# Hand, Dead Hand's room and the room behind it.
+11718708984125260282 = "Bottom of the Well B1 Invisible Chest"
+2976328581859030383 = "Bottom of the Well B1 Before Dead Hand Pot 1" # guess: the room on the way to Dead Hand
+5999281521813032298 = "Bottom of the Well B1 Before Dead Hand Pot 2" # guess: the room on the way to Dead Hand
+18305487040364591494 = "Bottom of the Well B1 Before Dead Hand Pot 3" # guess: the room on the way to Dead Hand
+2004752143010431306 = "Bottom of the Well B1 Before Dead Hand Pot 4" # guess: the room on the way to Dead Hand
+16654774376625985726 = "Bottom of the Well B2 Lens of Truth Chest"
+3307762411934841364 = "Bottom of the Well B2 Dead Hand Pot 1"
+6539220255102910600 = "Bottom of the Well B2 Dead Hand Pot 2"
+6064359710907908886 = "Bottom of the Well B1 Past Dead Hand Chest" # guess: new chest, behind the shutters that open once Dead Hand falls
