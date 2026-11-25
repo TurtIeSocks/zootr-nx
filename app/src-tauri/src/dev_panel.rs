@@ -107,6 +107,8 @@ pub(crate) struct DevActor {
     hash: String,
     /// Its own `Name`, telling it from the actor's other placements.
     label: Option<String>,
+    /// Where the map's files place it, for sorting by distance.
+    pos: [f32; 3],
 }
 
 /// Every placement `map` has, for the panel's warp.
@@ -121,10 +123,18 @@ pub(crate) async fn dev_actors(map: String) -> Res<Vec<DevActor>> {
                 hash: p.hash.unwrap_or_default().to_string(),
                 actor: p.name,
                 label: p.label,
+                pos: p.pose.at,
             })
             .collect())
     })
     .await
+}
+
+/// Where Link stands, for sorting the map's placements by distance.
+#[tauri::command]
+#[specta::specta]
+pub(crate) async fn dev_link() -> Res<[f32; 3]> {
+    blocking(|| dev_game()?.link()).await
 }
 
 /// Warp Link to `side` of a placed actor of the map he's in.
