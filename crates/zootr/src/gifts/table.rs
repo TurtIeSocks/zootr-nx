@@ -274,8 +274,8 @@ pub const GIFTS: [Gift; 87] = [
         &[HAND_OVER],
         flag::MINI_GAME_CATCH_CUCCO_IS_COMPLETED,
     ),
-    // Talon's game asks for an empty bottle to fill with the milk, so a moved
-    // gift first opens the game to Link without one.
+    // Talon's first win hands over a new bottle of milk. His replays and his
+    // milk sale fill an empty one, and stay milk.
     npc(
         cucco::FLOW,
         flag::HYRULE_FIELD,
