@@ -71,6 +71,7 @@ test("Shuffle All keeps track overrides; Reset All clears everything", () => {
       battle: "shuffle",
       event: "shuffle",
       fanfare: "shuffle",
+      ocarina: "shuffle",
     },
     tracks: { market: "vanilla" },
   });
@@ -110,6 +111,17 @@ test("a song outside the slot's band says what it does", () => {
   expect(bandNote(small, medal)).toBe("Plays on 10 s past the get");
   expect(bandNote(medal, small)).toBe("Ends 10 s before the get does");
   expect(bandNote(zora, market)).toBeNull();
+  const taught = track("taught-suns-song", "ocarina", 3560, {
+    band: 1,
+    band_label: "<7s",
+    looping: false,
+  });
+  const warp = track("played-requiem-of-spirit", "ocarina", 21260, {
+    band: 3,
+    band_label: ">14s",
+    looping: false,
+  });
+  expect(bandNote(taught, warp)).toBe("Plays on 18 s past the song");
   expect(length(small)).toBe("0:02");
   expect(length(zora)).toBe("1:20 loop");
 });

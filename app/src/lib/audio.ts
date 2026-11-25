@@ -2,7 +2,13 @@ import type { AudioDraft, Pool, PoolMode, TrackView } from "@/bindings";
 import type { Change } from "@/lib/saved-sets";
 
 /** The pools a seed can shuffle, as the pane's tabs list them. */
-export const POOLS: readonly Pool[] = ["area", "battle", "event", "fanfare"];
+export const POOLS: readonly Pool[] = [
+  "area",
+  "battle",
+  "event",
+  "fanfare",
+  "ocarina",
+];
 
 /** A track override's value for "keep this one vanilla", as the backend
  * reads it. */
@@ -105,12 +111,18 @@ export const clock = (secs: number) => {
 export const length = (t: TrackView) =>
   t.looping ? `${clock(t.ms / 1000)} loop` : clock(t.ms / 1000);
 
+/** What a one-shot of each pool plays over. */
+const MOMENTS: Partial<Record<Pool, string>> = {
+  fanfare: "the get",
+  ocarina: "the song",
+};
+
 /** What playing `donor` in `slot` does that its own song doesn't, when
  * the donor is outside the slot's band: it runs on past the moment, ends
  * early, or loops. Nothing in the same band or a pool without bands. */
 export function bandNote(slot: TrackView, donor: TrackView): string | null {
   if (slot.band_label === "-" || donor.band === slot.band) return null;
-  const moment = slot.pool === "fanfare" ? "the get" : "the scene";
+  const moment = MOMENTS[slot.pool] ?? "the scene";
   if (donor.looping) return `Loops on past ${moment}`;
   if (slot.looping) return "Plays once, then stops";
   const gap = Math.round((donor.ms - slot.ms) / 1000);

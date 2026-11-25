@@ -914,6 +914,8 @@ export type Pool =
 "event" | 
 /**  Gets, the medallion and stone, game over, riddles, sleep. */
 "fanfare" | 
+/**  The songs Link plays and the ones he's taught. */
+"ocarina" | 
 /**  The silences: never shuffled. */
 "fixed";
 

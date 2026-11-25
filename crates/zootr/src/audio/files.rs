@@ -1,7 +1,7 @@
-//! The music table's tracks by name: a seed's pools are assigned by name,
-//! and each track's song length and loop flag are kept here since the
-//! streams aren't in the extract cache (a dump test checks every one
-//! against its stream). The guard skips this file (`known/guard.rs`).
+//! The music table's tracks and the ocarina songs by name: a seed's pools
+//! are assigned by name, and each track's song length and loop flag are
+//! kept here since the streams aren't in the extract cache (a dump test
+//! checks every one against its stream). The guard skips this file (`known/guard.rs`).
 
 use super::Pool::{self, *};
 use super::Track;
@@ -11,6 +11,10 @@ pub const TABLE: &str = "Sound/Bgm/bgm.Product.111.byml.zs";
 
 /// Where the streams are, as `{STREAMS}NAME.bwav`.
 pub const STREAMS: &str = "Sound/Resource/Stream/";
+
+/// The SLink2 user whose calls play the ocarina songs: each song as Link
+/// plays it, and as a teacher plays it first.
+pub const OCARINA: &str = "Ocarina";
 
 /// Keys never rewritten: the build-up a get fanfare holds while the chest
 /// opens, before its own stream.
@@ -37,7 +41,7 @@ const fn t(
 }
 
 #[rustfmt::skip]
-pub const TRACKS: [Track; 112] = [
+pub const TRACKS: [Track; 136] = [
     t("appear", "Appearance", Fanfare, "BGM_Appear", Some("BGM_Appear"), 6.13, false),
     t("boss-room", "Boss room (silence)", Fixed, "BGM_BossRoom", None, 0.00, false),
     t("bottom-of-the-well", "Bottom of the Well", Area, "BGM_BottomOfTheWell", Some("BGM_BottomOfTheWell"), 89.00, true),
@@ -150,4 +154,29 @@ pub const TRACKS: [Track; 112] = [
     t("zelda-garden", "Zelda's courtyard", Area, "BGM_ZeldaGarden", None, 68.65, true),
     t("zora-domain", "Zora's Domain", Area, "BGM_ZoraDomain", Some("BGM_ZoraDomain"), 88.88, true),
     t("zora-domain-frozen", "Zora's Domain, frozen", Area, "BGM_ZoraDomain_Frozen", Some("BGM_ZoraDomain_Frozen"), 97.56, true),
+    // The ocarina songs: calls of the OCARINA user, not graphs.
+    t("played-zeldas-lullaby", "Zelda's Lullaby, played", Ocarina, "Melody_ZeldaLullaby", Some("Ocarina_ZeldaLullaby"), 10.74, false),
+    t("played-eponas-song", "Epona's Song, played", Ocarina, "Melody_EponaSong", Some("Ocarina_EponaSong"), 7.94, false),
+    t("played-sarias-song", "Saria's Song, played", Ocarina, "Melody_SariaSong", Some("Ocarina_SariaSong"), 6.2836, false),
+    t("played-suns-song", "Sun's Song, played", Ocarina, "Melody_SunSong", Some("Ocarina_SunSong"), 5.22, false),
+    t("played-song-of-time", "Song of Time, played", Ocarina, "Melody_TimeSong", Some("Ocarina_TimeSong"), 10.20, false),
+    t("played-song-of-storms", "Song of Storms, played", Ocarina, "Melody_StormSong", Some("Ocarina_StormSong"), 5.15, false),
+    t("played-minuet-of-forest", "Minuet of Forest, played", Ocarina, "Melody_ForestMinuet", Some("Ocarina_ForestMinuet"), 16.93, false),
+    t("played-bolero-of-fire", "Bolero of Fire, played", Ocarina, "Melody_FireBolero", Some("Ocarina_FireBolero"), 20.43, false),
+    t("played-serenade-of-water", "Serenade of Water, played", Ocarina, "Melody_WaterSerenade", Some("Ocarina_WaterSerenade"), 18.64, false),
+    t("played-nocturne-of-shadow", "Nocturne of Shadow, played", Ocarina, "Melody_ShadowNocturne", Some("Ocarina_ShadowNocturne"), 21.07, false),
+    t("played-requiem-of-spirit", "Requiem of Spirit, played", Ocarina, "Melody_SpiritRequiem", Some("Ocarina_SpiritRequiem"), 21.26, false),
+    t("played-prelude-of-light", "Prelude of Light, played", Ocarina, "Melody_LightPrelude", Some("Ocarina_LightPrelude"), 17.65, false),
+    t("taught-zeldas-lullaby", "Zelda's Lullaby, taught", Ocarina, "ExampleMelody_ZeldaLullaby", Some("ExampleMelody_ZeldaLullaby"), 5.59, false),
+    t("taught-eponas-song", "Epona's Song, taught", Ocarina, "ExampleMelody_EponaSong", Some("ExampleMelody_EponaSong"), 5.57, false),
+    t("taught-sarias-song", "Saria's Song, taught", Ocarina, "ExampleMelody_SariaSong", Some("ExampleMelody_SariaSong"), 4.38, false),
+    t("taught-suns-song", "Sun's Song, taught", Ocarina, "ExampleMelody_SunSong", Some("ExampleMelody_SunSong"), 3.56, false),
+    t("taught-song-of-time", "Song of Time, taught", Ocarina, "ExampleMelody_TimeSong", Some("ExampleMelody_TimeSong"), 5.61, false),
+    t("taught-song-of-storms", "Song of Storms, taught", Ocarina, "ExampleMelody_StormSong", Some("ExampleMelody_StormSong"), 4.50, false),
+    t("taught-minuet-of-forest", "Minuet of Forest, taught", Ocarina, "ExampleMelody_ForestMinuet", Some("ExampleMelody_ForestMinuet"), 5.64, false),
+    t("taught-bolero-of-fire", "Bolero of Fire, taught", Ocarina, "ExampleMelody_FireBolero", Some("ExampleMelody_FireBolero"), 4.32, false),
+    t("taught-serenade-of-water", "Serenade of Water, taught", Ocarina, "ExampleMelody_WaterSerenade", Some("ExampleMelody_WaterSerenade"), 4.80, false),
+    t("taught-nocturne-of-shadow", "Nocturne of Shadow, taught", Ocarina, "ExampleMelody_ShadowNocturne", Some("ExampleMelody_ShadowNocturne"), 4.94, false),
+    t("taught-requiem-of-spirit", "Requiem of Spirit, taught", Ocarina, "ExampleMelody_SpiritRequiem", Some("ExampleMelody_SpiritRequiem"), 6.00, false),
+    t("taught-prelude-of-light", "Prelude of Light, taught", Ocarina, "ExampleMelody_LightPrelude", Some("ExampleMelody_LightPrelude"), 4.15, false),
 ];
