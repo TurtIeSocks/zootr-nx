@@ -806,7 +806,7 @@
       "forbid": [],
       "hash": "558580124832874594",
       "id": 513,
-      "name": "Dodongo's Cavern Upper Pot 9",
+      "name": "Dodongos Cavern 2F Single Eye Switch Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1358,7 +1358,7 @@
       "forbid": [],
       "hash": "850464708089653824",
       "id": 133,
-      "name": "Dodongo's Cavern Upper Business Scrub Seed Chest 2",
+      "name": "Dodongos Cavern 2F Upper Lizalfos Chest",
       "unprovable": false
     },
     {
@@ -1568,7 +1568,7 @@
       "forbid": [],
       "hash": "960362013021648957",
       "id": 318,
-      "name": "Dodongo's Cavern Gold Skulltula Token 1",
+      "name": "Dodongos Cavern 1F GS Scarecrow",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -1628,7 +1628,7 @@
       "forbid": [],
       "hash": "1011984139792114332",
       "id": 530,
-      "name": "Dodongo's Cavern Lower Pot 1",
+      "name": "Dodongos Cavern 1F Last Block Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1736,7 +1736,7 @@
       "forbid": [],
       "hash": "1095569754766380995",
       "id": 533,
-      "name": "Dodongo's Cavern Upper Pot 3",
+      "name": "Dodongos Cavern 2F Staircase Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2004,7 +2004,7 @@
       "forbid": [],
       "hash": "1171854281537584829",
       "id": 319,
-      "name": "Dodongo's Cavern Gold Skulltula Token 2",
+      "name": "Dodongos Cavern 1F GS Side Room Near Lower Lizalfos",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -2452,7 +2452,7 @@
       "forbid": [],
       "hash": "1382943444627893523",
       "id": 547,
-      "name": "Dodongo's Cavern Pot 7",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3222,7 +3222,7 @@
       "forbid": [],
       "hash": "1786052373103713076",
       "id": 561,
-      "name": "Dodongo's Cavern Upper Pot 1",
+      "name": "Dodongos Cavern 2F Staircase Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3348,7 +3348,7 @@
       "forbid": [],
       "hash": "1876671093443800633",
       "id": 563,
-      "name": "Dodongo's Cavern Pot 1",
+      "name": "Dodongos Cavern 1F Right Side Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3557,7 +3557,7 @@
       "forbid": [],
       "hash": "1997644872224400101",
       "id": 566,
-      "name": "Dodongo's Cavern Pot 14",
+      "name": "Dodongos Cavern 1F Torch Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3678,7 +3678,7 @@
       "forbid": [],
       "hash": "2045413023280716382",
       "id": 569,
-      "name": "Dodongo's Cavern Pot 9",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4456,7 +4456,7 @@
       "forbid": [],
       "hash": "2530082567273905838",
       "id": 580,
-      "name": "Dodongo's Cavern Upper Pot 10",
+      "name": "Dodongos Cavern 2F Single Eye Switch Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5488,7 +5488,7 @@
       "forbid": [],
       "hash": "3215221221211819661",
       "id": 606,
-      "name": "Dodongo's Cavern Upper Pot 14",
+      "name": "Dodongos Cavern 2F Double Eye Switch Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5760,7 +5760,7 @@
       "forbid": [],
       "hash": "3363281587750304043",
       "id": 612,
-      "name": "Dodongo's Cavern Pot 3",
+      "name": "Dodongos Cavern 1F Right Side Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6632,7 +6632,7 @@
       "forbid": [],
       "hash": "3941834049759865192",
       "id": 632,
-      "name": "Dodongo's Cavern Upper Pot 5",
+      "name": "Dodongos Cavern 2F Blade Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6722,7 +6722,7 @@
       "forbid": [],
       "hash": "3975080901614021966",
       "id": 634,
-      "name": "Dodongo's Cavern Pot 13",
+      "name": "Dodongos Cavern 1F Torch Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7092,7 +7092,7 @@
       "forbid": [],
       "hash": "4234933260265093025",
       "id": 637,
-      "name": "Dodongo's Cavern Upper Pot 7",
+      "name": "Dodongos Cavern 2F Blade Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7756,7 +7756,7 @@
       "forbid": [],
       "hash": "4565265801822094851",
       "id": 330,
-      "name": "Dodongo's Cavern Upper Gold Skulltula Token 2",
+      "name": "Dodongos Cavern 2F GS Two Dodongo Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -9981,7 +9981,7 @@
       "forbid": [],
       "hash": "5936534468710061389",
       "id": 411,
-      "name": "Dodongo's Cavern Heart Container",
+      "name": "Dodongos Cavern 1F King Dodongo Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -10621,7 +10621,7 @@
       "forbid": [],
       "hash": "6325371574169243820",
       "id": 707,
-      "name": "Dodongo's Cavern Pot 8",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11067,7 +11067,7 @@
       "forbid": [],
       "hash": "6763794341906819086",
       "id": 716,
-      "name": "Dodongo's Cavern Upper Pot 12",
+      "name": "Dodongos Cavern 2F Upper Lizalfos Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11601,7 +11601,7 @@
       "forbid": [],
       "hash": "7019968549718875208",
       "id": 725,
-      "name": "Dodongo's Cavern Pot 16",
+      "name": "Dodongos Cavern 1F Last Block Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12290,7 +12290,7 @@
       "forbid": [],
       "hash": "7388739057158296701",
       "id": 49,
-      "name": "Dodongo's Cavern Business Scrub",
+      "name": "Dodongos Cavern 1F Deku Scrub Side Room Near Dodongos",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -12524,7 +12524,7 @@
       "forbid": [],
       "hash": "7524527082521156886",
       "id": 52,
-      "name": "Dodongo's Cavern Upper Deku Shield Chest 1",
+      "name": "Dodongos Cavern 2F End of Bridge Chest",
       "unprovable": false
     },
     {
@@ -12853,7 +12853,7 @@
       "forbid": [],
       "hash": "7764016096998075927",
       "id": 54,
-      "name": "Dodongo's Cavern Red Rupee (20) Chest",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Chest",
       "unprovable": false
     },
     {
@@ -13512,7 +13512,7 @@
       "forbid": [],
       "hash": "8291119063305855945",
       "id": 432,
-      "name": "Dodongo's Cavern Map Chest",
+      "name": "Dodongos Cavern 1F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -13653,7 +13653,7 @@
       "forbid": [],
       "hash": "8470399761714006011",
       "id": 345,
-      "name": "Dodongo's Cavern Upper Gold Skulltula Token 1",
+      "name": "Dodongos Cavern 2F GS Vines Above Stairs",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -13761,7 +13761,7 @@
       "forbid": [],
       "hash": "8607798771661947511",
       "id": 57,
-      "name": "Dodongo's Cavern Blue Rupee (5) Chest",
+      "name": "Dodongos Cavern 1F Lobby Side Chest",
       "unprovable": false
     },
     {
@@ -13899,7 +13899,7 @@
       "forbid": [],
       "hash": "8698939491446015433",
       "id": 770,
-      "name": "Dodongo's Cavern Lower Pot 3",
+      "name": "Dodongos Cavern 1F Before Boss Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14285,7 +14285,7 @@
       "forbid": [],
       "hash": "8895256479077874219",
       "id": 774,
-      "name": "Dodongo's Cavern Lower Pot 2",
+      "name": "Dodongos Cavern 1F Before Boss Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14615,7 +14615,7 @@
       "forbid": [],
       "hash": "8997212367184665421",
       "id": 783,
-      "name": "Dodongo's Cavern Upper Pot 15",
+      "name": "Dodongos Cavern 2F Double Eye Switch Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15751,7 +15751,7 @@
       "forbid": [],
       "hash": "9597464827066038162",
       "id": 798,
-      "name": "Dodongo's Cavern Upper Pot 2",
+      "name": "Dodongos Cavern 2F Staircase Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16067,7 +16067,7 @@
       "forbid": [],
       "hash": "9712419871941282477",
       "id": 806,
-      "name": "Dodongo's Cavern Pot 5",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16120,7 +16120,7 @@
       "forbid": [],
       "hash": "9774921074194675290",
       "id": 807,
-      "name": "Dodongo's Cavern Pot 2",
+      "name": "Dodongos Cavern 1F Right Side Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16970,7 +16970,7 @@
       "forbid": [],
       "hash": "10150009467744191252",
       "id": 821,
-      "name": "Dodongo's Cavern Pot 6",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17542,7 +17542,7 @@
       "forbid": [],
       "hash": "10493525405478862270",
       "id": 836,
-      "name": "Dodongo's Cavern Pot 11",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17742,7 +17742,7 @@
       "forbid": [],
       "hash": "10636680471375736003",
       "id": 839,
-      "name": "Dodongo's Cavern Upper Pot 8",
+      "name": "Dodongos Cavern 2F Blade Room Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18487,7 +18487,7 @@
       "forbid": [],
       "hash": "11133209227870230642",
       "id": 848,
-      "name": "Dodongo's Cavern Pot 10",
+      "name": "Dodongos Cavern 1F Lower Lizalfos Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19353,7 +19353,7 @@
       "forbid": [],
       "hash": "11582649900854566065",
       "id": 82,
-      "name": "Dodongo's Cavern Upper Deku Shield Chest 2",
+      "name": "Dodongos Cavern 2F Blade Room Chest",
       "unprovable": false
     },
     {
@@ -19406,7 +19406,7 @@
       "forbid": [],
       "hash": "11604995372981625598",
       "id": 859,
-      "name": "Dodongo's Cavern Pot 17",
+      "name": "Dodongos Cavern 1F Last Block Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19864,7 +19864,7 @@
       "forbid": [],
       "hash": "11918955770754578074",
       "id": 864,
-      "name": "Dodongo's Cavern Pot 15",
+      "name": "Dodongos Cavern 1F Last Block Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20194,7 +20194,7 @@
       "forbid": [],
       "hash": "12085163799643476292",
       "id": 870,
-      "name": "Dodongo's Cavern Pot 4",
+      "name": "Dodongos Cavern 1F Right Side Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20290,7 +20290,7 @@
       "forbid": [],
       "hash": "12161709650443144121",
       "id": 88,
-      "name": "Dodongo's Cavern Upper Bomb Bag Chest",
+      "name": "Dodongos Cavern 2F Bomb Bag Chest",
       "unprovable": false
     },
     {
@@ -20359,7 +20359,7 @@
       "forbid": [],
       "hash": "12200381569168299500",
       "id": 874,
-      "name": "Dodongo's Cavern Upper Pot 4",
+      "name": "Dodongos Cavern 2F Staircase Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20468,7 +20468,7 @@
       "forbid": [],
       "hash": "12253889300578348965",
       "id": 143,
-      "name": "Dodongo's Cavern Upper Business Scrub Seed Chest 1",
+      "name": "Dodongos Cavern 2F Top of Stairs Chest",
       "unprovable": false
     },
     {
@@ -20822,7 +20822,7 @@
       "forbid": [],
       "hash": "12436656290806750367",
       "id": 882,
-      "name": "Dodongo's Cavern Upper Pot 13",
+      "name": "Dodongos Cavern 2F Upper Lizalfos Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22091,7 +22091,7 @@
       "forbid": [],
       "hash": "13297656785343605627",
       "id": 900,
-      "name": "Dodongo's Cavern Upper Pot 6",
+      "name": "Dodongos Cavern 2F Blade Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22802,7 +22802,7 @@
       "forbid": [],
       "hash": "13690401647626643497",
       "id": 379,
-      "name": "Dodongo's Cavern Gold Skulltula Token 3",
+      "name": "Dodongos Cavern 1F GS Back Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23553,7 +23553,7 @@
       "forbid": [],
       "hash": "14182867811396955150",
       "id": 928,
-      "name": "Dodongo's Cavern Upper Pot 11",
+      "name": "Dodongos Cavern 2F Single Eye Switch Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25580,7 +25580,7 @@
       "forbid": [],
       "hash": "15723367373502201973",
       "id": 964,
-      "name": "Dodongo's Cavern Pot 18",
+      "name": "Dodongos Cavern 1F Last Block Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25826,7 +25826,7 @@
       "forbid": [],
       "hash": "15912316170670317256",
       "id": 971,
-      "name": "Dodongo's Cavern Pot 12",
+      "name": "Dodongos Cavern 1F Torch Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28053,7 +28053,7 @@
       "forbid": [],
       "hash": "17221132504973124786",
       "id": 1011,
-      "name": "Dodongo's Cavern Lower Pot 4",
+      "name": "Dodongos Cavern 1F Before Boss Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28468,7 +28468,7 @@
       "forbid": [],
       "hash": "17500953785828008907",
       "id": 426,
-      "name": "Dodongo's Cavern King Dodongo",
+      "name": "Dodongos Cavern 1F King Dodongo",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -28599,7 +28599,7 @@
       "forbid": [],
       "hash": "17531994809974271603",
       "id": 446,
-      "name": "Dodongo's Cavern Compass Chest",
+      "name": "Dodongos Cavern 1F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
