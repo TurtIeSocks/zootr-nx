@@ -184,6 +184,9 @@ pub enum Probe {
         bundle: String,
         #[arg(long)]
         sum: Vec<String>,
+        /// Also write the bundle, decompressed, to this file.
+        #[arg(long)]
+        raw: Option<PathBuf>,
     },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
@@ -576,7 +579,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Materials { model } => materials(romfs, game, &model),
         Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
-        Probe::Vfx { bundle, sum } => vfx(romfs, game, &bundle, &sum),
+        Probe::Vfx { bundle, sum, raw } => vfx(romfs, game, &bundle, &sum, raw.as_deref()),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -910,13 +913,16 @@ fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
 }
 
 /// `probe vfx`.
-fn vfx(romfs: &Romfs, game: &Path, bundle: &str, sum: &[String]) -> Result<()> {
+fn vfx(romfs: &Romfs, game: &Path, bundle: &str, sum: &[String], raw: Option<&Path>) -> Result<()> {
     use ounce_formats::vfx;
     let data = match Path::new(bundle).is_file() {
         true => romfs.dicts().decompress(bundle, &std::fs::read(bundle)?)?,
         false => crate::nav::dump_file(romfs, game, &format!("{bundle}."))?
             .with_context(|| format!("no bundle {bundle}"))?,
     };
+    if let Some(raw) = raw {
+        std::fs::write(raw, &data)?;
+    }
     let mut last = None;
     for (eset, c) in vfx::constants_by_eset(&data)? {
         if last.as_ref() != Some(&eset) {
