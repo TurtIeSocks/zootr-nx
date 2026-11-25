@@ -295,6 +295,27 @@ mod tests {
     /// listed and no other, each song a call in its track's user, each
     /// length and loop flag its stream's.
     #[test]
+    fn a_song_decodes_to_a_wav_as_long_as_the_catalog_says() {
+        if crate::game::dev_dump().is_none() {
+            return;
+        }
+        let game = std::path::Path::new(crate::game::DEV_DUMP);
+        let medal = wav(game, "medal-get").unwrap();
+        assert_eq!(&medal[..4], b"RIFF");
+        // 44 bytes of header, then 4 bytes a stereo frame at 48 kHz.
+        let secs = (medal.len() - 44) as f32 / 4.0 / 48_000.0;
+        assert!(
+            (secs - track("medal-get").unwrap().secs).abs() < 0.01,
+            "{secs}"
+        );
+        assert!(
+            wav(game, "goron-city").is_ok(),
+            "a song of a sectioned track"
+        );
+        assert!(wav(game, "market").is_err(), "sections give no song");
+    }
+
+    #[test]
     fn the_catalog_matches_the_dump() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;

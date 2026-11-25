@@ -251,14 +251,17 @@ function TrackRow({ track, catalog, draft, player }: TrackRowProps) {
   return (
     <li className="flex flex-col gap-2 px-3 py-2.5">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="min-w-48 flex-1 font-medium text-sm">
-          {track.label}
-          {!track.song && (
-            <Tip tip="Its music is in sections, so it plays others' songs but gives none">
-              <span className="ml-2 text-ink-faint text-xs">receives only</span>
-            </Tip>
-          )}
-        </span>
+        <div className="flex min-w-40 flex-1 flex-col">
+          <span className="font-medium text-sm">{track.label}</span>
+          <span className="text-ink-muted text-xs">
+            <code>{length(shown)}</code>
+            {!track.song && (
+              <Tip tip="Its music is in sections, so it plays others' songs but gives none">
+                <span className="ml-2 text-ink-faint">receives only</span>
+              </Tip>
+            )}
+          </span>
+        </div>
         {player && (
           <PlayButton player={player} id={plays} label={track.label} />
         )}
@@ -269,7 +272,7 @@ function TrackRow({ track, catalog, draft, player }: TrackRowProps) {
           disabled={busy}
           aria-label={`${track.label}: its pool, vanilla, or a picked song`}
         />
-        <div className="w-56">
+        <div className="w-52">
           {mode === "pick" && (
             <Select
               value={picked}
@@ -296,9 +299,6 @@ function TrackRow({ track, catalog, draft, player }: TrackRowProps) {
             </Select>
           )}
         </div>
-        <code className="w-20 text-right text-ink-muted text-xs">
-          {length(shown)}
-        </code>
         <Tip tip="Back to its pool">
           <Button
             size="icon"
