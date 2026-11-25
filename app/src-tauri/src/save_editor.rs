@@ -142,7 +142,8 @@ pub(crate) async fn start_items(
 ) -> Res<ItemsView> {
     with_layout(app, move |_, gd, grid| {
         let pouch = seeded(&grid.pouch, &settings)?;
-        starting::view(gd, &grid.inv, &pouch, &start, &given)
+        let barred = zootr::settings::barred(&settings);
+        starting::view(gd, &grid.inv, &pouch, &start, &given, &barred)
     })
     .await
 }
@@ -171,13 +172,15 @@ fn seeded(pouch: &Pouch, settings: &Settings) -> anyhow::Result<Pouch> {
         .seeded(&NewGame::from_settings(settings, &[])?))
 }
 
-/// `start` holding all of Link's gear too (`--start arsenal`).
+/// `start` holding all of Link's gear too (`--start arsenal`), less what
+/// `settings` keep out.
 #[tauri::command]
 #[specta::specta]
-pub(crate) fn start_arsenal(mut start: Start) -> Res<Start> {
+pub(crate) fn start_arsenal(mut start: Start, settings: Settings) -> Res<Start> {
     start
         .add(starting::ARSENAL, 1)
         .map_err(|e| format!("{e:#}"))?;
+    zootr::settings::fit_start(&mut start, &settings);
     Ok(start)
 }
 

@@ -8,8 +8,9 @@ use super::rt::{memcpy, memset};
 use super::{at, func, level_for, name, owned, shared};
 use crate::traps::COMPONENTS;
 use crate::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
-    ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP_NAME,
+    ARG_SUMMARY, Ask, DEV_EVENT, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv,
+    play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -29,6 +30,10 @@ const LOADING: u32 = 0xef2b_60c2;
 /// Left set by an area whose exit a teleport skips, it hides the
 /// minimap.
 const NO_MINIMAP: u32 = 0x9a4d_d779;
+/// The played flag of the Temple of Time scene adult Link sees on his first
+/// walk in: his map page and minimap stay hidden until it's set
+/// (`docs/research/menus.md`). A dev age change skips that walk.
+const ADULT_MAP: u32 = 0xc1b2_9b0a;
 
 /// The event an entrance asks for to change maps.
 const EVENT: &[u8] = b"Dm_SY_BancChangeGo\0";
@@ -147,6 +152,15 @@ pub(super) unsafe fn spot(main: usize, o: &Offsets, gd: usize, i: u32) -> Option
 pub(super) unsafe fn set_bool(main: usize, o: &Offsets, gd: usize, hash: u32, value: bool) {
     let set: SetBool = unsafe { func(main, o.set_bool) };
     unsafe { set(gd, value as u32, hash) }
+}
+
+/// Make Link `child` or adult. Adult also marks [`ADULT_MAP`]'s scene
+/// played, so his map shows.
+pub(super) unsafe fn set_child(main: usize, o: &Offsets, gd: usize, child: bool) {
+    unsafe { set_bool(main, o, gd, CHILD, child) };
+    if !child {
+        unsafe { set_bool(main, o, gd, ADULT_MAP, true) };
+    }
 }
 
 /// The system counter and its ticks per second.
@@ -295,9 +309,7 @@ unsafe fn request_event(
 }
 
 /// A teleport: the map change an entrance asks for, held back for
-/// [`GUARD`] seconds after the last. It names the dev switches false: a
-/// switch the request leaves out keeps the value the last request gave
-/// it, so after a quest step every teleport ran the step again.
+/// [`GUARD`] seconds after the last.
 unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let (now, rate) = clock();
     let last = mail.last.load(Ordering::Relaxed);
@@ -310,9 +322,6 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
         Arg::Text(b"NextStartPos\0", 1),
         Arg::Text(b"BootEventName\0", 2),
         Arg::Bool(b"IsCheckAir\0", false),
-        Arg::Bool(ARG_NOTICE, false),
-        Arg::Bool(ARG_GIVE, false),
-        Arg::Bool(ARG_STEP, false),
     ];
     let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if matches!(outcome, Outcome::Done | Outcome::Unanswered) {
@@ -324,24 +333,23 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
     outcome
 }
 
-/// A quest step: the same event with `ZootrStep` set, which a dev
-/// seed's flow answers by running the step, `map` the quest and
-/// `spot` its step, and ending. It changes no map, so the teleport
-/// guard doesn't apply. `ZootrNotice` and `ZootrGive` are asked first,
-/// so they're named false.
+/// A quest step: [`DEV_EVENT`] with `ZootrNotice` and `ZootrGive` false,
+/// which a seed's flow answers by running the step, `map` the quest and
+/// `spot` its step, and ending. It changes no map, so the teleport guard
+/// doesn't apply. Each dev request names every switch the flow asks
+/// before its own: one left out keeps the value the last request gave it.
 unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let texts = [&mail.map, &mail.spot];
     let args = [
         Arg::Bool(ARG_NOTICE, false),
         Arg::Bool(ARG_GIVE, false),
-        Arg::Bool(ARG_STEP, true),
         Arg::Text(ARG_CHALLENGE, 0),
         Arg::Text(ARG_STEP_NAME, 1),
     ];
-    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) }
 }
 
-/// An item: the same event with `ZootrGive` set, which a dev seed's
+/// An item: [`DEV_EVENT`] with `ZootrGive` set, which a seed's
 /// flow answers by granting the actor `map` names, equipped when
 /// `ZootrEquip` is, and ending. The game's own grant sets what a
 /// bare write of the item's flags leaves out. With `level`, an item of a
@@ -362,14 +370,14 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     ];
     // Copied first: `item` may be `arrive` itself.
     let given = *item;
-    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) };
     if level {
         unsafe { *mail.arrive.get() = given };
     }
     outcome
 }
 
-/// A received item's notice: the same event with `ZootrNotice` set, which
+/// A received item's notice: [`DEV_EVENT`] with `ZootrNotice` set, which
 /// a seed's flow answers by showing the banner `hour` picks, and for an
 /// item the popup for the actor `map` names. Neither stops Link.
 unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
@@ -388,7 +396,7 @@ unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outc
         Arg::Bool(ARG_SUMMARY, kind != Notice::Item),
         Arg::Bool(ARG_MIXED, kind == Notice::Mixed),
     ];
-    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) }
 }
 
 /// What a [`Ask::GiveLevel`] gives: `arrive` when `spot` names what fires
@@ -482,10 +490,10 @@ unsafe fn age(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome
     let Some(child) = (unsafe { get_bool(main, o, gd, CHILD) }) else {
         return Outcome::NoAge;
     };
-    unsafe { set_bool(main, o, gd, CHILD, !child) };
+    unsafe { set_child(main, o, gd, !child) };
     let outcome = unsafe { teleport(main, o, mail, actor) };
     if !matches!(outcome, Outcome::Done | Outcome::Unanswered) {
-        unsafe { set_bool(main, o, gd, CHILD, child) };
+        unsafe { set_child(main, o, gd, child) };
     }
     outcome
 }

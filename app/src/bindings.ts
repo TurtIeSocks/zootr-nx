@@ -89,10 +89,17 @@ export const commands = {
 	 */
 	colorsDraw: (ids: string[]) => typedError<{ [key in string]: string }, string>(__TAURI_INVOKE("colors_draw", { ids })),
 	/**
-	 *  Reinstall the installed seed in the Colors draft's colours: the same
-	 *  shuffle, painted again. Its history entry keeps the new colours.
+	 *  Each slot's colour, `#rrggbb`, when palette `id`'s first is `hex` and
+	 *  the rest follow it: where Split starts.
 	 */
-	applyColors: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_colors", { steps })),
+	colorsFollow: (id: string, hex: string) => typedError<string[], string>(__TAURI_INVOKE("colors_follow", { id, hex })),
+	/**
+	 *  Reinstall the installed seed in the Colors and Audio drafts: the same
+	 *  shuffle, painted and scored again. Its history entry keeps them.
+	 */
+	applyCosmetics: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_cosmetics", { steps })),
+	/**  Every track a seed can change: the fixed pool is left out. */
+	audioCatalog: () => __TAURI_INVOKE<TrackView[]>("audio_catalog"),
 	/**  Every slot holding a save, newest first. */
 	saveSlots: () => typedError<SlotRow[], string>(__TAURI_INVOKE("save_slots")),
 	savePresets: () => __TAURI_INVOKE<SavePreset[]>("save_presets"),
@@ -106,8 +113,11 @@ export const commands = {
 	 *  words each setting in `given` gives shown held and locked.
 	 */
 	startItems: (start: StartInventory, given: string[][], settings: { [key in string]: Value }) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given, settings })),
-	/**  `start` holding all of Link's gear too (`--start arsenal`). */
-	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
+	/**
+	 *  `start` holding all of Link's gear too (`--start arsenal`), less what
+	 *  `settings` keep out.
+	 */
+	startArsenal: (start: StartInventory, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start, settings })),
 	/**  `start` after a click on a grid cell, as a seed with `settings` deals it. */
 	startClick: (start: StartInventory, at: number, intent: Intent, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent, settings })),
 	/**
@@ -274,6 +284,16 @@ export type Archipelago = { ap: "offered" } |
 /**  [`Never`](Self::Never), and on in every Archipelago seed. */
 { ap: "always-on"; why: string };
 
+/**
+ *  The pane's draft: each pool's mode (Vanilla when not named), and each
+ *  track overridden, by id, to [`VANILLA`] or the id of the track whose
+ *  song it plays.
+ */
+export type AudioDraft = {
+	pools?: Partial<{ [key in Pool]: PoolMode }>,
+	tracks?: { [key in string]: string },
+};
+
 export type Build = {
 	status: BuildStatus,
 	/**  What the user is told, when the build isn't current. */
@@ -404,6 +424,13 @@ export type Config = {
 	color_sets?: { [key in string]: { [key in string]: Pick } },
 	/**  The colour picker's recent colours, as `#rrggbb`, newest first. */
 	color_recents?: string[],
+	/**
+	 *  The Audio pane's draft: each pool's mode and each track's override.
+	 *  Shuffle and Random are dealt when a seed is built.
+	 */
+	audio?: AudioDraft,
+	/**  Audio drafts kept by name, to load into `audio`. */
+	audio_sets?: { [key in string]: AudioDraft },
 	/**  The palettes Randomize all and Reset all leave alone. */
 	color_locks?: string[],
 	/**  Setting sets kept by name, newest first. */
@@ -734,6 +761,11 @@ export type ItemsView = {
 	 *  the Save page.
 	 */
 	locked: (number | null)[],
+	/**
+	 *  Why each cell the settings keep out is locked, for the `locked`
+	 *  indexes past the givers. Empty on the Save page.
+	 */
+	bars: string[],
 };
 
 export type Kind = { type: "toggle"; default: boolean } | 
@@ -801,8 +833,15 @@ export type PaletteView = {
 	group: Group,
 	/**  Each slot's vanilla colour, `#rrggbb`. */
 	vanilla: string[],
-	/**  How many textures it paints, each a preview. */
-	textures: number,
+	/**  Each slot's name, when it has more than one: what Split shows. */
+	names: string[],
+	/**  The palette it moves with while left vanilla, by label. */
+	follows: string | null,
+	/**
+	 *  How many pictures it previews on: its textures, then a lit sphere
+	 *  for each material whose colours it writes.
+	 */
+	sheets: number,
 	/**  Why this dump can't paint it, when it can't. */
 	problem: string | null,
 };
@@ -872,6 +911,30 @@ export type PlandoOptions = {
 	/**  Why the deal refuses `fixed`, if it does. */
 	error: string | null,
 };
+
+/**  A track's kind. Tracks shuffle only within their pool. */
+export type Pool = 
+/**  Looping world music: towns, field, dungeons, houses, fountains. */
+"area" | 
+/**  Enemy, mini-boss and boss music. */
+"battle" | 
+/**  Cutscene music. */
+"event" | 
+/**  Gets, the medallion and stone, game over, riddles, sleep. */
+"fanfare" | 
+/**  The songs Link plays and the ones he's taught. */
+"ocarina" | 
+/**  The silences: never shuffled. */
+"fixed";
+
+/**  A pool's mode. */
+export type PoolMode = 
+/**  Every track plays its own. */
+"vanilla" | 
+/**  A permutation within each band: every song plays somewhere. */
+"shuffle" | 
+/**  Each slot draws any song in its band, repeats allowed. */
+"random";
 
 export type Rebuild = {
 	/**  What rebuilds the game, as arguments. `{game}` becomes the game dump. */
@@ -1303,6 +1366,25 @@ export type TestSetup = {
 	goals?: string[],
 	/**  What a flag can't show, like the item a check should give. */
 	expect?: string,
+};
+
+/**  One track as the pane lists it. */
+export type TrackView = {
+	id: string,
+	label: string,
+	pool: Pool,
+	/**  Its length band in its pool: 0 for a loop or a pool without bands. */
+	band: number,
+	/**  The band in words: `<5s`, `5-12s`, `loop`, or `-` without bands. */
+	band_label: string,
+	/**  The song's length in milliseconds. */
+	ms: number,
+	looping: boolean,
+	/**
+	 *  Whether it gives a song another track can play. Without one, its
+	 *  music is in sections: it only receives.
+	 */
+	song: boolean,
 };
 
 /**  How the grid looks, in the tab and the pop out. */

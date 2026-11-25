@@ -632,6 +632,7 @@ const startView = (tier: number) =>
       caps: [null],
       staged: [tier > 0],
       locked: [],
+      bars: [],
       status: [],
     },
   });
@@ -756,6 +757,22 @@ test("the Kokiri Tunic shows held and locked to every new game", async () => {
   );
 });
 
+test("a cell the settings keep out shows locked, saying why", async () => {
+  vi.spyOn(commands, "startItems").mockImplementation((_s, given) =>
+    startView(0).then((v) => ({
+      ...v,
+      data: { ...v.data, locked: [given.length], bars: ["Needs Fake Moved"] },
+    })),
+  );
+  const click = vi.spyOn(commands, "startClick");
+  show({ defs: [inventory], section: "Inventory" });
+  const tile = await screen.findByRole("button", {
+    name: "Hookshot, needs Fake Moved",
+  });
+  fireEvent.click(tile);
+  expect(click).not.toHaveBeenCalled();
+});
+
 test("All starts with the arsenal and None with nothing", async () => {
   vi.spyOn(commands, "startItems").mockImplementation(() => startView(0));
   const arsenal = vi
@@ -777,7 +794,7 @@ test("All starts with the arsenal and None with nothing", async () => {
       "start-inventory": { hookshot: 1, longshot: 1 },
     }),
   );
-  expect(arsenal).toHaveBeenCalledWith({ hookshot: 1 });
+  expect(arsenal).toHaveBeenCalledWith({ hookshot: 1 }, expect.anything());
   fireEvent.click(
     screen.getByRole("button", { name: "None in Starting inventory" }),
   );

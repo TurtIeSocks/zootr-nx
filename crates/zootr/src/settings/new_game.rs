@@ -123,6 +123,8 @@ pub struct NewGame {
     pub given_hints: Option<Vec<crate::hints::Hint>>,
     /// The colours the seed paints.
     pub colors: crate::colors::Colors,
+    /// The songs the seed plays.
+    pub audio: crate::audio::Audio,
 }
 
 impl NewGame {
@@ -182,6 +184,7 @@ impl NewGame {
                 start.add(word, 1)?;
             }
         }
+        crate::bottles::check_start(start.bottles(), on(presets::KING_ZORA_MOVED))?;
         let defaults = [
             choice_edits(
                 keys,
@@ -277,6 +280,7 @@ impl NewGame {
             players: Default::default(),
             given_hints: None,
             colors: Default::default(),
+            audio: Default::default(),
         })
     }
 }
@@ -372,6 +376,49 @@ pub(crate) fn toggles() -> BTreeSet<String> {
     });
     words.collect()
 }
+
+/// The start words `settings` keep out, each with why ("Needs King Zora
+/// Moved"): bottle 5 while King Zora hasn't moved, since five starting
+/// bottles leave Ruto's Letter no slot ([`crate::bottles::check_start`]).
+pub fn barred(settings: &Settings) -> Vec<(&'static str, String)> {
+    let schema = schema();
+    let id = presets::KING_ZORA_MOVED;
+    if is_on(&schema, &super::with_picks(&schema, settings), id) {
+        return Vec::new();
+    }
+    let label = schema.iter().find(|d| d.id == id).map_or(id, |d| d.label);
+    vec![(BOTTLE_5, format!("Needs {label}"))]
+}
+
+/// `start` without the words `settings` keep out ([`barred`]). Whether
+/// it changed.
+pub fn fit_start(start: &mut starting::Start, settings: &Settings) -> bool {
+    let held = |w: &&str| start.holds(w);
+    let out: Vec<_> = barred(settings)
+        .into_iter()
+        .map(|(w, _)| w)
+        .filter(held)
+        .collect();
+    out.iter().for_each(|w| _ = start.0.remove(*w));
+    !out.is_empty()
+}
+
+/// [`fit_start`] on the settings' own start inventory, saying so when it
+/// dropped something.
+pub fn fit_bottles(settings: &mut Settings) -> Result<Option<String>> {
+    let mut start = starting::Start::from_settings(settings)?;
+    if !fit_start(&mut start, settings) {
+        return Ok(None);
+    }
+    settings.insert(starting::SETTING.into(), serde_json::to_value(start)?);
+    Ok(Some(
+        "Dropped bottle 5 from the start inventory: five starting bottles need King Zora Moved"
+            .into(),
+    ))
+}
+
+/// The start word for the last bottle slot.
+const BOTTLE_5: &str = "bottle-5";
 
 /// Whether setting `id` is on: its own value or default, or its parent's.
 fn is_on(schema: &[SettingDef], settings: &Settings, id: &str) -> bool {
@@ -509,6 +556,7 @@ mod tests {
                 players: Default::default(),
                 given_hints: None,
                 colors: Default::default(),
+                audio: Default::default(),
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }
@@ -791,5 +839,31 @@ mod tests {
         let skips = NewGame::from_settings(&one, &[]).unwrap().skips;
         assert_eq!(skips.areas, ["kokiri"].into());
         assert!(!skips.owl);
+    }
+
+    #[test]
+    fn turning_king_zora_moved_off_drops_bottle_5() {
+        let five: Vec<String> = (1..=5).map(|i| format!("bottle-{i}")).collect();
+        let start = starting::Start::of(&five.iter().map(String::as_str).collect::<Vec<_>>());
+        let mut settings = Settings::from([
+            (
+                starting::SETTING.into(),
+                serde_json::to_value(&start).unwrap(),
+            ),
+            (presets::KING_ZORA_MOVED.into(), true.into()),
+        ]);
+        assert_eq!(fit_bottles(&mut settings).unwrap(), None);
+        assert!(NewGame::from_settings(&settings, &[]).is_ok());
+        settings.insert(presets::KING_ZORA_MOVED.into(), false.into());
+        let err = NewGame::from_settings(&settings, &[])
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("King Zora Moved"), "{err}");
+        assert_eq!(barred(&settings)[0].1, "Needs King Zora Moved");
+        assert!(fit_bottles(&mut settings).unwrap().is_some());
+        let kept = starting::Start::from_settings(&settings).unwrap();
+        assert_eq!(kept.bottles(), 4);
+        assert!(!kept.holds(BOTTLE_5));
+        assert!(NewGame::from_settings(&settings, &[]).is_ok());
     }
 }

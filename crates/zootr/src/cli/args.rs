@@ -283,6 +283,29 @@ pub(super) enum Command {
     /// The palettes a seed can recolour with `shuffle --color`.
     #[command(subcommand)]
     Colors(ColorsCommand),
+    /// The music tracks a seed can shuffle with `shuffle --audio`.
+    #[command(subcommand)]
+    Audio(AudioCommand),
+    /// Which songs play in the game's audio dump (its target's harness
+    /// lines turn audio on, muted, dumped to a file), window by window. Each SONG is
+    /// a track's id (`audio list`), for its song, or a stream's name.
+    Listen {
+        dump: PathBuf,
+        #[arg(required = true)]
+        songs: Vec<String>,
+        /// Where to start, in seconds into the dump.
+        #[arg(long, default_value_t = 0.0)]
+        from: f32,
+        /// Where to stop, in seconds: the dump's end by default.
+        #[arg(long)]
+        to: Option<f32>,
+        /// Each window's length, in seconds.
+        #[arg(long, default_value_t = 3.0)]
+        step: f32,
+        /// The dump's channels: the runner writes eight.
+        #[arg(long, default_value_t = 8)]
+        channels: usize,
+    },
     /// Give Link an item in the running game, by its actor name, with
     /// the game's own grant, run by our hook on Link's next update. The
     /// menu shows it the next time it opens. Needs macOS or a target with a bridge.
@@ -601,6 +624,19 @@ pub(super) struct Shuffle {
     /// `{"hex": "#rrggbb"}`, as the app keeps one. `--color` wins over it.
     #[arg(long, value_name = "FILE")]
     colors: Option<PathBuf>,
+    /// Shuffle a pool of music (`audio list` shows them) as
+    /// `POOL=shuffle`, `POOL=random` or `POOL=vanilla`. Repeatable.
+    #[arg(long, value_name = "POOL=MODE", value_parser = crate::audio::parse_pool)]
+    audio: Vec<(crate::audio::Pool, crate::audio::PoolMode)>,
+    /// Give one track another's song as `SLOT=SONG`, both track ids, or
+    /// keep it as `SLOT=vanilla` whatever its pool does. Repeatable.
+    #[arg(long, value_name = "SLOT=SONG", value_parser = crate::audio::parse_track)]
+    track: Vec<(String, String)>,
+    /// A set of music choices, as JSON, as the app keeps one: `{"pools":
+    /// {"area": "shuffle"}, "tracks": {"market": "vanilla"}}`. `--audio`
+    /// and `--track` win over it.
+    #[arg(long, value_name = "FILE")]
+    audio_set: Option<PathBuf>,
     #[command(flatten)]
     new_game: NewGame,
     #[command(flatten)]
@@ -608,17 +644,29 @@ pub(super) struct Shuffle {
 }
 
 #[derive(Subcommand)]
+pub(super) enum AudioCommand {
+    /// Every track: its id, pool, band, length and name.
+    List {
+        #[arg(long)]
+        pool: Option<crate::audio::Pool>,
+    },
+    /// Write a song as a stereo WAV: a track's id (its song) or a
+    /// stream's name.
+    Play { song: String, out: PathBuf },
+}
+
+#[derive(Subcommand)]
 pub(super) enum ColorsCommand {
     /// Every palette: its id, group, name and vanilla colours.
     List,
-    /// Write the preview the app shows: one of a palette's textures,
+    /// Write the preview the app shows: one of a palette's textures or materials,
     /// painted as a seed paints it, as a PNG.
     Preview {
         id: String,
         /// `#rrggbb` (`#a,#b` for a colour per slot), or `vanilla`.
         color: String,
         out: PathBuf,
-        /// Which of the palette's textures, from 0.
+        /// Which of the palette's textures, then materials, from 0.
         #[arg(long, default_value_t = 0)]
         texture: usize,
         /// Grey every texel the palette leaves alone.
@@ -804,6 +852,22 @@ impl Shuffle {
 
     /// The colours asked for, Random not drawn yet: the file's, then each
     /// `--color`.
+    /// The music asked for, not dealt yet: the file's, then each `--audio`
+    /// and `--track`.
+    pub(super) fn audio_draft(&self) -> anyhow::Result<crate::audio::Draft> {
+        let mut draft = match &self.audio_set {
+            None => crate::audio::Draft::default(),
+            Some(file) => {
+                let text = std::fs::read_to_string(file)?;
+                serde_json::from_str(&text)
+                    .map_err(|e| anyhow::anyhow!("{}: {e}", file.display()))?
+            }
+        };
+        draft.pools.extend(self.audio.iter().copied());
+        draft.tracks.extend(self.track.iter().cloned());
+        Ok(draft)
+    }
+
     pub(super) fn draft(&self) -> anyhow::Result<crate::colors::Draft> {
         let mut draft = match &self.colors {
             None => crate::colors::Draft::new(),

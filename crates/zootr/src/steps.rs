@@ -4,16 +4,16 @@
 //! `Step_<Challenge>` leaves the quest system on the old one.
 //!
 //! A new game replays the steps in its opening (see `starting::replay`). A
-//! running game runs one through the dev panel: a seed built with it has a
-//! branch at the head of the map change flow, which the hook starts with the
-//! step's names as arguments.
+//! running game runs one through the dev panel: every seed adds a dev entry
+//! to the map change flow, which the hook starts with the step's names as
+//! arguments.
 
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{BymlDoc, EventKind, Flowchart, Link, Params, Romfs, Value};
+use ounce_formats::{BymlDoc, EntryPoint, EventKind, Flowchart, Params, Romfs, Value};
 use zootr_hook::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_NOTICE, ARG_STEP_NAME, DEV_EVENT,
 };
 
 use crate::checks::str_field;
@@ -154,13 +154,15 @@ pub(crate) fn arg(name: &[u8]) -> String {
     String::from_utf8_lossy(&name[..name.len() - 1]).into_owned()
 }
 
-/// Put branches at the head of the map change flow's entry: when the hook
-/// passes `ZootrGive`, grant the item `ZootrActor`, equipped if `ZootrEquip`,
-/// and end. When it passes `ZootrStep`, run the quest step named by
-/// `ZootrChallenge` and `ZootrStepName` and end. When it passes
-/// `ZootrNotice`, show a received item's notice ([`crate::notice`]).
-/// Otherwise the flow runs as it did, since an argument the hook doesn't
-/// pass reads as false.
+/// Add the hook's own entry, [`DEV_EVENT`], to the map change flow: when
+/// the hook passes `ZootrNotice`, show a received item's notice
+/// ([`crate::notice`]). Else when it passes `ZootrGive`, grant the item
+/// `ZootrActor`, equipped if `ZootrEquip`. Else run the quest step named by
+/// `ZootrChallenge` and `ZootrStepName`. Each ends the event.
+///
+/// The map change's own entry stays as it was. A request's arguments
+/// outlive it and a doorway names none of them, so branches there took over
+/// every doorway after a notice ("+N more", and no map change).
 pub fn dev_branch(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     let template = template(romfs)?;
     let progress = progress(&template)?;
@@ -169,6 +171,11 @@ pub fn dev_branch(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
     flows::edit(romfs, rewrites, BANC, |flow| {
         branch(flow, &progress, &grant, &shows)
     })
+}
+
+/// [`dev_branch`]'s event row: the map change's, starting its entry.
+pub fn dev_event(events: &mut rsdb::Events) -> Result<()> {
+    events.copy(&arg(DEV_EVENT), BANC)
 }
 
 /// A switch on the bool argument `name`, to `yes` when it holds, else `no`.
@@ -271,7 +278,6 @@ fn branch(
     template: &Flowchart,
     shows: &Shows,
 ) -> Result<()> {
-    let (entry, main) = entry(flow)?;
     let asks = switch(flow, IS_BOOL).with_context(|| format!("{BANC} never asks {IS_BOOL:?}"))?;
     let asks = flows::model(flow, IS_BOOL, asks)?;
     let (actor, action) = flow.action(&progress.actor, progress.name);
@@ -286,16 +292,20 @@ fn branch(
         action,
         params,
     });
-    let step = when(flow, &asks, ARG_STEP, run, main)?;
     // Equipping is a second query, between two grants, so the only argument
     // a flow reads is the one the steps already prove: a query's `BoolValue`.
     let plain = grant(flow, template, false)?;
     let equipped = grant(flow, template, true)?;
     let give = when(flow, &asks, ARG_EQUIP, equipped, plain)?;
-    let give = when(flow, &asks, ARG_GIVE, give, step)?;
+    let give = when(flow, &asks, ARG_GIVE, give, run)?;
     let notice = shows.branch(flow, |flow, name, yes, no| when(flow, &asks, name, yes, no))?;
     let head = when(flow, &asks, ARG_NOTICE, notice, give)?;
-    flow.link(Link::Entry(entry), Some(head))
+    flow.entry_points.push(EntryPoint {
+        name: arg(DEV_EVENT),
+        main: Some(head),
+        vars: vec![],
+    });
+    Ok(())
 }
 
 #[cfg(test)]
@@ -460,8 +470,10 @@ mod tests {
         (before, flow, was)
     }
 
+    /// The first event of the dev entry.
     fn head(flow: &Flowchart) -> u16 {
-        let entry = flow.entry_points.iter().find(|e| e.name == ENTRY).unwrap();
+        let dev = arg(DEV_EVENT);
+        let entry = flow.entry_points.iter().find(|e| e.name == dev).unwrap();
         entry.main.unwrap()
     }
 
@@ -504,18 +516,33 @@ mod tests {
     }
 
     #[test]
-    fn a_dev_branch_runs_the_step_or_the_old_flow() {
+    fn a_doorways_map_change_reads_no_hook_argument() {
         let Some(romfs) = dev_dump() else { return };
-        let (before, flow, was) = branched(&romfs);
-        // Give is next, and ZootrGive false reaches the step.
-        let (give, [_, next]) = asks(&flow, past_notice(&flow));
-        assert_eq!(give, argument("ZootrGive"));
-        let (step, [run, rest]) = asks(&flow, next);
-        assert_eq!(step, argument("ZootrStep"));
-        assert_eq!(
-            rest, was,
-            "ZootrStep false reaches the original first event"
+        let (_, flow, was) = branched(&romfs);
+        let (_, main) = entry(&flow).unwrap();
+        assert_eq!(main, was, "the map change starts where it did");
+        let read = |e: u16| match &flow.events[e as usize].kind {
+            EventKind::Switch { params, .. } | EventKind::Action { params, .. } => params
+                .iter()
+                .any(|(_, v)| matches!(v, Value::Argument(a) if a.starts_with("Zootr"))),
+            _ => false,
+        };
+        let reads: Vec<u16> = (flows::reachable_from(&flow, Some(main)).into_iter())
+            .filter(|&e| read(e))
+            .collect();
+        assert!(
+            reads.is_empty(),
+            "a doorway reads a hook argument at {reads:?}"
         );
+    }
+
+    #[test]
+    fn a_dev_branch_runs_the_step_when_it_isnt_a_give() {
+        let Some(romfs) = dev_dump() else { return };
+        let (before, flow, _) = branched(&romfs);
+        // Give is next, and ZootrGive false runs the step.
+        let (give, [_, run]) = asks(&flow, past_notice(&flow));
+        assert_eq!(give, argument("ZootrGive"));
         let EventKind::Action { next, .. } = &flow.events[run as usize].kind else {
             panic!("no step")
         };
@@ -578,8 +605,8 @@ mod tests {
     #[test]
     fn the_hook_and_the_flow_name_the_same_arguments() {
         assert_eq!(
-            [arg(ARG_STEP), arg(ARG_CHALLENGE), arg(ARG_STEP_NAME)],
-            ["ZootrStep", "ZootrChallenge", "ZootrStepName"]
+            [arg(DEV_EVENT), arg(ARG_CHALLENGE), arg(ARG_STEP_NAME)],
+            ["Rando_Dev", "ZootrChallenge", "ZootrStepName"]
         );
         assert_eq!(
             [arg(ARG_GIVE), arg(ARG_ACTOR), arg(ARG_EQUIP)],

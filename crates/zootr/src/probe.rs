@@ -168,7 +168,12 @@ pub enum Probe {
     /// actor name and a dot, the dot keeping its variants out):
     /// its textures and its four-float parameters by name hash, the
     /// colours Colors can write. Linear light, as the shader reads them.
+    /// A path to a file on disk (a built mod's) reads that file instead.
     Materials { model: String },
+    /// A texture's average colour, and the average of its texels in each
+    /// hue band given (`LO-HI`, 0 to 1, wrapping past 1): the vanilla
+    /// colours a Colors palette records.
+    Band { texture: String, bands: Vec<String> },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -205,6 +210,10 @@ pub enum Probe {
         /// Instead, the call each action and property trigger plays.
         #[arg(long, conflicts_with_all = ["tree", "children"])]
         triggers: bool,
+        /// Each call's kind (asset or container) and its param offset:
+        /// calls that share an offset play the same thing.
+        #[arg(long, conflicts_with_all = ["tree", "children", "triggers"])]
+        params: bool,
     },
     /// Each chest a logic graph gates: placement hash, area and rule.
     Gates {
@@ -563,6 +572,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Chests { out } => crate::chest_looks::preview(romfs, &out),
         Probe::Materials { model } => materials(romfs, game, &model),
+        Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -581,9 +591,21 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             tree,
             children,
             triggers,
+            params,
         } => {
             let file = romfs.read(crate::ageless_items::SOUNDS)?;
             let grep = grep.unwrap_or_default().to_lowercase();
+            if params {
+                let table = ounce_formats::xlink_call_table(&file, &user)?;
+                let names = ounce_formats::xlink_calls(&file, &user)?;
+                for (name, call) in names.iter().zip(&table) {
+                    if name.to_lowercase().contains(&grep) {
+                        let kind = if call.container { "container" } else { "asset" };
+                        println!("{name}\t{kind}\t{:#x}", call.param);
+                    }
+                }
+                return Ok(());
+            }
             let names = match (tree, children) {
                 (Some(key), _) => ounce_formats::xlink_tree(&file, &user, &key)?,
                 (_, Some(key)) => ounce_formats::xlink_children(&file, &user, &key)?,
@@ -879,13 +901,45 @@ fn point(arg: &str) -> Result<[f32; 3]> {
 
 /// `probe materials`.
 fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
-    let data =
-        crate::nav::dump_file(romfs, game, model)?.with_context(|| format!("no model {model}"))?;
+    // A built file (a mod's) by its path, or the dump's by a piece of one.
+    let data = match Path::new(model).is_file() {
+        true => romfs.dicts().decompress(model, &std::fs::read(model)?)?,
+        false => crate::nav::dump_file(romfs, game, model)?
+            .with_context(|| format!("no model {model}"))?,
+    };
     for m in ounce_formats::materials(&data)? {
         println!("{}", m.name);
         println!("  textures {}", m.textures.join(" "));
         for (hash, [r, g, b, a]) in &m.params {
             println!("  {hash:016x}  {r:.4} {g:.4} {b:.4} {a:.4}");
+        }
+    }
+    Ok(())
+}
+
+fn band(romfs: &Romfs, game: &Path, texture: &str, bands: &[String]) -> Result<()> {
+    use crate::colors::paint;
+    let data = crate::nav::dump_file(romfs, game, texture)?
+        .with_context(|| format!("no texture {texture}"))?;
+    let rgba = ounce_formats::top_level(&data)?.rgba;
+    let n = (rgba.len() / 4).max(1) as u64;
+    let mean: [u64; 3] =
+        std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
+    println!("all        {mean:?}");
+    for b in bands {
+        let (lo, hi) = b.split_once('-').context("a band is LO-HI")?;
+        let hues = (lo.parse()?, hi.parse()?);
+        let share = rgba
+            .chunks(4)
+            .filter(|px| paint::in_band(px, hues).is_some())
+            .count();
+        match paint::mean(&rgba, hues) {
+            Some((h, s, v)) => println!(
+                "{b:<10} {:?}  {:.1}% of texels",
+                paint::rgb(h, s, v),
+                100.0 * share as f64 / n as f64
+            ),
+            None => println!("{b:<10} no texel"),
         }
     }
     Ok(())

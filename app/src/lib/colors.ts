@@ -33,6 +33,20 @@ export const modeOf = (pick: Pick | undefined): Mode =>
 export const swatchOf = (palette: PaletteView, pick: Pick | undefined) =>
   typeof pick === "object" ? pick.hex : (palette.vanilla[0] ?? "#000000");
 
+/** `picked` with slot `slot` set to `hex`: the first, or a split one. */
+export const withSlot = (picked: Picked, slot: number, hex: string): Picked =>
+  slot === 0
+    ? { ...picked, hex }
+    : {
+        ...picked,
+        split: (picked.split ?? []).map((s, i) => (i === slot - 1 ? hex : s)),
+      };
+
+/** The first option of a palette's switch: vanilla, or the palette it
+ * moves with while left alone. */
+export const vanillaLabel = (palette: PaletteView) =>
+  palette.follows ? `With ${palette.follows}` : "Vanilla";
+
 /** Sets palette `id` to `pick`. Vanilla leaves the draft, as it's what an
  * unnamed palette is. */
 export const setPick =
@@ -67,8 +81,8 @@ export const toggleLock =
 /** What a preview shows of a palette. */
 export interface PreviewOf {
   id: string;
-  /** Which of its textures, from 0. */
-  texture: number;
+  /** Which of its sheets (textures, then material spheres), from 0. */
+  sheet: number;
   /** The colour painted, or null for vanilla. */
   picked: Picked | null;
   /** Grey what the palette leaves alone. */
@@ -78,8 +92,8 @@ export interface PreviewOf {
 const digits = (hex: string) => hex.replace(/^#/, "");
 
 /** The backend's render of `preview`, as the seed would paint it. */
-export function previewUrl({ id, texture, picked, changes }: PreviewOf) {
-  const query = new URLSearchParams({ t: String(texture) });
+export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
+  const query = new URLSearchParams({ t: String(sheet) });
   if (picked) {
     query.set("c", digits(picked.hex));
     for (const s of picked.split ?? []) query.append("s", digits(s));

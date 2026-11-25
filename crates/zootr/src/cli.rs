@@ -13,7 +13,7 @@ use ounce_formats::Romfs;
 use crate::config::Config;
 use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{ApCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
+use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
 use play::{
     Shoot, Sweep, boot_command, drill, drill_report, look, photo, play, sweep, sweep_report,
 };
@@ -71,6 +71,23 @@ pub fn run() -> Result<()> {
         }
         // Its run reads the dump as its first step.
         Command::Shuffle(args) => shuffle(&path()?, args),
+        Command::Audio(AudioCommand::List { pool }) => {
+            audio_list(pool);
+            Ok(())
+        }
+        Command::Audio(AudioCommand::Play { song, out }) => {
+            std::fs::write(&out, crate::audio::wav(&path()?, &song)?)?;
+            println!("wrote {}", out.display());
+            Ok(())
+        }
+        Command::Listen {
+            dump,
+            songs,
+            from,
+            to,
+            step,
+            channels,
+        } => listen(&path()?, &dump, channels, (from, to, step), &songs),
         Command::Colors(ColorsCommand::List) => {
             colors_list();
             Ok(())
@@ -323,8 +340,8 @@ fn colors_preview(
     };
     let png = preview::Previews::default().png(romfs, id, texture, picked.as_ref(), view)?;
     std::fs::write(out, png)?;
-    let textures = preview::textures(crate::colors::palette(id)?);
-    println!("{} ({} of {})", out.display(), texture + 1, textures.len());
+    let sheets = preview::sheets(crate::colors::palette(id)?);
+    println!("{} ({} of {})", out.display(), texture + 1, sheets.len());
     Ok(())
 }
 
@@ -341,4 +358,54 @@ fn colors_list() {
             p.label
         );
     }
+}
+
+/// `audio list`: one track a line.
+fn audio_list(pool: Option<crate::audio::Pool>) {
+    use crate::audio::TRACKS;
+    let shown = TRACKS.iter().filter(|t| pool.is_none_or(|p| t.pool == p));
+    let width = TRACKS.iter().map(|t| t.id.len()).max().unwrap_or(0);
+    for t in shown {
+        let song = if t.song.is_some() {
+            ""
+        } else {
+            "  (sections: receives only)"
+        };
+        let lasts = if t.looping {
+            "loop".to_owned()
+        } else {
+            format!("{:.1}s", t.secs)
+        };
+        println!(
+            "{:<width$}  {:<7}  {:<6}  {lasts:>6}  {}{song}",
+            t.id,
+            t.pool.name(),
+            t.band_label(),
+            t.label
+        );
+    }
+}
+
+/// `listen`: each window of the dump and what plays in it.
+fn listen(
+    game: &std::path::Path,
+    dump: &std::path::Path,
+    channels: usize,
+    (from, to, step): (f32, Option<f32>, f32),
+    songs: &[String],
+) -> Result<()> {
+    let bytes_per_second = (48_000 * 2 * channels) as f32;
+    let to = match to {
+        Some(to) => to,
+        None => std::fs::metadata(dump)?.len() as f32 / bytes_per_second,
+    };
+    let windows = crate::audio::listen::listen(game, dump, channels, (from, to, step), songs)?;
+    for w in windows {
+        let heard = match w.best {
+            Some((name, score, at)) => format!("{name:<40} {score:.2} @ {at:6.1}"),
+            None => "-".into(),
+        };
+        println!("{:8.1}  rms {:6.0}  {heard}", w.at, w.rms);
+    }
+    Ok(())
 }

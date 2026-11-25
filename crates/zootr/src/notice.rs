@@ -5,7 +5,7 @@
 //!
 //! The banner's words come from GameData: the app writes the item, the
 //! sender's stand-in and a count, then asks the hook for the notice, which
-//! the dev branch of a seed's map change flow shows. So the seed writes
+//! the dev entry of a seed's map change flow shows. So the seed writes
 //! three banner lines over the amiibo ones, and a name for each slot's
 //! stand-in.
 

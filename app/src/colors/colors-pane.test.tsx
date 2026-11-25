@@ -26,13 +26,21 @@ const palette = (
   label,
   group,
   vanilla: ["#40522b"],
-  textures: 2,
+  names: [],
+  follows: null,
+  sheets: 2,
   problem,
 });
 
 const CATALOG = [
   palette("kokiri-tunic", "Kokiri Tunic", "link"),
   palette("leather", "Leather", "link"),
+  {
+    ...palette("hair", "Hair", "link"),
+    vanilla: ["#bc7224", "#aa6e2e"],
+    names: ["Hair", "Shade"],
+  },
+  { ...palette("brows", "Eyebrows", "link"), follows: "Hair" },
   palette("goron-tunic", "Goron Tunic", "link", "the dump's colour differs"),
   palette("bow", "Fairy Bow", "gear"),
 ];
@@ -43,6 +51,10 @@ vi.mock("@/bindings", () => ({
     colorsDraw: async (ids: string[]) => ({
       status: "ok",
       data: Object.fromEntries(ids.map((id) => [id, "#123456"])),
+    }),
+    colorsFollow: async (_id: string, hex: string) => ({
+      status: "ok",
+      data: [hex, "#223344"],
     }),
     setConfig: (c: FullConfig) => setConfig(c),
   },
@@ -64,8 +76,14 @@ function show(config: FullConfig) {
 }
 
 const saved = () => setConfig.mock.lastCall?.[0];
+/** The row named `label`, by its title (a slot may share the name). */
 const within = (label: string) =>
-  screen.getByText(label).closest("li") as HTMLElement;
+  screen
+    .getAllByText(label)
+    .map((e) => e.closest("li"))
+    .find(
+      (li) => li?.querySelector("span")?.textContent === label,
+    ) as HTMLElement;
 const press = (row: string, name: string) =>
   fireEvent.click(
     [...within(row).querySelectorAll("button")].find(
@@ -98,7 +116,7 @@ test("Reset All leaves a locked palette and one this dump can't paint", async ()
   );
 });
 
-test("Randomize All sets each unlocked palette to Random", async () => {
+test("Randomize All sets each unlocked palette to Random, leaving followers following", async () => {
   show(full({ color_locks: ["bow"] }));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }));
@@ -106,6 +124,7 @@ test("Randomize All sets each unlocked palette to Random", async () => {
     expect(saved()?.colors).toEqual({
       "kokiri-tunic": "random",
       leather: "random",
+      hair: "random",
     }),
   );
 });
@@ -123,4 +142,26 @@ test("shift-click Randomize All draws colours now", async () => {
 test("previews need game assets", async () => {
   show(full({}));
   expect(await screen.findByText(/Turn on game assets/)).toBeTruthy();
+});
+
+test("Split gives each slot a picker, starting where the slots followed", async () => {
+  show(full({ colors: { hair: { hex: "#3050d0" } } }));
+  await screen.findByText("Kokiri Tunic");
+  expect(within("Eyebrows").textContent).toContain("With Hair");
+  press("Hair", "Split");
+  await waitFor(() =>
+    expect(saved()?.colors).toEqual({
+      hair: { hex: "#3050d0", split: ["#223344"] },
+    }),
+  );
+});
+
+test("Split off goes back to one colour", async () => {
+  show(full({ colors: { hair: { hex: "#3050d0", split: ["#223344"] } } }));
+  await screen.findByText("Kokiri Tunic");
+  expect(within("Hair").textContent).toContain("Shade");
+  press("Hair", "Split");
+  await waitFor(() =>
+    expect(saved()?.colors).toEqual({ hair: { hex: "#3050d0", split: [] } }),
+  );
 });

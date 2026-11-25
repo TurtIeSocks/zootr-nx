@@ -139,7 +139,7 @@ fn opening(romfs: &Romfs, all: &Flows, new_game: &NewGame) -> Result<(Rewrites, 
     steps::dev_branch(romfs, &mut rewrites)?;
     if let Some(spawn) = boot(new_game) {
         let owned = new_game.start.owned();
-        flags.extend(spawn::boot(romfs, &mut rewrites, &spawn, &owned)?);
+        flags.extend(spawn::boot(romfs, all, &mut rewrites, &spawn, &owned)?);
     }
     Ok((rewrites, flags))
 }
@@ -264,6 +264,8 @@ pub fn write_mod(
     builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
+    // After ageless items, which add to the same sound users.
+    crate::audio::write(&mut builder, &new_game.audio)?;
     // Last: a feature copying a texture copies it as the dump has it.
     crate::colors::write(&mut builder, &new_game.colors)?;
     run.check()?;
@@ -491,6 +493,7 @@ impl<'a> Parts<'a> {
         let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
         let mut fields = new_game.fields.clone();
         let mut events = rsdb::Events::load(romfs)?;
+        steps::dev_event(&mut events)?;
         if new_game.scrubs {
             fields.extend(scrubs::fields(drops));
             scrubs::events(drops, &mut events)?;

@@ -10,9 +10,13 @@ use crate::{LIST, Shared};
 pub const MAILBOX: u32 = LIST + core::mem::offset_of!(Shared, dev) as u32;
 /// A mailbox name's size, its NUL included.
 pub const NAME: usize = 64;
-/// The arguments a quest step request passes, which a seed's map change flow
-/// reads, each with its NUL: whether it is a step, then the two names.
-pub const ARG_STEP: &[u8] = b"ZootrStep\0";
+/// The event a give, quest step or notice request starts: an entry point a
+/// seed adds to the map change flow. Its own, so the arguments below never
+/// reach the map change a doorway runs: a request's arguments outlive it,
+/// and a doorway names none of them.
+pub const DEV_EVENT: &[u8] = b"Rando_Dev\0";
+/// The arguments a quest step request passes, which [`DEV_EVENT`] reads,
+/// each with its NUL: the two names.
 pub const ARG_CHALLENGE: &[u8] = b"ZootrChallenge\0";
 pub const ARG_STEP_NAME: &[u8] = b"ZootrStepName\0";
 /// The arguments an item request passes, read the same way: whether it is a
@@ -81,11 +85,11 @@ word_enum! {
         Age = 2,
         /// Set the clock to `hour`.
         Time = 3,
-        /// Move the quest `map` to its step `spot`, with the event a
-        /// seed's map change flow runs for it.
+        /// Move the quest `map` to its step `spot`, with the event
+        /// [`DEV_EVENT`] runs for it.
         Step = 4,
         /// Give Link the item actor `map`, equipped when `hour` is not 0,
-        /// with the grant a seed's map change flow runs for it.
+        /// with the grant [`DEV_EVENT`] runs for it.
         Give = 5,
         /// Start the event `map` names, with no arguments.
         Play = 6,
@@ -98,7 +102,7 @@ word_enum! {
         /// `map`, `arrive` instead until Link owns it, as a chest's swap does.
         GiveLevel = 9,
         /// Show the banner of `hour`'s [`Notice`] for the item actor `map`,
-        /// with the popup for an item, as a seed's map change flow runs it.
+        /// with the popup for an item, as [`DEV_EVENT`] runs it.
         Notice = 10,
         /// Swap Link's age where he stands, with no area load.
         AgeHere = 11,
@@ -173,7 +177,7 @@ mod tests {
         assert_eq!(Notice::from_word(3), None);
         assert!(
             [
-                ARG_STEP,
+                DEV_EVENT,
                 ARG_CHALLENGE,
                 ARG_STEP_NAME,
                 ARG_GIVE,
