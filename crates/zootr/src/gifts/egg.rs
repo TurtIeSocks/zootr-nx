@@ -15,8 +15,8 @@ use ounce_formats::{Byml, Flowchart};
 
 use super::{GIFTS, Gift};
 use crate::checks::{ItemCheck, actors_mut, gate, hash_of};
-use crate::flows;
 use crate::cutscenes::played_flag;
+use crate::flows;
 use crate::known::{Name, flow, item};
 use crate::settings::NPC_GIFTS;
 use crate::starting::Start;
