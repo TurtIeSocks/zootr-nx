@@ -207,7 +207,8 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
             ..config
         };
         favorites::check(&config.favorites)?;
-        let notes = config.fix_mods_roots();
+        let mut notes = config.fix_mods_roots();
+        notes.extend(zootr::settings::fit_bottles(&mut config.settings)?);
         if let Some(game) = config
             .game
             .as_ref()

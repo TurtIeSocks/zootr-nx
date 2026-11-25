@@ -26,8 +26,8 @@ pub use choices::{
     Trials,
 };
 pub use layout::{GROUPS, Place, group, place};
-pub use new_game::NewGame;
 pub(crate) use new_game::value_word;
+pub use new_game::{NewGame, barred, fit_bottles, fit_start};
 pub(crate) use new_game::{toggles, toggles_on};
 pub use schema::schema;
 pub use upgrade::SettingsVersion;

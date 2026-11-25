@@ -91,8 +91,18 @@
   },
   {
     "class": "progression",
+    "id": 156,
+    "name": "Bottle with Blue Fire"
+  },
+  {
+    "class": "progression",
     "id": 40,
     "name": "Bottle with Milk"
+  },
+  {
+    "class": "progression",
+    "id": 157,
+    "name": "Bottle with Red Potion"
   },
   {
     "class": "filler",
@@ -143,6 +153,11 @@
     "class": "filler",
     "id": 114,
     "name": "Deku Seeds (3)"
+  },
+  {
+    "class": "filler",
+    "id": 158,
+    "name": "Deku Seeds (5)"
   },
   {
     "class": "progression",

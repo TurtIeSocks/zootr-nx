@@ -197,12 +197,16 @@ impl Extra {
 /// starts with, then the [`EXTRAS`]. No Status fields: the extras hold
 /// what they set. `given` holds the words each setting gives outside
 /// `start`: they show held, each cell locked to the first that gives it.
+/// `barred` holds the words the settings keep out, each with why
+/// ([`crate::settings::barred`]): their cells lock past the givers,
+/// `view.bars` saying why.
 pub fn items(
     gd: &GameData,
     inv: &Inventory,
     pouch: &Pouch,
     start: &Start,
     given: &[Vec<String>],
+    barred: &[(&str, String)],
 ) -> Result<ItemsView> {
     let mut shown = start.clone();
     for word in given.iter().flatten() {
@@ -216,19 +220,34 @@ pub fn items(
     };
     let bare = grid(&Start::default())?;
     let mut giving = Vec::new();
+    let mut bars = Vec::new();
     for words in given {
         let mut alone = Start::default();
         words.iter().try_for_each(|w| alone.add(w, 1))?;
         giving.push(grid(&alone)?);
+    }
+    // A barred word's own cell: the one it raises past what it brings
+    // along (a bottle brings the slots before it).
+    let mut keeping = Vec::new();
+    for (word, why) in barred {
+        let mut with = Start::default();
+        with.add(word, 1)?;
+        let mut without = with.clone();
+        without.0.remove(*word);
+        keeping.push((grid(&with)?, grid(&without)?));
+        bars.push(why.clone());
     }
     let opened = open(gd, inv, pouch, &shown)?;
     let mut view = save_editor::items(gd, inv, pouch, &opened);
     view.locked = (0..view.cells.len())
         .map(|at| {
             let gives = |tiers: &Vec<u8>| tiers[at] > bare[at];
-            giving.iter().position(gives).map(|i| i as u32)
+            let keeps = |(with, without): &(Vec<u8>, Vec<u8>)| with[at] > without[at];
+            let barred = || keeping.iter().position(keeps).map(|i| i + given.len());
+            (giving.iter().position(gives).or_else(barred)).map(|i| i as u32)
         })
         .collect();
+    view.bars = bars;
     for e in &EXTRAS {
         let n = e.of(&shown);
         view.cells.push(e.cell(n));
@@ -392,7 +411,7 @@ mod tests {
         };
         let mut kit = Start::default();
         kit.add(ARSENAL, 1).unwrap();
-        let view = items(&gd, &inv, &pouch, &kit, &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &kit, &[], &[]).unwrap();
         let magic = view.cells.iter().position(|c| c.label == "Magic").unwrap();
         assert_eq!(view.cells[magic].tier, 2);
         let once = click(&gd, &inv, &pouch, &Start::default(), magic, Intent::Up).unwrap();
@@ -402,7 +421,7 @@ mod tests {
     /// The panel holding the arsenal, and the cell labelled `label` in it.
     fn arsenal_cell(label: &str) -> Option<(ItemsView, crate::inventory::Cell)> {
         let (gd, inv, pouch) = layout()?;
-        let view = items(&gd, &inv, &pouch, &Start::of(&[ARSENAL]), &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::of(&[ARSENAL]), &[], &[]).unwrap();
         let cell = view
             .cells
             .iter()
@@ -471,7 +490,7 @@ mod tests {
         assert_eq!(twice, start(&[("hookshot", 1), ("longshot", 1)]));
         let back = click(&gd, &inv, &pouch, &twice, at("Hookshot"), Intent::Up).unwrap();
         assert_eq!(back, Start::default());
-        let view = items(&gd, &inv, &pouch, &twice, &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &twice, &[], &[]).unwrap();
         assert!(view.staged[at("Hookshot")]);
         assert!(view.locked.iter().all(Option::is_none));
         assert!(view.status.is_empty());
@@ -488,7 +507,7 @@ mod tests {
         let Some((gd, inv, pouch)) = layout() else {
             return;
         };
-        let view = items(&gd, &inv, &pouch, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &[], &[]).unwrap();
         let at = view.cells.iter().position(|c| c.label == "Wallet").unwrap();
         assert_eq!(view.cells[at].tier, 1);
         let adult = click(&gd, &inv, &pouch, &Start::default(), at, Intent::Up).unwrap();
@@ -515,7 +534,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let view = items(&gd, &inv, &free, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &free, &Start::default(), &[], &[]).unwrap();
         let (bag, chus) = (cell(&view, "Bombchu Bag"), cell(&view, "Bombchus"));
         assert!(view.cells[bag].hidden);
         assert_eq!(view.caps[chus], Some(40), "free bombchus need no bag");
@@ -526,13 +545,13 @@ mod tests {
                 ..Default::default()
             },
         );
-        let view = items(&gd, &inv, &bags, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &bags, &Start::default(), &[], &[]).unwrap();
         assert!(!view.cells[bag].hidden);
         assert_eq!(view.caps[chus], Some(0), "none before the first bag");
         let up = |s: &Start| click(&gd, &inv, &bags, s, bag, Intent::Up).unwrap();
         let medium = up(&up(&Start::default()));
         assert!(medium.holds("big-bombchu-bag"), "{medium:?}");
-        let view = items(&gd, &inv, &bags, &medium, &[]).unwrap();
+        let view = items(&gd, &inv, &bags, &medium, &[], &[]).unwrap();
         assert_eq!(view.caps[chus], Some(30));
     }
 
@@ -542,7 +561,7 @@ mod tests {
             return;
         };
         let game = seeded(&pouch, NewGame::default());
-        let view = items(&gd, &inv, &game, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &game, &Start::default(), &[], &[]).unwrap();
         let at = view
             .cells
             .iter()
@@ -561,7 +580,7 @@ mod tests {
                 ..Default::default()
             },
         );
-        let view = items(&gd, &inv, &shuffled, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &shuffled, &Start::default(), &[], &[]).unwrap();
         assert_eq!(view.cells[at].tier, 0, "a shuffled bag can be none");
     }
 
@@ -578,7 +597,7 @@ mod tests {
             },
         );
         let chosen = start(&[("bombchus", 20)]);
-        let view = items(&gd, &inv, &bags, &chosen, &[]).unwrap();
+        let view = items(&gd, &inv, &bags, &chosen, &[], &[]).unwrap();
         let at = |label: &str| view.cells.iter().position(|c| c.label == label).unwrap();
         assert_eq!(view.cells[at("Bombchus")].count, Some(0));
         let after = click(&gd, &inv, &bags, &chosen, at("Hookshot"), Intent::Up).unwrap();
@@ -594,7 +613,7 @@ mod tests {
             vec!["zeldas-letter".to_owned(), "zeldas-lullaby".to_owned()],
             vec!["gerudo-card".to_owned()],
         ];
-        let view = items(&gd, &inv, &pouch, &Start::default(), &given).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &given, &[]).unwrap();
         let locked_to = |giver: u32| {
             (view.locked.iter().enumerate())
                 .filter(|(_, l)| **l == Some(giver))
@@ -618,7 +637,7 @@ mod tests {
             return;
         };
         let given = [vec!["kokiri-tunic".to_owned()]];
-        let view = items(&gd, &inv, &pouch, &Start::default(), &given).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &given, &[]).unwrap();
         let at = (view.cells.iter())
             .position(|c| c.label == "Kokiri Tunic")
             .unwrap();
@@ -627,12 +646,34 @@ mod tests {
     }
 
     #[test]
+    fn a_barred_bottle_locks_its_own_cell_past_the_givers() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let given = [vec!["kokiri-tunic".to_owned()]];
+        let barred = [("bottle-5", "Needs FakeSetting".to_owned())];
+        let four = Start::of(&["bottle-1", "bottle-2", "bottle-3", "bottle-4"]);
+        let view = items(&gd, &inv, &pouch, &four, &given, &barred).unwrap();
+        let bars: Vec<_> = (view.locked.iter().enumerate())
+            .filter(|(_, l)| **l == Some(1))
+            .map(|(at, _)| at)
+            .collect();
+        assert_eq!(bars.len(), 1, "one bottle cell");
+        assert_eq!(view.cells[bars[0]].tier, 0, "shown empty");
+        assert_eq!(view.bars, ["Needs FakeSetting"]);
+        let free = items(&gd, &inv, &pouch, &four, &given, &[]).unwrap();
+        let mut locked = free.locked.clone();
+        locked[bars[0]] = Some(1);
+        assert_eq!(view.locked, locked, "only bottle 5 locks");
+    }
+
+    #[test]
     fn rupees_are_a_quest_cell_the_wallet_caps() {
         let Some((gd, inv, pouch)) = layout() else {
             return;
         };
         let click = |s: &Start, at, intent| click(&gd, &inv, &pouch, s, at, intent).unwrap();
-        let view = items(&gd, &inv, &pouch, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &[], &[]).unwrap();
         let cell = |label: &str| view.cells.iter().position(|c| c.label == label).unwrap();
         let (at, wallet) = (cell("Rupees"), cell("Wallet"));
         assert_eq!(view.cells[at].section, Section::Quest);
@@ -659,7 +700,7 @@ mod tests {
             return;
         };
         let click = |s: &Start, at, intent| click(&gd, &inv, &pouch, s, at, intent).unwrap();
-        let view = items(&gd, &inv, &pouch, &Start::default(), &[]).unwrap();
+        let view = items(&gd, &inv, &pouch, &Start::default(), &[], &[]).unwrap();
         let at = (view.cells.iter())
             .position(|c| c.label == "Heart Containers")
             .unwrap();

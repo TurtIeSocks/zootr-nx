@@ -74,6 +74,9 @@ pub struct ItemsView {
     /// in `cells`' order: a setting's item a click leaves alone. Empty on
     /// the Save page.
     pub locked: Vec<Option<u32>>,
+    /// Why each cell the settings keep out is locked, for the `locked`
+    /// indexes past the givers. Empty on the Save page.
+    pub bars: Vec<String>,
 }
 
 /// The Items tab for `opened`, read with the grid `inv`.
@@ -90,6 +93,7 @@ pub fn items(gd: &GameData, inv: &Inventory, pouch: &Pouch, opened: &Opened) -> 
             .collect(),
         status: status(gd, pouch, &opened.edited),
         locked: Vec::new(),
+        bars: Vec::new(),
     }
 }
 

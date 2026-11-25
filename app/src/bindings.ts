@@ -113,8 +113,11 @@ export const commands = {
 	 *  words each setting in `given` gives shown held and locked.
 	 */
 	startItems: (start: StartInventory, given: string[][], settings: { [key in string]: Value }) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given, settings })),
-	/**  `start` holding all of Link's gear too (`--start arsenal`). */
-	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
+	/**
+	 *  `start` holding all of Link's gear too (`--start arsenal`), less what
+	 *  `settings` keep out.
+	 */
+	startArsenal: (start: StartInventory, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start, settings })),
 	/**  `start` after a click on a grid cell, as a seed with `settings` deals it. */
 	startClick: (start: StartInventory, at: number, intent: Intent, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent, settings })),
 	/**
@@ -758,6 +761,11 @@ export type ItemsView = {
 	 *  the Save page.
 	 */
 	locked: (number | null)[],
+	/**
+	 *  Why each cell the settings keep out is locked, for the `locked`
+	 *  indexes past the givers. Empty on the Save page.
+	 */
+	bars: string[],
 };
 
 export type Kind = { type: "toggle"; default: boolean } | 

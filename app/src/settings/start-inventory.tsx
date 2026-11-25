@@ -38,8 +38,10 @@ interface Load {
 const loadItems = ({ start, given, settings }: Load) =>
   call(commands.startItems(start, given, settings));
 
-/** `start` with the arsenal (all of Link's gear) added. */
-const withArsenal = (start: Start) => call(commands.startArsenal(start));
+/** `start` with the arsenal (all of Link's gear) added, less what
+ * `settings` keep out. */
+const withArsenal = ({ start, settings }: Omit<Load, "given">) =>
+  call(commands.startArsenal(start, settings));
 
 /** What every new game holds whatever the settings, shown held and
  * locked like a setting's gift: Link can't start without his tunic. */
@@ -93,7 +95,8 @@ export function StartInventory({ def }: StartInventoryProps) {
     [start, forcers, givers, settings],
   );
   const view = useLoad(loadItems, load, true);
-  const armed = useLoad(withArsenal, start);
+  const arming = useMemo(() => ({ start, settings }), [start, settings]);
+  const armed = useLoad(withArsenal, arming);
   /** The settings as they stand now, read at the moment of a change. */
   const now = () => useConfig.getState().config.settings;
   /** Saves `next`, or unsets it at the default. Emptied, it saves `{}`,
@@ -117,7 +120,14 @@ export function StartInventory({ def }: StartInventoryProps) {
             : Object.keys(start).length > 0
         }
         onPick={async (on) =>
-          save(on ? await withArsenal(startOf(def, now())) : {})
+          save(
+            on
+              ? await withArsenal({
+                  start: startOf(def, now()),
+                  settings: now(),
+                })
+              : {},
+          )
         }
         already={ALREADY}
         tip={TIP}
@@ -125,7 +135,7 @@ export function StartInventory({ def }: StartInventoryProps) {
       />
       <ItemsEditor
         view={view.data}
-        lockedBy={givers.map((g) => g.name)}
+        locks={[...givers.map((g) => `From ${g.name}`), ...view.data.bars]}
         onClick={async (at: number, intent: Intent) => {
           const current = now();
           await save(

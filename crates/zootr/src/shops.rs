@@ -3,6 +3,7 @@
 //! the item once at a price rolled from the seed.
 
 mod floors;
+mod goods;
 mod planks;
 pub mod rupees;
 mod signs;
@@ -45,8 +46,6 @@ const NEW: &str = "Shop_Rando_";
 const SAME_SLOT: f32 = 0.25;
 /// A shop's slots sit this close to another of its slots.
 const SAME_SHOP: f32 = 5.0;
-/// What a check slot brings to the pool.
-const RED: &Name = actor::T_BOX_RUPEE_RED;
 /// Goods that are a vanilla logic source, with the item the source gives.
 /// Their slots become checks last.
 pub const SOURCES: [(&Name, &Name); 1] =
@@ -80,6 +79,9 @@ pub struct Slot {
     pub number: usize,
     /// The vanilla goods' actor.
     pub goods: String,
+    /// What the slot brings to the pool as a check: its goods as the pool
+    /// holds them (`goods`).
+    brings: &'static str,
     /// Every placement, child maps first. The first is the check's id.
     pub placements: Vec<u64>,
     /// The placements standing only on a flag, with it.
@@ -106,7 +108,7 @@ impl Slot {
 
     /// What the check adds to the pool.
     fn vanilla(&self) -> &'static str {
-        source_of(&self.goods).unwrap_or(RED)
+        self.brings
     }
 
     /// The new actor selling the seed's item here.
@@ -225,8 +227,10 @@ fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
         out.extend(group);
     }
     out.sort_by_key(|s| (SHOPS.iter().position(|n| *n == s.shop), s.number));
+    let bundles = goods::Bundles::load(romfs)?;
     for (i, slot) in out.iter_mut().enumerate() {
         slot.index = i;
+        slot.brings = bundles.pool_item(&slot.goods)?.0;
     }
     Ok(out)
 }
@@ -254,6 +258,7 @@ fn merge(mut found: Vec<Found>) -> Vec<Slot> {
                 shop: "",
                 number: 0,
                 goods: f.goods,
+                brings: "",
                 placements: vec![f.hash],
                 presence,
                 signs,
@@ -702,7 +707,11 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let slots = slots(&romfs).unwrap();
         let goron = slots.iter().find(|s| s.shop == "Goron Shop").unwrap();
-        let drops = HashMap::from([(goron.hash(), Drop::from(item::HOOKSHOT.to_string()))]);
+        // Every first slot sells the plain item: one left out would sell its
+        // own goods, which may have steps.
+        let drops: HashMap<_, _> = (slots.iter().filter(|s| s.number == 1))
+            .map(|s| (s.hash(), Drop::from(item::HOOKSHOT.to_string())))
+            .collect();
         let dir = std::env::temp_dir().join(format!("zootr-shops-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut tables = Tables::load(&romfs).unwrap();
