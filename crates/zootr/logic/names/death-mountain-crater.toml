@@ -1,0 +1,89 @@
+# Death Mountain Crater. OoTR's name wherever the remake keeps the spot.
+# A spot with a copy in each age map names both, the age before the kind
+# ("Child Rock 1", "Adult Rock 1"), as OoTR's Market Guard House pots do.
+# "Near DMT" is the ledge where the trail comes in. Numbered west to east.
+
+# Gold Skulltulas: the crate by the way in from the trail, and the bean
+# soil by the Bolero warp
+18219295034534354574 = "DMC GS Crate"
+6397182598322965076 = "DMC GS Bean Patch"
+
+# Heart pieces: up on the volcano, on the ledge below the way in, and
+# the Business Scrub behind a bombable rock
+744856631664786545 = "DMC Volcano Freestanding PoH"
+10331043360028932045 = "DMC Wall Freestanding PoH"
+2518138296199711695 = "DMC Deku Scrub" # guess: OoTR scrub sells bombs here, the remake one a heart piece
+
+# Near DMT: crates, pots and rocks on the ledge where the trail comes in
+12627030076101040890 = "DMC Near DMT Crate 1"
+4502491733150659917 = "DMC Near DMT Crate 2"
+8995841256848496528 = "DMC Near DMT Pot 1"
+3608254906757039927 = "DMC Near DMT Pot 2"
+5094859563924152486 = "DMC Near DMT Pot 3"
+5758039723623033052 = "DMC Near DMT Child Rock 1"
+4793260471136377552 = "DMC Near DMT Child Rock 2"
+13279296057525147608 = "DMC Near DMT Child Rock 3"
+14936226666394533208 = "DMC Near DMT Adult Rock 1"
+12149948234252356692 = "DMC Near DMT Adult Rock 2"
+8572656032555563605 = "DMC Near DMT Adult Rock 3"
+
+# Rocks by the upper grotto, by the Business Scrub, and by the gossip
+# stone at the east end
+15310626505717414559 = "DMC Near Upper Grotto Child Rock 1"
+17510543738023527238 = "DMC Near Upper Grotto Child Rock 2"
+7682609425523332827 = "DMC Near Upper Grotto Child Rock 3"
+1926142912245196445 = "DMC Near Upper Grotto Adult Rock 1"
+4256755263998205765 = "DMC Near Upper Grotto Adult Rock 2"
+9284120517102697436 = "DMC Near Upper Grotto Adult Rock 3"
+12764696357690143910 = "DMC Near Deku Scrub Child Rock"
+8740412976381850469 = "DMC Near Deku Scrub Adult Rock"
+11152633378830838160 = "DMC Near Gossip Stone Child Rock 1"
+5605006337447940100 = "DMC Near Gossip Stone Child Rock 2"
+11298927640547352220 = "DMC Near Gossip Stone Adult Rock 1"
+12189550029126530073 = "DMC Near Gossip Stone Adult Rock 2"
+
+# The upper grotto, under a rock by the way in: chest, gossip stone and
+# rocks, as OoTR's has a chest and gossip stone
+1158729434763801603 = "DMC Upper Grotto Chest"
+10206985919030447838 = "DMC Upper Grotto Child Rock 1"
+7564605921637587273 = "DMC Upper Grotto Child Rock 2"
+17016411154641075498 = "DMC Upper Grotto Child Rock 3"
+1117292011785988380 = "DMC Upper Grotto Child Rock 4"
+7544648525216776809 = "DMC Upper Grotto Child Rock 5"
+10520267131921302353 = "DMC Upper Grotto Adult Rock 1"
+3943721227043271732 = "DMC Upper Grotto Adult Rock 2"
+10254537967204215143 = "DMC Upper Grotto Adult Rock 3"
+8039316352414536735 = "DMC Upper Grotto Adult Rock 4"
+163222268581924143 = "DMC Upper Grotto Adult Rock 5"
+
+# The grotto under a rock near the Goron City exit, with two Dinolfos.
+# Not in OoTR, whose second grotto here holds scrubs.
+9128916506605227251 = "DMC Near GC Grotto Chest" # guess: may stand where OoTR has its Hammer Grotto
+
+# Pots near the Goron City exit: OoTR has four, the remake two
+8852244876520518028 = "DMC Near GC Child Pot 1"
+1392611204303480056 = "DMC Near GC Child Pot 2"
+11571574743199210991 = "DMC Near GC Adult Pot 1"
+16987791207545600180 = "DMC Near GC Adult Pot 2"
+
+# By the Fire Temple door: three rocks with rupees beneath, adult only
+6987338395680713863 = "DMC Near Fire Temple Rock 1"
+14216626233574515210 = "DMC Near Fire Temple Rock 2"
+5461607116687866226 = "DMC Near Fire Temple Rock 3"
+14962149652005504200 = "DMC Near Fire Temple Red Rupee"
+9089638521355540295 = "DMC Near Fire Temple Green Rupee 1"
+2137181062354999972 = "DMC Near Fire Temple Green Rupee 2"
+
+# The rupee ring near the Bolero warp: six green as OoTR's, with a purple
+# in the middle where OoTR's is red
+11105674007629451672 = "DMC Adult Green Rupee 1"
+4077912846886775366 = "DMC Adult Green Rupee 2"
+6794008535785537922 = "DMC Adult Green Rupee 3"
+17524442172396680694 = "DMC Adult Green Rupee 4"
+17170677546946622823 = "DMC Adult Green Rupee 5"
+16794923646428529814 = "DMC Adult Green Rupee 6"
+12599391464019187002 = "DMC Purple Rupee"
+
+# The Great Fairy and Sheik
+7533377855264181032 = "DMC Great Fairy Reward"
+7517995748820283814 = "DMC Sheik in Crater"
