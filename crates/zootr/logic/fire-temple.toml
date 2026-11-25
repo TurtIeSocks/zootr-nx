@@ -1,0 +1,167 @@
+# Fire Temple. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+
+# Room 1, the first hall past the door: nothing bars the chest.
+# (guess: the lower door's chest, matched by room)
+[[check]]
+hash = 3949488292768750868
+name = "Fire Temple Small Key Chest"
+needs = "always"
+setting = "keys"
+
+# Room 2, the hall by the boss door: nothing bars the chest.
+[[check]]
+hash = 5634724236470386190
+name = "Fire Temple Small Key Chest"
+needs = "always"
+setting = "keys"
+
+# Room 3: the way to the chest is smashed open with the Hammer.
+[[check]]
+hash = 8757492004108970488
+name = "Fire Temple Red Rupee (20) Chest"
+needs = "hammer"
+
+# Room 4, the shortcut: past the Goron's Bracelet's block, then bombed open.
+# (guess: the shortcut's chest, matched by room)
+[[check]]
+hash = 16785682308850448108
+name = "Fire Temple Upper Small Key Chest"
+needs = "goron-bracelet and explosives"
+setting = "keys"
+
+# Room 5, the boulder maze: the Bracelet gets Link in, and the Bow hits the chest's switch.
+[[check]]
+hash = 3688520809244472975
+name = "Fire Temple Upper Map Chest"
+needs = "goron-bracelet and bow"
+setting = "maps-compasses"
+
+# Room 5, the boulder maze's upper chest: the Bracelet, and a bomb, arrow or hook to the switch.
+# (guess: which upper chest, matched by height)
+[[check]]
+hash = 9634924691849556346
+name = "Fire Temple Upper Small Key Chest"
+needs = "goron-bracelet and (explosives or bow or hookshot)"
+setting = "keys"
+
+# Room 5, the boulder maze's other chest: the stricter of the two routes.
+# (guess: which chest, matched by height)
+[[check]]
+hash = 12567412825200613393
+name = "Fire Temple Upper Small Key Chest"
+needs = "goron-bracelet and explosives"
+setting = "keys"
+
+# Room 5, the boulder maze's wall: bombed, past the Bracelet's blocks.
+[[check]]
+hash = 12751796212121957464
+name = "Boulder Maze Gold Skulltula"
+needs = "goron-bracelet and explosives"
+setting = "gold-skulltulas"
+
+# Room 7, the ledge over the lava: only the Scarecrow's lift reaches it.
+# (guess: matched by room name)
+[[check]]
+hash = 5556173334779815044
+name = "Skulltula Ledge Gold Skulltula"
+needs = "goron-bracelet and scarecrow"
+setting = "gold-skulltulas"
+
+# Room 8, the lava chest room: the Scarecrow's lift, past the Bracelet's blocks.
+[[check]]
+hash = 862385681502746018
+name = "Fire Temple Upper Purple Rupee (50) Chest"
+needs = "goron-bracelet and scarecrow"
+
+# Room 8, above the lava chests: the Scarecrow's lift, past the Bracelet's blocks.
+# (guess: matched by room name)
+[[check]]
+hash = 9172014785497046138
+name = "Lava Chest Room Gold Skulltula"
+needs = "goron-bracelet and scarecrow"
+setting = "gold-skulltulas"
+
+# Room 8, the lava chest room: the Scarecrow's lift, past the Bracelet's blocks.
+[[check]]
+hash = 15073195886628236505
+name = "Fire Temple Upper Red Rupee (20) Chest"
+needs = "goron-bracelet and scarecrow"
+
+# Room 8, the lava chest room: the Scarecrow's lift, past the Bracelet's blocks.
+[[check]]
+hash = 17001858340376096722
+name = "Fire Temple Upper Red Rupee (20) Chest"
+needs = "goron-bracelet and scarecrow"
+
+# Room 10: past the Bracelet's blocks, bombed open.
+# (guess: the stricter of two routes)
+[[check]]
+hash = 12945617941305968586
+name = "Fire Temple Upper Small Key Chest"
+needs = "goron-bracelet and explosives"
+setting = "keys"
+
+# Room 11, the caged goron's chest: the Song of Time moves the block, the Hammer breaks the cage.
+[[check]]
+hash = 10521366928524045067
+name = "Fire Temple Upper Small Key Chest"
+needs = "goron-bracelet and (explosives or bow or hookshot) and song-of-time and hammer"
+setting = "keys"
+
+# Room 13, the Hammer's chest: bombed through the narrow stairs, then a weapon for the foe.
+[[check]]
+hash = 12083259659219538030
+name = "Fire Temple Upper Megaton Hammer Chest"
+needs = "goron-bracelet and explosives and (hammer or hookshot or melee or bow)"
+
+# Room 16, the upper hall: the Bracelet, and a bomb, arrow or hook for its switch.
+# (guess: matched by room)
+[[check]]
+hash = 876976950103637140
+name = "Recovery Heart"
+needs = "goron-bracelet and (explosives or bow or hookshot)"
+setting = "freestanding"
+
+# Room 16, the upper hall: the Bracelet, and a bomb, arrow or hook for its switch.
+# (guess: matched by room)
+[[check]]
+hash = 10973307894322368710
+name = "Recovery Heart"
+needs = "goron-bracelet and (explosives or bow or hookshot)"
+setting = "freestanding"
+
+# Room 16, the upper hall: the Bracelet, and a bomb, arrow or hook for its switch.
+[[check]]
+hash = 16713240760352215634
+name = "Fire Temple Upper Compass Chest"
+needs = "goron-bracelet and (explosives or bow or hookshot)"
+setting = "maps-compasses"
+
+# Room 17, the Hammer's loop: the chest opens once Link smashes through.
+[[check]]
+hash = 14060099092170010696
+name = "Fire Temple Boss Key Chest"
+needs = "hammer"
+setting = "keys"
+
+# Room 18, over the flying tiles: the Hammer clears the way.
+[[check]]
+hash = 14706322686481615109
+name = "Flying Tile Room Gold Skulltula"
+needs = "hammer"
+setting = "gold-skulltulas"
+
+# Room 19, the Like Like's room: the Song of Time moves the block under it.
+[[check]]
+hash = 6789992996625105554
+name = "Like Like Room Gold Skulltula"
+needs = "song-of-time"
+setting = "gold-skulltulas"
+
+# Room 22: a bombable wall hides the chest.
+[[check]]
+hash = 1705064956286753527
+name = "Fire Temple Small Key Chest"
+needs = "explosives"
+setting = "keys"

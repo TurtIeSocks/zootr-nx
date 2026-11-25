@@ -1,0 +1,66 @@
+# Jabu-Jabu's Belly. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# Only a child walks in. The corridor's switch past the first door is hit
+# from afar, so every check wants a projectile first: an explosive, an arrow,
+# a hookshot, a seed or the Boomerang. The tentacles in the forked corridor
+# fall to the Boomerang alone.
+
+# Room 3, Biri Tentacle Room: the Skulltula hangs in the basement under the Ruto hole room, open once past the first switch.
+[[check]]
+hash = 11283202900158580106
+name = "Biri Tentacle Room Gold Skulltula 1"
+needs = "(explosives or bow or hookshot or slingshot or boomerang)"
+setting = "gold-skulltulas"
+
+# Room 3, Biri Tentacle Room: the higher Skulltula of the same basement, with nothing more than the first switch in the way.
+[[check]]
+hash = 13852835165271311030
+name = "Biri Tentacle Room Gold Skulltula 2"
+needs = "(explosives or bow or hookshot or slingshot or boomerang)"
+setting = "gold-skulltulas"
+
+# Room 5, Biri Switch Room: the Skulltula is by the boss corridor, reached over the lift ledge once the Big Octo is killed with a blade or a stick and the Boomerang has crossed the jiggling room.
+[[check]]
+hash = 15983944335296207002
+name = "Biri Switch Room Gold Skulltula"
+needs = "boomerang and melee"
+setting = "gold-skulltulas"
+
+# Room 9, Boomerang Room: the east branch of the forked corridor, where Ruto can deal with the Stingers, so only the first switch.
+[[check]]
+hash = 5527401621172639818
+name = "Jabu-Jabu's Belly Boomerang Chest"
+needs = "(explosives or bow or hookshot or slingshot or boomerang)"
+
+# Room 12, Shabom Room: the north west branch opens once the west tentacle is cut down by the Boomerang, which also pops the bubbles.
+[[check]]
+hash = 3510516276638146208
+name = "Jabu-Jabu's Belly Compass Chest"
+needs = "boomerang"
+
+# Room 13, Swaying Octorok Room: the chest sits on a platform past the Octoroks that Ship reaches only by tricks or a Boomerang grab. (guess: not in Ship, so the Boomerang, to be safe)
+[[check]]
+hash = 3609242017501283521
+name = "Jabu-Jabu's Belly Lower Red Rupee (20) Chest"
+needs = "boomerang"
+
+# Room 14, Map Room: the Skulltula is in the room with the water switch, open once past the first switch. (guess: the water switch room Skulltula)
+[[check]]
+hash = 11513774157335944149
+name = "Map Room Gold Skulltula"
+needs = "(explosives or bow or hookshot or slingshot or boomerang)"
+setting = "gold-skulltulas"
+
+# Room 14, Map Room: past the west tentacle, which the Boomerang cuts down. (guess: the map chest in the west branch, so the Boomerang)
+[[check]]
+hash = 14933854942830098290
+name = "Jabu-Jabu's Belly Lower Map Chest"
+needs = "boomerang"
+
+# Room 18, Scrub Room: the scrub is in the water room at the foot of the lift, open once past the first switch (logic adds the stun).
+[[check]]
+hash = 9496373148524757782
+name = "Jabu-Jabu's Belly Business Scrub"
+needs = "(explosives or bow or hookshot or slingshot or boomerang)"
+setting = "scrubs"

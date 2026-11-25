@@ -1,0 +1,153 @@
+# Shadow Temple. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# Only adult Link is inside, so child-only tools are left out. The route in
+# order: the Lens for the invisible path, the Hover Boots to the Beamos
+# junction, explosives for the guillotine corridor to the huge pit, the
+# Lens again for the pit's door ledges, a Hookshot (or the Longshot) over
+# the floor spikes to the wind tunnel, then the boat.
+
+# Room 3, Map Room: the Lens for the whispering walls, then a ReDead and
+# the Keese in the side room.
+[[check]]
+hash = 13528903653876646082
+name = "Shadow Temple Map Chest"
+needs = "lens and (melee or hammer or dins-fire) and (melee or hammer or explosives or hookshot or bow)"
+
+# Room 4, Dead Hand Room: the Lens down the whispering walls, and Dead
+# Hand falls only to a sword.
+[[check]]
+hash = 14535080241831873137
+name = "Shadow Temple Hover Boots Chest"
+needs = "lens and adult-sword"
+
+# Room 6, Spinning Blade Room: the Hover Boots reach the Beamos junction
+# and carry Link over the blades to the silver rupees.
+[[check]]
+hash = 1111717451118505545
+name = "Shadow Temple Small Key Chest"
+needs = "hover-boots"
+
+# Room 7, Compass Room: a Gibdo past the Beamos junction.
+[[check]]
+hash = 1733372171176975157
+name = "Shadow Temple Compass Chest"
+needs = "hover-boots and (melee or hammer or dins-fire)"
+
+# Room 9, Guillotine Hall: (guess: no counterpart in Ship, so the huge pit's
+# route, plus the Lens for the ledge it stands on) Hover Boots to the
+# junction and explosives for the corridor wall.
+[[check]]
+hash = 8721287453021850502
+name = "Shadow Temple Business Scrub"
+needs = "hover-boots and explosives and lens"
+setting = "scrubs"
+
+# Room 11, Falling Spikes Room: the upper chest, reached up the umbrella
+# with the Goron's Bracelet's help.
+[[check]]
+hash = 5781953901224064730
+name = "Shadow Temple Lower Small Key Chest"
+needs = "hover-boots and explosives and goron-bracelet"
+
+# Room 11, Falling Spikes Room: (guess: the lower chest, since it stands
+# on the room's floor) down the huge pit and under the umbrella.
+[[check]]
+hash = 8858270325665149688
+name = "Shadow Temple Lower Red Rupee (20) Chest"
+needs = "hover-boots and explosives"
+
+# Room 11, Falling Spikes Room: the Skulltula high on the wall, past the
+# same pit and umbrella.
+[[check]]
+hash = 15148554628675590606
+name = "Falling Spikes Room Gold Skulltula"
+needs = "hover-boots and explosives"
+setting = "gold-skulltulas"
+
+# Room 14, Wind Room: (guess: no Skulltula of Ship's sits in the wind
+# tunnel, so this follows the route to it) the Lens and a Hookshot, or the
+# Longshot, across the floor spikes, then through the wind tunnel.
+[[check]]
+hash = 15564367841356014861
+name = "Wind Room Gold Skulltula"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot)"
+setting = "gold-skulltulas"
+
+# Room 15, ReDead Alcove: the hint room off the wind tunnel, behind a
+# ReDead, with the chest hidden under the Lens.
+[[check]]
+hash = 12345747231768877602
+name = "Shadow Temple Lower Business Scrub Seed Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and (melee or hammer or dins-fire)"
+
+# Room 16, Gibdo Room: (guess: the chest hidden from the Lens, past the
+# wind tunnel) the Lens, with explosives for the cracked wall.
+[[check]]
+hash = 169081039115821925
+name = "Shadow Temple Lower Small Key Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot)"
+
+# Room 16, Gibdo Room: (guess: the chest the Gibdos guard) both Gibdos
+# fall to any blade, the Hammer or Din's Fire.
+[[check]]
+hash = 5681107746948738726
+name = "Shadow Temple Lower Green Rupee (1) Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and (melee or hammer or dins-fire)"
+
+# Room 17, Boat Room: the Skulltula across the water from the dock, which
+# only the Longshot reaches.
+[[check]]
+hash = 8823884712433934372
+name = "Boat Room Gold Skulltula"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and longshot"
+setting = "gold-skulltulas"
+
+# Room 19, Boss Key Room: past the boat, which the Goron's Bracelet and
+# Zelda's Lullaby start, then Din's Fire for the spiked walls.
+[[check]]
+hash = 9221365632831348137
+name = "Shadow Temple Lower Boss Key Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and goron-bracelet and zeldas-lullaby and dins-fire"
+
+# Room 19, Boss Key Room: (guess: the left chest of the spiked walls) the
+# same route and Din's Fire.
+[[check]]
+hash = 9852624243105848451
+name = "Shadow Temple Lower Magic Jar Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and goron-bracelet and zeldas-lullaby and dins-fire"
+
+# Room 20, Skull Pot Alcove: (guess: the Skulltula by the three skull
+# pots) past the boat, in the maze.
+[[check]]
+hash = 10270336409167849808
+name = "Skull Pot Alcove Gold Skulltula"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and goron-bracelet and zeldas-lullaby"
+setting = "gold-skulltulas"
+
+# Room 21, Invisible Floormaster Room: in the maze past the boat, the
+# Lens for the Floormaster and any weapon for its fall.
+[[check]]
+hash = 17902550525792072472
+name = "Shadow Temple Lower Small Key Chest"
+needs = "hover-boots and explosives and lens and ((hookshot and (melee or hammer or dins-fire)) or longshot) and goron-bracelet and zeldas-lullaby"
+
+# Room 31, Red Rupee Alcove: the chest hidden from the Lens, past the
+# huge pit's door ledge, the Like-Like and the Keese.
+[[check]]
+hash = 3718790579351798247
+name = "Shadow Temple Lower Red Rupee (20) Chest"
+needs = "hover-boots and explosives and lens"
+
+# Room 31, Red Rupee Alcove: the plain chest in the same alcove.
+[[check]]
+hash = 10344372963276519235
+name = "Shadow Temple Lower Red Rupee (20) Chest"
+needs = "hover-boots and explosives and lens"
+
+# Room 31, Red Rupee Alcove: the Skulltula in the same alcove.
+[[check]]
+hash = 16933078188088206331
+name = "Red Rupee Alcove Gold Skulltula"
+needs = "hover-boots and explosives and lens"
+setting = "gold-skulltulas"

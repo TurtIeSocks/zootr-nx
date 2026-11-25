@@ -1,3 +1,12 @@
+# Bottom of the Well. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# Only a child fits the crawl hole, and the Big Skulltula in the corridor
+# behind it has to be killed or slipped past, which takes a blade, a stick,
+# bombs, Din's Fire, the Slingshot or the Boomerang. The new rules below
+# start with that. The two entries from the first playtest follow, as they
+# were written.
+
 # Room 1's lower level stays underwater until Zelda's Lullaby is played at
 # the Triforce point in it, which sets its water-stopped flag and drains
 # it. Link reaches it through a crawl hole, so only as a child.
@@ -10,3 +19,91 @@ needs = "child and zeldas-lullaby"
 hash = 5429815628949128345
 name = "Lower Blue Rupee 2"
 needs = "child and zeldas-lullaby"
+
+# Room 1, Main Hall: a chest inside the lens-only walls of the middle hall. (guess: the Skulltula-guarded center chest or the bombable front chest, so both the Lens of Truth and an explosive)
+[[check]]
+hash = 631709185320708287
+name = "Bottom of the Well Blue Rupee (5) Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens and explosives"
+
+# Room 1, Main Hall: a chest beside a fake wall on the right. (guess: the right fake-wall chest, which needs the Lens of Truth)
+[[check]]
+hash = 8397646530660039355
+name = "Bottom of the Well Small Key Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+
+# Room 1, Main Hall: a chest near the fake walls left of the middle. (guess: the left fake-wall chest, which needs the Lens of Truth)
+[[check]]
+hash = 8975637636514249074
+name = "Bottom of the Well Red Rupee (20) Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+
+# Room 1, Main Hall: a chest in the far left corner, past fake walls and a wall that wants a blast. (guess: the back left bombable chest, which needs the Lens of Truth and an explosive)
+[[check]]
+hash = 10905582354954996284
+name = "Bottom of the Well Red Rupee (20) Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens and explosives"
+
+# Room 1, Main Hall: the large chest behind the fake walls, so the Lens of Truth.
+[[check]]
+hash = 14911602953212243797
+name = "Bottom of the Well Compass Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+
+# Room 1, Main Hall: the scrub stands in the open on the left of the hall (not in Ship, so only the way in; logic adds the stun).
+[[check]]
+hash = 15945446340598299551
+name = "Bottom of the Well Business Scrub"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang)"
+setting = "scrubs"
+
+# Room 2, Purple Rupee Room: an invisible chest, seen only with the Lens of Truth. (guess: the invisible chest in Ship's Dead Hand room, past the lowered water, so Zelda's Lullaby too)
+[[check]]
+hash = 11718708984125260282
+name = "Bottom of the Well Purple Rupee (50) Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and zeldas-lullaby and lens"
+
+# Room 5, Skulltula Cell: the Skulltula is in an inner room past the hall's fake walls. (guess: the west inner room Skulltula, so the Lens of Truth)
+[[check]]
+hash = 7460556442932201772
+name = "Skulltula Cell Gold Skulltula 1"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+setting = "gold-skulltulas"
+
+# Room 5, Skulltula Cell: the Skulltula is in an inner room past the hall's fake walls. (guess: the east inner room Skulltula, so the Lens of Truth)
+[[check]]
+hash = 12165938013608963606
+name = "Skulltula Cell Gold Skulltula 2"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+setting = "gold-skulltulas"
+
+# Room 6, Fire Keese Room: the chest sits over hidden pits, so the Lens of Truth.
+[[check]]
+hash = 874970148260328653
+name = "Bottom of the Well Deku Shield Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+
+# Room 7, Like Like Cell: the Skulltula is in the locked cage past the hidden pits, so the Lens of Truth. (guess: the Like Like cage Skulltula)
+[[check]]
+hash = 3889761319471426870
+name = "Like Like Cell Gold Skulltula"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and lens"
+setting = "gold-skulltulas"
+
+# Room 8, Dead Hand Room: reached once Zelda's Lullaby has lowered the water, and the chest appears once Dead Hand falls to a blade.
+[[check]]
+hash = 16654774376625985726
+name = "Bottom of the Well Lower Lens of Truth Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and zeldas-lullaby and kokiri-sword"
+
+# Room 9, Basement: the map chest is behind rocks, cleared by an explosive, or by Din's Fire at the bomb flowers with the Goron's Bracelet.
+[[check]]
+hash = 9466613428674883506
+name = "Bottom of the Well Lower Map Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and (explosives or (dins-fire and goron-bracelet))"
+
+# Room 11, Scrub Chest Room: past the shutters that open once Dead Hand is down. (guess: not in Ship, so the Dead Hand route)
+[[check]]
+hash = 6064359710907908886
+name = "Bottom of the Well Business Scrub Seed Chest"
+needs = "child and (kokiri-sword or sticks or bombs or dins-fire or slingshot or boomerang) and zeldas-lullaby and kokiri-sword"

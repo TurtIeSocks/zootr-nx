@@ -57,6 +57,13 @@ pub(super) const FILES: &[(&str, &str)] = &[
         include_str!("../../logic/ganons-castle.toml"),
     ),
     ("grottos.toml", include_str!("../../logic/grottos.toml")),
+    ("forest-temple.toml", include_str!("../../logic/forest-temple.toml")),
+    ("shadow-temple.toml", include_str!("../../logic/shadow-temple.toml")),
+    ("fire-temple.toml", include_str!("../../logic/fire-temple.toml")),
+    ("ice-cavern.toml", include_str!("../../logic/ice-cavern.toml")),
+    ("gerudo-training-ground.toml", include_str!("../../logic/gerudo-training-ground.toml")),
+    ("jabu-jabu.toml", include_str!("../../logic/jabu-jabu.toml")),
+    ("dodongos-cavern.toml", include_str!("../../logic/dodongos-cavern.toml")),
 ];
 
 /// Any rule file but `abilities.toml`.
