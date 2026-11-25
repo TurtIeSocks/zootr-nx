@@ -380,6 +380,15 @@ export type Config = {
 	place?: { [key in string]: string },
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
+	/**
+	 *  The Colors pane's draft: palette id to Vanilla, Random or a colour.
+	 *  Random is drawn when a seed is built.
+	 */
+	colors?: { [key in string]: Pick },
+	/**  Colour drafts kept by name, to load into `colors`. */
+	color_sets?: { [key in string]: { [key in string]: Pick } },
+	/**  The colour picker's recent colours, as `#rrggbb`, newest first. */
+	color_recents?: string[],
 	/**  Setting sets kept by name, newest first. */
 	favorites?: Favorite[],
 	/**
@@ -754,6 +763,9 @@ export type LiveStatus =
 /**  A check the player set aside, or a note on it. */
 export type Mark = { kind: "Skipped" } | { kind: "Note"; text: string };
 
+/**  A palette left alone or drawn when the seed is built. */
+export type Mode = "vanilla" | "random";
+
 /**
  *  An event and where it falls in the stream, so a page that loads
  *  mid-session can tell which events its snapshot already holds.
@@ -770,6 +782,19 @@ export type Numbered = {
 export type Pending = {
 	presets: string[],
 	edits: Edit[],
+};
+
+/**  One palette in a draft. */
+export type Pick = Mode | Picked;
+
+/**
+ *  A colour picked for a palette's first slot, as `#rrggbb`, and with
+ *  Split on, one for each slot after it. Without, the other slots follow
+ *  the first.
+ */
+export type Picked = {
+	hex: string,
+	split?: string[],
 };
 
 /**  Where a section sits in the grid and how wide it draws. */
