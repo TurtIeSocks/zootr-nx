@@ -674,7 +674,7 @@ export type Goal = {
 	error: string | null,
 };
 
-export type Group = "link" | "gear" | "effects";
+export type Group = "link" | "gear" | "effects" | "hud";
 
 /**  An item Link starts with. */
 export type Held = {

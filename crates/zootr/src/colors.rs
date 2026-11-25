@@ -4,6 +4,7 @@
 
 mod catalog;
 mod files;
+pub(crate) use files::LAYOUT_ARCHIVES;
 mod oklch;
 pub mod paint;
 mod pick;
@@ -45,6 +46,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         let params: &[&str] = match &w.kind {
             Kind::Param { models, .. } => models,
             Kind::Vfx { bundle, .. } => std::slice::from_ref(bundle),
+            Kind::Layout { archive, .. } => std::slice::from_ref(archive),
             _ => &[],
         };
         let texture = w.texture().into_iter().flat_map(|t| {
@@ -57,7 +59,9 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         });
         texture.chain(params.iter().copied())
     });
-    writes.chain([files::EFFECT_INDEX])
+    writes
+        .chain([files::EFFECT_INDEX])
+        .chain(files::LAYOUT_ARCHIVES)
 }
 
 /// The spoiler's section: each palette a seed changed and its colours.
@@ -117,15 +121,19 @@ fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
 /// texture another feature copies (the child's tunics) is copied green.
 pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
     let colors = with_followers(colors)?;
-    let mut by_texture: BTreeMap<&str, (&Tex, Vec<Job>)> = BTreeMap::new();
+    let mut by_file: BTreeMap<&str, Vec<(&Tex, Vec<Job>)>> = BTreeMap::new();
     let mut by_model: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
     let mut by_bundle: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
+    let mut by_archive: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
     for (id, picked) in &colors {
         for job in jobs(palette(id)?, picked)? {
             match (job.write.texture(), &job.write.kind) {
                 (Some(texture), _) => {
-                    let entry = by_texture.entry(texture.path);
-                    entry.or_insert((texture, Vec::new())).1.push(job);
+                    let textures = by_file.entry(texture.path).or_default();
+                    match textures.iter_mut().find(|(t, _)| t.key() == texture.key()) {
+                        Some((_, jobs)) => jobs.push(job),
+                        None => textures.push((texture, vec![job])),
+                    }
                 }
                 (None, Kind::Param { models, .. }) => {
                     for model in *models {
@@ -133,12 +141,15 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
                     }
                 }
                 (None, Kind::Vfx { bundle, .. }) => by_bundle.entry(bundle).or_default().push(job),
+                (None, Kind::Layout { archive, .. }) => {
+                    by_archive.entry(archive).or_default().push(job)
+                }
                 (None, _) => unreachable!("a band or tint has a texture"),
             }
         }
     }
-    for (texture, jobs) in by_texture.values() {
-        paint_texture(builder, texture, jobs).with_context(|| texture.path.to_owned())?;
+    for (path, textures) in &by_file {
+        paint_file(builder, path, textures).with_context(|| path.to_string())?;
     }
     // After the textures: a copy renames its texture in these models too.
     for (model, jobs) in &by_model {
@@ -149,6 +160,11 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
         let data =
             paint_bundle(&builder.read(bundle)?, jobs).with_context(|| bundle.to_string())?;
         builder.write(bundle, &data)?;
+    }
+    for (archive, jobs) in &by_archive {
+        let data =
+            paint_archive(&builder.read(archive)?, jobs).with_context(|| archive.to_string())?;
+        builder.write(archive, &data)?;
     }
     Ok(())
 }
@@ -228,11 +244,68 @@ fn paint_bundle(bundle: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
                 continue;
             };
             let [r, g, b, _] = param_value(job.follow(hue), c.value);
-            vfx::set_constant(&mut data, c.at, [r, g, b]);
+            ounce_formats::set_rgb(&mut data, c.at, [r, g, b]);
         }
     }
     Ok(data)
 }
+
+/// `archive` with each of its layout jobs written, each checked first.
+fn paint_archive(archive: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
+    let mut data = archive.to_vec();
+    for job in jobs {
+        let at = check_layout(archive, job.write).with_context(|| job.palette.id)?;
+        let rgb = job.goal.map(|c| c as f32 / 255.0);
+        for at in at {
+            ounce_formats::set_rgb(&mut data, at, rgb);
+        }
+    }
+    Ok(data)
+}
+
+/// Where the entries `write` changes are in `archive`: each one holding
+/// its colour in a layout it names, in every copy. Fails unless there are
+/// as many as recorded, or when a layout's copies differ.
+fn check_layout(archive: &[u8], write: &Write) -> Result<Vec<usize>> {
+    let Kind::Layout {
+        prefix,
+        vanilla,
+        count,
+        ..
+    } = write.kind
+    else {
+        anyhow::bail!("not a layout");
+    };
+    let shows = |e: &&ounce_formats::layout::Entry| -> bool {
+        (0..3).all(|i| (e.rgba[i] * 255.0).round() as u8 == vanilla[i])
+    };
+    let mut out = Vec::new();
+    let mut per_layout = BTreeMap::new();
+    let layouts =
+        ounce_formats::copies_where(archive, |n| n.starts_with(prefix) && n.ends_with(LAYOUT))?;
+    for (name, copy) in layouts {
+        let entries =
+            ounce_formats::layout::palette(&archive[copy.clone()]).with_context(|| name.clone())?;
+        let found: Vec<usize> = entries
+            .iter()
+            .filter(shows)
+            .map(|e| copy.start + e.at)
+            .collect();
+        let first = *per_layout.entry(name.clone()).or_insert(found.len());
+        ensure!(first == found.len(), "{name}'s copies differ");
+        out.extend(found);
+    }
+    let got: usize = per_layout.values().sum();
+    ensure!(
+        got == count,
+        "{} is in {got} entries of {prefix}* where {count} were recorded",
+        hex(vanilla)
+    );
+    Ok(out)
+}
+
+/// A layout's file name ends so.
+const LAYOUT: &str = ".buil";
 
 /// The constants `write` changes in `bundle`: every one in its esets.
 /// Fails when there's none, or their sum isn't the one recorded.
@@ -299,6 +372,24 @@ fn param_value(goal: Colour, old: [f32; 4]) -> [f32; 4] {
 const HUE_SLACK: f32 = 0.02;
 const SV_SLACK: f32 = 0.04;
 const RGB_SLACK: u8 = 6;
+
+/// The textures in the file at `path`, each with its jobs: a file of one,
+/// or the UI's atlas, whose textures are redrawn in turn and the file
+/// written once (it's 64 MB).
+fn paint_file(builder: &mut ModBuilder, path: &str, textures: &[(&Tex, Vec<Job>)]) -> Result<()> {
+    if let [(texture, jobs)] = textures
+        && texture.name.is_none()
+    {
+        return paint_texture(builder, texture, jobs);
+    }
+    let mut data = builder.read(path)?;
+    for (texture, jobs) in textures {
+        let mut rgba = texture.texels(&data)?.rgba;
+        paint_jobs(&mut rgba, jobs)?;
+        data = texture.redrawn(&data, &rgba)?;
+    }
+    builder.write(path, &data)
+}
 
 fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Result<()> {
     let data = builder.read(texture.path)?;
@@ -405,7 +496,9 @@ fn measure(rgba: &[u8], write: &Write) -> Result<Colour> {
             Ok(paint::rgb(h, s, v))
         }
         Kind::Tint { .. } => Ok(mean(rgba)),
-        Kind::Param { .. } | Kind::Vfx { .. } => anyhow::bail!("only a texture has texels"),
+        Kind::Param { .. } | Kind::Vfx { .. } | Kind::Layout { .. } => {
+            anyhow::bail!("only a texture has texels")
+        }
     }
 }
 
@@ -418,7 +511,7 @@ fn matches(write: &Write, got: Colour, want: Colour) -> bool {
                 && (gs - ws).abs() <= SV_SLACK
                 && (gv - wv).abs() <= SV_SLACK
         }
-        Kind::Tint { .. } | Kind::Param { .. } | Kind::Vfx { .. } => got
+        Kind::Tint { .. } | Kind::Param { .. } | Kind::Vfx { .. } | Kind::Layout { .. } => got
             .iter()
             .zip(want)
             .all(|(g, w)| g.abs_diff(w) <= RGB_SLACK),
@@ -632,6 +725,31 @@ mod tests {
                     }
                     continue;
                 }
+                if let Kind::Layout { archive, .. } = w.kind {
+                    // Each entry moved off vanilla holds the write's goal:
+                    // its slot's colour, or what follows it.
+                    let data = crate::game::read_built(&romfs, &dir, archive);
+                    assert!(
+                        check_layout(&data, w).is_err(),
+                        "{} {archive} is painted",
+                        palette.id
+                    );
+                    let vanilla = check_layout(&romfs.read(archive).unwrap(), w).unwrap();
+                    let goal = jobs(palette, &colors[palette.id]).unwrap()[i].goal;
+                    for at in vanilla {
+                        let got: [f32; 3] = std::array::from_fn(|i| {
+                            let at = at + 4 * i;
+                            f32::from_le_bytes(data[at..at + 4].try_into().unwrap())
+                        });
+                        assert_eq!(
+                            got.map(|c| (c * 255.0).round() as u8),
+                            goal,
+                            "{}",
+                            palette.id
+                        );
+                    }
+                    continue;
+                }
                 let texture = w.texture().unwrap();
                 let path = match &texture.copy {
                     None => texture.path.to_owned(),
@@ -673,10 +791,12 @@ mod tests {
                         texture.path.replace(name, &to)
                     }
                 };
-                let rgba = top_level(&crate::game::read_built(&romfs, &dir, &path))
+                let built = crate::game::read_built(&romfs, &dir, &path);
+                let rgba = texture.texels(&built).unwrap().rgba;
+                let vanilla = texture
+                    .texels(&romfs.read(texture.path).unwrap())
                     .unwrap()
                     .rgba;
-                let vanilla = top_level(&romfs.read(texture.path).unwrap()).unwrap().rgba;
                 assert_ne!(rgba, vanilla, "{} {path} is painted", palette.id);
                 if let (0, Kind::Band { .. }) = (i, &w.kind) {
                     // The palette's first part takes the colour itself.
@@ -750,8 +870,18 @@ mod tests {
                     }
                     continue;
                 }
-                let path = write.texture().unwrap().path;
-                let rgba = top_level(&romfs.read(path).unwrap()).unwrap().rgba;
+                if let Kind::Layout { archive, .. } = write.kind {
+                    if let Err(e) = check_layout(&romfs.read(archive).unwrap(), write) {
+                        wrong.push(format!("{} {archive}: {e:#}", palette.id));
+                    }
+                    continue;
+                }
+                let texture = write.texture().unwrap();
+                let path = texture.name.unwrap_or(texture.path);
+                let rgba = texture
+                    .texels(&romfs.read(texture.path).unwrap())
+                    .unwrap()
+                    .rgba;
                 match measure(&rgba, write) {
                     Ok(got) if matches(write, got, write.vanilla().unwrap()) => {}
                     Ok(got) => wrong.push(format!("{} {path}: {}", palette.id, hex(got))),

@@ -23,6 +23,7 @@ mod byml_doc;
 mod crc32;
 mod evfl;
 pub mod fska;
+pub mod layout;
 mod material;
 mod msbt;
 mod murmur3;
@@ -48,7 +49,8 @@ pub use bfres::{
     pointers, positions, replace_mesh, replace_mesh_like, shape_names, triangles, unpack, vertices,
 };
 pub use bntx::{
-    Texture, format, levels, redraw, redraw_halve, redraws, textures, textures_named, top_level,
+    Texture, format, levels, redraw, redraw_halve, redraw_named, redraws, texture_named, textures,
+    textures_named, top_level,
 };
 pub use byml_doc::BymlDoc;
 pub use crc32::crc32;
@@ -66,7 +68,7 @@ pub use rename::rename;
 pub use restbl::Restbl;
 pub use roead::byml::{Byml, Map as BymlMap};
 pub use romfs::{ModBuilder, Romfs, copy_mod, stamped, stamped_among};
-pub use sarc::replace_file;
+pub use sarc::{copies, copies_where, replace_file};
 pub use save::{BOOL, Entry as SaveEntry, KEYED, Save, width as save_width};
 pub use shape_mesh::{Material, ShapeMesh};
 pub use tagfile::{Field, Item, Obj, Tagfile, Type};
@@ -79,3 +81,11 @@ pub use xlink::{
     property_names as xlink_properties, tree_names as xlink_tree, trigger_names as xlink_triggers,
 };
 pub use zs::{Dicts, frame_dict_id};
+
+/// `data` with three floats at `at` set to `rgb`, the fourth after them
+/// kept: an effect's colour constant, a layout's palette entry.
+pub fn set_rgb(data: &mut [u8], at: usize, rgb: [f32; 3]) {
+    for (i, v) in rgb.iter().enumerate() {
+        data[at + 4 * i..at + 4 * i + 4].copy_from_slice(&v.to_le_bytes());
+    }
+}

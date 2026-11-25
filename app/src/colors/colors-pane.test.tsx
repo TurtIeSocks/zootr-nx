@@ -19,7 +19,7 @@ const setConfig = vi.fn((_c: FullConfig) =>
 const palette = (
   id: string,
   label: string,
-  group: "link" | "gear" | "effects",
+  group: "link" | "gear" | "effects" | "hud",
   problem: string | null = null,
 ): PaletteView => ({
   id,
@@ -43,6 +43,11 @@ const CATALOG = [
   { ...palette("brows", "Eyebrows", "link"), follows: "Hair" },
   palette("goron-tunic", "Goron Tunic", "link", "the dump's colour differs"),
   palette("bow", "Fairy Bow", "gear"),
+  {
+    ...palette("hearts", "Hearts", "hud"),
+    vanilla: ["#e6673d", "#ff3617"],
+    names: ["Fill", "Low health"],
+  },
 ];
 
 vi.mock("@/bindings", () => ({
@@ -125,6 +130,7 @@ test("Randomize All sets each unlocked palette to Random, leaving followers foll
       "kokiri-tunic": "random",
       leather: "random",
       hair: "random",
+      hearts: "random",
     }),
   );
 });
@@ -142,6 +148,20 @@ test("shift-click Randomize All draws colours now", async () => {
 test("previews need game assets", async () => {
   show(full({}));
   expect(await screen.findByText(/Turn on game assets/)).toBeTruthy();
+});
+
+test("the HUD tab previews every HUD palette on one mock HUD", async () => {
+  show(full({ game: "/fake/game", game_assets: true }));
+  await screen.findAllByText("Kokiri Tunic");
+  const tab = screen.getByRole("tab", { name: "HUD" });
+  fireEvent.mouseDown(tab);
+  fireEvent.click(tab);
+  expect(await screen.findByText("Hearts")).toBeTruthy();
+  expect(
+    screen.getByRole("img", { name: "The HUD in the picked colours" }),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Low health")).toBeTruthy();
+  expect(screen.getByLabelText("Using magic")).toBeTruthy();
 });
 
 test("Split gives each slot a picker, starting where the slots followed", async () => {

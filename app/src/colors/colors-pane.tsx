@@ -1,4 +1,5 @@
 import {
+  Heart,
   Lock,
   LockOpen,
   RotateCcw,
@@ -41,12 +42,14 @@ import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig } from "@/stores/config";
 import { applyCosmetics, useSeeds } from "@/stores/seeds";
+import { HudPreview } from "./hud-preview";
 import { PreviewPanel } from "./preview-panel";
 
 const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
   { id: "link", label: "Link", icon: Shirt },
   { id: "gear", label: "Gear", icon: Sword },
   { id: "effects", label: "Effects", icon: Sparkles },
+  { id: "hud", label: "HUD", icon: Heart },
 ];
 
 /** A palette's three-way switch, its first option named for it. */
@@ -71,7 +74,7 @@ export function ColorsPane() {
       <PageHeader
         title="Colors"
         help="colors"
-        description="Recolour Link and his gear. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
+        description="Recolour Link, his gear, Navi and the HUD. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
         actions={<Actions palettes={catalog.palettes} />}
       />
       <SavedSets
@@ -222,7 +225,9 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
       </ul>
       {current && (
         <div className="lg:sticky lg:top-4 lg:self-start">
-          {previews ? (
+          {previews && group === "hud" ? (
+            <HudPreview palettes={shown} picked={picked} />
+          ) : previews ? (
             <PreviewPanel
               palette={current}
               picked={picked(current)}

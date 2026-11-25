@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
-use ounce_formats::{Romfs, Texture, top_level};
+use ounce_formats::{Romfs, Texture};
 
+use super::files::{Tex, TexKey};
 use super::paint::{self, Hues};
 use super::{Kind, Palette, Picked, jobs, oklch, paint_jobs, palette};
 
@@ -26,8 +27,8 @@ pub enum View {
 /// One picture a palette previews on.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Sheet {
-    /// A texture it paints, by path.
-    Texture(&'static str),
+    /// A texture it paints.
+    Texture(TexKey),
     /// A material whose params it writes, shown as a lit sphere.
     Material(&'static str),
 }
@@ -38,10 +39,12 @@ pub fn sheets(palette: &Palette) -> Vec<Sheet> {
     let mut out = Vec::new();
     for w in palette.writes {
         let sheet = match (w.texture(), &w.kind) {
-            (Some(t), _) => Sheet::Texture(t.path),
+            (Some(t), _) => Sheet::Texture(t.key()),
             (None, Kind::Param { material, .. }) => Sheet::Material(material),
             // An effect previews on a canvas the app draws.
             (None, Kind::Vfx { .. }) => continue,
+            // The HUD previews on a mock the app draws.
+            (None, Kind::Layout { .. }) => continue,
             (None, _) => unreachable!("a band or tint has a texture"),
         };
         if !out.contains(&sheet) {
@@ -54,15 +57,18 @@ pub fn sheets(palette: &Palette) -> Vec<Sheet> {
 
 /// The vanilla textures previews start from, each decoded once.
 #[derive(Default)]
-pub struct Previews(Mutex<HashMap<&'static str, Arc<Texture>>>);
+pub struct Previews(Mutex<HashMap<TexKey, Arc<Texture>>>);
 
 impl Previews {
-    fn vanilla(&self, romfs: &Romfs, path: &'static str) -> Result<Arc<Texture>> {
-        if let Some(kept) = self.0.lock().unwrap().get(path) {
+    fn vanilla(&self, romfs: &Romfs, texture: &Tex) -> Result<Arc<Texture>> {
+        if let Some(kept) = self.0.lock().unwrap().get(&texture.key()) {
             return Ok(kept.clone());
         }
-        let decoded = Arc::new(top_level(&romfs.read(path)?)?);
-        self.0.lock().unwrap().insert(path, decoded.clone());
+        let decoded = Arc::new(texture.texels(&romfs.read(texture.path)?)?);
+        self.0
+            .lock()
+            .unwrap()
+            .insert(texture.key(), decoded.clone());
         Ok(decoded)
     }
 
@@ -71,7 +77,7 @@ impl Previews {
     pub fn check(&self, romfs: &Romfs, palette: &Palette) -> Result<()> {
         for write in palette.writes {
             match (write.texture(), &write.kind) {
-                (Some(t), _) => super::check(&self.vanilla(romfs, t.path)?.rgba, write)?,
+                (Some(t), _) => super::check(&self.vanilla(romfs, t)?.rgba, write)?,
                 (None, Kind::Param { models, .. }) => {
                     for model in *models {
                         super::check_param(&romfs.read(model)?, write)?;
@@ -79,6 +85,9 @@ impl Previews {
                 }
                 (None, Kind::Vfx { bundle, .. }) => {
                     super::check_vfx(&romfs.read(bundle)?, write)?;
+                }
+                (None, Kind::Layout { archive, .. }) => {
+                    super::check_layout(&romfs.read(archive)?, write)?;
                 }
                 (None, _) => unreachable!("a band or tint has a texture"),
             }
@@ -97,19 +106,25 @@ impl Previews {
         view: View,
     ) -> Result<Vec<u8>> {
         let palette = palette(id)?;
-        let path = match sheets(palette).get(sheet) {
-            Some(Sheet::Texture(path)) => *path,
+        let key = match sheets(palette).get(sheet) {
+            Some(Sheet::Texture(key)) => *key,
             Some(Sheet::Material(material)) => {
                 return crate::sprites::png(&sphere(&material_colours(palette, material, picked)?));
             }
             None => anyhow::bail!("{id} has no sheet {sheet}"),
         };
-        let vanilla = self.vanilla(romfs, path)?;
+        let texture = palette
+            .writes
+            .iter()
+            .filter_map(|w| w.texture())
+            .find(|t| t.key() == key)
+            .expect("a sheet is one of its palette's textures");
+        let vanilla = self.vanilla(romfs, texture)?;
         let mut rgba = vanilla.rgba.clone();
         if let Some(picked) = picked {
             let here = jobs(palette, picked)?.into_iter();
             let here: Vec<_> = here
-                .filter(|j| j.write.texture().is_some_and(|t| t.path == path))
+                .filter(|j| j.write.texture().is_some_and(|t| t.key() == key))
                 .collect();
             paint_jobs(&mut rgba, &here)?;
         }
@@ -122,21 +137,22 @@ impl Previews {
             return crate::sprites::png(&sphere(&ramp));
         }
         if view == View::Changes {
-            grey_unchanged(&mut rgba, &vanilla.rgba, palette, path);
+            grey_unchanged(&mut rgba, &vanilla.rgba, palette, key);
         }
-        let small = shrink(&rgba, vanilla.width, vanilla.height);
+        // An atlas texture is UI art, drawn over the game by its alpha.
+        let small = shrink(&rgba, vanilla.width, vanilla.height, texture.name.is_some());
         crate::sprites::png(&small)
     }
 }
 
-/// Every texel no write of `palette` on `path` moves, greyed and dimmed.
+/// Every texel no write of `palette` on `key` moves, greyed and dimmed.
 /// A tint moves every texel, so it greys none.
-fn grey_unchanged(rgba: &mut [u8], vanilla: &[u8], palette: &Palette, path: &str) {
+fn grey_unchanged(rgba: &mut [u8], vanilla: &[u8], palette: &Palette, key: TexKey) {
     let mut bands: Vec<Hues> = Vec::new();
     for write in palette
         .writes
         .iter()
-        .filter(|w| w.texture().is_some_and(|t| t.path == path))
+        .filter(|w| w.texture().is_some_and(|t| t.key() == key))
     {
         match write.kind {
             Kind::Band { hues, .. } => bands.push(hues),
@@ -236,22 +252,25 @@ fn ramp_at(ramp: &[[f32; 3]], t: f32) -> [f32; 3] {
 
 /// `rgba` scaled down by whole steps until it fits `SIZE`, each pixel the
 /// average of the block it covers, opaque so an atlas reads plainly.
-fn shrink(rgba: &[u8], width: usize, height: usize) -> Texture {
+fn shrink(rgba: &[u8], width: usize, height: usize, alpha: bool) -> Texture {
     let step = width.max(height).div_ceil(SIZE).max(1);
     let (w, h) = (width.div_ceil(step), height.div_ceil(step));
     let mut out = vec![255; w * h * 4];
+    // A UI texture's alpha is where it shows; a model albedo's is
+    // something else, so it shows opaque.
+    let channels = if alpha { 4 } else { 3 };
     for y in 0..h {
         for x in 0..w {
-            let (mut sum, mut n) = ([0u32; 3], 0);
+            let (mut sum, mut n) = ([0u32; 4], 0);
             for sy in y * step..((y + 1) * step).min(height) {
                 for sx in x * step..((x + 1) * step).min(width) {
                     let at = (sy * width + sx) * 4;
-                    (0..3).for_each(|c| sum[c] += rgba[at + c] as u32);
+                    (0..channels).for_each(|c| sum[c] += rgba[at + c] as u32);
                     n += 1;
                 }
             }
             let at = (y * w + x) * 4;
-            (0..3).for_each(|c| out[at + c] = (sum[c] / n) as u8);
+            (0..channels).for_each(|c| out[at + c] = (sum[c] / n) as u8);
         }
     }
     Texture {
@@ -272,11 +291,22 @@ mod tests {
         let rgba: Vec<u8> = (0..w * h)
             .flat_map(|i| [(i % 2 * 200) as u8, 10, 20, 0])
             .collect();
-        let small = shrink(&rgba, w, h);
+        let small = shrink(&rgba, w, h, false);
         assert_eq!((small.width, small.height), (200, 100));
         // A 3x3 block of columns 0, 200, 0 averages 66, opaque.
         assert_eq!(small.rgba[0], 66);
         assert_eq!(&small.rgba[1..4], &[10, 20, 255]);
+    }
+
+    #[test]
+    fn a_ui_texture_keeps_its_alpha_as_it_shrinks() {
+        let (w, h) = (600, 300);
+        let rgba: Vec<u8> = (0..w * h)
+            .flat_map(|i| [10, 20, 30, (i % 2 * 255) as u8])
+            .collect();
+        let small = shrink(&rgba, w, h, true);
+        // A 3x3 block of alphas 0, 255, 0 averages 85.
+        assert_eq!(&small.rgba[..4], &[10, 20, 30, 85]);
     }
 
     #[test]

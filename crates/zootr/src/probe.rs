@@ -189,6 +189,32 @@ pub enum Probe {
         #[arg(long)]
         raw: Option<PathBuf>,
     },
+    /// A UI layout's colour palette (every layout whose name contains
+    /// `name`, in every layout archive): each entry's index, colour, floats
+    /// and where they are in the layout, and how many copies the archive
+    /// stores. Then each material's white index.
+    Layout {
+        name: String,
+        /// Also every material, picture and text record holding this
+        /// palette index at any word: where else an entry may be named.
+        #[arg(long)]
+        uses: Option<u32>,
+        /// Also every record named this, in hex, by kind.
+        #[arg(long)]
+        record: Option<String>,
+    },
+    /// The UI atlas's textures whose names contain `name`: each one's
+    /// size and average colour, over every texel and over the ones that
+    /// show. With `--out`, each as a PNG there too.
+    Atlas {
+        name: String,
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Also count each texture's shown, coloured texels by hue, in
+        /// steps of 10 degrees: what a colour band has to cover.
+        #[arg(long)]
+        hues: bool,
+    },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -584,6 +610,10 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Materials { model } => colors::materials(romfs, game, &model),
         Probe::Band { texture, bands } => colors::band(romfs, game, &texture, &bands),
+        Probe::Layout { name, uses, record } => {
+            colors::layout(romfs, &name, uses, record.as_deref())
+        }
+        Probe::Atlas { name, out, hues } => colors::atlas(romfs, &name, out.as_deref(), hues),
         Probe::Vfx { bundle, sum, raw } => colors::vfx(romfs, game, &bundle, &sum, raw.as_deref()),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {

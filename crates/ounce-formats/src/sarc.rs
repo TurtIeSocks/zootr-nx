@@ -2,21 +2,23 @@
 //! order stay as they were, so the SFAT stays sorted, and every file keeps
 //! the alignment its old offset had.
 
+use std::ops::Range;
+
 use anyhow::{Context, Result, ensure};
 
 use crate::reader::Reader;
 
-/// A file's SFAT node: where it sits, and its data's start and end past
-/// the data offset.
-struct Node {
+/// A file's SFAT node: where it sits, its data's start and end past the
+/// data offset, and its name when it has one.
+struct Node<'a> {
     at: usize,
     start: usize,
     end: usize,
+    name: Option<&'a [u8]>,
 }
 
-/// `sarc` with the file at `name` holding `data`. Files stored after it
-/// move by as much as keeps each on its old alignment.
-pub fn replace_file(sarc: &[u8], name: &str, data: &[u8]) -> Result<Vec<u8>> {
+/// The archive's data offset and its SFAT nodes, in SFAT order.
+fn nodes(sarc: &[u8]) -> Result<(usize, Vec<Node<'_>>)> {
     let r = Reader(sarc);
     ensure!(r.bytes(0, 4)? == b"SARC", "not a SARC archive");
     ensure!(r.u16(6)? == 0xfeff, "big-endian SARC isn't supported");
@@ -29,15 +31,68 @@ pub fn replace_file(sarc: &[u8], name: &str, data: &[u8]) -> Result<Vec<u8>> {
     ensure!(r.bytes(sfnt, 4)? == b"SFNT", "SARC has no SFNT");
     let names = sfnt + r.u16(sfnt + 4)? as usize;
     let mut nodes = Vec::new();
-    let mut target = None;
     for at in (first..sfnt).step_by(16) {
         let attrs = r.u32(at + 4)? as usize;
-        if attrs >> 24 != 0 && cstr(&r, names + (attrs & 0xff_ffff) * 4)? == name.as_bytes() {
-            target = Some(at);
-        }
+        let name = match attrs >> 24 {
+            0 => None,
+            _ => Some(cstr(&r, names + (attrs & 0xff_ffff) * 4)?),
+        };
         let (start, end) = (r.u32(at + 8)? as usize, r.u32(at + 12)? as usize);
-        nodes.push(Node { at, start, end });
+        nodes.push(Node {
+            at,
+            start,
+            end,
+            name,
+        });
     }
+    Ok((base, nodes))
+}
+
+/// Where each copy of the file at `name` lies in `sarc`. An archive may
+/// store one name several times (the game's layout archives hold each
+/// layout 4 times, byte for byte the same), and a same-size edit goes to
+/// every copy.
+pub fn copies(sarc: &[u8], name: &str) -> Result<Vec<Range<usize>>> {
+    let out: Vec<_> = copies_where(sarc, |n| n == name)?
+        .into_iter()
+        .map(|(_, range)| range)
+        .collect();
+    ensure!(!out.is_empty(), "SARC has no {name}");
+    Ok(out)
+}
+
+/// Each copy of every file whose name `keep` takes, with its name, in
+/// SFAT order.
+pub fn copies_where(
+    sarc: &[u8],
+    keep: impl Fn(&str) -> bool,
+) -> Result<Vec<(String, Range<usize>)>> {
+    let (base, nodes) = nodes(sarc)?;
+    let mut out = Vec::new();
+    for n in nodes {
+        let Some(name) = n.name.and_then(|n| std::str::from_utf8(n).ok()) else {
+            continue;
+        };
+        if keep(name) {
+            let range = base + n.start..base + n.end;
+            ensure!(range.end <= sarc.len(), "{name} runs past the SARC");
+            out.push((name.to_owned(), range));
+        }
+    }
+    Ok(out)
+}
+
+/// `sarc` with the file at `name` holding `data`. Files stored after it
+/// move by as much as keeps each on its old alignment. A name stored more
+/// than once has its last copy replaced.
+pub fn replace_file(sarc: &[u8], name: &str, data: &[u8]) -> Result<Vec<u8>> {
+    let r = Reader(sarc);
+    let (base, mut nodes) = nodes(sarc)?;
+    let target = nodes
+        .iter()
+        .rev()
+        .find(|n| n.name == Some(name.as_bytes()))
+        .map(|n| n.at);
     let target = target.with_context(|| format!("SARC has no {name}"))?;
     nodes.sort_by_key(|n| n.start);
     let mut out = r.bytes(0, base)?.to_vec();

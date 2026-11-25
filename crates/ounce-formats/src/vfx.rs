@@ -123,11 +123,3 @@ fn data_end(data: &[u8], blob: &Range<usize>) -> Result<usize> {
     ensure!(end <= blob.end, "the Vfx3 data runs past the blob");
     Ok(end)
 }
-
-/// `data` with the colour constant whose value is at `at` set to `rgb`,
-/// its fourth float kept.
-pub fn set_constant(data: &mut [u8], at: usize, rgb: [f32; 3]) {
-    for (i, v) in rgb.iter().enumerate() {
-        data[at + 4 * i..at + 4 * i + 4].copy_from_slice(&v.to_le_bytes());
-    }
-}
