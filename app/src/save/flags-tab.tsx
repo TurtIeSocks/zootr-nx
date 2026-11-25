@@ -68,7 +68,7 @@ function FlagFilters({ kinds }: { kinds: string[] }) {
       <Input
         aria-label="Filter flags by name, hash or label"
         placeholder="Filter flags by name, hash or label"
-        className="flex-1"
+        boxClassName="flex-1"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />

@@ -108,6 +108,7 @@ export function SavedSets({ kind, id, words }: SavedSetsProps) {
           </Select>
           <div className="flex gap-2">
             <Input
+              clearable={false}
               aria-label={`${capital(words.noun)} name`}
               placeholder={`${capital(words.noun)} name`}
               value={name}

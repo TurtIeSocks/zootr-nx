@@ -88,7 +88,7 @@ export function ValueInput({
   return (
     <Input
       {...named}
-      className={className}
+      boxClassName={className}
       type={info.input === "number" ? "number" : "text"}
       step={info.kind === "Float" ? "any" : 1}
       value={value}

@@ -260,7 +260,7 @@ export function RowsField({
           ) : (
             <Input
               aria-label={`${label} value`}
-              className={VALUE_WIDTH}
+              boxClassName={VALUE_WIDTH}
               placeholder="Value"
               value={value}
               onChange={(e) => setValue(e.target.value)}

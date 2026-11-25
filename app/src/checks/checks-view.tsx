@@ -125,6 +125,7 @@ function TextForm({ edit, row }: TextDialogProps) {
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
       <Input
+        clearable={false}
         autoFocus
         aria-label={edit}
         placeholder={edit}
