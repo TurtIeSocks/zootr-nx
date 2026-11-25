@@ -19,6 +19,10 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../logic/names/hyrule-field.toml"),
     ),
     (
+        "kakariko-village.toml",
+        include_str!("../logic/names/kakariko-village.toml"),
+    ),
+    (
         "kokiri-forest.toml",
         include_str!("../logic/names/kokiri-forest.toml"),
     ),
