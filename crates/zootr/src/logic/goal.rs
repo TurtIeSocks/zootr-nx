@@ -125,7 +125,12 @@ mod tests {
         ];
         // Bombchus at their default cap, as a new game's settings have it.
         let chus = crate::settings::value_word(crate::settings::BOMBCHUS, "free");
+        // Holding every dungeon key, as keys from the start give: the tower's
+        // boss door asks for Ganon's Castle's.
         let tower = |trials: &str, have: &Have| {
+            let mut have = have.clone();
+            crate::keys::SINGLES.iter().for_each(|k| have.add(k));
+            let have = &have;
             let on = crate::settings::value_word(crate::settings::TRIALS, trials);
             let world = world(&romfs, &[&on, &chus]);
             let edges = adult_edges(&world, map::INSIDE_GANON_CASTLE, GOAL);

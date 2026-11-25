@@ -399,7 +399,9 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
         (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
-        (new_game.keys.moved(), &LOOSE_KEYS),
+        // Always, so logic counts them: with vanilla keys they stay put
+        // like the key chests.
+        (true, &LOOSE_KEYS),
         (npc_gifts, &FIRE_ARROWS),
         // With King Zora moved, the letter is dealt as a bottle, so its
         // spot always deals, or it would hand over a letter nobody reads.
