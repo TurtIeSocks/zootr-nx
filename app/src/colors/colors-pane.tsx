@@ -1,4 +1,11 @@
-import { Lock, LockOpen, RotateCcw, Shirt, Sword } from "lucide-react";
+import {
+  Lock,
+  LockOpen,
+  RotateCcw,
+  Shirt,
+  SplitSquareHorizontal,
+  Sword,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   commands,
@@ -23,6 +30,8 @@ import {
   setPick,
   swatchOf,
   toggleLock,
+  vanillaLabel,
+  withSlot,
 } from "@/lib/colors";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
@@ -38,8 +47,9 @@ const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
   { id: "gear", label: "Gear", icon: Sword },
 ];
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: "vanilla", label: "Vanilla" },
+/** A palette's three-way switch, its first option named for it. */
+const modes = (palette: PaletteView): { id: Mode; label: string }[] => [
+  { id: "vanilla", label: vanillaLabel(palette) },
   { id: "random", label: "Random" },
   { id: "colour", label: "Colour" },
 ];
@@ -112,12 +122,14 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
   const blocked = useSeeds((s) => s.blocked);
   const generating = useSeeds((s) => s.generating);
   const ids = paintable(palettes);
+  // A palette that follows another keeps following it: brows with the hair.
+  const leaders = paintable(palettes.filter((p) => !p.follows));
   // One request: a save nested in `run` would be dropped as already running.
   const randomize = (drawNow: boolean) =>
     run(async () => {
-      const drawn = drawNow ? await call(commands.colorsDraw(ids)) : {};
+      const drawn = drawNow ? await call(commands.colorsDraw(leaders)) : {};
       await saveConfig(
-        setAll(ids, (id) =>
+        setAll(leaders, (id) =>
           drawNow ? { hex: drawn[id] ?? "#808080" } : "random",
         ),
       );
@@ -160,8 +172,8 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
   const [game] = useConfig.usePath("config.game");
   const [group, setGroup] = useState<Group>("link");
   const [selected, setSelected] = useState<string>();
-  /** Colours the picker holds that haven't saved yet, by palette. */
-  const [live, setLive] = useState<Record<string, string>>({});
+  /** Colours the pickers hold that haven't saved yet, by palette. */
+  const [live, setLive] = useState<Record<string, Picked>>({});
   const store = useSaveConfig();
   const timers = useRef<Record<string, number>>({});
 
@@ -169,11 +181,11 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: clears whenever the saved draft changes
   useEffect(() => setLive({}), [colors]);
 
-  const pickLive = (id: string, hex: string) => {
-    setLive((l) => ({ ...l, [id]: hex }));
+  const pickLive = (id: string, picked: Picked) => {
+    setLive((l) => ({ ...l, [id]: picked }));
     window.clearTimeout(timers.current[id]);
     timers.current[id] = window.setTimeout(
-      () => void store(setPick(id, { hex })),
+      () => void store(setPick(id, picked)),
       SAVE_AFTER_MS,
     );
   };
@@ -185,10 +197,7 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
     const pick = colors[p.id];
     return typeof pick === "object" ? pick : null;
   };
-  const picked = (p: PaletteView): Picked | null => {
-    const hex = live[p.id];
-    return hex ? { hex } : saved(p);
-  };
+  const picked = (p: PaletteView): Picked | null => live[p.id] ?? saved(p);
   const previews = art && game !== null;
 
   const panel = (
@@ -199,10 +208,10 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
             key={p.id}
             palette={p}
             pick={colors[p.id]}
-            liveHex={live[p.id]}
+            live={live[p.id]}
             selected={p.id === current?.id}
             onSelect={() => setSelected(p.id)}
-            onLive={(hex) => pickLive(p.id, hex)}
+            onLive={(picked) => pickLive(p.id, picked)}
           />
         ))}
       </ul>
@@ -245,32 +254,44 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
 interface PaletteRowProps {
   palette: PaletteView;
   pick: Pick | undefined;
-  /** The colour the picker holds before it saves. */
-  liveHex?: string;
+  /** The colours the pickers hold before they save. */
+  live?: Picked;
   selected: boolean;
   onSelect: () => void;
-  onLive: (hex: string) => void;
+  onLive: (picked: Picked) => void;
 }
 
 /** One palette: its name, Vanilla, Random or a colour, the picker, its
- * lock and reset. Hovering or focusing it shows it in the preview. */
+ * lock and reset. A palette with several slots can Split them, a picker
+ * each. Hovering or focusing it shows it in the preview. */
 function PaletteRow({
   palette,
   pick,
-  liveHex,
+  live,
   selected,
   onSelect,
   onLive,
 }: PaletteRowProps) {
   const store = useSaveConfig();
-  const { busy } = useRequest();
-  const [recents] = useConfig.usePath("config.color_recents");
+  const { busy, run } = useRequest();
   const locked = useConfig((s) => s.config.color_locks.includes(palette.id));
-  const mode = liveHex ? "colour" : modeOf(pick);
-  const hex = liveHex ?? swatchOf(palette, pick);
+  const mode = live ? "colour" : modeOf(pick);
+  const picked: Picked =
+    live ??
+    (typeof pick === "object" ? pick : { hex: swatchOf(palette, pick) });
+  const split = !!picked.split?.length;
   const off = busy || !!palette.problem;
   const setMode = (m: Mode) =>
-    store(setPick(palette.id, m === "colour" ? { hex } : m));
+    store(setPick(palette.id, m === "colour" ? { hex: picked.hex } : m));
+  // Split starts from where the slots stood, following the first.
+  const toggleSplit = () =>
+    run(async () => {
+      const slots = split
+        ? []
+        : (await call(commands.colorsFollow(palette.id, picked.hex))).slice(1);
+      await saveConfig(setPick(palette.id, { hex: picked.hex, split: slots }));
+    });
+  const slots = split ? [picked.hex, ...(picked.split ?? [])] : [picked.hex];
   return (
     <li
       onMouseEnter={onSelect}
@@ -309,31 +330,46 @@ function PaletteRow({
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Segmented
-          options={MODES}
+          options={modes(palette)}
           value={mode}
           onValueChange={setMode}
           disabled={off}
-          aria-label={`${palette.label}: vanilla, random or a colour`}
+          aria-label={`${palette.label}: ${vanillaLabel(palette).toLowerCase()}, random or a colour`}
         />
-        <div className="flex w-36 items-center gap-2">
-          {mode === "random" ? (
-            <span className="text-ink-muted text-xs">Drawn at build</span>
-          ) : (
-            <>
-              <ColorPicker
-                mode="hex"
-                alpha={false}
-                value={hex}
-                onChange={onLive}
-                presets={SWATCHES}
-                history={recents as `#${string}`[]}
-                onHistoryChange={(h) => store({ color_recents: h })}
-                aria-label={`${palette.label} colour`}
-              />
-              <code className="text-ink-muted text-xs">{hex}</code>
-            </>
-          )}
-        </div>
+        {mode === "random" ? (
+          <span className="text-ink-muted text-xs">Drawn at build</span>
+        ) : (
+          slots.map((hex, i) => (
+            <Swatch
+              // biome-ignore lint/suspicious/noArrayIndexKey: slots are numbered
+              key={i}
+              hex={hex}
+              name={split ? palette.names[i] : undefined}
+              label={`${palette.label} ${split ? palette.names[i] : "colour"}`}
+              onChange={(h) => onLive(withSlot(picked, i, h))}
+            />
+          ))
+        )}
+        {palette.names.length > 1 && mode === "colour" && (
+          <Tip
+            tip={
+              split
+                ? "One colour, the rest following it"
+                : `A colour for each: ${palette.names.join(", ")}`
+            }
+          >
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-pressed={split}
+              disabled={off}
+              onClick={toggleSplit}
+            >
+              <SplitSquareHorizontal />
+              Split
+            </Button>
+          </Tip>
+        )}
       </div>
       {palette.problem && (
         <p className="w-full text-danger text-xs">
@@ -341,5 +377,39 @@ function PaletteRow({
         </p>
       )}
     </li>
+  );
+}
+
+/** Props for {@link Swatch}. */
+interface SwatchProps {
+  hex: string;
+  /** The slot's name, shown over it when the palette is split. */
+  name?: string;
+  label: string;
+  onChange: (hex: string) => void;
+}
+
+/** One colour: the picker with its presets and recent colours, and its
+ * code. */
+function Swatch({ hex, name, label, onChange }: SwatchProps) {
+  const store = useSaveConfig();
+  const [recents] = useConfig.usePath("config.color_recents");
+  return (
+    <div className="flex flex-col gap-0.5">
+      {name && <span className="text-ink-muted text-xs">{name}</span>}
+      <div className="flex w-32 items-center gap-2">
+        <ColorPicker
+          mode="hex"
+          alpha={false}
+          value={hex}
+          onChange={onChange}
+          presets={SWATCHES}
+          history={recents as `#${string}`[]}
+          onHistoryChange={(h) => store({ color_recents: h })}
+          aria-label={label}
+        />
+        <code className="text-ink-muted text-xs">{hex}</code>
+      </div>
+    </div>
   );
 }

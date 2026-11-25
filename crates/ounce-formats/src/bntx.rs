@@ -230,20 +230,27 @@ impl Kind {
     }
 }
 
-/// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1, BC3 or BC4.
+/// Whether [`redraw`] redraws a texture of `format`: ASTC, BC1, BC3, BC4
+/// or BC7 (as ASTC).
 pub fn redraws(format: u32) -> bool {
     matches!(
         Kind::of(format),
-        Ok(Kind::Bc1 | Kind::Bc3 | Kind::Bc4 | Kind::Astc(..))
+        Ok(Kind::Bc1 | Kind::Bc3 | Kind::Bc4 | Kind::Bc7 | Kind::Astc(..))
     )
 }
+
+/// ASTC 4x4's format byte. Its blocks are BC7's size and shape, so a BC7
+/// texture becomes one in place: same levels, same layout, every block
+/// encoded again and the format word changed.
+const ASTC_4X4: u32 = 0x2d;
 
 /// A file of one texture with its texels redrawn from `rgba`, its first
 /// level row-major at its size, in every mip level, each level the one
 /// above box-filtered. A block whose texels `keep` (by first-level x and y)
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
 /// change. Each ASTC block is the closest of one colour or two, each BC1
-/// block of four. BC4 takes the red channel.
+/// block of four. BC4 takes the red channel. BC7, which isn't encoded,
+/// comes back as ASTC 4x4, every block encoded and `keep` ignored.
 ///
 /// Each redraw is kept for the process, by its inputs: a seed redraws the
 /// same textures in the same colours (a key's dungeon, a mark's kind), and
@@ -293,19 +300,25 @@ fn redraw_key(data: &[u8], rgba: &[u8], kept: &[bool]) -> [u64; 2] {
 /// row-major.
 fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8>> {
     let (width, height) = (info.width, info.height);
-    let kind = info.kind()?;
-    let (bw, bh, unit) = kind.block();
     ensure!(
         redraws(info.format),
-        "{}: only ASTC, BC1, BC3 and BC4 are redrawn",
+        "{}: only ASTC, BC1, BC3, BC4 and BC7 are redrawn",
         info.name
     );
+    let from_bc7 = info.kind()? == Kind::Bc7;
+    let kind = if from_bc7 { Kind::Astc(4, 4) } else { info.kind()? };
+    let (bw, bh, unit) = kind.block();
     ensure!(
         info.start + info.size <= data.len(),
         "{}: texture data past the end",
         info.name
     );
     let mut out = data.to_vec();
+    if from_bc7 {
+        let at = first(data)? + 0x1c;
+        let format = ASTC_4X4 << 8 | info.format & 0xff;
+        out[at..at + 4].copy_from_slice(&format.to_le_bytes());
+    }
     let mut image = blocks::texels(rgba);
     for i in 0..info.levels {
         let (w, h, gobs, bytes) = info.level(i)?;
@@ -342,7 +355,7 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
             let (x1, y1) = (((bx + 1) * bw) << i, ((by + 1) * bh) << i);
             let all_kept =
                 (y0..y1.min(height)).all(|y| (x0..x1.min(width)).all(|x| kept[y * width + x]));
-            if all_kept {
+            if all_kept && !from_bc7 {
                 return None;
             }
             let texels: Vec<Rgba> = (0..bh)
@@ -470,7 +483,8 @@ mod tests {
         assert_eq!(Kind::of(0x3a06).unwrap().block(), (12, 12, 16));
         assert_eq!(Kind::of(0x1a01).unwrap().block(), (4, 4, 8));
         assert!(Kind::of(0x2101).is_err());
-        assert!(redraws(0x1d01) && redraws(0x3001) && redraws(0x1c06) && !redraws(0x2001));
+        assert!(redraws(0x1d01) && redraws(0x3001) && redraws(0x1c06) && redraws(0x2001));
+        assert!(!redraws(0x1e01) && !redraws(0x0b01));
     }
 
     #[test]

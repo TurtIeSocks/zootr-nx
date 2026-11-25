@@ -33,6 +33,11 @@ pub fn to_linear(c: Colour) -> [f32; 3] {
     c.map(linear)
 }
 
+/// A linear colour as sRGB, each channel clamped to 0 to 1 first.
+pub fn from_linear(c: [f32; 3]) -> Colour {
+    c.map(|v| (gamma(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
+}
+
 pub fn lch(c: Colour) -> Lch {
     let [r, g, b] = to_linear(c);
     let l = (0.412_221_46 * r + 0.536_332_55 * g + 0.051_445_995 * b).cbrt();
@@ -86,7 +91,7 @@ pub fn colour(lch: Lch) -> Colour {
         }
         hi = lo;
     }
-    unclamped(Lch { c: hi, ..lch }).map(|c| (gamma(c.clamp(0.0, 1.0)) * 255.0).round() as u8)
+    from_linear(unclamped(Lch { c: hi, ..lch }))
 }
 
 /// Below this chroma a colour is grey and its hue means nothing.

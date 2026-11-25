@@ -89,6 +89,11 @@ export const commands = {
 	 */
 	colorsDraw: (ids: string[]) => typedError<{ [key in string]: string }, string>(__TAURI_INVOKE("colors_draw", { ids })),
 	/**
+	 *  Each slot's colour, `#rrggbb`, when palette `id`'s first is `hex` and
+	 *  the rest follow it: where Split starts.
+	 */
+	colorsFollow: (id: string, hex: string) => typedError<string[], string>(__TAURI_INVOKE("colors_follow", { id, hex })),
+	/**
 	 *  Reinstall the installed seed in the Colors draft's colours: the same
 	 *  shuffle, painted again. Its history entry keeps the new colours.
 	 */
@@ -801,8 +806,15 @@ export type PaletteView = {
 	group: Group,
 	/**  Each slot's vanilla colour, `#rrggbb`. */
 	vanilla: string[],
-	/**  How many textures it paints, each a preview. */
-	textures: number,
+	/**  Each slot's name, when it has more than one: what Split shows. */
+	names: string[],
+	/**  The palette it moves with while left vanilla, by label. */
+	follows: string | null,
+	/**
+	 *  How many pictures it previews on: its textures, then a lit sphere
+	 *  for each material whose colours it writes.
+	 */
+	sheets: number,
 	/**  Why this dump can't paint it, when it can't. */
 	problem: string | null,
 };

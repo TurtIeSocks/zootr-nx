@@ -12,10 +12,10 @@ pub mod preview;
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ModBuilder, redraw, rename, top_level};
+use ounce_formats::{ModBuilder, material_param, redraw, rename, set_material_param, top_level};
 
-pub use catalog::{GREEN, Group, PALETTES, Palette, Write};
-use files::Tex;
+pub use catalog::{GREEN, Group, Kind, PALETTES, Palette, Write};
+use files::{Copy, Tex};
 use paint::{Band, Colour};
 pub use pick::{
     Colors, Draft, Mode, Pick, Picked, args, draft, drawn, hex, parse_arg, parse_hex, resolve,
@@ -39,10 +39,16 @@ pub fn first(colors: &Colors, id: &str) -> Result<Option<Colour>> {
 /// The files Colors reads, which the dump's cache extracts besides its
 /// folders.
 pub fn files() -> impl Iterator<Item = &'static str> {
-    let textures = PALETTES.iter().flat_map(|p| p.writes).map(Write::texture);
-    textures.flat_map(|t| {
-        let models = t.copy.iter().flat_map(|c| c.models.iter().copied());
-        [t.path].into_iter().chain(t.metal).chain(models)
+    PALETTES.iter().flat_map(|p| p.writes).flat_map(|w| {
+        let params: &[&str] = match w.kind {
+            Kind::Param { models, .. } => models,
+            _ => &[],
+        };
+        let texture = w.texture().into_iter().flat_map(|t| {
+            let copies = t.copy.iter().flat_map(|c| copies(t.path, c)).flat_map(|(_, m)| m.iter().copied());
+            [t.path].into_iter().chain(t.metal).chain(copies)
+        });
+        texture.chain(params.iter().copied())
     })
 }
 
@@ -62,6 +68,7 @@ pub fn spoiler(colors: &Colors) -> String {
 
 /// One write's goal: the colour its part ends up, as the palette's slot
 /// moved from vanilla.
+#[derive(Clone)]
 struct Job<'a> {
     palette: &'a str,
     write: &'a Write,
@@ -74,7 +81,11 @@ fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
     let job = |write| Job {
         palette: palette.id,
         write,
-        goal: oklch::follow(slots[0], palette.vanilla[0], write.vanilla()),
+        goal: oklch::follow(
+            slots[write.slot],
+            palette.vanilla[write.slot],
+            write.vanilla(),
+        ),
     };
     Ok(palette.writes.iter().map(job).collect())
 }
@@ -82,20 +93,103 @@ fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
 /// Paint every palette `colors` changes. Last of a seed's writes, so a
 /// texture another feature copies (the child's tunics) is copied green.
 pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
+    let colors = with_followers(colors)?;
     let mut by_texture: BTreeMap<&str, (&Tex, Vec<Job>)> = BTreeMap::new();
-    for (id, picked) in colors {
+    let mut by_model: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
+    for (id, picked) in &colors {
         for job in jobs(palette(id)?, picked)? {
-            let texture = job.write.texture();
-            let (_, jobs) = by_texture
-                .entry(texture.path)
-                .or_insert((texture, Vec::new()));
-            jobs.push(job);
+            match (job.write.texture(), &job.write.kind) {
+                (Some(texture), _) => {
+                    let entry = by_texture.entry(texture.path);
+                    entry.or_insert((texture, Vec::new())).1.push(job);
+                }
+                (None, Kind::Param { models, .. }) => {
+                    for model in *models {
+                        by_model.entry(model).or_default().push(job.clone());
+                    }
+                }
+                (None, _) => unreachable!("only a param has no texture"),
+            }
         }
     }
     for (texture, jobs) in by_texture.values() {
         paint_texture(builder, texture, jobs).with_context(|| texture.path.to_owned())?;
     }
+    // After the textures: a copy renames its texture in these models too.
+    for (model, jobs) in &by_model {
+        let data = paint_model(&builder.read(model)?, jobs).with_context(|| model.to_string())?;
+        builder.write(model, &data)?;
+    }
     Ok(())
+}
+
+/// The palette `id` moves with while it isn't picked, if any.
+pub fn leader(id: &str) -> Option<&'static Palette> {
+    let (_, leader) = catalog::FOLLOWS.iter().find(|(f, _)| *f == id)?;
+    palette(leader).ok()
+}
+
+/// `colors` with each palette that follows another, and isn't picked
+/// itself, moved as its leader moved: the brows with the hair.
+fn with_followers(colors: &Colors) -> Result<Colors> {
+    let mut out = colors.clone();
+    for &(follower, leader) in catalog::FOLLOWS {
+        let Some(picked) = colors.get(leader).filter(|_| !colors.contains_key(follower)) else {
+            continue;
+        };
+        let (leader, follower_palette) = (palette(leader)?, palette(follower)?);
+        let to = picked.slots(leader)?[0];
+        let first = oklch::follow(to, leader.vanilla[0], follower_palette.vanilla[0]);
+        out.insert(follower.to_owned(), Picked::of(first));
+    }
+    Ok(out)
+}
+
+/// How far a param may sit from the colour recorded, per channel.
+const PARAM_SLACK: f32 = 0.002;
+
+/// `model` with each of its param jobs written, each checked first.
+fn paint_model(model: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
+    let mut data = model.to_vec();
+    for job in jobs {
+        let Kind::Param { material, hash, .. } = job.write.kind else {
+            unreachable!("a model's jobs are params");
+        };
+        let old = check_param(&data, job.write).with_context(|| job.palette.to_owned())?;
+        data = set_material_param(&data, material, hash, param_value(job.goal, old))?;
+    }
+    Ok(data)
+}
+
+/// Fails unless `write`'s param in `model` holds the colour recorded, and
+/// returns what it holds.
+fn check_param(model: &[u8], write: &Write) -> Result<[f32; 4]> {
+    let Kind::Param {
+        material,
+        hash,
+        vanilla,
+        ..
+    } = write.kind
+    else {
+        anyhow::bail!("not a param");
+    };
+    let old = material_param(model, material, hash).with_context(|| format!("{material} {hash:016x}"))?;
+    ensure!(
+        old.iter().zip(vanilla).all(|(o, v)| (o - v).abs() <= PARAM_SLACK),
+        "{material} {hash:016x} holds {:?} where {vanilla:?} was recorded",
+        &old[..3]
+    );
+    Ok(old)
+}
+
+/// The param that shows `goal` at the brightness `old` had: its colour
+/// from `goal`, its brightest channel from `old`. Black stays black.
+fn param_value(goal: Colour, old: [f32; 4]) -> [f32; 4] {
+    let lin = oklch::to_linear(goal);
+    let top = lin.iter().copied().fold(0.0, f32::max);
+    let keep = old[..3].iter().copied().fold(0.0, f32::max);
+    let scale = if top > 0.0 { keep / top } else { 0.0 };
+    [lin[0] * scale, lin[1] * scale, lin[2] * scale, old[3]]
 }
 
 /// How far a part's average may sit from the dump's before it's taken for
@@ -113,11 +207,18 @@ fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Resul
         None => builder.write(texture.path, &drawn)?,
         Some(copy) => {
             let (name, to) = (name(texture.path), marked(name(texture.path), copy.mark)?);
-            let path = texture.path.replace(name, &to);
-            builder.add(&path, &rename(&drawn, name, &to)?, texture.path)?;
-            for model in copy.models {
-                let data = builder.read(model)?;
-                builder.write(model, &rename(&data, name, &to)?)?;
+            let drawn = rename(&drawn, name, &to)?;
+            // Each name the models know it by gets the copy under its own
+            // marked name. The file inside keeps the copy's: the texture
+            // table already serves one file under another name.
+            for (alias, models) in copies(texture.path, copy) {
+                let alias_to = marked(alias, copy.mark)?;
+                let path = texture.path.replace(name, &alias_to);
+                builder.add(&path, &drawn, texture.path)?;
+                for model in models {
+                    let data = builder.read(model)?;
+                    builder.write(model, &rename(&data, alias, &alias_to)?)?;
+                }
             }
         }
     }
@@ -138,17 +239,17 @@ fn paint_jobs(rgba: &mut [u8], jobs: &[Job]) -> Result<()> {
     }
     let bands: Vec<Band> = jobs
         .iter()
-        .filter_map(|j| match j.write {
-            Write::Band { hues, .. } => Some(Band {
-                hues: *hues,
+        .filter_map(|j| match j.write.kind {
+            Kind::Band { hues, .. } => Some(Band {
+                hues,
                 to: paint::hsv(j.goal),
             }),
-            Write::Tint { .. } => None,
+            _ => None,
         })
         .collect();
     let tints: Vec<_> = jobs
         .iter()
-        .filter(|j| matches!(j.write, Write::Tint { .. }))
+        .filter(|j| matches!(j.write.kind, Kind::Tint { .. }))
         .collect();
     ensure!(
         tints.is_empty() || (bands.is_empty() && tints.len() == 1),
@@ -178,25 +279,26 @@ fn check(rgba: &[u8], write: &Write) -> Result<()> {
 /// What a write's part averages in `rgba`: its band's texels, or every
 /// texel for a tint.
 fn measure(rgba: &[u8], write: &Write) -> Result<Colour> {
-    match write {
-        Write::Band { hues, .. } => {
-            let (h, s, v) = paint::mean(rgba, *hues).context("no texel in the band")?;
+    match write.kind {
+        Kind::Band { hues, .. } => {
+            let (h, s, v) = paint::mean(rgba, hues).context("no texel in the band")?;
             Ok(paint::rgb(h, s, v))
         }
-        Write::Tint { .. } => Ok(mean(rgba)),
+        Kind::Tint { .. } => Ok(mean(rgba)),
+        Kind::Param { .. } => anyhow::bail!("a param has no texels"),
     }
 }
 
 fn matches(write: &Write, got: Colour, want: Colour) -> bool {
-    match write {
-        Write::Band { .. } => {
+    match write.kind {
+        Kind::Band { .. } => {
             let ((gh, gs, gv), (wh, ws, wv)) = (paint::hsv(got), paint::hsv(want));
             let dh = (gh - wh).rem_euclid(1.0);
             dh.min(1.0 - dh) <= HUE_SLACK
                 && (gs - ws).abs() <= SV_SLACK
                 && (gv - wv).abs() <= SV_SLACK
         }
-        Write::Tint { .. } => got
+        Kind::Tint { .. } | Kind::Param { .. } => got
             .iter()
             .zip(want)
             .all(|(g, w)| g.abs_diff(w) <= RGB_SLACK),
@@ -224,6 +326,15 @@ fn brightened(goal: Colour, luma: u32) -> Colour {
     goal.map(|c| (c as u32 * 255 / luma.max(1)).min(255) as u8)
 }
 
+/// Each name a copied texture goes by, its own first, with the models
+/// that name it.
+pub(crate) fn copies<'a>(
+    path: &'a str,
+    copy: &'a Copy,
+) -> impl Iterator<Item = (&'a str, &'static [&'static str])> {
+    [(name(path), copy.models)].into_iter().chain(copy.aliases.iter().copied())
+}
+
 /// The texture at `path`, as its name.
 pub(crate) fn name(path: &str) -> &str {
     let name = path.strip_prefix("Tex/").unwrap_or(path);
@@ -234,7 +345,10 @@ pub(crate) fn name(path: &str) -> &str {
 /// as long as the texture's, as a rename needs.
 pub(crate) fn marked(name: &str, mark: u8) -> Result<String> {
     let at = name.len().checked_sub(5).context("too short")?;
-    ensure!(name[at + 1..] == *"_Alb", "{name} isn't an albedo");
+    ensure!(
+        matches!(&name[at + 1..], "_Alb" | "_Gn0"),
+        "{name} isn't an albedo or a gradient"
+    );
     Ok(format!(
         "{}{}{}",
         &name[..at],
@@ -258,11 +372,51 @@ mod tests {
                 .iter()
                 .all(|p| !p.vanilla.is_empty() && !p.writes.is_empty())
         );
+        for p in PALETTES {
+            let slots = p.vanilla.len();
+            let named = if slots == 1 { 0 } else { slots };
+            assert_eq!(p.names.len(), named, "{} names each of its slots", p.id);
+            for slot in 0..slots {
+                assert!(p.writes.iter().any(|w| w.slot == slot), "{} slot {slot}", p.id);
+            }
+            assert!(p.writes.iter().all(|w| w.slot < slots), "{}", p.id);
+        }
+        for &(follower, leader) in catalog::FOLLOWS {
+            assert!(palette(follower).is_ok() && palette(leader).is_ok());
+        }
+    }
+
+    #[test]
+    fn a_param_keeps_its_brightest_channel() {
+        let old = [0.5, 0.169, 0.0174, 1.0];
+        let blue = param_value([0, 0, 255], old);
+        assert_eq!(blue, [0.0, 0.0, 0.5, 1.0]);
+        let grey = param_value([128, 128, 128], old);
+        assert!(grey[..3].iter().all(|&c| (c - 0.5).abs() < 1e-6));
+        assert_eq!(param_value([0, 0, 0], old), [0.0, 0.0, 0.0, 1.0]);
+    }
+
+    #[test]
+    fn the_brows_follow_the_hair_unless_picked() {
+        let hair = Picked::of([40, 60, 200]);
+        let colors: Colors = [("hair".to_owned(), hair.clone())].into();
+        let brows = with_followers(&colors).unwrap()["brows"].slots(palette("brows").unwrap());
+        // The brows turn by the angle the hair turned.
+        let hue = |c| oklch::lch(c).h;
+        let turn = |to, from| (hue(to) - hue(from)).rem_euclid(1.0);
+        let hair_turn = turn([40, 60, 200], palette("hair").unwrap().vanilla[0]);
+        let brows_turn = turn(brows.unwrap()[0], palette("brows").unwrap().vanilla[0]);
+        assert!((brows_turn - hair_turn).abs() < 0.02, "{brows_turn} against {hair_turn}");
+        let own = Picked::of([200, 20, 20]);
+        let both: Colors = [("hair".to_owned(), hair), ("brows".to_owned(), own.clone())].into();
+        assert_eq!(with_followers(&both).unwrap()["brows"], own);
+        assert!(!with_followers(&Colors::new()).unwrap().contains_key("brows"));
     }
 
     #[test]
     fn a_copy_is_named_as_long_as_its_texture() {
         assert_eq!(marked("Fake_Tile_A_Alb", b'K').unwrap(), "Fake_Tile_K_Alb");
+        assert_eq!(marked("Fake_Hair_A_Gn0", b'L').unwrap(), "Fake_Hair_L_Gn0");
         assert!(marked("Fake_Tile_A_Nrm", b'K').is_err());
         assert_eq!(name("Tex/Fake_Tile_A_Alb.bntx.zs"), "Fake_Tile_A_Alb");
     }
@@ -292,18 +446,44 @@ mod tests {
         let has = |data: &[u8], name: &str| data.windows(name.len()).any(|w| w == name.as_bytes());
         for palette in PALETTES {
             for (i, w) in palette.writes.iter().enumerate() {
-                let texture = w.texture();
+                if let Kind::Param {
+                    models,
+                    material,
+                    hash,
+                    vanilla,
+                } = w.kind
+                {
+                    for model in models {
+                        let data = crate::game::read_built(&romfs, &dir, model);
+                        let got = material_param(&data, material, hash).unwrap();
+                        // White (the hair's shine) stays white under a
+                        // pick brighter than the slot's vanilla.
+                        if vanilla != [1.0; 3] {
+                            assert_ne!(got[..3], vanilla, "{} {model} {material}", palette.id);
+                        }
+                        if i == 0 {
+                            let got = oklch::from_linear([got[0], got[1], got[2]]);
+                            let near = (paint::hsv(got).0 - paint::hsv(pink).0).abs();
+                            assert!(near < 0.03, "{} {material} is {got:?}", palette.id);
+                        }
+                    }
+                    continue;
+                }
+                let texture = w.texture().unwrap();
                 let path = match &texture.copy {
                     None => texture.path.to_owned(),
                     Some(copy) => {
-                        let (name, to) = (
-                            name(texture.path),
-                            marked(name(texture.path), copy.mark).unwrap(),
-                        );
-                        for model in copy.models {
-                            let data = crate::game::read_built(&romfs, &dir, model);
-                            assert!(has(&data, &to) && !has(&data, name), "{model} names {to}");
+                        let name = name(texture.path);
+                        for (alias, models) in copies(texture.path, copy) {
+                            let to = marked(alias, copy.mark).unwrap();
+                            let path = texture.path.replace(name, &to);
+                            assert!(dir.join("romfs").join(&path).exists(), "{path} is written");
+                            for model in models {
+                                let data = crate::game::read_built(&romfs, &dir, model);
+                                assert!(has(&data, &to) && !has(&data, alias), "{model} names {to}");
+                            }
                         }
+                        let to = marked(name, copy.mark).unwrap();
                         assert!(
                             !dir.join("romfs").join(texture.path).exists(),
                             "{name} is left alone"
@@ -316,7 +496,7 @@ mod tests {
                     .rgba;
                 let vanilla = top_level(&romfs.read(texture.path).unwrap()).unwrap().rgba;
                 assert_ne!(rgba, vanilla, "{} {path} is painted", palette.id);
-                if let (0, Write::Band { .. }) = (i, w) {
+                if let (0, Kind::Band { .. }) = (i, &w.kind) {
                     // The palette's first part takes the colour itself.
                     let pink_hue = paint::hsv(pink).0;
                     let near = (pink_hue - 0.02, pink_hue + 0.02);
@@ -337,7 +517,16 @@ mod tests {
         let mut wrong = Vec::new();
         for palette in PALETTES {
             for write in palette.writes {
-                let path = write.texture().path;
+                if let Kind::Param { models, .. } = write.kind {
+                    for model in models {
+                        let checked = check_param(&romfs.read(model).unwrap(), write);
+                        if let Err(e) = checked {
+                            wrong.push(format!("{} {model}: {e:#}", palette.id));
+                        }
+                    }
+                    continue;
+                }
+                let path = write.texture().unwrap().path;
                 let rgba = top_level(&romfs.read(path).unwrap()).unwrap().rgba;
                 match measure(&rgba, write) {
                     Ok(got) if matches(write, got, write.vanilla()) => {}

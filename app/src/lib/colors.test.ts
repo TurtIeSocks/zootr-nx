@@ -16,7 +16,9 @@ const TUNIC: PaletteView = {
   label: "Kokiri Tunic",
   group: "link",
   vanilla: ["#40522b"],
-  textures: 7,
+  names: [],
+  follows: null,
+  sheets: 7,
   problem: null,
 };
 
@@ -48,17 +50,17 @@ test("vanilla leaves the draft, and a lock keeps a palette from the all buttons"
   expect(c.color_locks).toEqual([]);
 });
 
-test("a preview url carries the texture, the colours and the view", () => {
+test("a preview url carries the sheet, the colours and the view", () => {
   const url = previewUrl({
     id: "bow",
-    texture: 0,
+    sheet: 0,
     picked: { hex: "#20b060", split: ["#aabbcc"] },
     changes: true,
   });
   expect(url).toBe(
     "zootr-colors://localhost/bow.png?t=0&c=20b060&s=aabbcc&v=changes",
   );
-  expect(previewUrl({ id: "bow", texture: 2, picked: null })).toBe(
+  expect(previewUrl({ id: "bow", sheet: 2, picked: null })).toBe(
     "zootr-colors://localhost/bow.png?t=2",
   );
 });
