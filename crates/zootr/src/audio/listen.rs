@@ -1,6 +1,6 @@
 //! Which songs play in the game's audio dump (its target's harness lines
-//! turn audio on, muted, dumped to a file: 16-bit, 48 kHz, eight channels). Each stream is
-//! decoded and found in each window of the dump by normalized
+//! turn audio on, muted, dumped to a file: 16-bit, 48 kHz, eight
+//! channels). Each stream is decoded and found in each window of the dump by normalized
 //! cross-correlation: a stream that plays scores 0.5 to 1, one that
 //! doesn't under 0.15, whatever else is in the mix.
 
@@ -31,12 +31,13 @@ pub struct Window {
 }
 
 /// A stream by a track's id (its song) or its own name.
-fn stream_name(name: &str) -> &str {
-    TRACKS
-        .iter()
-        .find(|t| t.id == name)
-        .and_then(|t| t.song)
-        .unwrap_or(name)
+fn stream_name(name: &str) -> Result<&str> {
+    match TRACKS.iter().find(|t| t.id == name) {
+        Some(t) => {
+            (t.song).with_context(|| format!("{name} has no song: its music is in sections"))
+        }
+        None => Ok(name),
+    }
 }
 
 /// The windows of `dump` from `from` to `to` seconds, `step` long, each
@@ -51,7 +52,7 @@ pub fn listen(
     let streams = names
         .iter()
         .map(|n| {
-            let name = stream_name(n);
+            let name = stream_name(n)?;
             let path = format!("{STREAMS}{name}.bwav");
             let found = crate::game::search(game, &path)?;
             let (_, data) = (found.into_iter().find(|(p, _)| *p == path))
@@ -113,6 +114,9 @@ fn down(samples: &[f32]) -> Vec<f32> {
 /// The least overlap a lag is scored over: a second, or all of the
 /// shorter side. A short overlap scores high by chance.
 const OVERLAP: usize = RATE / DOWN;
+/// The least loudness (mean square) both sides of an overlap need to be
+/// scored: near silence divides by near nothing.
+const QUIET: f64 = 100.0;
 
 /// The peak normalized cross-correlation of `a` and `b` over every lag
 /// where they overlap by at least [`OVERLAP`], each scored over the
@@ -144,8 +148,11 @@ pub fn ncc(a: &[f32], b: &[f32]) -> (f32, isize) {
         // The overlap: b[from..to] against a[from - lag..to - lag].
         let (from, to) = (lag.max(0), (lag + la).min(lb));
         let span = |e: &[f64], s: isize, t: isize| (e[t as usize] - e[s as usize]).max(0.0);
-        let norm = (span(&eb, from, to) * span(&ea, from - lag, to - lag)).sqrt();
-        let score = re[lag.rem_euclid(n as isize) as usize].abs() / (norm + 1e-9);
+        let (sb, sa) = (span(&eb, from, to), span(&ea, from - lag, to - lag));
+        if sb.min(sa) < QUIET * (to - from) as f64 {
+            continue;
+        }
+        let score = re[lag.rem_euclid(n as isize) as usize].abs() / (sa * sb).sqrt();
         if score > best {
             (best, at) = (score, lag);
         }
@@ -220,12 +227,13 @@ mod tests {
 
     #[test]
     fn a_window_cut_from_a_stream_is_found_where_it_was_cut() {
+        // Noise at the loudness of game audio (samples in the thousands).
         let noise = |seed: u32, n: usize| -> Vec<f32> {
             let mut x = seed;
             (0..n)
                 .map(|_| {
                     x = x.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
-                    (x >> 16) as f32 / 32768.0 - 1.0
+                    ((x >> 16) as f32 / 32768.0 - 1.0) * 1000.0
                 })
                 .collect()
         };
@@ -238,6 +246,8 @@ mod tests {
         assert!(score > 0.99 && lag == 1234, "{score} at {lag}");
         let (other, _) = ncc(&noise(2, OVERLAP), &stream);
         assert!(other < 0.1, "{other}");
+        let hush: Vec<f32> = noise(4, OVERLAP).iter().map(|v| v * 0.004).collect();
+        assert_eq!(ncc(&hush, &stream).0, 0.0, "near silence scores nothing");
         // The stream starting partway into a longer window, and running
         // past its end: still found, by the part they share.
         let mut late = noise(3, 2 * OVERLAP);
