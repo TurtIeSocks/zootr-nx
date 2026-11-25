@@ -87,7 +87,8 @@ export const TOPICS = {
     title: "Changes",
     body: [
       "Settings save as you change them. The game changes only when you Generate & Install.",
-      "Changes count from the last seed you made. An Archipelago slot doesn't count.",
+      "Changes count from the last seed you made, colors, music and pins included. An Archipelago slot doesn't count.",
+      "When only colors or music changed, Apply to Installed Seed paints the seed you have again, with the same shuffle.",
     ],
   },
   plando: {
@@ -96,6 +97,7 @@ export const TOPICS = {
     body: [
       "Pin an item to a check, and the shuffle leaves it there.",
       "A check is any place that can hold an item.",
+      "The next seed you generate gets these pins and shuffles everything else around them. Each change saves as you make it.",
     ],
   },
   colors: {
@@ -103,15 +105,17 @@ export const TOPICS = {
     at: { section: "colors" },
     body: [
       "Recolor Link and his gear. Colors don't change the shuffle, and a share code leaves them out.",
-      "Random draws a color when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
+      "Random draws a color when the seed is built. Shift-click Randomize to draw them now and tweak them.",
+      "The next seed you generate is painted this way. To paint the installed seed again without a new shuffle, use Apply to Installed Seed on the bar at the foot of the page. Each change saves as you make it.",
     ],
   },
   audio: {
     title: "Audio",
     at: { section: "audio" },
     body: [
-      "Shuffle the game's music within its kind. Music doesn't change the shuffle, and a share code leaves it out.",
+      "Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs, and Link's voice by age. Music doesn't change the shuffle, and a share code leaves it out.",
       "Shuffle trades songs so each plays somewhere once; Random lets one song play in many places. Fanfares, cutscene songs and ocarina songs trade only with ones of a similar length. Link's voice trades within his age: each cue (a sword swing, a fall) takes another's takes.",
+      "The next seed you generate plays it this way. To play it in the installed seed without a new shuffle, use Apply to Installed Seed on the bar at the foot of the page. Each change saves as you make it.",
     ],
   },
   target: {

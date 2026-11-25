@@ -6,6 +6,22 @@ use crate::ap::ApSeed;
 use crate::game::Release;
 use crate::shuffle::Fixed;
 
+/// The Colors and Audio panes' drafts, as a seed was asked for.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Drafts {
+    #[serde(skip_serializing_if = "crate::colors::Draft::is_empty")]
+    pub colors: crate::colors::Draft,
+    #[serde(skip_serializing_if = "crate::audio::Draft::is_empty")]
+    pub audio: crate::audio::Draft,
+}
+
+impl Drafts {
+    pub fn is_empty(&self) -> bool {
+        self.colors.is_empty() && self.audio.is_empty()
+    }
+}
+
 /// Options only the CLI sets. Kept with a seed so it reinstalls the same.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -46,6 +62,11 @@ pub struct Extras {
     /// The songs the seed plays, each slot dealt. Cosmetic, as colors are.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub audio: crate::audio::Audio,
+    /// The colors and music as the panes asked for them, Random still
+    /// Random: what drift and Reset to Last Seed compare with. Cosmetic,
+    /// as colors are.
+    #[serde(skip_serializing_if = "Drafts::is_empty")]
+    pub drafts: Drafts,
     /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]
@@ -63,7 +84,31 @@ impl Extras {
         Self {
             colors: Default::default(),
             audio: Default::default(),
+            drafts: Default::default(),
             ..self.clone()
+        }
+    }
+
+    /// These extras painted and scored as `drafts` asks for `seed`, Random
+    /// drawn and the pools dealt, the drafts kept beside them.
+    pub fn styled(self, drafts: Drafts, seed: u64) -> anyhow::Result<Self> {
+        Ok(Self {
+            colors: crate::colors::resolve(&drafts.colors, seed)?,
+            audio: crate::audio::resolve(&drafts.audio, seed)?,
+            drafts,
+            ..self
+        })
+    }
+
+    /// The drafts the seed was asked for. A seed made before they were
+    /// kept answers with the colors and music it drew.
+    pub fn asked(&self) -> Drafts {
+        match self.drafts.is_empty() {
+            false => self.drafts.clone(),
+            true => Drafts {
+                colors: crate::colors::draft(&self.colors),
+                audio: crate::audio::draft(&self.audio),
+            },
         }
     }
 
@@ -98,5 +143,30 @@ mod tests {
         };
         let json = serde_json::to_string(&extras).unwrap();
         assert_eq!(serde_json::from_str::<Extras>(&json).unwrap(), extras);
+    }
+
+    #[test]
+    fn a_seed_keeps_its_drafts_as_asked_and_an_old_one_answers_with_its_draw() {
+        use crate::audio::{Pool, PoolMode};
+        use crate::colors::{Mode, Pick};
+        let drafts = Drafts {
+            colors: [("hair".to_string(), Pick::Mode(Mode::Random))].into(),
+            audio: crate::audio::Draft {
+                pools: [(Pool::Area, PoolMode::Shuffle)].into(),
+                ..Default::default()
+            },
+        };
+        let styled = Extras::default().styled(drafts.clone(), 7).unwrap();
+        assert!(styled.colors.contains_key("hair"), "Random is drawn");
+        assert!(!styled.audio.is_empty(), "the pool is dealt");
+        assert_eq!(styled.asked(), drafts, "Random stays Random");
+        assert!(styled.cosmetic_free().is_empty(), "the drafts are cosmetic");
+        let old = Extras {
+            drafts: Drafts::default(),
+            ..styled.clone()
+        };
+        let asked = old.asked();
+        assert_eq!(asked.colors, crate::colors::draft(&styled.colors));
+        assert_eq!(asked.audio, crate::audio::draft(&styled.audio));
     }
 }

@@ -284,7 +284,7 @@ async fn generate(
 ) -> Res<Summary> {
     blocking(move || {
         let config = Config::load()?;
-        let extras = config.extras();
+        let (extras, drafts) = (config.extras(), config.drafts());
         let (seed, settings, extras) = match seed.as_deref().map(str::trim) {
             Some(code) if share::is_code(code) => {
                 let shared = share::decode(code)?;
@@ -299,9 +299,7 @@ async fn generate(
         };
         // A share code leaves colors and music out: the seed takes this
         // draft's.
-        let mut extras = extras;
-        extras.colors = zootr::colors::resolve(&config.colors, seed)?;
-        extras.audio = zootr::audio::resolve(&config.audio, seed)?;
+        let extras = extras.styled(drafts, seed)?;
         record(&app, steps, seed, settings, extras, install)
     })
     .await
@@ -403,9 +401,7 @@ fn reinstall(
     let entry = History::load()?.get(id)?.clone();
     let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
     if restyle {
-        let config = Config::load()?;
-        extras.colors = zootr::colors::resolve(&config.colors, seed)?;
-        extras.audio = zootr::audio::resolve(&config.audio, seed)?;
+        extras = extras.styled(Config::load()?.drafts(), seed)?;
     }
     let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
     // Loaded again: History may have changed during the build.
@@ -413,7 +409,7 @@ fn reinstall(
         let mut history = History::load()?;
         history.get(id)?;
         if restyle {
-            history.restyle(id, extras.colors, extras.audio)?;
+            history.restyle(id, extras.colors, extras.audio, extras.drafts)?;
         }
         history.install(Some(id));
         history.save()

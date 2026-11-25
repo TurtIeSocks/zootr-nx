@@ -11,14 +11,9 @@ import {
   Swords,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  type AudioDraft,
-  commands,
-  type Pool,
-  type PoolMode,
-  type TrackView,
-} from "@/bindings";
+import type { AudioDraft, Pool, PoolMode, TrackView } from "@/bindings";
 import { FolderTabs } from "@/components/folder-tabs";
+import { RandomizeButton } from "@/components/randomize-button";
 import { RequestError } from "@/components/request-error";
 import { SavedSets } from "@/components/saved-sets";
 import { Tip } from "@/components/tip";
@@ -35,8 +30,8 @@ import {
   bandNote,
   heard,
   length,
+  POOL_LABELS,
   poolMode,
-  resetAll,
   setPool,
   setTrack,
   shuffleAll,
@@ -45,23 +40,26 @@ import {
   trackMode,
   VANILLA,
 } from "@/lib/audio";
+import { readTracks } from "@/lib/catalogs";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
+import { PaneResetButton } from "@/settings/reset-button";
 import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
 import { useConfig } from "@/stores/config";
-import { applyCosmetics, useSeeds } from "@/stores/seeds";
 import { usePlayer } from "./use-player";
 
-const POOL_TABS: { id: Pool; label: string; icon: typeof Music }[] = [
-  { id: "area", label: "Area", icon: MapIcon },
-  { id: "battle", label: "Battle", icon: Swords },
-  { id: "event", label: "Event", icon: Clapperboard },
-  { id: "fanfare", label: "Fanfare", icon: Music },
-  { id: "ocarina", label: "Ocarina", icon: Music2 },
-  { id: "voice-adult", label: "Adult voice", icon: Mic },
-  { id: "voice-child", label: "Child voice", icon: Mic },
-];
+const POOL_TABS = (
+  [
+    { id: "area", icon: MapIcon },
+    { id: "battle", icon: Swords },
+    { id: "event", icon: Clapperboard },
+    { id: "fanfare", icon: Music },
+    { id: "ocarina", icon: Music2 },
+    { id: "voice-adult", icon: Mic },
+    { id: "voice-child", icon: Mic },
+  ] satisfies { id: Pool; icon: typeof Music }[]
+).map((p) => ({ ...p, label: POOL_LABELS[p.id] }));
 
 const POOL_MODES: { id: PoolMode; label: string }[] = [
   { id: "vanilla", label: "Vanilla" },
@@ -93,7 +91,7 @@ export function AudioPane() {
       <PageHeader
         title="Audio"
         help="audio"
-        description="Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs, and Link's voice by age. The next seed you generate plays it this way; Apply Cosmetics plays it in the installed seed without a new shuffle. Each change saves as you make it."
+        description="Shuffle the game's music and Link's voice."
         actions={<Actions />}
       />
       <SavedSets
@@ -119,49 +117,25 @@ function useCatalog() {
   const [tracks, setTracks] = useState<TrackView[]>([]);
   const [error, setError] = useState<string>();
   useEffect(() => {
-    commands
-      .audioCatalog()
+    readTracks()
       .then(setTracks)
       .catch((e) => setError(String(e)));
   }, []);
   return { tracks, error };
 }
 
-/** Shuffle All, Reset All, and Apply Cosmetics to the installed seed. */
+/** Randomize, and the page's resets. */
 function Actions() {
   const store = useSaveConfig();
-  const { busy, run } = useRequest();
-  const installed = useSeeds((s) => s.history.installed);
-  const blocked = useSeeds((s) => s.blocked);
-  const generating = useSeeds((s) => s.generating);
-  const why = !installed ? "No seed is installed" : blocked;
+  const { busy } = useRequest();
   return (
     <div className="flex flex-wrap gap-2">
-      <Button
-        variant="secondary"
+      <RandomizeButton
+        tip="Every pool on Shuffle. Tracks with their own pick keep it"
         disabled={busy}
         onClick={() => store(shuffleAll)}
-      >
-        Shuffle All
-      </Button>
-      <Button
-        variant="secondary"
-        disabled={busy}
-        onClick={() => store(resetAll)}
-      >
-        Reset All
-      </Button>
-      <Tip
-        tip={why ?? "Plays the Colors and Audio panes in the installed seed"}
-        wrap
-      >
-        <Button
-          disabled={busy || generating || !!why}
-          onClick={() => run(applyCosmetics)}
-        >
-          Apply Cosmetics to Seed
-        </Button>
-      </Tip>
+      />
+      <PaneResetButton pane="audio" />
     </div>
   );
 }

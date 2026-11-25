@@ -188,6 +188,14 @@ impl Config {
         }
     }
 
+    /// The Colors and Audio panes' drafts, for [`Extras::styled`].
+    pub fn drafts(&self) -> crate::generate::Drafts {
+        crate::generate::Drafts {
+            colors: self.colors.clone(),
+            audio: self.audio.clone(),
+        }
+    }
+
     pub fn path() -> Result<PathBuf> {
         if let Some(p) = std::env::var_os(ENV) {
             return Ok(p.into());

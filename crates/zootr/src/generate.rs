@@ -15,7 +15,7 @@ mod write;
 #[cfg(test)]
 mod tests;
 
-pub use extras::Extras;
+pub use extras::{Drafts, Extras};
 #[cfg(test)]
 pub(crate) use install::INSTALLS;
 pub use install::{install, running, throwaway, uninstall};

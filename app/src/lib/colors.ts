@@ -65,7 +65,7 @@ export const setAll =
     return { colors };
   };
 
-/** Locks palette `id` against Randomize all and Reset all, or unlocks it. */
+/** Locks palette `id` against Randomize and the resets, or unlocks it. */
 export const toggleLock =
   (id: string): Change =>
   (c: FullConfig) => ({

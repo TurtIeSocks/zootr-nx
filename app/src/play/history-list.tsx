@@ -32,6 +32,7 @@ import {
   deleteSeed,
   install,
   takeSettings,
+  useDiffCount,
   useSeeds,
 } from "@/stores/seeds";
 import { openLabel, openSpoiler } from "@/stores/shell";
@@ -188,7 +189,7 @@ interface HistoryRowProps {
 const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
   const [installedId] = useSeeds.usePath("history.installed.id");
   const [installingId] = useSeeds.usePath("installing");
-  const [differs] = useSeeds.usePath(`diffs.${e.id}`, 0);
+  const differs = useDiffCount(e);
   const isInstalled = e.id === installedId;
   const isInstalling = e.id === installingId;
   return (

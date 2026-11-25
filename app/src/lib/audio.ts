@@ -2,7 +2,7 @@ import type { AudioDraft, Pool, PoolMode, TrackView } from "@/bindings";
 import type { Change } from "@/lib/saved-sets";
 
 /** The pools a seed can shuffle, as the pane's tabs list them. */
-export const POOLS: readonly Pool[] = [
+export const POOLS = [
   "area",
   "battle",
   "event",
@@ -10,7 +10,18 @@ export const POOLS: readonly Pool[] = [
   "ocarina",
   "voice-adult",
   "voice-child",
-];
+] as const satisfies readonly Pool[];
+
+/** Each pool as the pane names it. */
+export const POOL_LABELS: Record<(typeof POOLS)[number], string> = {
+  area: "Area",
+  battle: "Battle",
+  event: "Event",
+  fanfare: "Fanfare",
+  ocarina: "Ocarina",
+  "voice-adult": "Adult voice",
+  "voice-child": "Child voice",
+};
 
 /** A track override's value for "keep this one vanilla", as the backend
  * reads it. */
@@ -86,9 +97,6 @@ export const shuffleAll: Change = (c) => ({
     pools: Object.fromEntries(POOLS.map((p) => [p, "shuffle" as const])),
   }),
 });
-
-/** Every pool and track back to vanilla. */
-export const resetAll: Change = () => ({ audio: {} });
 
 /** The songs `slot` may pick: its pool's tracks that give one, its own
  * left out. */

@@ -17,6 +17,7 @@ import {
   type Picked,
 } from "@/bindings";
 import { FolderTabs } from "@/components/folder-tabs";
+import { RandomizeButton } from "@/components/randomize-button";
 import { RequestError } from "@/components/request-error";
 import { SavedSets } from "@/components/saved-sets";
 import { Tip } from "@/components/tip";
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { Segmented } from "@/components/ui/segmented";
 import { call, message } from "@/lib/api";
+import { palettes as kept, paletteKey, readPalettes } from "@/lib/catalogs";
 import {
   type Mode,
   modeOf,
@@ -37,10 +39,10 @@ import {
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
 import { cn } from "@/lib/utils";
+import { PaneResetButton } from "@/settings/reset-button";
 import { useSaveConfig } from "@/settings/use-save-config";
 import { PageHeader } from "@/shell/page-header";
 import { saveConfig, useConfig } from "@/stores/config";
-import { applyCosmetics, useSeeds } from "@/stores/seeds";
 import { HudPreview } from "./hud-preview";
 import { Loading } from "./loading";
 import { PreviewPanel } from "./preview-panel";
@@ -74,7 +76,7 @@ export function ColorsPane() {
       <PageHeader
         title="Colors"
         help="colors"
-        description="Recolor Link, his gear, Navi and the HUD. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
+        description="Recolor Link, his gear, Navi and the HUD."
         actions={<Actions palettes={catalog.palettes} />}
       />
       <SavedSets
@@ -95,30 +97,20 @@ export function ColorsPane() {
   );
 }
 
-/** Each catalog read, by the dump and game assets setting it was read
- * with. Reading checks every palette against the dump, which takes a
- * while, so the pane reads it the first time it opens and keeps it until
- * the app quits. */
-const catalogs = new Map<string, PaletteView[]>();
-
 /** Every palette, and why the catalog couldn't be read. */
 function useCatalog() {
   const [game] = useConfig.usePath("config.game");
   const [art] = useConfig.usePath("config.game_assets");
-  const key = `${game}\n${art}`;
-  const [palettes, setPalettes] = useState(() => catalogs.get(key));
+  const key = paletteKey(game, art);
+  const [palettes, setPalettes] = useState(() => kept.get(key));
   const [error, setError] = useState<string>();
   useEffect(() => {
-    const kept = catalogs.get(key);
-    setPalettes(kept);
-    if (kept) return;
+    const read = kept.get(key);
+    setPalettes(read);
+    if (read) return;
     let live = true;
-    call(commands.colorsCatalog())
-      .then((p) => {
-        // Kept even when the pane closed while it read.
-        catalogs.set(key, p);
-        if (live) setPalettes(p);
-      })
+    readPalettes(key)
+      .then((p) => live && setPalettes(p))
       .catch((e) => live && setError(message(e)));
     return () => {
       live = false;
@@ -127,18 +119,14 @@ function useCatalog() {
   return { palettes: palettes ?? [], loading: !palettes && !error, error };
 }
 
-/** The ids Randomize all and Reset all may change: every palette this
+/** The ids Randomize may change: every palette this
  * dump can paint. */
 const paintable = (palettes: PaletteView[]) =>
   palettes.filter((p) => !p.problem).map((p) => p.id);
 
-/** Randomize all, Reset all, and Apply to installed seed. */
+/** Randomize, and the page's resets. */
 function Actions({ palettes }: { palettes: PaletteView[] }) {
-  const store = useSaveConfig();
   const { busy, run } = useRequest();
-  const installed = useSeeds((s) => s.history.installed);
-  const blocked = useSeeds((s) => s.blocked);
-  const generating = useSeeds((s) => s.generating);
   const ids = paintable(palettes);
   // One request: a save nested in `run` would be dropped as already running.
   const randomize = (drawNow: boolean) =>
@@ -150,36 +138,14 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
         ),
       );
     });
-  const why = !installed ? "No seed is installed" : blocked;
   return (
     <div className="flex flex-wrap gap-2">
-      <Tip tip="Shift-click to draw the colors now, to see and tweak them">
-        <Button
-          variant="secondary"
-          disabled={busy}
-          onClick={(e) => randomize(e.shiftKey)}
-        >
-          Randomize All
-        </Button>
-      </Tip>
-      <Button
-        variant="secondary"
+      <RandomizeButton
+        tip="Every unlocked palette Random. Shift-click to draw the colors now, to see and tweak them"
         disabled={busy}
-        onClick={() => store(setAll(ids, () => "vanilla"))}
-      >
-        Reset All
-      </Button>
-      <Tip
-        tip={why ?? "Plays the Colors and Audio panes in the installed seed"}
-        wrap
-      >
-        <Button
-          disabled={busy || generating || !!why}
-          onClick={() => run(applyCosmetics)}
-        >
-          Apply Cosmetics to Seed
-        </Button>
-      </Tip>
+        onClick={(e) => randomize(e.shiftKey)}
+      />
+      <PaneResetButton pane="colors" />
     </div>
   );
 }
@@ -196,7 +162,7 @@ function Palettes({ palettes, loading, error }: ReturnType<typeof useCatalog>) {
   const store = useSaveConfig();
   const timers = useRef<Record<string, number>>({});
 
-  // A saved draft (a loaded set, Reset all) wins over a held color.
+  // A saved draft (a loaded set, a reset) wins over a held color.
   // biome-ignore lint/correctness/useExhaustiveDependencies: clears whenever the saved draft changes
   useEffect(() => setLive({}), [colors]);
 
@@ -331,7 +297,7 @@ function PaletteRow({
     >
       <div className="flex items-center gap-1">
         <span className="flex-1 font-medium text-sm">{palette.label}</span>
-        <Tip tip={locked ? "Unlock" : "Lock against Randomize and Reset All"}>
+        <Tip tip={locked ? "Unlock" : "Lock against Randomize and Reset"}>
           <Button
             size="icon"
             variant="ghost"

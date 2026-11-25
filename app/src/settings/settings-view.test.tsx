@@ -1,3 +1,4 @@
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
   act,
   cleanup,
@@ -24,6 +25,7 @@ import { summary, toggleDef } from "@/test/fixtures";
 
 afterEach(() => {
   cleanup();
+  clearMocks();
   vi.restoreAllMocks();
   useUi.setPath("settings", { closed: [], reset: "defaults" });
 });
@@ -66,6 +68,7 @@ function show({
   seed = null,
   older = [],
   devTools = false,
+  config = {},
 }: {
   defs?: SettingDef[];
   settings?: Settings;
@@ -74,12 +77,17 @@ function show({
   /** History's other seeds, newest first. */
   older?: Summary[];
   devTools?: boolean;
+  /** The rest of the config: the panes' drafts. */
+  config?: Parameters<typeof full>[0];
 } = {}) {
   const setConfig = vi
     .spyOn(commands, "setConfig")
     .mockResolvedValue({ status: "ok", data: [] });
   useConfig.setPath("schema", defs);
-  useConfig.setPath("config", full({ settings, dev_tools: devTools }));
+  useConfig.setPath(
+    "config",
+    full({ ...config, settings, dev_tools: devTools }),
+  );
   useSeeds.setPath("status", { game: true, targets: [] });
   useSeeds.setPath("history", {
     installed: seed,
@@ -541,7 +549,7 @@ test("Review lists the changes and puts the base's settings back", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "Review" }));
   fireEvent.click(
-    await screen.findByRole("button", { name: /Use the Last Seed's/ }),
+    await screen.findByRole("button", { name: "Back to the Last Seed" }),
   );
   await waitFor(() =>
     expect(saved(onChange)).toEqual({ "chest-size": "all small" }),
@@ -850,4 +858,70 @@ test("a forced row's reason jumps to the setting forcing it", () => {
   fireEvent.click(screen.getByRole("button", { name: "Age" }));
   const row = document.getElementById("setting-age")?.closest("[data-reveal]");
   expect(row?.classList.contains("animate-flash")).toBe(true);
+});
+
+test("only colors or music changed: the drift bar applies them to the installed seed", async () => {
+  const seed = summary({ colors: { hair: "random" } });
+  show({ seed, config: { colors: { hair: { hex: "#112233" } } } });
+  expect(screen.getByText("1 change since the last seed")).toBeTruthy();
+  // No target here, so nothing could be built: let it through. Its steps
+  // come back on a channel, which needs the IPC.
+  act(() => useSeeds.setPath("blocked", ""));
+  mockIPC(() => {});
+  const apply = vi
+    .spyOn(commands, "applyCosmetics")
+    .mockResolvedValue({ status: "ok", data: null });
+  // The refresh after it reads the same back.
+  vi.spyOn(commands, "status").mockResolvedValue({
+    status: "ok",
+    data: useSeeds.getState().status,
+  });
+  vi.spyOn(commands, "history").mockResolvedValue({
+    status: "ok",
+    data: useSeeds.getState().history,
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Apply to Installed Seed" }),
+  );
+  await waitFor(() => expect(apply).toHaveBeenCalled());
+  cleanup();
+  // A pin needs a new shuffle, so Generate leads again.
+  show({
+    seed,
+    config: { colors: { hair: { hex: "#112233" } }, place: { 7: "Item_A" } },
+  });
+  expect(screen.getByText("2 changes since the last seed")).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Generate & Install" }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Apply to Installed Seed" }),
+  ).toBeNull();
+});
+
+test("Review lists the panes' changes and puts them back, locks kept", async () => {
+  const seed = summary({
+    colors: { hair: "random", bow: "random" },
+    audio: { pools: { area: "shuffle" } },
+  });
+  const onChange = show({
+    seed,
+    config: {
+      colors: { bow: { hex: "#112233" } },
+      color_locks: ["bow"],
+      place: { 7: "Item_A" },
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Review" }));
+  expect(await screen.findByText("Area pool")).toBeTruthy();
+  expect(screen.getByText("Shuffle")).toBeTruthy();
+  expect(screen.getByText("Not pinned")).toBeTruthy();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Back to the Last Seed" }),
+  );
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  const config = onChange.mock.lastCall?.[0] as FullConfig;
+  expect(config.colors).toEqual({ hair: "random", bow: { hex: "#112233" } });
+  expect(config.audio).toEqual({ pools: { area: "shuffle" } });
+  expect(config.place).toEqual({});
 });

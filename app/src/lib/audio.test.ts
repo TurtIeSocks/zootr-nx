@@ -4,7 +4,6 @@ import {
   bandNote,
   heard,
   length,
-  resetAll,
   setPool,
   setTrack,
   shuffleAll,
@@ -64,7 +63,7 @@ test("a pool or track set back to vanilla leaves the draft", () => {
   expect(c.audio).toEqual({});
 });
 
-test("Shuffle All keeps track overrides; Reset All clears everything", () => {
+test("Shuffle all keeps track overrides", () => {
   const c = full({ audio: { tracks: { market: "vanilla" } } });
   expect(shuffleAll(c).audio).toEqual({
     pools: {
@@ -78,7 +77,6 @@ test("Shuffle All keeps track overrides; Reset All clears everything", () => {
     },
     tracks: { market: "vanilla" },
   });
-  expect(resetAll(c).audio).toEqual({});
 });
 
 test("a tidied draft sorts as the backend does", () => {

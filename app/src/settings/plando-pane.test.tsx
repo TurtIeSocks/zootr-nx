@@ -193,7 +193,7 @@ test("loading over unsaved pins asks first", async () => {
   await waitFor(() => expect(saved()?.place).toEqual({ 22: "Item_A" }));
 });
 
-test("Delete drops the named saved plando and Clear empties the draft", async () => {
+test("Delete drops the named saved plando and Reset to Defaults empties the draft", async () => {
   show(
     full({
       place: { 11: "Item_B" },
@@ -206,9 +206,7 @@ test("Delete drops the named saved plando and Clear empties the draft", async ()
   await waitFor(() => expect(saved()?.plandos).toEqual({}));
   expect(saved()?.place).toEqual({ 11: "Item_B" });
   expect(await screen.findByText(/Not saved/)).toBeTruthy();
-  fireEvent.click(button("Clear"));
-  expect(saved()?.place).toEqual({ 11: "Item_B" });
-  fireEvent.click(button("Really clear?"));
+  fireEvent.click(button("Reset to Defaults"));
   await waitFor(() => expect(saved()?.place).toEqual({}));
   expect(await screen.findByText(/No pins/)).toBeTruthy();
 });
