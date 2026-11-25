@@ -110,19 +110,21 @@ fn down(samples: &[f32]) -> Vec<f32> {
         .collect()
 }
 
-/// The peak normalized cross-correlation of the shorter of `a` and `b`
-/// sliding along the longer, and its lag: where `a` starts in `b`, or
-/// negated, where `b` starts in `a` when `b` is the shorter. With `a` a
-/// window and `b` a stream, where the window lines up in the stream.
+/// The least overlap a lag is scored over: a second, or all of the
+/// shorter side. A short overlap scores high by chance.
+const OVERLAP: usize = RATE / DOWN;
+
+/// The peak normalized cross-correlation of `a` and `b` over every lag
+/// where they overlap by at least [`OVERLAP`], each scored over the
+/// overlap alone, so a jingle crossing a window's edge still counts. The
+/// lag is where `a` starts in `b`: with `a` a window and `b` a stream,
+/// where the window lines up in the stream (negative: before it starts).
 pub fn ncc(a: &[f32], b: &[f32]) -> (f32, isize) {
-    let (short, long, sign) = match a.len() <= b.len() {
-        true => (a, b, -1),
-        false => (b, a, 1),
-    };
-    if short.is_empty() {
+    let least = OVERLAP.min(a.len()).min(b.len());
+    if least == 0 {
         return (0.0, 0);
     }
-    let n = (short.len() + long.len()).next_power_of_two();
+    let n = (a.len() + b.len()).next_power_of_two();
     let spectrum = |x: &[f32]| {
         let mut re: Vec<f64> = x.iter().map(|&v| v as f64).collect();
         re.resize(n, 0.0);
@@ -130,29 +132,34 @@ pub fn ncc(a: &[f32], b: &[f32]) -> (f32, isize) {
         fft(&mut re, &mut im, false);
         (re, im)
     };
-    let ((sr, si), (lr, li)) = (spectrum(short), spectrum(long));
-    // long · conj(short): the correlation at each lag of short along long.
-    let mut re: Vec<f64> = (0..n).map(|i| lr[i] * sr[i] + li[i] * si[i]).collect();
-    let mut im: Vec<f64> = (0..n).map(|i| li[i] * sr[i] - lr[i] * si[i]).collect();
+    let ((ar, ai), (br, bi)) = (spectrum(a), spectrum(b));
+    // b · conj(a): at index k (mod n), the sum of a[i] · b[i + k].
+    let mut re: Vec<f64> = (0..n).map(|i| br[i] * ar[i] + bi[i] * ai[i]).collect();
+    let mut im: Vec<f64> = (0..n).map(|i| bi[i] * ar[i] - br[i] * ai[i]).collect();
     fft(&mut re, &mut im, true);
-    let norm = short
-        .iter()
-        .map(|&v| (v as f64).powi(2))
-        .sum::<f64>()
-        .sqrt();
-    let mut energy = vec![0.0f64; long.len() + 1];
-    for (i, &v) in long.iter().enumerate() {
-        energy[i + 1] = energy[i] + (v as f64).powi(2);
-    }
-    let (mut best, mut at) = (0.0f64, 0usize);
-    for lag in 0..=long.len() - short.len() {
-        let seg = (energy[lag + short.len()] - energy[lag]).max(0.0).sqrt();
-        let score = re[lag].abs() / (seg * norm + 1e-9);
+    let (ea, eb) = (energy(a), energy(b));
+    let (la, lb) = (a.len() as isize, b.len() as isize);
+    let (mut best, mut at) = (0.0f64, 0isize);
+    for lag in -(la - least as isize)..=lb - least as isize {
+        // The overlap: b[from..to] against a[from - lag..to - lag].
+        let (from, to) = (lag.max(0), (lag + la).min(lb));
+        let span = |e: &[f64], s: isize, t: isize| (e[t as usize] - e[s as usize]).max(0.0);
+        let norm = (span(&eb, from, to) * span(&ea, from - lag, to - lag)).sqrt();
+        let score = re[lag.rem_euclid(n as isize) as usize].abs() / (norm + 1e-9);
         if score > best {
             (best, at) = (score, lag);
         }
     }
-    (best as f32, -sign * at as isize)
+    (best as f32, at)
+}
+
+/// Running sums of `x` squared, from 0.
+fn energy(x: &[f32]) -> Vec<f64> {
+    let mut sums = vec![0.0f64; x.len() + 1];
+    for (i, &v) in x.iter().enumerate() {
+        sums[i + 1] = sums[i] + (v as f64).powi(2);
+    }
+    sums
 }
 
 /// An in-place radix-2 FFT of a power-of-two length, scaled by 1/n when
@@ -222,14 +229,23 @@ mod tests {
                 })
                 .collect()
         };
-        let stream = noise(1, 4000);
-        let window: Vec<f32> = stream[1234..1734].iter().map(|v| v * 0.5).collect();
+        let stream = noise(1, 3 * OVERLAP);
+        let window: Vec<f32> = stream[1234..1234 + OVERLAP]
+            .iter()
+            .map(|v| v * 0.5)
+            .collect();
         let (score, lag) = ncc(&window, &stream);
         assert!(score > 0.99 && lag == 1234, "{score} at {lag}");
-        let (other, _) = ncc(&noise(2, 500), &stream);
-        assert!(other < 0.3, "{other}");
-        // A stream shorter than the window: where it starts in the window.
-        let (_, lag) = ncc(&stream, &window);
-        assert_eq!(lag, -1234);
+        let (other, _) = ncc(&noise(2, OVERLAP), &stream);
+        assert!(other < 0.1, "{other}");
+        // The stream starting partway into a longer window, and running
+        // past its end: still found, by the part they share.
+        let mut late = noise(3, 2 * OVERLAP);
+        late[OVERLAP / 2..].copy_from_slice(&stream[..3 * OVERLAP / 2]);
+        let (score, lag) = ncc(&late, &stream);
+        assert!(
+            score > 0.99 && lag == -(OVERLAP as isize) / 2,
+            "{score} at {lag}"
+        );
     }
 }
