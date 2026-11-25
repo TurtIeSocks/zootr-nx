@@ -770,7 +770,7 @@
       "forbid": [],
       "hash": "502205486743214712",
       "id": 512,
-      "name": "Zora's Domain East Pot 2",
+      "name": "ZD Near Diving Game Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2655,7 +2655,7 @@
       "forbid": [],
       "hash": "1482054428421877865",
       "id": 149,
-      "name": "Zora's Domain King Zora",
+      "name": "ZD King Zora Thawed",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -2878,7 +2878,7 @@
       "forbid": [],
       "hash": "1608689548758434535",
       "id": 280,
-      "name": "Zora's Domain Shop 8",
+      "name": "ZD Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -3294,7 +3294,7 @@
       "forbid": [],
       "hash": "1822814056923789762",
       "id": 210,
-      "name": "Zora's Domain King Zora: Prescription",
+      "name": "ZD Trade Prescription",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -3416,7 +3416,7 @@
       "forbid": [],
       "hash": "1896019874810434988",
       "id": 263,
-      "name": "Zora's Domain Shop 6",
+      "name": "ZD Shop Item 6",
       "unprovable": true,
       "when": {
         "ref": 44
@@ -5162,7 +5162,7 @@
       "forbid": [],
       "hash": "3017923073533463600",
       "id": 597,
-      "name": "Zora's Domain East Pot 4",
+      "name": "ZD Near Diving Game Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5349,7 +5349,7 @@
       "forbid": [],
       "hash": "3130048366421939233",
       "id": 22,
-      "name": "Zora's Domain Northeast Piece of Heart Chest",
+      "name": "ZD Chest",
       "unprovable": false
     },
     {
@@ -10814,7 +10814,7 @@
       "forbid": [],
       "hash": "6454478348589065391",
       "id": 1488,
-      "name": "Zora's Domain Northwest Blue Rupee (5) 1",
+      "name": "ZD Pool Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -11127,7 +11127,7 @@
       "forbid": [],
       "hash": "6783598093601493412",
       "id": 228,
-      "name": "Zora's Domain Shop 3",
+      "name": "ZD Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -11858,7 +11858,7 @@
       "forbid": [],
       "hash": "7194907290487948071",
       "id": 731,
-      "name": "Zora's Domain Southwest Pot 1",
+      "name": "ZD Near Shop Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12015,7 +12015,7 @@
       "forbid": [],
       "hash": "7245442263071117107",
       "id": 736,
-      "name": "Zora's Domain Southwest Pot 3",
+      "name": "ZD Near Shop Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12368,7 +12368,7 @@
       "forbid": [],
       "hash": "7406968007557772004",
       "id": 231,
-      "name": "Zora's Domain Shop 1",
+      "name": "ZD Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -12733,7 +12733,7 @@
       "forbid": [],
       "hash": "7640046613117969341",
       "id": 160,
-      "name": "Zora's Domain Diving Game",
+      "name": "ZD Diving Minigame",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13555,7 +13555,7 @@
       "forbid": [],
       "hash": "8376134792258235941",
       "id": 765,
-      "name": "Zora's Domain Southwest Pot 2",
+      "name": "ZD Near Shop Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14797,7 +14797,7 @@
       "forbid": [],
       "hash": "9081708815728257714",
       "id": 786,
-      "name": "Zora's Domain Southwest Pot 4",
+      "name": "ZD Near Shop Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15106,7 +15106,7 @@
       "forbid": [],
       "hash": "9176923586745152655",
       "id": 274,
-      "name": "Zora's Domain Shop 7",
+      "name": "ZD Shop Item 7",
       "unprovable": true,
       "when": {
         "ref": 19
@@ -15775,7 +15775,7 @@
       "forbid": [],
       "hash": "9600417828645642589",
       "id": 357,
-      "name": "Zora's Domain Gold Skulltula Token",
+      "name": "ZD GS Frozen Waterfall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -16031,7 +16031,7 @@
       "forbid": [],
       "hash": "9694617930296799159",
       "id": 237,
-      "name": "Zora's Domain Shop 2",
+      "name": "ZD Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -16519,7 +16519,7 @@
       "forbid": [],
       "hash": "9958385985924819249",
       "id": 813,
-      "name": "Zora's Domain East Pot 3",
+      "name": "ZD Near Diving Game Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16794,7 +16794,7 @@
       "forbid": [],
       "hash": "10093301156052781138",
       "id": 239,
-      "name": "Zora's Domain Shop 4",
+      "name": "ZD Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -17800,7 +17800,7 @@
       "forbid": [],
       "hash": "10666689264325218801",
       "id": 1524,
-      "name": "Zora's Domain Northwest Blue Rupee (5) 3",
+      "name": "ZD Pool Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19049,7 +19049,7 @@
       "forbid": [],
       "hash": "11476986716356933396",
       "id": 258,
-      "name": "Zora's Domain Shop 5",
+      "name": "ZD Shop Item 5",
       "unprovable": true,
       "when": {
         "ref": 51
@@ -19074,7 +19074,7 @@
       "forbid": [],
       "hash": "11485316373740385896",
       "id": 856,
-      "name": "Zora's Domain East Pot 1",
+      "name": "ZD Near Diving Game Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20595,7 +20595,7 @@
       "forbid": [],
       "hash": "12326682905628388229",
       "id": 1537,
-      "name": "Zora's Domain Northwest Blue Rupee (5) 2",
+      "name": "ZD Pool Blue Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -21869,7 +21869,7 @@
       "forbid": [],
       "hash": "13117411709061323811",
       "id": 1543,
-      "name": "Zora's Domain North Blue Rupee (5) 3",
+      "name": "ZD Pool Blue Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27039,7 +27039,7 @@
       "forbid": [],
       "hash": "16664642180278451461",
       "id": 1561,
-      "name": "Zora's Domain North Blue Rupee (5) 1",
+      "name": "ZD Pool Blue Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27941,7 +27941,7 @@
       "forbid": [],
       "hash": "17151259896404091033",
       "id": 1565,
-      "name": "Zora's Domain North Blue Rupee (5) 2",
+      "name": "ZD Pool Blue Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -29196,7 +29196,7 @@
       "forbid": [],
       "hash": "17898665685256629105",
       "id": 1037,
-      "name": "Zora's Domain Southeast Pot 1",
+      "name": "ZD Near Diving Game Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29358,7 +29358,7 @@
       "forbid": [],
       "hash": "18012220795750713118",
       "id": 1040,
-      "name": "Zora's Domain Southeast Pot 2",
+      "name": "ZD Near Diving Game Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"

@@ -60,6 +60,10 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../logic/names/water-temple.toml"),
     ),
     (
+        "zoras-domain.toml",
+        include_str!("../logic/names/zoras-domain.toml"),
+    ),
+    (
         "zoras-river.toml",
         include_str!("../logic/names/zoras-river.toml"),
     ),

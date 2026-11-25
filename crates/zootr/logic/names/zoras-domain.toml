@@ -1,0 +1,50 @@
+# Zora's Domain. OoTR's name wherever the remake keeps the spot: matched
+# by position, the arrival points nearby, the rule comments and the
+# remake guides.
+#
+# The child and adult maps each hold their own copy of the pots, as
+# separate checks, so a pot's name says which age's it is, as OoTR's
+# Market Guard House Child Pot does. Numbers count west to east within
+# one spot.
+
+# King Zora and the diving game.
+1482054428421877865 = "ZD King Zora Thawed"
+1822814056923789762 = "ZD Trade Prescription" # guess: OoTR's list here has no trade checks, named as Ship of Harkinian names this one
+7640046613117969341 = "ZD Diving Minigame"
+
+# The shop, a counter in the domain itself. Items numbered by the
+# remake's own shop slots, as OoTR numbers its shelves.
+7406968007557772004 = "ZD Shop Item 1" # guess: slot order may not match OoTR's shelf order
+9694617930296799159 = "ZD Shop Item 2" # guess: slot order may not match OoTR's shelf order
+6783598093601493412 = "ZD Shop Item 3" # guess: slot order may not match OoTR's shelf order
+10093301156052781138 = "ZD Shop Item 4" # guess: slot order may not match OoTR's shelf order
+11476986716356933396 = "ZD Shop Item 5" # guess: slot order may not match OoTR's shelf order
+1896019874810434988 = "ZD Shop Item 6" # guess: slot order may not match OoTR's shelf order
+9176923586745152655 = "ZD Shop Item 7" # guess: slot order may not match OoTR's shelf order
+1608689548758434535 = "ZD Shop Item 8" # guess: slot order may not match OoTR's shelf order
+
+# Two pots by the shop counter. With the three by the diving game they
+# make OoTR's five ZD pots, in each age's map.
+9081708815728257714 = "ZD Near Shop Child Pot 1"
+8376134792258235941 = "ZD Near Shop Child Pot 2"
+7245442263071117107 = "ZD Near Shop Adult Pot 1"
+7194907290487948071 = "ZD Near Shop Adult Pot 2"
+
+# Up by the diving game: the torches chest and three pots.
+3130048366421939233 = "ZD Chest"
+18012220795750713118 = "ZD Near Diving Game Child Pot 1"
+502205486743214712 = "ZD Near Diving Game Child Pot 2"
+3017923073533463600 = "ZD Near Diving Game Child Pot 3"
+17898665685256629105 = "ZD Near Diving Game Adult Pot 1"
+11485316373740385896 = "ZD Near Diving Game Adult Pot 2"
+9958385985924819249 = "ZD Near Diving Game Adult Pot 3"
+
+# The frozen waterfall's Skulltula, and six rupees at the bottom of the
+# pool, in the adult map only.
+9600417828645642589 = "ZD GS Frozen Waterfall"
+6454478348589065391 = "ZD Pool Blue Rupee 1"
+10666689264325218801 = "ZD Pool Blue Rupee 2"
+12326682905628388229 = "ZD Pool Blue Rupee 3"
+16664642180278451461 = "ZD Pool Blue Rupee 4"
+17151259896404091033 = "ZD Pool Blue Rupee 5"
+13117411709061323811 = "ZD Pool Blue Rupee 6"
