@@ -43,6 +43,9 @@ pub struct Extras {
     /// out of the share code and the seed's icons ([`Self::cosmetic_free`]).
     #[serde(skip_serializing_if = "crate::colors::Colors::is_empty")]
     pub colors: crate::colors::Colors,
+    /// The songs the seed plays, each slot dealt. Cosmetic, as colours are.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub audio: crate::audio::Audio,
     /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]
@@ -59,6 +62,7 @@ impl Extras {
     pub fn cosmetic_free(&self) -> Self {
         Self {
             colors: Default::default(),
+            audio: Default::default(),
             ..self.clone()
         }
     }

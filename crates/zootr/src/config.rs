@@ -73,6 +73,13 @@ pub struct Config {
     /// The colour picker's recent colours, as `#rrggbb`, newest first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub color_recents: Vec<String>,
+    /// The Audio pane's draft: each pool's mode and each track's override.
+    /// Shuffle and Random are dealt when a seed is built.
+    #[serde(skip_serializing_if = "crate::audio::Draft::is_empty")]
+    pub audio: crate::audio::Draft,
+    /// Audio drafts kept by name, to load into `audio`.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub audio_sets: BTreeMap<String, crate::audio::Draft>,
     /// The palettes Randomize all and Reset all leave alone.
     #[serde(skip_serializing_if = "std::collections::BTreeSet::is_empty")]
     pub color_locks: std::collections::BTreeSet<String>,

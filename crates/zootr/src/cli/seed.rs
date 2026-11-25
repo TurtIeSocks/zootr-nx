@@ -89,6 +89,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         fields,
         release,
         colors,
+        audio,
         ..
     } = extras;
     spawn.iter().for_each(|s| flag("spawn", Some(s.clone())));
@@ -105,6 +106,8 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
     fields.iter().for_each(|f| flag("field", Some(f.clone())));
     let colors = crate::colors::args(&crate::colors::draft(colors));
     colors.into_iter().for_each(|c| flag("color", Some(c)));
+    let audio = crate::audio::args(&crate::audio::draft(audio));
+    audio.into_iter().for_each(|(f, v)| flag(f, Some(v)));
     release
         .iter()
         .for_each(|r| flag("release", Some(r.name().into())));
@@ -115,6 +118,7 @@ pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
     let extras = generate::Extras {
         colors: crate::colors::resolve(&args.draft()?, seed)?,
+        audio: crate::audio::resolve(&args.audio_draft()?, seed)?,
         ..args.extras()
     };
     install(game, seed, args.settings(), extras, args.install)

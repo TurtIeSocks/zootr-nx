@@ -254,7 +254,9 @@ fn shuffle_command() -> Res<String> {
     let config = Config::load().map_err(text)?;
     let line = zootr::cli::shuffle_command(&config.settings, &config.extras());
     let colors = zootr::colors::args(&config.colors).into_iter();
-    Ok(colors.fold(line, |line, c| format!("{line} --color {c}")))
+    let line = colors.fold(line, |line, c| format!("{line} --color {c}"));
+    let audio = zootr::audio::args(&config.audio).into_iter();
+    Ok(audio.fold(line, |line, (f, v)| format!("{line} --{f} {v}")))
 }
 
 /// Run `f` off the UI thread.
@@ -293,9 +295,11 @@ async fn generate(
                 extras,
             ),
         };
-        // A share code leaves colours out: the seed takes this draft's.
+        // A share code leaves colours and music out: the seed takes this
+        // draft's.
         let mut extras = extras;
         extras.colors = zootr::colors::resolve(&config.colors, seed)?;
+        extras.audio = zootr::audio::resolve(&config.audio, seed)?;
         record(&app, steps, seed, settings, extras, install)
     })
     .await

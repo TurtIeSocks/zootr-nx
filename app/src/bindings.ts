@@ -274,6 +274,16 @@ export type Archipelago = { ap: "offered" } |
 /**  [`Never`](Self::Never), and on in every Archipelago seed. */
 { ap: "always-on"; why: string };
 
+/**
+ *  The pane's draft: each pool's mode (Vanilla when not named), and each
+ *  track overridden, by id, to [`VANILLA`] or the id of the track whose
+ *  song it plays.
+ */
+export type AudioDraft = {
+	pools?: Partial<{ [key in Pool]: PoolMode }>,
+	tracks?: { [key in string]: string },
+};
+
 export type Build = {
 	status: BuildStatus,
 	/**  What the user is told, when the build isn't current. */
@@ -404,6 +414,13 @@ export type Config = {
 	color_sets?: { [key in string]: { [key in string]: Pick } },
 	/**  The colour picker's recent colours, as `#rrggbb`, newest first. */
 	color_recents?: string[],
+	/**
+	 *  The Audio pane's draft: each pool's mode and each track's override.
+	 *  Shuffle and Random are dealt when a seed is built.
+	 */
+	audio?: AudioDraft,
+	/**  Audio drafts kept by name, to load into `audio`. */
+	audio_sets?: { [key in string]: AudioDraft },
 	/**  The palettes Randomize all and Reset all leave alone. */
 	color_locks?: string[],
 	/**  Setting sets kept by name, newest first. */
@@ -872,6 +889,28 @@ export type PlandoOptions = {
 	/**  Why the deal refuses `fixed`, if it does. */
 	error: string | null,
 };
+
+/**  A track's kind. Tracks shuffle only within their pool. */
+export type Pool = 
+/**  Looping world music: towns, field, dungeons, houses, fountains. */
+"area" | 
+/**  Enemy, mini-boss and boss music. */
+"battle" | 
+/**  Cutscene music. */
+"event" | 
+/**  Gets, the medallion and stone, game over, riddles, sleep. */
+"fanfare" | 
+/**  The silences: never shuffled. */
+"fixed";
+
+/**  A pool's mode. */
+export type PoolMode = 
+/**  Every track plays its own. */
+"vanilla" | 
+/**  A permutation within each band: every song plays somewhere. */
+"shuffle" | 
+/**  Each slot draws any song in its band, repeats allowed. */
+"random";
 
 export type Rebuild = {
 	/**  What rebuilds the game, as arguments. `{game}` becomes the game dump. */

@@ -18,6 +18,7 @@ pub mod asb;
 mod bfres;
 mod blocks;
 mod bntx;
+pub mod bwav;
 mod byml_doc;
 mod crc32;
 mod evfl;
