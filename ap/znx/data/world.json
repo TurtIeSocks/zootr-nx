@@ -2345,7 +2345,7 @@
       "forbid": [],
       "hash": "1288408765345426328",
       "id": 1266,
-      "name": "Sacred Forest Meadow South Grass 3",
+      "name": "SFM Near Fairy Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3207,7 +3207,7 @@
       "forbid": [],
       "hash": "1764383515296652106",
       "id": 135,
-      "name": "Sacred Forest Meadow North Business Scrub Seed Chest",
+      "name": "SFM Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -4730,7 +4730,7 @@
       "forbid": [],
       "hash": "2669182838975155515",
       "id": 1282,
-      "name": "Sacred Forest Meadow South Grass 12",
+      "name": "SFM Near Wolfos Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5742,7 +5742,7 @@
       "forbid": [],
       "hash": "3350061319058231770",
       "id": 197,
-      "name": "Sacred Forest Meadow Saria",
+      "name": "SFM Song from Saria",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -6579,7 +6579,7 @@
       "forbid": [],
       "hash": "3897504282010392499",
       "id": 1296,
-      "name": "Sacred Forest Meadow South Grass 7",
+      "name": "SFM Lower Maze Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6704,7 +6704,7 @@
       "forbid": [],
       "hash": "3952888275772445673",
       "id": 1297,
-      "name": "Sacred Forest Meadow South Grass 10",
+      "name": "SFM Near Wolfos Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7074,7 +7074,7 @@
       "forbid": [],
       "hash": "4233716466148257051",
       "id": 199,
-      "name": "Sacred Forest Meadow Sheik",
+      "name": "SFM Sheik in Forest",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -8785,7 +8785,7 @@
       "forbid": [],
       "hash": "5148317565845368467",
       "id": 1311,
-      "name": "Sacred Forest Meadow South Grass 5",
+      "name": "SFM Lower Maze Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11456,7 +11456,7 @@
       "forbid": [],
       "hash": "6943274243219023180",
       "id": 1331,
-      "name": "Sacred Forest Meadow South Grass 4",
+      "name": "SFM Near Fairy Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13057,7 +13057,7 @@
       "forbid": [],
       "hash": "7995233962349162969",
       "id": 55,
-      "name": "Sacred Forest Meadow South Purple Rupee (50) Chest",
+      "name": "SFM Wolfos Grotto Chest",
       "unprovable": false
     },
     {
@@ -14969,7 +14969,7 @@
       "forbid": [],
       "hash": "9129764610893735958",
       "id": 1342,
-      "name": "Sacred Forest Meadow South Grass 1",
+      "name": "SFM Near Fairy Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16102,7 +16102,7 @@
       "forbid": [],
       "hash": "9741567715578520992",
       "id": 1344,
-      "name": "Sacred Forest Meadow South Grass 13",
+      "name": "SFM Near Wolfos Grotto Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16561,7 +16561,7 @@
       "forbid": [],
       "hash": "9983734507820448325",
       "id": 1347,
-      "name": "Sacred Forest Meadow South Grass 6",
+      "name": "SFM Lower Maze Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18630,7 +18630,7 @@
       "forbid": [],
       "hash": "11169424749066888813",
       "id": 1358,
-      "name": "Sacred Forest Meadow South Grass 8",
+      "name": "SFM Lower Maze Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19368,7 +19368,7 @@
       "forbid": [],
       "hash": "11584460719857891610",
       "id": 1363,
-      "name": "Sacred Forest Meadow South Grass 2",
+      "name": "SFM Near Fairy Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -23820,7 +23820,7 @@
       "forbid": [],
       "hash": "14473218207379268379",
       "id": 383,
-      "name": "Sacred Forest Meadow Gold Skulltula Token",
+      "name": "SFM GS",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25012,7 +25012,7 @@
       "forbid": [],
       "hash": "15293421241716881989",
       "id": 1394,
-      "name": "Sacred Forest Meadow South Grass 11",
+      "name": "SFM Near Wolfos Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -27713,7 +27713,7 @@
       "forbid": [],
       "hash": "17032648015876276563",
       "id": 1408,
-      "name": "Sacred Forest Meadow South Grass 9",
+      "name": "SFM Near Wolfos Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -29790,7 +29790,7 @@
       "forbid": [],
       "hash": "18255407930372306012",
       "id": 1412,
-      "name": "Sacred Forest Meadow South Grass 14",
+      "name": "SFM Near Wolfos Grotto Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"

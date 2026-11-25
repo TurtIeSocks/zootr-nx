@@ -1,0 +1,43 @@
+# Sacred Forest Meadow. OoTR's name wherever the remake keeps the spot:
+# matched by position, the grottos and Gossip Stones nearby, the rule
+# comments and the remake guides for the Gold Skulltula. The way in from
+# the Lost Woods is in the south, the maze in the middle, Saria's stump
+# and the Forest Temple stairs in the north.
+#
+# The child and adult maps each hold their own copy of the grass, as
+# separate checks, so its names say which age's it is, as OoTR's Market
+# Guard House Child Pot does. Numbers count west to east within one spot.
+
+# Songs
+3350061319058231770 = "SFM Song from Saria"
+4233716466148257051 = "SFM Sheik in Forest"
+
+# The adult's Gold Skulltula, high above the maze
+14473218207379268379 = "SFM GS"
+
+# The Wolfos grotto by the entrance, and three grass tufts round its hole.
+7995233962349162969 = "SFM Wolfos Grotto Chest"
+3952888275772445673 = "SFM Near Wolfos Grotto Child Grass 1"
+17032648015876276563 = "SFM Near Wolfos Grotto Adult Grass 1"
+2669182838975155515 = "SFM Near Wolfos Grotto Child Grass 2"
+15293421241716881989 = "SFM Near Wolfos Grotto Adult Grass 2"
+18255407930372306012 = "SFM Near Wolfos Grotto Child Grass 3"
+9741567715578520992 = "SFM Near Wolfos Grotto Adult Grass 3"
+
+# Two grass tufts at the start of the maze, by its lower Gossip Stone.
+9983734507820448325 = "SFM Lower Maze Child Grass 1"
+5148317565845368467 = "SFM Lower Maze Adult Grass 1"
+11169424749066888813 = "SFM Lower Maze Child Grass 2"
+3897504282010392499 = "SFM Lower Maze Adult Grass 2"
+
+# Two grass tufts either side of the fairy fountain's hole, in the middle
+# of the maze.
+11584460719857891610 = "SFM Near Fairy Grotto Child Grass 1"
+9129764610893735958 = "SFM Near Fairy Grotto Adult Grass 1"
+6943274243219023180 = "SFM Near Fairy Grotto Child Grass 2"
+1288408765345426328 = "SFM Near Fairy Grotto Adult Grass 2"
+
+# The grotto by Saria's stump, below the Forest Temple stairs. OoTR's
+# held two scrubs; the remake's holds a Gossip Stone and this chest, with
+# a Business Scrub seed.
+1764383515296652106 = "SFM Storms Grotto Chest" # guess: the grotto by Saria's stump, as OoTR's Storms Grotto is; not checked that the song opens it
