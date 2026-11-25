@@ -12,7 +12,7 @@
       "forbid": [],
       "hash": "8656037947240541",
       "id": 1254,
-      "name": "Zora's River Southwest Grass 2",
+      "name": "ZR Open Grotto Child Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -788,7 +788,7 @@
       "forbid": [],
       "hash": "554336807288771355",
       "id": 1260,
-      "name": "Zora's River Northwest Grass 1",
+      "name": "ZR Pillar Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2387,7 +2387,7 @@
       "forbid": [],
       "hash": "1308828964686406569",
       "id": 1444,
-      "name": "Zora's River Southwest Green Rupee (1) 3",
+      "name": "ZR Below Raised Grottos Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2512,7 +2512,7 @@
       "forbid": [],
       "hash": "1391937830947703725",
       "id": 1445,
-      "name": "Zora's River Southwest Green Rupee (1) 4",
+      "name": "ZR Below Raised Grottos Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2679,7 +2679,7 @@
       "forbid": [],
       "hash": "1482691670641189285",
       "id": 1446,
-      "name": "Zora's River East Green Rupee (1) 6",
+      "name": "ZR Middle Waterfall Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3660,7 +3660,7 @@
       "forbid": [],
       "hash": "2027803741890732419",
       "id": 1100,
-      "name": "Zora's River West Rock 16",
+      "name": "ZR Near Fairy Grotto Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -3974,7 +3974,7 @@
       "forbid": [],
       "hash": "2204724976020882097",
       "id": 1102,
-      "name": "Zora's River West Rock 3",
+      "name": "ZR Near Fairy Grotto Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4034,7 +4034,7 @@
       "forbid": [],
       "hash": "2222529920688210414",
       "id": 1103,
-      "name": "Zora's River West Rock 11",
+      "name": "ZR Near Fairy Grotto Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4132,7 +4132,7 @@
       "forbid": [],
       "hash": "2298283628328435720",
       "id": 1456,
-      "name": "Zora's River East Green Rupee (1) 2",
+      "name": "ZR Under Upper Bridge Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4221,7 +4221,7 @@
       "forbid": [],
       "hash": "2371172516158343997",
       "id": 1105,
-      "name": "Zora's River West Rock 4",
+      "name": "ZR Near Storms Grotto Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4606,7 +4606,7 @@
       "forbid": [],
       "hash": "2613616008539497854",
       "id": 219,
-      "name": "Zora's River Bean Seller",
+      "name": "ZR Magic Bean Salesman",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -4674,7 +4674,7 @@
       "forbid": [],
       "hash": "2663263298906525797",
       "id": 1109,
-      "name": "Zora's River West Rock 15",
+      "name": "ZR Near Storms Grotto Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5706,7 +5706,7 @@
       "forbid": [],
       "hash": "3328888660444152381",
       "id": 1462,
-      "name": "Zora's River East Green Rupee (1) 3",
+      "name": "ZR Under Upper Bridge Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6160,7 +6160,7 @@
       "forbid": [],
       "hash": "3661284024861567877",
       "id": 1463,
-      "name": "Zora's River West Green Rupee (1) 4",
+      "name": "ZR Under Lower Bridge Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6614,7 +6614,7 @@
       "forbid": [],
       "hash": "3922348358728399997",
       "id": 1466,
-      "name": "Zora's River West Green Rupee (1) 1",
+      "name": "ZR Pillar Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7058,7 +7058,7 @@
       "forbid": [],
       "hash": "4189391771527808272",
       "id": 290,
-      "name": "Zora's River Northeast Piece of Heart",
+      "name": "ZR Near Domain Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -7814,7 +7814,7 @@
       "forbid": [],
       "hash": "4582064739131737845",
       "id": 1475,
-      "name": "Zora's River East Green Rupee (1) 4",
+      "name": "ZR Under Upper Bridge Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7986,7 +7986,7 @@
       "forbid": [],
       "hash": "4690834361593581821",
       "id": 1476,
-      "name": "Zora's River Northwest Green Rupee (1)",
+      "name": "ZR Pillar Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8134,7 +8134,7 @@
       "forbid": [],
       "hash": "4776081376285256939",
       "id": 653,
-      "name": "Zora's River West Pot 1",
+      "name": "ZR Storms Grotto Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8282,7 +8282,7 @@
       "forbid": [],
       "hash": "4826518667068841696",
       "id": 1130,
-      "name": "Zora's River West Rock 8",
+      "name": "ZR Near Fairy Grotto Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8665,7 +8665,7 @@
       "forbid": [],
       "hash": "5095784848033030406",
       "id": 664,
-      "name": "Zora's River West Pot 4",
+      "name": "ZR Storms Grotto Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8803,7 +8803,7 @@
       "forbid": [],
       "hash": "5153283257875856350",
       "id": 1131,
-      "name": "Zora's River West Rock 13",
+      "name": "ZR Near Storms Grotto Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8866,7 +8866,7 @@
       "forbid": [],
       "hash": "5229953148841764865",
       "id": 156,
-      "name": "Zora's River Frogs' Ocarina Game",
+      "name": "ZR Frogs Ocarina Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -8890,7 +8890,7 @@
       "forbid": [],
       "hash": "5230435736251084516",
       "id": 1479,
-      "name": "Zora's River Southwest Green Rupee (1) 2",
+      "name": "ZR Below Raised Grottos Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8926,7 +8926,7 @@
       "forbid": [],
       "hash": "5236788318647646124",
       "id": 1313,
-      "name": "Zora's River Northwest Grass 3",
+      "name": "ZR Pillar Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9692,7 +9692,7 @@
       "forbid": [],
       "hash": "5730330007630899881",
       "id": 682,
-      "name": "Zora's River West Pot 8",
+      "name": "ZR Storms Grotto Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10109,7 +10109,7 @@
       "forbid": [],
       "hash": "6005721242265519567",
       "id": 1142,
-      "name": "Zora's River West Rock 7",
+      "name": "ZR Near Storms Grotto Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10167,7 +10167,7 @@
       "forbid": [],
       "hash": "6048109687318133293",
       "id": 1485,
-      "name": "Zora's River East Green Rupee (1) 1",
+      "name": "ZR Under Upper Bridge Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -11170,7 +11170,7 @@
       "forbid": [],
       "hash": "6791647991070983026",
       "id": 1327,
-      "name": "Zora's River Southwest Grass 1",
+      "name": "ZR Open Grotto Adult Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13106,7 +13106,7 @@
       "forbid": [],
       "hash": "8025310784454452781",
       "id": 1336,
-      "name": "Zora's River Northwest Grass 2",
+      "name": "ZR Pillar Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13470,7 +13470,7 @@
       "forbid": [],
       "hash": "8253690719061067088",
       "id": 1337,
-      "name": "Zora's River Northwest Grass 4",
+      "name": "ZR Pillar Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13881,7 +13881,7 @@
       "forbid": [],
       "hash": "8695975724114049706",
       "id": 347,
-      "name": "Zora's River East Gold Skulltula Token",
+      "name": "ZR GS Ladder",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -14214,7 +14214,7 @@
       "forbid": [],
       "hash": "8838426083116998768",
       "id": 140,
-      "name": "Zora's River Southwest Business Scrub Seed Chest",
+      "name": "ZR Open Grotto Chest",
       "unprovable": false
     },
     {
@@ -14394,7 +14394,7 @@
       "forbid": [],
       "hash": "8953658065056150046",
       "id": 777,
-      "name": "Zora's River West Pot 3",
+      "name": "ZR Storms Grotto Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14539,7 +14539,7 @@
       "forbid": [],
       "hash": "8980910965654538945",
       "id": 780,
-      "name": "Zora's River West Pot 2",
+      "name": "ZR Storms Grotto Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14781,7 +14781,7 @@
       "forbid": [],
       "hash": "9080915605353397341",
       "id": 1168,
-      "name": "Zora's River West Rock 1",
+      "name": "ZR Near Fairy Note Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14923,7 +14923,7 @@
       "forbid": [],
       "hash": "9119591811446675392",
       "id": 1507,
-      "name": "Zora's River South Green Rupee (1)",
+      "name": "ZR Below Raised Grottos Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15540,7 +15540,7 @@
       "forbid": [],
       "hash": "9450239379321634455",
       "id": 355,
-      "name": "Zora's River Northeast Gold Skulltula Token",
+      "name": "ZR GS Above Bridge",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15937,7 +15937,7 @@
       "forbid": [],
       "hash": "9631182645511745726",
       "id": 1511,
-      "name": "Zora's River East Green Rupee (1) 5",
+      "name": "ZR Middle Waterfall Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16375,7 +16375,7 @@
       "forbid": [],
       "hash": "9871945473853767030",
       "id": 1515,
-      "name": "Zora's River West Green Rupee (1) 2",
+      "name": "ZR Pillar Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -18011,7 +18011,7 @@
       "forbid": [],
       "hash": "10869334366827386783",
       "id": 845,
-      "name": "Zora's River West Pot 7",
+      "name": "ZR Storms Grotto Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18111,7 +18111,7 @@
       "forbid": [],
       "hash": "10917372215719266172",
       "id": 362,
-      "name": "Zora's River Southwest Gold Skulltula Token",
+      "name": "ZR GS Near Raised Grottos",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -18856,7 +18856,7 @@
       "forbid": [],
       "hash": "11346219189188191312",
       "id": 178,
-      "name": "Zora's River Frogs' Songs",
+      "name": "ZR Frogs in the Rain",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18997,7 +18997,7 @@
       "forbid": [],
       "hash": "11455676800795329345",
       "id": 295,
-      "name": "Zora's River Northwest Piece of Heart",
+      "name": "ZR Near Open Grotto Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -19487,7 +19487,7 @@
       "forbid": [],
       "hash": "11633715633323756970",
       "id": 1530,
-      "name": "Zora's River Southwest Blue Rupee (5) 3",
+      "name": "ZR Below Raised Grottos Blue Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20427,7 +20427,7 @@
       "forbid": [],
       "hash": "12253865241549498327",
       "id": 876,
-      "name": "Zora's River West Pot 5",
+      "name": "ZR Storms Grotto Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20661,7 +20661,7 @@
       "forbid": [],
       "hash": "12357333631332004666",
       "id": 1195,
-      "name": "Zora's River West Rock 6",
+      "name": "ZR Near Storms Grotto Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20672,7 +20672,7 @@
       "forbid": [],
       "hash": "12370559827741970774",
       "id": 373,
-      "name": "Zora's River West Gold Skulltula Token",
+      "name": "ZR GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -21351,7 +21351,7 @@
       "forbid": [],
       "hash": "12818104578529512147",
       "id": 1541,
-      "name": "Zora's River West Green Rupee (1) 3",
+      "name": "ZR Under Lower Bridge Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22109,7 +22109,7 @@
       "forbid": [],
       "hash": "13320994476481854351",
       "id": 1205,
-      "name": "Zora's River West Rock 9",
+      "name": "ZR Near Fairy Grotto Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22238,7 +22238,7 @@
       "forbid": [],
       "hash": "13410543774724933525",
       "id": 1544,
-      "name": "Zora's River Southwest Blue Rupee (5) 1",
+      "name": "ZR Below Raised Grottos Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22373,7 +22373,7 @@
       "forbid": [],
       "hash": "13505325356541728049",
       "id": 907,
-      "name": "Zora's River West Pot 6",
+      "name": "ZR Storms Grotto Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22874,7 +22874,7 @@
       "forbid": [],
       "hash": "13737853645147528759",
       "id": 1209,
-      "name": "Zora's River West Rock 12",
+      "name": "ZR Near Storms Grotto Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24322,7 +24322,7 @@
       "forbid": [],
       "hash": "14826555421246983691",
       "id": 1219,
-      "name": "Zora's River West Rock 5",
+      "name": "ZR Near Storms Grotto Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25261,7 +25261,7 @@
       "forbid": [],
       "hash": "15482102146451554097",
       "id": 1555,
-      "name": "Zora's River Northeast Green Rupee (1)",
+      "name": "ZR Under Upper Bridge Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -25664,7 +25664,7 @@
       "forbid": [],
       "hash": "15818815631206221451",
       "id": 1230,
-      "name": "Zora's River West Rock 14",
+      "name": "ZR Near Storms Grotto Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -26426,7 +26426,7 @@
       "forbid": [],
       "hash": "16270014503275548770",
       "id": 1231,
-      "name": "Zora's River West Rock 17",
+      "name": "ZR Near Fairy Grotto Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27644,7 +27644,7 @@
       "forbid": [],
       "hash": "17019758987192094710",
       "id": 1238,
-      "name": "Zora's River West Rock 18",
+      "name": "ZR Near Bean Salesman Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28236,7 +28236,7 @@
       "forbid": [],
       "hash": "17324353931517538893",
       "id": 1570,
-      "name": "Zora's River Southwest Blue Rupee (5) 2",
+      "name": "ZR Below Raised Grottos Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28286,7 +28286,7 @@
       "forbid": [],
       "hash": "17344143844704392683",
       "id": 1241,
-      "name": "Zora's River West Rock 2",
+      "name": "ZR Near Fairy Grotto Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29119,7 +29119,7 @@
       "forbid": [],
       "hash": "17845102228874376901",
       "id": 1247,
-      "name": "Zora's River West Rock 10",
+      "name": "ZR Near Fairy Grotto Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29292,7 +29292,7 @@
       "forbid": [],
       "hash": "17949292987925547918",
       "id": 1248,
-      "name": "Zora's River West Rock 19",
+      "name": "ZR Near Bean Salesman Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29434,7 +29434,7 @@
       "forbid": [],
       "hash": "18049114647202169539",
       "id": 1572,
-      "name": "Zora's River Southwest Green Rupee (1) 1",
+      "name": "ZR Below Raised Grottos Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"

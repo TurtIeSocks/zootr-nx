@@ -1,0 +1,103 @@
+# Zora's River. OoTR's name wherever the remake keeps the spot: matched
+# by position, the arrival points nearby and the remake guides for the
+# Gold Skulltulas and heart pieces. The river runs from the Hyrule Field
+# entrance in the west up to Zora's Domain in the east.
+#
+# The child and adult maps each hold their own copy of many pots, rocks
+# and grass, as separate checks. Where both ages have one at the same
+# spot, the name says which, as OoTR's Market Guard House Child Pot does.
+# Numbers count west to east within one spot.
+
+# The Storms Grotto, under the cover Song of Storms clears, by the
+# entrance. OoTR's had two scrubs. The remake's has a Gossip Stone and
+# four pots in each age's map.
+13505325356541728049 = "ZR Storms Grotto Child Pot 1"
+5730330007630899881 = "ZR Storms Grotto Child Pot 2"
+8980910965654538945 = "ZR Storms Grotto Child Pot 3"
+5095784848033030406 = "ZR Storms Grotto Child Pot 4"
+12253865241549498327 = "ZR Storms Grotto Adult Pot 1"
+10869334366827386783 = "ZR Storms Grotto Adult Pot 2"
+4776081376285256939 = "ZR Storms Grotto Adult Pot 3"
+8953658065056150046 = "ZR Storms Grotto Adult Pot 4"
+
+# The four rocks set around the Storms Grotto's cover.
+14826555421246983691 = "ZR Near Storms Grotto Child Rock 1"
+5153283257875856350 = "ZR Near Storms Grotto Child Rock 2"
+6005721242265519567 = "ZR Near Storms Grotto Child Rock 3"
+2663263298906525797 = "ZR Near Storms Grotto Child Rock 4"
+2371172516158343997 = "ZR Near Storms Grotto Adult Rock 1"
+13737853645147528759 = "ZR Near Storms Grotto Adult Rock 2"
+12357333631332004666 = "ZR Near Storms Grotto Adult Rock 3"
+15818815631206221451 = "ZR Near Storms Grotto Adult Rock 4"
+
+# The Magic Bean Salesman's corner by the lower bridge. The child's
+# Skulltula moved here from OoTR's tree by the entrance: it sits by the
+# soft soil, so it takes the name OoTR gives other soil Skulltulas.
+2613616008539497854 = "ZR Magic Bean Salesman"
+12370559827741970774 = "ZR GS Bean Patch"
+17949292987925547918 = "ZR Near Bean Salesman Child Rock"
+17019758987192094710 = "ZR Near Bean Salesman Adult Rock"
+
+# In the water under the lower bridge, by the entrance.
+3661284024861567877 = "ZR Under Lower Bridge Green Rupee 1"
+12818104578529512147 = "ZR Under Lower Bridge Green Rupee 2"
+
+# A child-only rock on the small ledge with a Fairy Note, west of the pillar.
+9080915605353397341 = "ZR Near Fairy Note Rock" # guess: the ledge's only landmark
+
+# The tall pillar with OoTR's Near Open Grotto heart piece on top, two
+# grass tufts beside it, and three rupees in the water at its foot.
+11455676800795329345 = "ZR Near Open Grotto Freestanding PoH"
+5236788318647646124 = "ZR Pillar Child Grass 1"
+8025310784454452781 = "ZR Pillar Child Grass 2"
+8253690719061067088 = "ZR Pillar Adult Grass 1"
+554336807288771355 = "ZR Pillar Adult Grass 2"
+9871945473853767030 = "ZR Pillar Green Rupee 1"
+3922348358728399997 = "ZR Pillar Green Rupee 2"
+4690834361593581821 = "ZR Pillar Green Rupee 3"
+
+# The raised grottos. The Open Grotto holds a chest and a Gossip Stone as
+# OoTR's does, plus a grass tuft in each age's map. The Fairy Grotto
+# under its bomb rock has four rocks set around it.
+8838426083116998768 = "ZR Open Grotto Chest"
+8656037947240541 = "ZR Open Grotto Child Grass"
+6791647991070983026 = "ZR Open Grotto Adult Grass"
+13320994476481854351 = "ZR Near Fairy Grotto Child Rock 1"
+2204724976020882097 = "ZR Near Fairy Grotto Child Rock 2"
+16270014503275548770 = "ZR Near Fairy Grotto Child Rock 3"
+2222529920688210414 = "ZR Near Fairy Grotto Child Rock 4"
+4826518667068841696 = "ZR Near Fairy Grotto Adult Rock 1"
+17344143844704392683 = "ZR Near Fairy Grotto Adult Rock 2"
+2027803741890732419 = "ZR Near Fairy Grotto Adult Rock 3"
+17845102228874376901 = "ZR Near Fairy Grotto Adult Rock 4"
+10917372215719266172 = "ZR GS Near Raised Grottos" # guess: the adult wall Skulltula beside the raised grottos, which the guides reach by bean plant
+
+# A trail of rupees in the river below the raised grottos, adult only.
+13410543774724933525 = "ZR Below Raised Grottos Blue Rupee 1"
+17324353931517538893 = "ZR Below Raised Grottos Blue Rupee 2"
+11633715633323756970 = "ZR Below Raised Grottos Blue Rupee 3"
+1391937830947703725 = "ZR Below Raised Grottos Green Rupee 1"
+1308828964686406569 = "ZR Below Raised Grottos Green Rupee 2"
+18049114647202169539 = "ZR Below Raised Grottos Green Rupee 3"
+5230435736251084516 = "ZR Below Raised Grottos Green Rupee 4"
+9119591811446675392 = "ZR Below Raised Grottos Green Rupee 5"
+
+# The frogs, on their log in the upper river.
+11346219189188191312 = "ZR Frogs in the Rain" # guess: the remake's heart piece follows the sixth song, which the guides give as Song of Storms
+5229953148841764865 = "ZR Frogs Ocarina Game"
+
+# Upstream: two rupees by the waterfall midway up the river, five in the
+# water under the upper bridge (the one by the Lost Woods shortcut), and
+# OoTR's Skulltula on the cliff above that bridge.
+1482691670641189285 = "ZR Middle Waterfall Green Rupee 1" # guess: named for the waterfall just west of them
+9631182645511745726 = "ZR Middle Waterfall Green Rupee 2" # guess: named for the waterfall just west of them
+4582064739131737845 = "ZR Under Upper Bridge Green Rupee 1"
+3328888660444152381 = "ZR Under Upper Bridge Green Rupee 3"
+2298283628328435720 = "ZR Under Upper Bridge Green Rupee 2"
+15482102146451554097 = "ZR Under Upper Bridge Green Rupee 4"
+6048109687318133293 = "ZR Under Upper Bridge Green Rupee 5"
+9450239379321634455 = "ZR GS Above Bridge"
+
+# By the waterfall to Zora's Domain.
+4189391771527808272 = "ZR Near Domain Freestanding PoH"
+8695975724114049706 = "ZR GS Ladder" # guess: the child's night Skulltula by the last waterfall, where OoTR's ladder one is

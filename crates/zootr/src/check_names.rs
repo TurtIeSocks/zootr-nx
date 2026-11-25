@@ -59,6 +59,10 @@ const FILES: &[(&str, &str)] = &[
         "water-temple.toml",
         include_str!("../logic/names/water-temple.toml"),
     ),
+    (
+        "zoras-river.toml",
+        include_str!("../logic/names/zoras-river.toml"),
+    ),
 ];
 
 /// Each area's prefixes, in OoTR's style: dungeons spelled out, overworld
