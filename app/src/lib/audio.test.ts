@@ -121,7 +121,10 @@ test("a song outside the slot's band says what it does", () => {
     band_label: ">14s",
     looping: false,
   });
-  expect(bandNote(taught, warp)).toBe("Plays on 18 s past the song");
+  expect(bandNote(taught, warp)).toBe(
+    "Runs 18 s longer than the song's scene, so it may be cut off",
+  );
+  expect(bandNote(warp, taught)).toBe("Ends 18 s before the song does");
   expect(length(small)).toBe("0:02");
   expect(length(zora)).toBe("1:20 loop");
 });

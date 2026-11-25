@@ -126,7 +126,10 @@ export function bandNote(slot: TrackView, donor: TrackView): string | null {
   if (donor.looping) return `Loops on past ${moment}`;
   if (slot.looping) return "Plays once, then stops";
   const gap = Math.round((donor.ms - slot.ms) / 1000);
-  return gap > 0
-    ? `Plays on ${gap} s past ${moment}`
-    : `Ends ${-gap} s before ${moment} does`;
+  if (gap <= 0) return `Ends ${-gap} s before ${moment} does`;
+  // A played song is cut off when its scene ends (heard live), unlike
+  // music, which plays on.
+  return slot.pool === "ocarina"
+    ? `Runs ${gap} s longer than the song's scene, so it may be cut off`
+    : `Plays on ${gap} s past ${moment}`;
 }
