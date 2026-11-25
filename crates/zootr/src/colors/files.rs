@@ -182,3 +182,13 @@ pub const BOOMERANG_GEM: &str = "Mt_Item_Boomerang_Gem";
 pub const BOOMERANG_TILE_1: &str = "Mt_Item_Boomerang_Tile_01";
 pub const BOOMERANG_TILE_2: &str = "Mt_Item_Boomerang_Tile_02";
 pub const BOOMERANG_TILE_3: &str = "Mt_Item_Boomerang_Tile_03";
+
+/// An effect bundle, by its owner's name.
+macro_rules! effect {
+    ($owner:literal) => {
+        concat!("Effect/", $owner, ".Nin_Ounce_NVN2.vsetb.byml.zs")
+    };
+}
+
+pub const RUPEE_PURPLE_FX: &str = effect!("Obj_Rupee_Purple");
+pub const RUPEE_GOLD_FX: &str = effect!("Obj_Rupee_Gold");

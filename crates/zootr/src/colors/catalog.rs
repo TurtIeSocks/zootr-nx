@@ -12,6 +12,7 @@ use super::paint::{Colour, Hues};
 pub enum Group {
     Link,
     Gear,
+    Effects,
 }
 
 /// One thing a player recolours: its colour in the vanilla game for each
@@ -57,6 +58,14 @@ pub enum Kind {
         hash: u64,
         vanilla: [f32; 3],
     },
+    /// Every effect constant in `bundle` whose descriptor hash is `hash`
+    /// and whose value is `vanilla` (linear, often above 1), its brightest
+    /// channel kept as a param's is.
+    Vfx {
+        bundle: &'static str,
+        hash: u64,
+        vanilla: [f32; 3],
+    },
 }
 
 impl Write {
@@ -64,7 +73,7 @@ impl Write {
     pub fn texture(&self) -> Option<&'static Tex> {
         match self.kind {
             Kind::Band { texture, .. } | Kind::Tint { texture, .. } => Some(texture),
-            Kind::Param { .. } => None,
+            Kind::Param { .. } | Kind::Vfx { .. } => None,
         }
     }
 
@@ -73,6 +82,11 @@ impl Write {
         match self.kind {
             Kind::Band { vanilla, .. } | Kind::Tint { vanilla, .. } => vanilla,
             Kind::Param { vanilla, .. } => super::oklch::from_linear(vanilla),
+            // Its hue: an effect's brightness is past what sRGB holds.
+            Kind::Vfx { vanilla, .. } => {
+                let top = vanilla.iter().copied().fold(f32::MIN_POSITIVE, f32::max);
+                super::oklch::from_linear(vanilla.map(|c| c / top))
+            }
         }
     }
 
@@ -81,6 +95,11 @@ impl Write {
         Write { slot, ..self }
     }
 }
+
+// The two colour constants a rupee's sparkle has, by descriptor hash:
+// its glow and its shade.
+const SPARKLE: u64 = 0x219e_2577_fcfe_f53c;
+const SPARKLE_SHADE: u64 = 0x583d_c335_cea7_8c12;
 
 // The four colour params Link's and the gear's materials share, by name
 // hash. What each means is the shader's: base, shade, rim or shine, tip.
@@ -107,6 +126,17 @@ const fn param(
         kind: Kind::Param {
             models,
             material,
+            hash,
+            vanilla,
+        },
+    }
+}
+
+const fn vfx(bundle: &'static str, hash: u64, vanilla: [f32; 3]) -> Write {
+    Write {
+        slot: 0,
+        kind: Kind::Vfx {
+            bundle,
             hash,
             vanilla,
         },
@@ -548,6 +578,19 @@ pub const PALETTES: &[Palette] = &[
             .at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C2, [0.22, 0.19, 0.2]).at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C3, [0.06, 0.54, 0.28]).at(3),
+        ],
+    },
+    Palette {
+        id: "rupee-sparkle",
+        label: "Rupee sparkle",
+        group: Group::Effects,
+        vanilla: &[[170, 89, 255], [255, 203, 89]],
+        names: &["Purple", "Gold"],
+        writes: &[
+            vfx(RUPEE_PURPLE_FX, SPARKLE, [3.0, 0.75, 7.5]),
+            vfx(RUPEE_PURPLE_FX, SPARKLE_SHADE, [0.11, 0.055, 0.165]),
+            // The Gold Rupee's shade is the Purple's, so it stays.
+            vfx(RUPEE_GOLD_FX, SPARKLE, [5.0, 3.0, 0.5]).at(1),
         ],
     },
 ];

@@ -174,6 +174,11 @@ pub enum Probe {
     /// hue band given (`LO-HI`, 0 to 1, wrapping past 1): the vanilla
     /// colours a Colors palette records.
     Band { texture: String, bands: Vec<String> },
+    /// An effect bundle's colour constants (`Effect/` and its owner's
+    /// name, or a built file's path), under the eset each one falls in:
+    /// where its value is in the decompressed file, its descriptor's name
+    /// hash, and its floats, linear and often above 1.
+    Vfx { bundle: String },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -565,6 +570,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Materials { model } => materials(romfs, game, &model),
         Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
+        Probe::Vfx { bundle } => vfx(romfs, game, &bundle),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -893,6 +899,35 @@ fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
         for (hash, [r, g, b, a]) in &m.params {
             println!("  {hash:016x}  {r:.4} {g:.4} {b:.4} {a:.4}");
         }
+    }
+    Ok(())
+}
+
+/// `probe vfx`.
+fn vfx(romfs: &Romfs, game: &Path, bundle: &str) -> Result<()> {
+    use ounce_formats::vfx;
+    let data = match Path::new(bundle).is_file() {
+        true => romfs.dicts().decompress(bundle, &std::fs::read(bundle)?)?,
+        false => crate::nav::dump_file(romfs, game, &format!("{bundle}."))?
+            .with_context(|| format!("no bundle {bundle}"))?,
+    };
+    let esets = vfx::esets(&data)?;
+    let mut last = None;
+    for c in vfx::constants(&data)? {
+        let eset = esets
+            .iter()
+            .rev()
+            .find(|(_, at)| *at <= c.at)
+            .map(|(n, _)| n);
+        if eset != last {
+            println!("{}", eset.map_or("(before any eset)", |n| n.as_str()));
+            last = eset;
+        }
+        let [r, g, b, a] = c.value;
+        println!(
+            "  {:#08x}  {:016x}  {r:.4} {g:.4} {b:.4} {a:.4}",
+            c.at, c.hash
+        );
     }
     Ok(())
 }

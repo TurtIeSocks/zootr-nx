@@ -38,6 +38,7 @@ mod save;
 mod shape_mesh;
 mod tagfile;
 pub mod vec3;
+pub mod vfx;
 mod walk;
 mod xlink;
 mod zs;

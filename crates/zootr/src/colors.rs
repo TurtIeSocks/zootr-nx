@@ -12,7 +12,9 @@ pub mod preview;
 use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{ModBuilder, material_param, redraw, rename, set_material_param, top_level};
+use ounce_formats::{
+    ModBuilder, material_param, redraw, rename, set_material_param, top_level, vfx,
+};
 
 pub use catalog::{GREEN, Group, Kind, PALETTES, Palette, Write};
 use files::{Copy, Tex};
@@ -40,8 +42,9 @@ pub fn first(colors: &Colors, id: &str) -> Result<Option<Colour>> {
 /// folders.
 pub fn files() -> impl Iterator<Item = &'static str> {
     PALETTES.iter().flat_map(|p| p.writes).flat_map(|w| {
-        let params: &[&str] = match w.kind {
+        let params: &[&str] = match &w.kind {
             Kind::Param { models, .. } => models,
+            Kind::Vfx { bundle, .. } => std::slice::from_ref(bundle),
             _ => &[],
         };
         let texture = w.texture().into_iter().flat_map(|t| {
@@ -100,6 +103,7 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
     let colors = with_followers(colors)?;
     let mut by_texture: BTreeMap<&str, (&Tex, Vec<Job>)> = BTreeMap::new();
     let mut by_model: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
+    let mut by_bundle: BTreeMap<&str, Vec<Job>> = BTreeMap::new();
     for (id, picked) in &colors {
         for job in jobs(palette(id)?, picked)? {
             match (job.write.texture(), &job.write.kind) {
@@ -112,7 +116,8 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
                         by_model.entry(model).or_default().push(job.clone());
                     }
                 }
-                (None, _) => unreachable!("only a param has no texture"),
+                (None, Kind::Vfx { bundle, .. }) => by_bundle.entry(bundle).or_default().push(job),
+                (None, _) => unreachable!("a band or tint has a texture"),
             }
         }
     }
@@ -123,6 +128,11 @@ pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
     for (model, jobs) in &by_model {
         let data = paint_model(&builder.read(model)?, jobs).with_context(|| model.to_string())?;
         builder.write(model, &data)?;
+    }
+    for (bundle, jobs) in &by_bundle {
+        let data =
+            paint_bundle(&builder.read(bundle)?, jobs).with_context(|| bundle.to_string())?;
+        builder.write(bundle, &data)?;
     }
     Ok(())
 }
@@ -190,6 +200,46 @@ fn check_param(model: &[u8], write: &Write) -> Result<[f32; 4]> {
         &old[..3]
     );
     Ok(old)
+}
+
+/// `bundle` with each of its effect jobs written, each checked first.
+fn paint_bundle(bundle: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
+    let mut data = bundle.to_vec();
+    for job in jobs {
+        for c in check_vfx(bundle, job.write).with_context(|| job.palette.to_owned())? {
+            let [r, g, b, _] = param_value(job.goal, c.value);
+            vfx::set_constant(&mut data, c.at, [r, g, b]);
+        }
+    }
+    Ok(data)
+}
+
+/// The constants `write` changes in `bundle`: every one with its hash
+/// holding its colour. Fails when there's none.
+fn check_vfx(bundle: &[u8], write: &Write) -> Result<Vec<vfx::Constant>> {
+    let Kind::Vfx { hash, vanilla, .. } = write.kind else {
+        anyhow::bail!("not an effect constant");
+    };
+    let found: Vec<_> = vfx::constants(bundle)?
+        .into_iter()
+        .filter(|c| c.hash == hash)
+        .collect();
+    let held: Vec<_> = found
+        .iter()
+        .filter(|c| {
+            c.value
+                .iter()
+                .zip(vanilla)
+                .all(|(o, v)| (o - v).abs() <= PARAM_SLACK)
+        })
+        .cloned()
+        .collect();
+    ensure!(
+        !held.is_empty(),
+        "no effect constant {hash:016x} holds {vanilla:?}: {:?}",
+        found.iter().map(|c| &c.value[..3]).collect::<Vec<_>>()
+    );
+    Ok(held)
 }
 
 /// The param that shows `goal` at the brightness `old` had: its colour
@@ -312,7 +362,7 @@ fn measure(rgba: &[u8], write: &Write) -> Result<Colour> {
             Ok(paint::rgb(h, s, v))
         }
         Kind::Tint { .. } => Ok(mean(rgba)),
-        Kind::Param { .. } => anyhow::bail!("a param has no texels"),
+        Kind::Param { .. } | Kind::Vfx { .. } => anyhow::bail!("only a texture has texels"),
     }
 }
 
@@ -325,7 +375,7 @@ fn matches(write: &Write, got: Colour, want: Colour) -> bool {
                 && (gs - ws).abs() <= SV_SLACK
                 && (gv - wv).abs() <= SV_SLACK
         }
-        Kind::Tint { .. } | Kind::Param { .. } => got
+        Kind::Tint { .. } | Kind::Param { .. } | Kind::Vfx { .. } => got
             .iter()
             .zip(want)
             .all(|(g, w)| g.abs_diff(w) <= RGB_SLACK),
@@ -511,6 +561,25 @@ mod tests {
                     }
                     continue;
                 }
+                if let Kind::Vfx { bundle, .. } = w.kind {
+                    let data = crate::game::read_built(&romfs, &dir, bundle);
+                    assert!(
+                        check_vfx(&data, w).is_err(),
+                        "{} {bundle} is painted",
+                        palette.id
+                    );
+                    if i == 0 {
+                        let vanilla = romfs.read(bundle).unwrap();
+                        let at = check_vfx(&vanilla, w).unwrap()[0].at;
+                        let c = &vfx::constants(&data).unwrap();
+                        let got = c.iter().find(|c| c.at == at).unwrap().value;
+                        let top = got[..3].iter().copied().fold(0.0, f32::max);
+                        let got = oklch::from_linear([got[0] / top, got[1] / top, got[2] / top]);
+                        let near = (paint::hsv(got).0 - paint::hsv(pink).0).abs();
+                        assert!(near < 0.03, "{} {bundle} is {got:?}", palette.id);
+                    }
+                    continue;
+                }
                 let texture = w.texture().unwrap();
                 let path = match &texture.copy {
                     None => texture.path.to_owned(),
@@ -584,6 +653,12 @@ mod tests {
                         if let Err(e) = checked {
                             wrong.push(format!("{} {model}: {e:#}", palette.id));
                         }
+                    }
+                    continue;
+                }
+                if let Kind::Vfx { bundle, .. } = write.kind {
+                    if let Err(e) = check_vfx(&romfs.read(bundle).unwrap(), write) {
+                        wrong.push(format!("{} {bundle}: {e:#}", palette.id));
                     }
                     continue;
                 }

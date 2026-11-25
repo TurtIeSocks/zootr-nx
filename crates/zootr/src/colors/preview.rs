@@ -40,7 +40,9 @@ pub fn sheets(palette: &Palette) -> Vec<Sheet> {
         let sheet = match (w.texture(), &w.kind) {
             (Some(t), _) => Sheet::Texture(t.path),
             (None, Kind::Param { material, .. }) => Sheet::Material(material),
-            (None, _) => unreachable!("only a param has no texture"),
+            // An effect previews on a canvas the app draws.
+            (None, Kind::Vfx { .. }) => continue,
+            (None, _) => unreachable!("a band or tint has a texture"),
         };
         if !out.contains(&sheet) {
             out.push(sheet);
@@ -75,7 +77,10 @@ impl Previews {
                         super::check_param(&romfs.read(model)?, write)?;
                     }
                 }
-                (None, _) => unreachable!("only a param has no texture"),
+                (None, Kind::Vfx { bundle, .. }) => {
+                    super::check_vfx(&romfs.read(bundle)?, write)?;
+                }
+                (None, _) => unreachable!("a band or tint has a texture"),
             }
         }
         Ok(())
