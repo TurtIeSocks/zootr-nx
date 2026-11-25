@@ -692,6 +692,24 @@ pub fn asset_params(file: &[u8]) -> Result<usize> {
     Ok(defines + r.offset(defines)?)
 }
 
+/// The names an asset's param record holds (its asset, its bone), by
+/// field bit: the record is a u64 mask of the fields set, then a u32 per
+/// set field, a name being `(1 << 24) + its offset in the names`.
+pub fn asset_names(file: &[u8], param: u32) -> Result<Vec<(u32, &str)>> {
+    let r = Reader(file);
+    let at = asset_params(file)? + param as usize;
+    let mask = r.u64(at)?;
+    let mut names = vec![];
+    for (i, bit) in (0..64).filter(|b| mask & (1 << b) != 0).enumerate() {
+        let value = r.u32(at + 8 + 4 * i)?;
+        if value >> 24 == 1 {
+            let name = name_at(file, (value & 0xff_ffff) as usize)?;
+            names.push((bit, std::str::from_utf8(name)?));
+        }
+    }
+    Ok(names)
+}
+
 /// The direct values, as raw words: what an asset param's field indexes,
 /// a float for a size. They follow the local property names and enum
 /// names.

@@ -292,7 +292,10 @@ mod tests {
             let Via::Call(user) = t.via else {
                 unreachable!("{}", t.id)
             };
-            write::asset(&slink, user, t.graph).unwrap();
+            let call = write::asset(&slink, user, t.graph).unwrap();
+            // Field 1 of an asset's param record names the stream it plays.
+            let names = ounce_formats::xlink_asset_names(&slink, call.param).unwrap();
+            assert!(names.contains(&(1, t.song.unwrap())), "{}: {names:?}", t.id);
             let head = header(t.song.unwrap());
             assert!(
                 (head.seconds() - t.secs).abs() < 0.01,
