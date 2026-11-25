@@ -45,7 +45,11 @@ pub fn files() -> impl Iterator<Item = &'static str> {
             _ => &[],
         };
         let texture = w.texture().into_iter().flat_map(|t| {
-            let copies = t.copy.iter().flat_map(|c| copies(t.path, c)).flat_map(|(_, m)| m.iter().copied());
+            let copies = t
+                .copy
+                .iter()
+                .flat_map(|c| copies(t.path, c))
+                .flat_map(|(_, m)| m.iter().copied());
             [t.path].into_iter().chain(t.metal).chain(copies)
         });
         texture.chain(params.iter().copied())
@@ -134,7 +138,10 @@ pub fn leader(id: &str) -> Option<&'static Palette> {
 fn with_followers(colors: &Colors) -> Result<Colors> {
     let mut out = colors.clone();
     for &(follower, leader) in catalog::FOLLOWS {
-        let Some(picked) = colors.get(leader).filter(|_| !colors.contains_key(follower)) else {
+        let Some(picked) = colors
+            .get(leader)
+            .filter(|_| !colors.contains_key(follower))
+        else {
             continue;
         };
         let (leader, follower_palette) = (palette(leader)?, palette(follower)?);
@@ -173,9 +180,12 @@ fn check_param(model: &[u8], write: &Write) -> Result<[f32; 4]> {
     else {
         anyhow::bail!("not a param");
     };
-    let old = material_param(model, material, hash).with_context(|| format!("{material} {hash:016x}"))?;
+    let old =
+        material_param(model, material, hash).with_context(|| format!("{material} {hash:016x}"))?;
     ensure!(
-        old.iter().zip(vanilla).all(|(o, v)| (o - v).abs() <= PARAM_SLACK),
+        old.iter()
+            .zip(vanilla)
+            .all(|(o, v)| (o - v).abs() <= PARAM_SLACK),
         "{material} {hash:016x} holds {:?} where {vanilla:?} was recorded",
         &old[..3]
     );
@@ -218,6 +228,9 @@ fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Resul
     Ok(())
 }
 
+/// A name a texture goes by, with the models that name it.
+type Named<'a> = (&'a str, &'static [&'static str]);
+
 /// A painted texture, written in place, or as a copy: each name its
 /// models know it by (with its mark and the models) gets the copy under
 /// its own marked name, renamed in those models. The file inside keeps
@@ -227,7 +240,7 @@ fn write_painted(
     builder: &mut ModBuilder,
     path: &str,
     drawn: &[u8],
-    copy: Option<(u8, Vec<(&str, &[&str])>)>,
+    copy: Option<(u8, Vec<Named>)>,
 ) -> Result<()> {
     let Some((mark, names)) = copy else {
         return builder.write(path, drawn);
@@ -346,7 +359,9 @@ pub(crate) fn copies<'a>(
     path: &'a str,
     copy: &'a Copy,
 ) -> impl Iterator<Item = (&'a str, &'static [&'static str])> {
-    [(name(path), copy.models)].into_iter().chain(copy.aliases.iter().copied())
+    [(name(path), copy.models)]
+        .into_iter()
+        .chain(copy.aliases.iter().copied())
 }
 
 /// The texture at `path`, as its name.
@@ -392,7 +407,11 @@ mod tests {
             let named = if slots == 1 { 0 } else { slots };
             assert_eq!(p.names.len(), named, "{} names each of its slots", p.id);
             for slot in 0..slots {
-                assert!(p.writes.iter().any(|w| w.slot == slot), "{} slot {slot}", p.id);
+                assert!(
+                    p.writes.iter().any(|w| w.slot == slot),
+                    "{} slot {slot}",
+                    p.id
+                );
             }
             assert!(p.writes.iter().all(|w| w.slot < slots), "{}", p.id);
         }
@@ -421,11 +440,18 @@ mod tests {
         let turn = |to, from| (hue(to) - hue(from)).rem_euclid(1.0);
         let hair_turn = turn([40, 60, 200], palette("hair").unwrap().vanilla[0]);
         let brows_turn = turn(brows.unwrap()[0], palette("brows").unwrap().vanilla[0]);
-        assert!((brows_turn - hair_turn).abs() < 0.02, "{brows_turn} against {hair_turn}");
+        assert!(
+            (brows_turn - hair_turn).abs() < 0.02,
+            "{brows_turn} against {hair_turn}"
+        );
         let own = Picked::of([200, 20, 20]);
         let both: Colors = [("hair".to_owned(), hair), ("brows".to_owned(), own.clone())].into();
         assert_eq!(with_followers(&both).unwrap()["brows"], own);
-        assert!(!with_followers(&Colors::new()).unwrap().contains_key("brows"));
+        assert!(
+            !with_followers(&Colors::new())
+                .unwrap()
+                .contains_key("brows")
+        );
     }
 
     #[test]
@@ -496,13 +522,23 @@ mod tests {
                             assert!(dir.join("romfs").join(&path).exists(), "{path} is written");
                             for model in models {
                                 let data = crate::game::read_built(&romfs, &dir, model);
-                                assert!(has(&data, &to) && !has(&data, alias), "{model} names {to}");
+                                assert!(
+                                    has(&data, &to) && !has(&data, alias),
+                                    "{model} names {to}"
+                                );
                             }
                         }
                         if let Some(metal) = texture.metal {
                             let to = marked(super::name(metal), copy.mark).unwrap();
-                            assert!(dir.join("romfs").join(metal.replace(super::name(metal), &to)).exists());
-                            assert!(!dir.join("romfs").join(metal).exists(), "{metal} is left alone");
+                            assert!(
+                                dir.join("romfs")
+                                    .join(metal.replace(super::name(metal), &to))
+                                    .exists()
+                            );
+                            assert!(
+                                !dir.join("romfs").join(metal).exists(),
+                                "{metal} is left alone"
+                            );
                             for model in copy.models {
                                 let data = crate::game::read_built(&romfs, &dir, model);
                                 assert!(has(&data, &to), "{model} names {to}");

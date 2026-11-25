@@ -903,12 +903,16 @@ fn band(romfs: &Romfs, game: &Path, texture: &str, bands: &[String]) -> Result<(
         .with_context(|| format!("no texture {texture}"))?;
     let rgba = ounce_formats::top_level(&data)?.rgba;
     let n = (rgba.len() / 4).max(1) as u64;
-    let mean: [u64; 3] = std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
+    let mean: [u64; 3] =
+        std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
     println!("all        {mean:?}");
     for b in bands {
         let (lo, hi) = b.split_once('-').context("a band is LO-HI")?;
         let hues = (lo.parse()?, hi.parse()?);
-        let share = rgba.chunks(4).filter(|px| paint::in_band(px, hues).is_some()).count();
+        let share = rgba
+            .chunks(4)
+            .filter(|px| paint::in_band(px, hues).is_some())
+            .count();
         match paint::mean(&rgba, hues) {
             Some((h, s, v)) => println!(
                 "{b:<10} {:?}  {:.1}% of texels",

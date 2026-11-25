@@ -103,13 +103,17 @@ impl Previews {
         let mut rgba = vanilla.rgba.clone();
         if let Some(picked) = picked {
             let here = jobs(palette, picked)?.into_iter();
-            let here: Vec<_> = here.filter(|j| j.write.texture().is_some_and(|t| t.path == path)).collect();
+            let here: Vec<_> = here
+                .filter(|j| j.write.texture().is_some_and(|t| t.path == path))
+                .collect();
             paint_jobs(&mut rgba, &here)?;
         }
         if vanilla.height <= GRADIENT {
             // A gradient (the hair's) reads better on a sphere than as a strip.
             let row = rgba[..vanilla.width * 4].chunks(4);
-            let ramp: Vec<_> = row.map(|px| oklch::to_linear([px[0], px[1], px[2]])).collect();
+            let ramp: Vec<_> = row
+                .map(|px| oklch::to_linear([px[0], px[1], px[2]]))
+                .collect();
             return crate::sprites::png(&sphere(&ramp));
         }
         if view == View::Changes {
@@ -124,7 +128,11 @@ impl Previews {
 /// A tint moves every texel, so it greys none.
 fn grey_unchanged(rgba: &mut [u8], vanilla: &[u8], palette: &Palette, path: &str) {
     let mut bands: Vec<Hues> = Vec::new();
-    for write in palette.writes.iter().filter(|w| w.texture().is_some_and(|t| t.path == path)) {
+    for write in palette
+        .writes
+        .iter()
+        .filter(|w| w.texture().is_some_and(|t| t.path == path))
+    {
         match write.kind {
             Kind::Band { hues, .. } => bands.push(hues),
             _ => return,
@@ -140,14 +148,25 @@ fn grey_unchanged(rgba: &mut [u8], vanilla: &[u8], palette: &Palette, path: &str
 
 /// The colours `palette` writes to `material`, as `picked` sets them or
 /// vanilla without a pick, in linear light.
-fn material_colours(palette: &Palette, material: &str, picked: Option<&Picked>) -> Result<Vec<[f32; 3]>> {
+fn material_colours(
+    palette: &Palette,
+    material: &str,
+    picked: Option<&Picked>,
+) -> Result<Vec<[f32; 3]>> {
     let on = |kind: &Kind| matches!(kind, Kind::Param { material: m, .. } if *m == material);
     let goals: Vec<_> = match picked {
         Some(picked) => {
-            let here = jobs(palette, picked)?.into_iter().filter(|j| on(&j.write.kind));
+            let here = jobs(palette, picked)?
+                .into_iter()
+                .filter(|j| on(&j.write.kind));
             here.map(|j| j.goal).collect()
         }
-        None => palette.writes.iter().filter(|w| on(&w.kind)).map(|w| w.vanilla()).collect(),
+        None => palette
+            .writes
+            .iter()
+            .filter(|w| on(&w.kind))
+            .map(|w| w.vanilla())
+            .collect(),
     };
     Ok(goals.into_iter().map(oklch::to_linear).collect())
 }
@@ -171,7 +190,10 @@ fn sphere(colours: &[[f32; 3]]) -> Texture {
     let mut rgba = Vec::with_capacity(SIZE * SIZE * 4);
     for y in 0..SIZE {
         for x in 0..SIZE {
-            let (nx, ny) = ((x as f32 + 0.5 - SIZE as f32 / 2.0) / r, (SIZE as f32 / 2.0 - y as f32 - 0.5) / r);
+            let (nx, ny) = (
+                (x as f32 + 0.5 - SIZE as f32 / 2.0) / r,
+                (SIZE as f32 / 2.0 - y as f32 - 0.5) / r,
+            );
             let d2 = nx * nx + ny * ny;
             let lin = if d2 > 1.0 {
                 [0.012; 3]

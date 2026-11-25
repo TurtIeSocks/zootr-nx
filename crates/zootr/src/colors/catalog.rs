@@ -213,13 +213,35 @@ pub const PALETTES: &[Palette] = &[
         id: "brows",
         label: "Eyebrows and lashes",
         group: Group::Link,
-        vanilla: &[[151, 108, 65], [172, 121, 27], [115, 88, 60], [181, 139, 94]],
+        vanilla: &[
+            [151, 108, 65],
+            [172, 121, 27],
+            [115, 88, 60],
+            [181, 139, 94],
+        ],
         names: &["Brows", "Shade", "Dark", "Light"],
         writes: &[
-            param(&[ADULT, CHILD, CHILD_OP], EYEBROW, C0, [0.3093, 0.1511, 0.0521]),
+            param(
+                &[ADULT, CHILD, CHILD_OP],
+                EYEBROW,
+                C0,
+                [0.3093, 0.1511, 0.0521],
+            ),
             param(&[ADULT, CHILD, CHILD_OP], EYEBROW, C1, [0.41, 0.19, 0.011]).at(1),
-            param(&[ADULT, CHILD, CHILD_OP], EYEBROW, C2, [0.1706, 0.0982, 0.0454]).at(2),
-            param(&[ADULT, CHILD, CHILD_OP], EYEBROW, C3, [0.4624, 0.2567, 0.1114]).at(3),
+            param(
+                &[ADULT, CHILD, CHILD_OP],
+                EYEBROW,
+                C2,
+                [0.1706, 0.0982, 0.0454],
+            )
+            .at(2),
+            param(
+                &[ADULT, CHILD, CHILD_OP],
+                EYEBROW,
+                C3,
+                [0.4624, 0.2567, 0.1114],
+            )
+            .at(3),
             param(&[ADULT], EYELASHES, C0, [0.2234, 0.1308, 0.0455]),
             param(&[ADULT], EYELASHES, C1, [0.2234, 0.1308, 0.0455]).at(1),
             param(&[ADULT], EYELASHES, C2, [0.0283, 0.0201, 0.0125]).at(2),
@@ -359,12 +381,29 @@ pub const PALETTES: &[Palette] = &[
         id: "master-sword",
         label: "Master Sword",
         group: Group::Gear,
-        vanilla: &[[78, 79, 137], [41, 153, 170], [235, 175, 255], [255, 255, 0]],
+        vanilla: &[
+            [78, 79, 137],
+            [41, 153, 170],
+            [235, 175, 255],
+            [255, 255, 0],
+        ],
         names: &["Hilt", "Sheen", "Sheen 2", "Sheen 3"],
         writes: &[
             band(&MASTER_SWORD, (0.55, 0.75), [78, 79, 137]),
-            param(&[MASTER, MASTER_PEDESTAL], SWORD_SHEEN, C0, [0.0225, 0.3182, 0.4024]).at(1),
-            param(&[MASTER, MASTER_PEDESTAL], SWORD_SHEEN, C1, [0.8317, 0.4283, 1.0]).at(2),
+            param(
+                &[MASTER, MASTER_PEDESTAL],
+                SWORD_SHEEN,
+                C0,
+                [0.0225, 0.3182, 0.4024],
+            )
+            .at(1),
+            param(
+                &[MASTER, MASTER_PEDESTAL],
+                SWORD_SHEEN,
+                C1,
+                [0.8317, 0.4283, 1.0],
+            )
+            .at(2),
             param(&[MASTER, MASTER_PEDESTAL], SWORD_SHEEN, C2, [1.0, 1.0, 0.0]).at(3),
         ],
     },
@@ -427,20 +466,86 @@ pub const PALETTES: &[Palette] = &[
         names: &["Wood", "Gem", "Tiles", "Inlay"],
         writes: &[
             band(&BOOMERANG, (0.025, 0.08), [98, 67, 50]),
-            param(&[BOOMERANG_MODEL], BOOMERANG_GEM, C0, [0.2499, 0.0019, 0.0019]).at(1),
-            param(&[BOOMERANG_MODEL], BOOMERANG_GEM, C1, [0.7237, 0.0079, 0.0125]).at(1),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_GEM,
+                C0,
+                [0.2499, 0.0019, 0.0019],
+            )
+            .at(1),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_GEM,
+                C1,
+                [0.7237, 0.0079, 0.0125],
+            )
+            .at(1),
             param(&[BOOMERANG_MODEL], BOOMERANG_GEM, C2, [1.0, 0.0, 0.0281]).at(1),
             band(&BOOMERANG, (0.3, 0.45), [44, 76, 51]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_1, C0, [0.0056, 0.0331, 0.0045]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_1, C1, [0.1511, 0.0489, 0.0958]).at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_1,
+                C0,
+                [0.0056, 0.0331, 0.0045],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_1,
+                C1,
+                [0.1511, 0.0489, 0.0958],
+            )
+            .at(2),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_1, C2, [0.0, 0.32, 0.17]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_1, C3, [0.62, 0.3672, 0.2685]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_2, C0, [0.0367, 0.0835, 0.0001]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_2, C1, [0.25, 0.1706, 0.0055]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_2, C2, [0.24, 0.41, 0.0809]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_2, C3, [0.68, 0.4995, 0.2094]).at(2),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C0, [0.007, 0.0509, 0.0349]).at(3),
-            param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C1, [0.0466, 0.2049, 0.2581]).at(3),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_1,
+                C3,
+                [0.62, 0.3672, 0.2685],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_2,
+                C0,
+                [0.0367, 0.0835, 0.0001],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_2,
+                C1,
+                [0.25, 0.1706, 0.0055],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_2,
+                C2,
+                [0.24, 0.41, 0.0809],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_2,
+                C3,
+                [0.68, 0.4995, 0.2094],
+            )
+            .at(2),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_3,
+                C0,
+                [0.007, 0.0509, 0.0349],
+            )
+            .at(3),
+            param(
+                &[BOOMERANG_MODEL],
+                BOOMERANG_TILE_3,
+                C1,
+                [0.0466, 0.2049, 0.2581],
+            )
+            .at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C2, [0.22, 0.19, 0.2]).at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C3, [0.06, 0.54, 0.28]).at(3),
         ],

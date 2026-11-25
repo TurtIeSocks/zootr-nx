@@ -306,7 +306,11 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
         info.name
     );
     let from_bc7 = info.kind()? == Kind::Bc7;
-    let kind = if from_bc7 { Kind::Astc(4, 4) } else { info.kind()? };
+    let kind = if from_bc7 {
+        Kind::Astc(4, 4)
+    } else {
+        info.kind()?
+    };
     let (bw, bh, unit) = kind.block();
     ensure!(
         info.start + info.size <= data.len(),

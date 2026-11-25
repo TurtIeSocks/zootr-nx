@@ -137,10 +137,8 @@ pub const CHILD_HAIR: Tex = tex("Tex/Player_Child_Hairs_Gn0.bntx.zs");
 
 // Gear whose look is partly material params: their models.
 pub const MASTER: &str = "Model/Weapon_Sword_Master.Weapon_Sword_Master.bfres.zs";
-pub const MASTER_PEDESTAL: &str =
-    "Model/Weapon_Sword_Master.Land_HrlCity_MasterSword.bfres.zs";
-pub const SILVER: &str =
-    "Model/Armor_Adult_Gauntlet_Silver.Armor_Adult_Gauntlet_Silver.bfres.zs";
+pub const MASTER_PEDESTAL: &str = "Model/Weapon_Sword_Master.Land_HrlCity_MasterSword.bfres.zs";
+pub const SILVER: &str = "Model/Armor_Adult_Gauntlet_Silver.Armor_Adult_Gauntlet_Silver.bfres.zs";
 pub const GOLD: &str = "Model/Armor_Adult_Gauntlet_Gold.Armor_Adult_Gauntlet_Gold.bfres.zs";
 pub const BRACELET: &str = "Model/Item_Gauntlet_Goron.Item_Gauntlet_Goron.bfres.zs";
 pub const HOVER: &str = "Model/Armor_Adult_HoverBoot.Armor_Adult_HoverBoot.bfres.zs";
