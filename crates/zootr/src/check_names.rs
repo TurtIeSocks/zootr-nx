@@ -9,7 +9,10 @@ use std::sync::OnceLock;
 use anyhow::{Context, Result, ensure};
 
 /// Every names file, by name. A test keeps this in step with `logic/names/`.
-const FILES: &[(&str, &str)] = &[];
+const FILES: &[(&str, &str)] = &[(
+    "water-temple.toml",
+    include_str!("../logic/names/water-temple.toml"),
+)];
 
 /// Each area's prefix, in OoTR's style: dungeons spelled out, overworld
 /// areas by OoTR's abbreviations, apostrophes dropped. Keyed by the area's

@@ -1,0 +1,77 @@
+# Water Temple. OoTR's name wherever the remake keeps the spot: matched
+# by each check's room and rule, and the remake guides for the Gold
+# Skulltulas. Pots go by room, numbered west to east.
+
+# Room 0, Lobby
+3585686260179499649 = "Water Temple Lobby Pot 1"
+9614156843162683069 = "Water Temple Lobby Pot 2"
+5848096526143037248 = "Water Temple Lobby Pot 3"
+7397402781751080416 = "Water Temple Lobby Pot 4"
+1279554567131519582 = "Water Temple Lobby Pot 5"
+4025608826386451139 = "Water Temple Lobby Pot 6"
+
+# Room 1, high on the central pillar: OoTR's needs the Longshot, as ours does.
+11571778270592589517 = "Water Temple GS Central Pillar"
+
+# Room 2, the alcove at the pillar's foot: OoTR's Behind Gate GS needs low
+# water, explosives and the Hookshot, as ours does, and has four pots.
+16157272130665282352 = "Water Temple GS Behind Gate"
+116284582719887989 = "Water Temple Behind Gate Pot 1"
+5604234566446979847 = "Water Temple Behind Gate Pot 2"
+16356631288008319500 = "Water Temple Behind Gate Pot 3"
+2730270174636576878 = "Water Temple Behind Gate Pot 4"
+11682974908842171598 = "Water Temple Central Pillar Chest" # guess: the pillar's bottom chest
+
+# Room 3, the compass room
+4495046968780299020 = "Water Temple Near Compass Pot 1"
+4630615646721664618 = "Water Temple Near Compass Pot 2"
+16424266294822218796 = "Water Temple Compass Chest"
+
+# Room 4, east, behind the cracked wall route
+16490222392193949581 = "Water Temple Cracked Wall Chest" # guess
+
+# Room 6, Tektite Hall
+13892637748591133371 = "Water Temple Tektite Hall Pot 1"
+7331502814510362649 = "Water Temple Tektite Hall Pot 2"
+7321227760391395251 = "Water Temple Tektite Hall Pot 3"
+7249585227432273089 = "Water Temple Tektite Hall Pot 4"
+
+# Room 7, past Dark Link
+18059711820131847165 = "Water Temple Longshot Chest"
+
+# Room 8, the torch room
+2503861086004941173 = "Water Temple Torches Chest"
+
+# Room 15
+10378828369334876242 = "Water Temple Boss Key Chest"
+
+# Room 17, the map room
+12146339761792216385 = "Water Temple Map Room Pot 1"
+18317670516128277611 = "Water Temple Map Room Pot 2"
+16384925224245172970 = "Water Temple Map Chest"
+
+# Room 18: the chest appears once the spikes die. The remake's own spot.
+18099019250896853049 = "Water Temple Spike Pit Chest"
+
+# Room 20, north of the central pillar, under water: Bow and Longshot.
+3693930347660122883 = "Water Temple Central Bow Target Chest"
+
+# Room 21, over the river
+15506432733081566465 = "Water Temple GS River"
+7934783801419233385 = "Water Temple River Pot 1"
+7109345210051555604 = "Water Temple River Pot 2"
+16885214594534747225 = "Water Temple River Pot 3"
+6304980196399281219 = "Water Temple River Pot 4"
+
+# Room 23 and the boss
+14426685265732353862 = "Water Temple Morpha Heart"
+16080263030858016933 = "Water Temple Morpha"
+
+# Room 24, the boulder corridor on the way to the Boss Key
+186694424287048567 = "Water Temple GS Near Boss Key Chest"
+
+# Room 25, east: the remake moved OoTR's Falling Platform Room GS to a
+# bombed wall (guides), so it takes the room's name.
+4399424945134189769 = "Water Temple GS Shell Blade Alcove" # guess: which cage token moved
+12534845042709325315 = "Water Temple Shell Blade Alcove Pot 1"
+3591228656871093720 = "Water Temple Shell Blade Alcove Pot 2"
