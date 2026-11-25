@@ -15,6 +15,11 @@ use ounce_formats::copy_mod;
 /// Held while a seed is being installed, so two can't overlap.
 static INSTALLING: Mutex<()> = Mutex::new(());
 
+/// Install and uninstall refuse to overlap, so every test that installs
+/// takes turns.
+#[cfg(test)]
+pub(crate) static INSTALLS: Mutex<()> = Mutex::new(());
+
 /// Run `f` unless another install runs or any target's game is open.
 fn guarded<T>(targets: &[Target], f: impl FnOnce() -> Result<T>) -> Result<T> {
     let Ok(_installing) = INSTALLING.try_lock() else {
@@ -170,12 +175,9 @@ mod tests {
         }
     }
 
-    /// Install and uninstall refuse to overlap, so their tests take turns.
-    static TURNS: Mutex<()> = Mutex::new(());
-
     #[test]
     fn uninstalling_takes_the_romfs_cheat_and_mod_settings_lines_off_every_target() {
-        let _turn = TURNS.lock().unwrap();
+        let _turn = INSTALLS.lock().unwrap();
         let dir = Scratch::new("uninstall");
         let mod_dir = dir.join("mod");
         std::fs::create_dir_all(mod_dir.join("romfs/Pack")).unwrap();
@@ -214,7 +216,7 @@ mod tests {
 
     #[test]
     fn install_writes_one_folder_copies_it_to_the_rest_then_every_settings_line() {
-        let _turn = TURNS.lock().unwrap();
+        let _turn = INSTALLS.lock().unwrap();
         let dir = Scratch::new("install");
         let target = |name: &str, mod_dir: &str, line: bool| Target {
             name: name.into(),
@@ -257,7 +259,7 @@ mod tests {
 
     #[test]
     fn a_target_of_another_build_is_skipped_and_none_taking_it_is_an_error() {
-        let _turn = TURNS.lock().unwrap();
+        let _turn = INSTALLS.lock().unwrap();
         let dir = Scratch::new("builds");
         let target = |name: &str, release| Target {
             name: name.into(),
@@ -297,7 +299,7 @@ mod tests {
 
     #[test]
     fn the_cheat_stays_only_where_a_target_reads_it() {
-        let _turn = TURNS.lock().unwrap();
+        let _turn = INSTALLS.lock().unwrap();
         let dir = Scratch::new("cheat");
         let target = |mod_dir: &str, line: &str| Target {
             name: mod_dir.into(),
@@ -365,7 +367,7 @@ mod tests {
 
     #[test]
     fn a_stop_or_failure_once_a_folder_is_replaced_takes_the_mod_off_every_target() {
-        let _turn = TURNS.lock().unwrap();
+        let _turn = INSTALLS.lock().unwrap();
         let dir = Scratch::new("stop");
         let target = |name: &str| Target {
             name: name.into(),
@@ -484,5 +486,73 @@ mod tests {
         // And the lock it held is free for the next install.
         fresh();
         install(&targets[..1], Release::V111, &Run::silent(), |_| Ok(())).unwrap();
+    }
+
+    /// Every caller of [`generate`](super::generate) outside tests, and why its folder is
+    /// finished right: a seed written straight into a target's folder keeps
+    /// its table in the exefs patch, and a game that builds the patch in
+    /// rebuilds for every seed. A new caller goes through `install` or
+    /// `throwaway`, and is added here on purpose.
+    const WRITERS: [(&str, &str); 4] = [
+        (
+            "crates/zootr/src/cli/seed.rs",
+            "Shuffle::write installs, or writes a folder no target reads",
+        ),
+        ("crates/zootr/src/ap/bench.rs", "into a throwaway folder"),
+        (
+            "crates/zootr/src/sweep/night.rs",
+            "roll, which install and throwaway take",
+        ),
+        ("app/src-tauri/src/generating.rs", "install or throwaway"),
+    ];
+
+    #[test]
+    fn every_seed_writer_is_one_that_finishes_its_folder() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let mut found = Vec::new();
+        for dir in ["crates/zootr/src", "app/src-tauri/src"] {
+            walk(&root.join(dir), &mut |path| {
+                if path.file_name().is_some_and(|n| n == "tests.rs") {
+                    return;
+                }
+                let text = std::fs::read_to_string(path).unwrap();
+                let code = text.split("#[cfg(test)]").next().unwrap();
+                let calls = code.lines().filter(|l| {
+                    let l = l.trim_start();
+                    !l.starts_with("//")
+                        && !l.contains("fn generate(")
+                        && (l.contains("generate::generate(") || l.contains(" generate(&"))
+                });
+                if calls.count() > 0 {
+                    let rel = path.strip_prefix(&root).unwrap().to_string_lossy();
+                    found.push(rel.replace('\\', "/"));
+                }
+            });
+        }
+        let listed: Vec<&str> = WRITERS.iter().map(|(f, _)| *f).collect();
+        for f in &found {
+            assert!(
+                listed.contains(&f.as_str()),
+                "{f} calls generate: see WRITERS"
+            );
+        }
+        for f in listed {
+            assert!(
+                found.iter().any(|g| g == f),
+                "{f} no longer calls generate: drop it from WRITERS"
+            );
+        }
+    }
+
+    /// Each `.rs` file under `dir`.
+    fn walk(dir: &Path, each: &mut dyn FnMut(&Path)) {
+        for entry in std::fs::read_dir(dir).unwrap().flatten() {
+            let path = entry.path();
+            match path.is_dir() {
+                true => walk(&path, each),
+                false if path.extension().is_some_and(|e| e == "rs") => each(&path),
+                false => {}
+            }
+        }
     }
 }

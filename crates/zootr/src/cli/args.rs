@@ -767,13 +767,21 @@ impl ModDir {
             Ok(out)
         };
         let targets = Config::load()?.targets;
-        let mods = targets.iter().map(|t| t.mod_dir.as_path());
-        if self.mod_dir.as_deref().is_none_or(|d| is_mod_dir(d, mods)) {
+        // A target's own folder gets a real install, so a game that builds
+        // the patch in keeps one patch for every seed.
+        let owners: Vec<_> = match &self.mod_dir {
+            Some(d) => (targets.iter())
+                .filter(|t| is_mod_dir(d, [t.mod_dir.as_path()]))
+                .cloned()
+                .collect(),
+            None => targets,
+        };
+        if !owners.is_empty() {
             crate::turn::hold(&crate::turn::session())?;
         }
         match self.mod_dir {
-            Some(d) => Ok((each(&d)?, false)),
-            None => Ok((generate::install(&targets, release, run, each)?, true)),
+            Some(d) if owners.is_empty() => Ok((each(&d)?, false)),
+            _ => Ok((generate::install(&owners, release, run, each)?, true)),
         }
     }
 }

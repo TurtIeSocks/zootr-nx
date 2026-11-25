@@ -7,17 +7,16 @@ use anyhow::Result;
 use ounce_formats::Romfs;
 
 use crate::dev;
+use crate::generate;
 use crate::settings::Settings;
 use crate::sweep::night::{self, holder_kind};
 use crate::sweep::plan::{Planned, Trigger};
 
 /// The sweep's plan for one round of `settings`, rolled into a temp mod
-/// folder of this process's own, which is removed after.
+/// folder, which is removed after.
 pub(super) fn round(romfs: &Romfs, seed: u64, settings: &Settings) -> Result<Vec<Planned>> {
-    let dir = std::env::temp_dir().join(format!("zootr-plan-{}", std::process::id()));
-    let planned = night::pool(romfs, &dir, seed, settings, &dev::places(romfs)?);
-    let _ = std::fs::remove_dir_all(&dir);
-    planned
+    let report = generate::throwaway(night::roll(romfs, seed, settings))?;
+    night::planned(romfs, &report, &dev::places(romfs)?)
 }
 
 /// Tally a round's spots by holder kind and how they'd be swept, and list

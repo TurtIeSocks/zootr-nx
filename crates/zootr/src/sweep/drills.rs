@@ -184,8 +184,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     ) -> Result<()> {
         std::fs::create_dir_all(&self.dir)?;
         let places = dev::places(self.romfs)?;
-        let mod_dir = &self.target.mod_dir;
-        let planned = night::pool(self.romfs, mod_dir, SEED, &settings()?, &places)?;
+        let planned = night::pool(self.romfs, self.target, SEED, &settings()?, &places)?;
         let drills = matched(drills, &planned)?;
         let rows = self.dir.join(ROWS);
         let first = night::next_round(&std::fs::read_to_string(&rows).unwrap_or_default());
