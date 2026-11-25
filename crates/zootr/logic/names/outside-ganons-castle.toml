@@ -1,0 +1,21 @@
+# Outside Ganon's Castle. OoTR's names for the Gold Skulltula (the stone
+# archway past the broken gate, as the remake guides place it) and the
+# Great Fairy. The pots are the remake's own, in the tower's collapse
+# after Ganondorf, which OoTR doesn't shuffle; numbered west to east.
+
+13784984248963672668 = "OGC Tower Collapse Lower Pot 1" # guess: the collapse sits under this area in our logic
+7806434487081634021 = "OGC Tower Collapse Lower Pot 2"
+15046736084248795685 = "OGC Tower Collapse Lower Pot 3"
+2995876338500118652 = "OGC Tower Collapse Lower Pot 4"
+7057323129962538362 = "OGC Tower Collapse Lower Pot 5"
+5547511959614762973 = "OGC Tower Collapse Lower Pot 6"
+10448158396041431760 = "OGC Tower Collapse Lower Pot 7"
+
+# The upper landing of the collapse, the first one down from the arena.
+1337254747199514230 = "OGC Tower Collapse Upper Pot 1"
+16158747032522515754 = "OGC Tower Collapse Upper Pot 2"
+
+5626064870824758772 = "OGC GS"
+
+# Past the pillar: Double Defense, as in OoTR.
+10465703333688921274 = "OGC Great Fairy Reward"

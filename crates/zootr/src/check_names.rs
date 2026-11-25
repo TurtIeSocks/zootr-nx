@@ -28,6 +28,10 @@ const FILES: &[(&str, &str)] = &[
     ),
     ("market.toml", include_str!("../logic/names/market.toml")),
     (
+        "outside-ganons-castle.toml",
+        include_str!("../logic/names/outside-ganons-castle.toml"),
+    ),
+    (
         "sacred-forest-meadow.toml",
         include_str!("../logic/names/sacred-forest-meadow.toml"),
     ),
