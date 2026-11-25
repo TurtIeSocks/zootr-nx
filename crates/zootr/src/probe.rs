@@ -20,6 +20,7 @@ mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
+mod colors;
 mod exefs;
 mod filter;
 mod formats;
@@ -577,9 +578,9 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
-        Probe::Materials { model } => materials(romfs, game, &model),
-        Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
-        Probe::Vfx { bundle, sum, raw } => vfx(romfs, game, &bundle, &sum, raw.as_deref()),
+        Probe::Materials { model } => colors::materials(romfs, game, &model),
+        Probe::Band { texture, bands } => colors::band(romfs, game, &texture, &bands),
+        Probe::Vfx { bundle, sum, raw } => colors::vfx(romfs, game, &bundle, &sum, raw.as_deref()),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -892,83 +893,6 @@ fn point(arg: &str) -> Result<[f32; 3]> {
         .map(|n| n.trim().parse())
         .collect::<Result<_, _>>()?;
     v.try_into().map_err(|_| anyhow::anyhow!("want X,Y,Z"))
-}
-
-/// `probe materials`.
-fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
-    // A built file (a mod's) by its path, or the dump's by a piece of one.
-    let data = match Path::new(model).is_file() {
-        true => romfs.dicts().decompress(model, &std::fs::read(model)?)?,
-        false => crate::nav::dump_file(romfs, game, model)?
-            .with_context(|| format!("no model {model}"))?,
-    };
-    for m in ounce_formats::materials(&data)? {
-        println!("{}", m.name);
-        println!("  textures {}", m.textures.join(" "));
-        for (hash, [r, g, b, a]) in &m.params {
-            println!("  {hash:016x}  {r:.4} {g:.4} {b:.4} {a:.4}");
-        }
-    }
-    Ok(())
-}
-
-/// `probe vfx`.
-fn vfx(romfs: &Romfs, game: &Path, bundle: &str, sum: &[String], raw: Option<&Path>) -> Result<()> {
-    use ounce_formats::vfx;
-    let data = match Path::new(bundle).is_file() {
-        true => romfs.dicts().decompress(bundle, &std::fs::read(bundle)?)?,
-        false => crate::nav::dump_file(romfs, game, &format!("{bundle}."))?
-            .with_context(|| format!("no bundle {bundle}"))?,
-    };
-    if let Some(raw) = raw {
-        std::fs::write(raw, &data)?;
-    }
-    let mut last = None;
-    for (eset, c) in vfx::constants_by_eset(&data)? {
-        if last.as_ref() != Some(&eset) {
-            println!("{}", eset.as_deref().unwrap_or("(before any eset)"));
-            last = Some(eset);
-        }
-        let [r, g, b, a] = c.value;
-        println!(
-            "  {:#08x}  {:016x}  {r:.4} {g:.4} {b:.4} {a:.4}",
-            c.at, c.hash
-        );
-    }
-    if !sum.is_empty() {
-        let esets: Vec<&str> = sum.iter().map(String::as_str).collect();
-        let (sum, found) = crate::colors::in_esets(&data, &esets)?;
-        println!("sum {sum:#010x} over {} constants", found.len());
-    }
-    Ok(())
-}
-
-fn band(romfs: &Romfs, game: &Path, texture: &str, bands: &[String]) -> Result<()> {
-    use crate::colors::paint;
-    let data = crate::nav::dump_file(romfs, game, texture)?
-        .with_context(|| format!("no texture {texture}"))?;
-    let rgba = ounce_formats::top_level(&data)?.rgba;
-    let n = (rgba.len() / 4).max(1) as u64;
-    let mean: [u64; 3] =
-        std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
-    println!("all        {mean:?}");
-    for b in bands {
-        let (lo, hi) = b.split_once('-').context("a band is LO-HI")?;
-        let hues = (lo.parse()?, hi.parse()?);
-        let share = rgba
-            .chunks(4)
-            .filter(|px| paint::in_band(px, hues).is_some())
-            .count();
-        match paint::mean(&rgba, hues) {
-            Some((h, s, v)) => println!(
-                "{b:<10} {:?}  {:.1}% of texels",
-                paint::rgb(h, s, v),
-                100.0 * share as f64 / n as f64
-            ),
-            None => println!("{b:<10} no texel"),
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]
