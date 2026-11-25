@@ -321,7 +321,7 @@ impl Config {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::known::{actor, flag, flow, item, map};
 
@@ -361,7 +361,7 @@ mod tests {
         dir
     }
 
-    pub(super) fn target(name: &str, save_dir: Option<&str>) -> Target {
+    pub(crate) fn target(name: &str, save_dir: Option<&str>) -> Target {
         Target {
             name: name.into(),
             app: "/a.app".into(),

@@ -110,7 +110,7 @@ async fn status() -> Res<Status> {
             mod_dir: t.mod_dir.is_dir(),
             running: t.running(),
             build: Build::of(t),
-            foreign: history.as_ref().and_then(|h| h.foreign_mod(&t.mod_dir)),
+            foreign: history.as_ref().and_then(|h| h.foreign_mod(t)),
         });
         Ok(Status {
             game: config.game.is_some_and(|g| g.exists()),
