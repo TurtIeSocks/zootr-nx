@@ -72,9 +72,10 @@
 15996033407155777420 = "Spirit Temple 1F Adult Climb Flying Pot 1" # guess: the two flying pots on the adult side's way up
 16552860015818359893 = "Spirit Temple 1F Adult Climb Flying Pot 2" # guess: as above
 
-# The first mirror room. OoTR has a left and a right chest here; the
-# remake has one.
-12909857529499414969 = "Spirit Temple 2F First Mirror Chest" # guess: one chest where OoTR has two, so neither side's name
+# The first mirror room's two chests, left and right from either door.
+# The right one is the ice trap's.
+12909857529499414969 = "Spirit Temple 2F First Mirror Left Chest"
+876108895472176682 = "Spirit Temple 2F First Mirror Right Chest"
 
 # East upstairs: the pot in the Beamos hall, the Anubis room's bomb pot,
 # the four Armos room and the key chest off it, and the hall with the two
