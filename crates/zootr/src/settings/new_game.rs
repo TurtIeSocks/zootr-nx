@@ -11,6 +11,8 @@ pub struct NewGame {
     pub defaults: Vec<String>,
     pub skips: Skips,
     pub chest_size: ChestSize,
+    /// A chest's look says what it holds (`chest_looks`).
+    pub chest_looks: bool,
     /// Leave every check's item where it is.
     pub vanilla: bool,
     /// Leave each chest's item where it is, and shuffle the other checks.
@@ -208,6 +210,7 @@ impl NewGame {
                     .collect(),
             },
             chest_size: chosen(settings, CHEST_SIZE),
+            chest_looks: on(CHEST_LOOKS),
             ice_traps: chosen(settings, ICE_TRAPS),
             vanilla: !on(SHUFFLE_ITEMS),
             keep_chests: !on(CHESTS),
@@ -455,6 +458,7 @@ mod tests {
                 defaults: with_defaults(&[]),
                 skips: Skips::default(),
                 chest_size: ChestSize::Vanilla,
+                chest_looks: false,
                 vanilla: true,
                 keep_chests: true,
                 start: starting::Start::of(&starting::DEFAULT),

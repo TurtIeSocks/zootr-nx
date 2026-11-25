@@ -103,6 +103,30 @@ const OWN: [(&Name, Colour); 2] = [
 const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
 const FORTRESS_COLOUR: Colour = [90, 55, 30];
 
+/// How many dungeons' keys have a colour: [`DUNGEONS`], then the Gerudo
+/// Fortress.
+pub(crate) const KEY_DUNGEONS: usize = FORTRESS_MODEL;
+
+/// Key dungeon `n`'s colour, counting from 1 as [`KEY_DUNGEONS`] does.
+pub(crate) fn key_colour(n: usize) -> Option<Colour> {
+    match n {
+        FORTRESS_MODEL => Some(FORTRESS_COLOUR),
+        n if (1..=DUNGEONS.len()).contains(&n) => colour(dungeon(n).name),
+        _ => None,
+    }
+}
+
+/// The key dungeon, as [`KEY_DUNGEONS`] counts, whose key `item` is when it
+/// says so itself: a dungeon's tinted key, key copy or ring, or a Fortress
+/// key.
+pub(crate) fn key_dungeon(item: &str) -> Option<usize> {
+    if item.starts_with(FORTRESS_KEY) {
+        return Some(FORTRESS_MODEL);
+    }
+    let tinted = (1..=DUNGEONS.len()).find(|n| chest_key(*n) == item);
+    tinted.or_else(|| copied_as(item).map(|(_, n)| n))
+}
+
 fn colour(dungeon: &Name) -> Option<Colour> {
     let song = SONGS.iter().find(|(d, _)| *d == dungeon);
     song.and_then(|(_, s)| medallions::colour(s))
@@ -111,7 +135,7 @@ fn colour(dungeon: &Name) -> Option<Colour> {
 
 /// Dungeon `n`'s small key as a chest's content. On the floor it's the
 /// model's own name.
-fn chest_key(n: usize) -> String {
+pub(crate) fn chest_key(n: usize) -> String {
     format!("{MADE}SmallKey{n:02}")
 }
 

@@ -251,6 +251,7 @@ const SKIP_OWL: &str = "skip-owl";
 const SKIP_GREAT_DEKU: &str = "skip-great-deku";
 const SKIP_ARRIVALS: &str = "skip-arrivals";
 pub(crate) const CHEST_SIZE: &str = "chest-size";
+pub(crate) const CHEST_LOOKS: &str = "chest-looks";
 pub(crate) const LOGIC: &str = "logic";
 pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
 pub(crate) const CHESTS: &str = "chests";

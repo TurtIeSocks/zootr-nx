@@ -10,8 +10,8 @@ use super::{BOSS_COPIES, Parts};
 use crate::checks::{self, Drop, Watched};
 use crate::events::Flows;
 use crate::{
-    adult_jabu, carpenters, chest_size, enemies, entrances, fortress, gifts, goron_pot, jabu_mood,
-    key_tints, picked, pickups, scrubs, shops, twins,
+    adult_jabu, carpenters, chest_looks, chest_size, enemies, entrances, fortress, gifts,
+    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins,
 };
 
 /// The map pass's inputs, worked out once, and what it gathers map by map.
@@ -160,6 +160,8 @@ impl<'p, 'a> Banc<'p, 'a> {
         // After resizing: a resized chest runs its new size's flow.
         let levels = &parts.reads.levels;
         let levelled = levels.name(romfs, root, &mut self.chest_events)? > 0;
+        // Last: everything above reads a chest by its host's name.
+        let looked = chest_looks::swap(&rel, root, new_game)? > 0;
         let bridged = carpenters::banc(&rel, root)?;
         self.valley += bridged;
         let doors = match &parts.reads.doors {
@@ -175,6 +177,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             || resized
             || tinted
             || levelled
+            || looked
             || doors
             || bridged > 0
             || !changed.is_empty()

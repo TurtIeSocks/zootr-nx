@@ -9,7 +9,7 @@ use crate::known::texture;
 use crate::medallions::Colour;
 
 /// The mark's colour.
-pub(super) const GOLD: Colour = [255, 200, 60];
+pub(crate) const GOLD: Colour = [255, 200, 60];
 
 /// A texel's brightness lifted and squeezed before it takes the gold, so a
 /// dark texel still reads gold and the grain stays.
@@ -20,13 +20,13 @@ const LIFT: (f32, f32) = (0.42, 0.72);
 const LIGHT: u32 = 185;
 
 /// An albedo being painted: its first level, and which texels changed.
-pub(super) struct Canvas {
-    pub(super) texture: Texture,
+pub(crate) struct Canvas {
+    pub(crate) texture: Texture,
     pub(super) painted: Vec<bool>,
 }
 
 impl Canvas {
-    pub(super) fn new(texture: Texture) -> Self {
+    pub(crate) fn new(texture: Texture) -> Self {
         let painted = vec![false; texture.width * texture.height];
         Self { texture, painted }
     }
@@ -36,7 +36,7 @@ impl Canvas {
     }
 
     /// Whether texel (`x`, `y`) changed.
-    pub(super) fn is_painted(&self, x: usize, y: usize) -> bool {
+    pub(crate) fn is_painted(&self, x: usize, y: usize) -> bool {
         self.painted[self.at(x, y)]
     }
 
@@ -57,11 +57,6 @@ impl Canvas {
     fn luma(&self, x: usize, y: usize) -> u32 {
         let at = self.at(x, y);
         luma(&self.texture.rgba[4 * at..4 * at + 4])
-    }
-
-    /// Texel (`x`, `y`)'s brightened gold.
-    fn gold(&self, x: usize, y: usize) -> [f32; 3] {
-        brightened(self.luma(x, y))
     }
 
     /// The rows between `top` and `bottom` (as fractions of the height) in
@@ -85,18 +80,23 @@ impl Canvas {
         (right, bottom): (f32, f32),
         feather: f32,
     ) {
-        let (width, height) = (self.texture.width as f32, self.texture.height as f32);
         let inside = |at: f32, from: f32, to: f32| {
             ((at - from) / feather + 0.5).min((to - at) / feather + 0.5)
         };
+        self.wash(GOLD, |u, v| {
+            inside(v, top, bottom).min(inside(u, left, right))
+        });
+    }
+
+    /// Each texel lifted toward `colour` by the share `cover` gives at its
+    /// centre (u, v, fractions of the texture), keeping its grain.
+    pub(crate) fn wash(&mut self, colour: Colour, cover: impl Fn(f32, f32) -> f32) {
+        let (width, height) = (self.texture.width as f32, self.texture.height as f32);
         for y in 0..self.texture.height {
-            let down = inside((y as f32 + 0.5) / height, top, bottom);
-            if down <= 0.0 {
-                continue;
-            }
+            let v = (y as f32 + 0.5) / height;
             for x in 0..self.texture.width {
-                let share = down.min(inside((x as f32 + 0.5) / width, left, right));
-                self.blend(x, y, self.gold(x, y), share.clamp(0.0, 1.0));
+                let share = cover((x as f32 + 0.5) / width, v).clamp(0.0, 1.0);
+                self.blend(x, y, lifted(colour, self.luma(x, y)), share);
             }
         }
     }
@@ -105,7 +105,7 @@ impl Canvas {
     /// (fractions of the texture), `width` as wide as `height` makes it
     /// on the model at `stretch`, metres per v over metres per u. It's
     /// turned upside down in the image when the model shows the image so.
-    pub(super) fn stamp(
+    pub(crate) fn stamp(
         &mut self,
         mark: &Mark,
         (u, v): (f32, f32),
@@ -141,7 +141,7 @@ impl Canvas {
 /// Which way up a model shows its texture: image rows running down it
 /// (`AsIs`) or up it (`Flipped`).
 #[derive(Clone, Copy)]
-pub(super) enum Upright {
+pub(crate) enum Upright {
     AsIs,
     Flipped,
 }
@@ -152,13 +152,13 @@ fn lit(luma: u32) -> f32 {
     (LIFT.0 + LIFT.1 * luma as f32 / 255.0).min(1.0)
 }
 
-/// The gold a texel of brightness `luma` (0 to 255) becomes.
-fn brightened(luma: u32) -> [f32; 3] {
-    GOLD.map(|c| c as f32 * lit(luma))
+/// The `colour` a texel of brightness `luma` (0 to 255) becomes.
+fn lifted(colour: Colour, luma: u32) -> [f32; 3] {
+    colour.map(|c| c as f32 * lit(luma))
 }
 
 /// A shape to stamp: how much of each texel it covers, 0 to 1, apex up.
-pub(super) struct Mark {
+pub(crate) struct Mark {
     width: usize,
     height: usize,
     cover: Vec<f32>,
@@ -264,12 +264,12 @@ mod tests {
     }
 
     #[test]
-    fn brightened_gold_keeps_the_grain() {
-        let (dark, light) = (brightened(40), brightened(200));
+    fn lifted_gold_keeps_the_grain() {
+        let (dark, light) = (lifted(GOLD, 40), lifted(GOLD, 200));
         assert!(dark[0] < light[0] && dark[1] < light[1]);
         // A dark texel still reads gold, not brown.
         assert!(dark[0] > 120.0, "{dark:?}");
-        assert!(brightened(255)[0] <= 255.0);
+        assert!(lifted(GOLD, 255)[0] <= 255.0);
     }
 
     #[test]

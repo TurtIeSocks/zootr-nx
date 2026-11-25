@@ -313,6 +313,7 @@ pub fn landing_at(pose: &Pose, side: Side, ahead: f32) -> [f32; 3] {
 /// never. The boss key chest (`A_03`) borrows the big chest's sensor and
 /// blackboard, and opened 2 times in 17 left unturned.
 fn mirrored(actor: &str) -> bool {
+    let actor = crate::chest_looks::host(actor);
     [actor::OBJ_T_BOX_A_02, actor::OBJ_T_BOX_A_03]
         .iter()
         .any(|big| actor.contains(big.trim_start_matches("Obj_")))

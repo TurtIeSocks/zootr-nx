@@ -219,6 +219,7 @@ pub const OBJ_STEP_SWITCH_A_01: &Name = &n!(0x4bbb35eab7bf0b65);
 pub const OBJ_SWITCH_HIT_A_05: &Name = &n!(0x6b48ceb1bc2420c2);
 pub const OBJ_TOKEN_GOLD_ANIMATION: &Name = &n!(0x0d4d35b910f28cee);
 pub const OBJ_TREE_A_02: &Name = &n!(0xb123291b825e8976);
+pub const OBJ_T_BOX_A: &Name = &n!(0xda2d9838f16a3656);
 pub const OBJ_T_BOX_A_01: &Name = &n!(0x352f4f3f8a38ed90);
 pub const OBJ_T_BOX_A_01_MEMO11: &Name = &n!(0xfb3bb1caa257fb0d);
 pub const OBJ_T_BOX_A_01_NO_BAKE: &Name = &n!(0x60c172d2764b2e47);
