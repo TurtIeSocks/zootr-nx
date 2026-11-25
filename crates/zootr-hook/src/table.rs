@@ -30,6 +30,9 @@ pub const DEV: u32 = 16;
 /// The header's flag for a seed whose bombchus need a Bombchu Bag, which
 /// sets their own expansion value.
 pub const BOMBCHU_BAG: u32 = 32;
+/// The header's flag for a seed where A on a songbook song plays it
+/// (`ui::songs`). 64 is [`crate::CHILD_GEAR`].
+pub const ONE_TAP_SONGS: u32 = 128;
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.

@@ -42,13 +42,15 @@ pub const GEAR_MENU: u32 = 96;
 pub const GEAR_WORN: u32 = 100;
 /// The equipment cells' call to the worn test.
 pub const GEAR_MARK: u32 = 104;
+/// The ocarina's input, each frame it's out.
+pub const OCARINA_INPUT: u32 = 108;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Each entry's branch target in `game.rs`, and its offset here.
-    const ENTRIES: [(&str, u32); 27] = [
+    const ENTRIES: [(&str, u32); 28] = [
         ("content_name_entry", CONTENT_NAME),
         ("drop_actor", DROP_ACTOR),
         ("map_loaded_entry", MAP_LOADED),
@@ -76,6 +78,7 @@ mod tests {
         ("gear_menu_entry", GEAR_MENU),
         ("gear_worn_entry", GEAR_WORN),
         ("gear_mark_entry", GEAR_MARK),
+        ("ocarina_input_entry", OCARINA_INPUT),
     ];
 
     #[test]

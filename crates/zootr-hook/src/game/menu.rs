@@ -5,7 +5,7 @@
 //! each slot's cell show what the store says, on the menu's own thread.
 //! See `docs/research/in-game-ui.md`.
 
-use super::{at, chests, dev, func, hooked, name, shared, table};
+use super::{at, chests, dev, func, hooked, name, shared, songbook, table};
 use crate::Table;
 use crate::ui::{Buttons, MAX_SLOTS, Page, PageUp, Seen};
 
@@ -95,27 +95,32 @@ type Icon = unsafe extern "C" fn(usize, *const *const u8, u32, u32);
 
 /// Called after each of the controller device's `GetNpadStates` calls,
 /// with the states it wrote and their count, which it hands back. The
-/// newest state comes first.
+/// newest state comes first. In the far code: the cave is full.
 ///
 /// # Safety
 /// Only the game calls this, from the rewritten call sites.
 #[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
 pub unsafe extern "C" fn npad_states(states: *mut u8, n: i32) -> i32 {
     let Some((main, table)) = table() else {
         return n;
     };
     let slots = table.slots.map(|s| s.map(|s| s.actors));
-    if n <= 0 || slots.iter().all(Option::is_none) {
+    let ms = songbook::ms(&table);
+    if n <= 0 || slots.iter().all(Option::is_none) && ms.is_none() {
         return n;
     }
     let state = |i: i32| states as usize + i as usize * NPAD_STATE;
     // SAFETY: the call wrote `n` states.
     let now = Buttons(unsafe { *((state(0) + NPAD_BUTTONS) as *const u64) } as u32);
-    let (hide, cycling) = shared(main).ui.with(|s| (s.read(now, &slots), s.cycling()));
+    let (pads, cycling) = shared(main)
+        .ui
+        .with(|s| (s.read(now, &slots, ms), s.cycling()));
     for i in 0..n {
         // SAFETY: as above.
         unsafe {
-            *((state(i) + NPAD_BUTTONS) as *mut u64) &= !u64::from(hide.0);
+            let buttons = (state(i) + NPAD_BUTTONS) as *mut u64;
+            *buttons = *buttons & !u64::from(pads.hide.0) | u64::from(pads.press.0);
             // The menu moves on the stick's position, not only its
             // direction bits, and left and right belong to the cycle.
             // Up and down still reach the menu, to leave the slot.

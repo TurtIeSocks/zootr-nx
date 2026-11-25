@@ -195,6 +195,9 @@ pub const MAP_SIZE: usize = 0x24;
 /// The Int table: its slot, entry stride, and where an entry keeps its
 /// current value, the saved copy right after.
 pub const INT: (usize, usize, usize) = (2, 0x28, 0x1c);
+/// The UIntArray table, the same way, to its current `(u64 length,
+/// pointer)`, the values 4 bytes each.
+pub const UINT_ARRAY: (usize, usize, usize) = (21, 0x40, 0x20);
 /// The String64 table, the same way, to its current text.
 pub const STRING64: (usize, usize, usize) = (16, 0x108, 0x74);
 /// A String64's size, its NUL included.

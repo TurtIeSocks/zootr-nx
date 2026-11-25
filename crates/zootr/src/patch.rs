@@ -127,7 +127,7 @@ const fn npad_stubs(b: &Build) -> [u32; 3] {
 /// seed with [`DEV`], and springs ice traps. The nock sets Link's
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
-const fn hooks(b: &Build) -> [(u32, u32); 14] {
+const fn hooks(b: &Build) -> [(u32, u32); 15] {
     let e = &b.entries;
     [
         (e.map_loaded, entry::MAP_LOADED),
@@ -144,6 +144,7 @@ const fn hooks(b: &Build) -> [(u32, u32); 14] {
         (e.equipment_built, entry::EQUIPMENT_BUILT),
         (e.equipment_left, entry::EQUIPMENT_LEFT),
         (e.resident_create, entry::RESIDENT_MADE),
+        (e.ocarina_input, entry::OCARINA_INPUT),
     ]
 }
 /// Whether build `b`'s shared state fits under its panic word, 8 byte
@@ -713,14 +714,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0x8fb4_cbbc_7f0c_663a),
-            ("far", 0x6065_0b06_b8d3_afd1),
-            ("code", 0xe8c8_b594_9b2f_79ed),
-            ("sites", 0x3608_bf58_814b_3fcf),
-            ("patches", 0xc43e_1188_9555_4a01),
-            ("pchtxt", 0xec61_5f0c_c7d3_04fa),
-            ("ips", 0xb776_4d40_a7a1_efba),
-            ("cheat", 0xb60f_98e8_6125_089a),
+            ("hook", 0x0fc1_20e1_e89b_b381),
+            ("far", 0x438c_e7fb_f900_50f3),
+            ("code", 0x0b33_f438_d41d_b2ab),
+            ("sites", 0xc830_00e1_3314_33eb),
+            ("patches", 0x6002_24b7_7a94_0073),
+            ("pchtxt", 0x73a0_38f0_c65e_dad2),
+            ("ips", 0x2b92_834c_f5f9_ccd2),
+            ("cheat", 0x6c3e_1bc0_0617_8025),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -731,14 +732,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0xa1e6_8978_0c95_d230),
-            ("far", 0x3269_8575_fe15_0d41),
-            ("code", 0x1e79_ad2a_afcc_e7af),
-            ("sites", 0xabe9_5d05_59f7_2375),
-            ("patches", 0x978c_9a92_df99_70ef),
-            ("pchtxt", 0xb389_f43c_bc18_67f6),
-            ("ips", 0xaf32_4a7a_914a_e204),
-            ("cheat", 0xdfeb_dda8_b411_a177),
+            ("hook", 0x9dbe_e5e7_a11f_adee),
+            ("far", 0x5086_decc_0284_7915),
+            ("code", 0xe531_b7db_7132_bbe5),
+            ("sites", 0x81c6_2356_3e01_17a7),
+            ("patches", 0xe9f3_ea73_21c8_5055),
+            ("pchtxt", 0x5328_6628_c354_aee5),
+            ("ips", 0x3e4f_3442_4a02_bc0c),
+            ("cheat", 0xaa80_6cd2_04f3_8b14),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }

@@ -49,6 +49,10 @@ const SOURCES: &[(&str, &str)] = &[
         include_str!("../../../zootr-hook/src/game/rt.rs"),
     ),
     (
+        "game/songbook.rs",
+        include_str!("../../../zootr-hook/src/game/songbook.rs"),
+    ),
+    (
         "game/swap.rs",
         include_str!("../../../zootr-hook/src/game/swap.rs"),
     ),
