@@ -1,7 +1,7 @@
 # Ganons Castle. OoTR's name wherever the remake keeps the spot: chests
 # matched by trial room, rule and vanilla item. The Water and Light trial
-# rooms keep OoTR's chest layout, ice trap chests included (those are not
-# checks here), so left and right read as Link enters each room. Each
+# rooms keep OoTR's chest layout, ice trap chests included (dealt, each
+# becomes a plain chest), so left and right read as Link enters each room. Each
 # trial's last room keeps its pots. OoTR calls the climb Ganons Tower;
 # here it stays under the Ganons Castle prefix.
 
@@ -20,8 +20,9 @@
 14131308900302015809 = "Ganons Castle Forest Trial Pot 1"
 16197187735932467308 = "Ganons Castle Forest Trial Pot 2"
 
-# Water Trial: the first room's right chest (its left is the ice trap),
+# Water Trial: the first room's two chests (the left is the ice trap's),
 # the block room, and the last room's pots.
+3253191540272036329 = "Ganons Castle Water Trial Left Chest"
 14404733996390762670 = "Ganons Castle Water Trial Right Chest"
 9187095075410950305 = "Ganons Castle Water Trial Block Room Pot" # guess: named for the room's push block
 14558485053640356159 = "Ganons Castle Water Trial Pot 1"
@@ -44,10 +45,15 @@
 
 # Light Trial: the first room's six chests, three of them ice traps, and
 # the one the invisible enemies leave; the Lullaby room's two chests; the
-# boulder room; the last room's pots.
-14046623154429024571 = "Ganons Castle Light Trial First Left Chest"
-1029712040059298120 = "Ganons Castle Light Trial Third Left Chest"
-7461796063704896255 = "Ganons Castle Light Trial Second Right Chest"
+# boulder room; the last room's pots. The six stand two by three, Link
+# entering from the hub facing west: first is nearest the door. The ice
+# traps' checkerboard matches OoTR's (First Right, Second Left, Third Right).
+1029712040059298120 = "Ganons Castle Light Trial First Left Chest"
+5732331492537302993 = "Ganons Castle Light Trial First Right Chest"
+17726220643880970879 = "Ganons Castle Light Trial Second Left Chest"
+14046623154429024571 = "Ganons Castle Light Trial Second Right Chest"
+7461796063704896255 = "Ganons Castle Light Trial Third Left Chest"
+11406545451127340703 = "Ganons Castle Light Trial Third Right Chest"
 14962432460641118089 = "Ganons Castle Light Trial Invisible Enemies Chest"
 4733634471038136588 = "Ganons Castle Light Trial Lullaby Chest"
 15320975652699461295 = "Ganons Castle Light Trial Invisible Chest" # guess: new chest, shown by the Lens in the Lullaby room
