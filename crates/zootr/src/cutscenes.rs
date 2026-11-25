@@ -219,6 +219,10 @@ const MOVES: [&str; 5] = [
     "EventGet",
     "TimeElapsed",
 ];
+/// Actions an object's own game runs inside a scene, by part of their
+/// name: the spinning pot spins, reads its face and drops its prize in its
+/// roulette and drop scenes. Skipped, a bomb left the game waiting on it.
+const GAME_ACTIONS: [&str; 1] = ["GoronLargePot"];
 
 /// Whether one of the skips above handles `name` by itself, which the cut of
 /// the other story scenes leaves alone.
@@ -243,6 +247,7 @@ pub(crate) fn changes(actor: &str, action: &str) -> bool {
     let trigger = action.starts_with("EventTrigger") || action.starts_with("EventGet");
     (STATE_ACTORS.iter().any(|a| *a == actor) && trigger)
         || MOVES.iter().any(|m| action.contains(m))
+        || GAME_ACTIONS.iter().any(|g| action.contains(g))
         || events::saves(actor, action)
 }
 
@@ -798,5 +803,19 @@ mod tests {
         assert!(!out.contains_key(&flows::rel(flow::SAGE_OF_FIRE)));
         let goron = |f: &String| f.contains("Dm_Goron_") || f == "IsVisitLocation.GoronCity=true";
         assert!(flags.iter().all(goron), "{flags:?}");
+    }
+
+    /// The pot's roulette spins it, reads its face and drops its prize. Cut,
+    /// a bomb in the pot left the game waiting.
+    #[test]
+    fn the_spinning_pots_scenes_play() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let catalogue = Catalogue::load(&romfs).unwrap();
+        for n in [scene::GORON_0040, scene::GORON_0045] {
+            let c = catalogue.get(n).unwrap();
+            assert!(!c.tier.skippable(), "{n}: {:?}", c.tier);
+        }
     }
 }
