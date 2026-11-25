@@ -17,6 +17,9 @@ pub const EVENTS: &Name = field::EVENT_SETTING;
 pub const ANALYZED: &str = "GameAnalyzedEventInfo";
 const ENTRY: &Name = field::ENTRY_POINT_NAME;
 const FLOW_FILE: &Name = field::FLOWCHART_FILE_NAME;
+/// An event row's component list: what the event pauses, hides and
+/// takes part in.
+const LIST: &Name = field::EVENT_SETTING_COMPONENT_LIST;
 /// Every table row's id field.
 pub const ROW_ID: &str = "__RowId";
 
@@ -229,8 +232,35 @@ impl Events {
     /// Rows for event `name`, which runs the entry point of the same name
     /// and is like `like` in every other way.
     pub fn copy(&mut self, name: &str, like: &str) -> Result<()> {
+        self.copy_with(name, like, |_| Ok(()))
+    }
+
+    /// Like [`Self::copy`], but run beside play as a sub event, the game's
+    /// own kind for a reaction while Link keeps moving: nothing paused, the
+    /// HUD kept. A full event, even one that ends at once, flickers it.
+    pub fn copy_beside_play(&mut self, name: &str, like: &str) -> Result<()> {
+        self.copy_with(name, like, |row| {
+            let list = row.get(LIST.get()).and_then(|v| v.as_string().ok());
+            let list = list.with_context(|| format!("event {like} names no {LIST}"))?;
+            let (dir, file) = list
+                .rsplit_once('/')
+                .context("a list path without a folder")?;
+            let (_, kind) = file.split_once('.').context("a list path without a kind")?;
+            let sub = format!("{dir}/{}.{kind}", field::SUB_EVENT);
+            row.insert(LIST.get().into(), Byml::String(sub.into()));
+            Ok(())
+        })
+    }
+
+    fn copy_with(
+        &mut self,
+        name: &str,
+        like: &str,
+        edit: impl FnOnce(&mut ounce_formats::BymlMap) -> Result<()>,
+    ) -> Result<()> {
         let mut setting = row(&self.setting, like)?;
         setting.insert(ENTRY.get().into(), Byml::String(name.into()));
+        edit(&mut setting)?;
         insert(&mut self.setting, name, setting)?;
         let analyzed = row(&self.analyzed, like)?;
         insert(&mut self.analyzed, name, analyzed)?;
@@ -320,5 +350,39 @@ mod tests {
         // A host the table doesn't list leaves the copy without a row.
         tags.copy("Obj_FakeR_001", "Obj_R_000").unwrap();
         assert_eq!(tags.of("Obj_FakeR_001"), None);
+    }
+
+    /// An event copied to run beside play keeps its like's flow and every
+    /// other setting, and names the list the game's own sub events do.
+    #[test]
+    fn an_event_beside_play_runs_as_a_sub_event() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let like = crate::known::scene::SY_BANC_CHANGE_GO.get();
+        let mut events = Events::load(&romfs).unwrap();
+        events.copy_beside_play("Rando_FakeEvent", like).unwrap();
+        let (copy, own) = (
+            row(&events.setting, "Rando_FakeEvent").unwrap(),
+            row(&events.setting, like).unwrap(),
+        );
+        let text = |r: &ounce_formats::BymlMap, key: &Name| {
+            r.get(key.get()).unwrap().as_string().unwrap().to_string()
+        };
+        assert_eq!(text(&copy, FLOW_FILE), text(&own, FLOW_FILE));
+        let list = text(&copy, LIST);
+        assert_ne!(list, text(&own, LIST));
+        let stem = list.rsplit('/').next().unwrap().split('.').next().unwrap();
+        assert_eq!(stem, field::SUB_EVENT.get());
+        // The game's own sub events name the same list.
+        let rows = events.setting.root.as_array().unwrap();
+        let lists = rows.iter().filter_map(|r| r.as_map().ok()?.get(LIST.get()));
+        assert!(
+            lists
+                .filter(|l| l.as_string().is_ok_and(|l| *l == list))
+                .count()
+                > 1
+        );
+        assert!(row(&events.analyzed, "Rando_FakeEvent").is_ok());
     }
 }
