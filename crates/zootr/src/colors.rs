@@ -62,8 +62,9 @@ pub fn files() -> impl Iterator<Item = &'static str> {
     });
     let models = PALETTES.iter().flat_map(|p| files::views(p.id));
     writes
-        .chain(models.flat_map(|v| v.models.iter().copied().chain(v.worn)))
-        .chain([files::PLAYER_BASE])
+        // A worn view's armor pack and Link's base pack are under Pack, a
+        // subtree the dump extracts whole.
+        .chain(models.flat_map(|v| v.models.iter().copied()))
         .chain([files::EFFECT_INDEX])
         .chain(files::LAYOUT_ARCHIVES)
 }
