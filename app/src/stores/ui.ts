@@ -52,6 +52,18 @@ export interface Found {
  * drift measures from. */
 export type ResetTo = "defaults" | "seed";
 
+/** What the dev panel stars beside places: placement hashes (as text),
+ * item names, GameData names and quests. */
+export interface DevStars {
+  actors: string[];
+  items: string[];
+  values: string[];
+  quests: string[];
+}
+
+/** An actor list's order: by name, or nearest Link first. */
+export type ActorSort = "az" | "near";
+
 /** View state, kept in `ui.json` across tabs and restarts. */
 export interface Ui {
   /** The view showing. */
@@ -145,6 +157,11 @@ export interface Ui {
     actors: { tab: "nearby" | "all" };
     /** The places starred, `MAP/SPOT`, in the order starred. */
     starred: string[];
+    /** Everything else starred, in the order starred, kept whether or not
+     * it's on screen. */
+    stars: DevStars;
+    /** Each actor list's order: Warp's, Actors' All in Map, and Nearby. */
+    sort: { warp: ActorSort; all: ActorSort; nearby: ActorSort };
     /** What was done lately, newest first, for one-click repeats. */
     recent: {
       /** Places warped to. */
@@ -198,6 +215,8 @@ const INITIAL: Ui = {
     quest: { challenge: "", step: "" },
     actors: { tab: "nearby" },
     starred: [],
+    stars: { actors: [], items: [], values: [], quests: [] },
+    sort: { warp: "az", all: "az", nearby: "near" },
     recent: { places: [], gives: [], values: [] },
   },
 };

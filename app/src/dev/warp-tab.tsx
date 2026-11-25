@@ -4,8 +4,10 @@ import { Segmented } from "@/components/ui/segmented";
 import { area, areas, type Spot, spots } from "@/dev/areas";
 import { GroupHead } from "@/dev/dev-card";
 import { MapActors, MapGate, SearchField } from "@/dev/map-actors";
-import { warpTo } from "@/dev/requests";
-import { HOVER_ACTION, LIST, ROW, ROW_BUTTON } from "@/dev/styles";
+import { RECENT_PLACES, warpTo } from "@/dev/requests";
+import { StarButton } from "@/dev/star-button";
+import { toggled } from "@/dev/stars";
+import { LIST, ROW, ROW_BUTTON } from "@/dev/styles";
 import { cn } from "@/lib/utils";
 import { useCanSend, useDev } from "@/stores/dev";
 import { useUi } from "@/stores/ui";
@@ -32,7 +34,7 @@ export function WarpTab() {
         <Places />
       ) : (
         <MapGate>
-          <MapActors sides />
+          <MapActors list="warp" />
         </MapGate>
       )}
     </div>
@@ -50,7 +52,12 @@ function Places() {
   const [query, setQuery] = useUi.usePath("dev.teleport.places");
   const shown = areas(places, child, query, map);
   const stars = spots(starred, child, query);
-  const lately = spots(recent, child, query);
+  // Starred places leave Recent, which still shows its five.
+  const lately = spots(
+    recent.filter((p) => !starred.includes(p)),
+    child,
+    query,
+  ).slice(0, RECENT_PLACES);
 
   return (
     <>
@@ -135,22 +142,11 @@ function PlaceRow({
           <span className="truncate text-ink-faint">{area(spot.map)}</span>
         )}
       </button>
-      <button
-        type="button"
-        aria-label={`${on ? "Unstar" : "Star"} ${spot.spot}`}
-        aria-pressed={on}
-        onClick={() =>
-          setStarred((s) =>
-            on ? s.filter((p) => p !== spot.place) : [...s, spot.place],
-          )
-        }
-        className={cn(
-          HOVER_ACTION,
-          on ? "text-gold opacity-100 [&_svg]:fill-gold" : "text-ink-faint",
-        )}
-      >
-        <Star />
-      </button>
+      <StarButton
+        name={spot.spot}
+        on={on}
+        onToggle={() => setStarred((s) => toggled(s, spot.place))}
+      />
     </div>
   );
 }

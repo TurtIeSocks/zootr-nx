@@ -19,6 +19,10 @@ interface QuestStepPickerProps {
   onEnter?: () => void;
   /** What acts on the pick, after the step: a button. */
   children?: ReactNode;
+  /** Quests suggested first: the starred ones. */
+  starred?: string[];
+  /** Right after the quest field: its star. */
+  star?: ReactNode;
 }
 
 /** A quest, suggested from the game's quests, and a choice of its steps
@@ -33,6 +37,8 @@ export function QuestStepPicker({
   placeholder,
   onEnter,
   children,
+  starred,
+  star,
 }: QuestStepPickerProps) {
   const steps = stepsOf(quests, value.challenge.trim()) ?? [];
   const info: Info = {
@@ -51,7 +57,9 @@ export function QuestStepPicker({
         value={value.challenge}
         onChange={(challenge) => onChange({ ...value, challenge })}
         onEnter={onEnter}
+        first={starred}
       />
+      {star}
       {steps.length > 0 && (
         <ValueInput
           label={stepLabel}

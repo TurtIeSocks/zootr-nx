@@ -59,8 +59,7 @@ function Input({
   );
   if (!wraps) return field;
 
-  const filled =
-    props.value === undefined ? typed : String(props.value) !== "";
+  const filled = props.value === undefined ? typed : String(props.value) !== "";
   return (
     <div className={cn("relative w-full min-w-0", boxClassName)}>
       {field}

@@ -16,18 +16,22 @@ export const err = <T>(error: string): Promise<Result<T>> =>
 export const game: { state: DevState | undefined } = { state: undefined };
 
 export const devTeleport = vi.fn((_p: string) => ok("sent"));
-const placed = (actor: string, hash: string, label: string | null = null) => ({
-  actor,
-  hash,
-  label,
-});
+const placed = (
+  actor: string,
+  hash: string,
+  label: string | null,
+  x: number,
+) => ({ actor, hash, label, pos: [x, 0, 0] });
+/** Placed along x: Npc_A farthest from Link at the origin, Obj_A #2
+ * nearest. */
 export const devActors = vi.fn((_map: string) =>
   ok([
-    placed("Npc_A", "1"),
-    placed("Obj_A", "2", "Field_000"),
-    placed("Obj_A", "3"),
+    placed("Npc_A", "1", null, 10),
+    placed("Obj_A", "2", "Field_000", 5),
+    placed("Obj_A", "3", null, 1),
   ]),
 );
+export const devLink = vi.fn(() => ok([0, 0, 0]));
 export const devWarp = vi.fn((actor: string, _side: string) =>
   ok(`warped beside ${actor}`),
 );
@@ -148,6 +152,7 @@ export const bindings = {
     gameOptions: () => ok(OPTIONS),
     devTeleport: (p: string) => devTeleport(p),
     devActors: (m: string) => devActors(m),
+    devLink: () => devLink(),
     devWarp: (a: string, s: string) => devWarp(a, s),
     devNearby: () => ok([]),
     devHide: (h: string[]) => ok(h),

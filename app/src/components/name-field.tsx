@@ -18,7 +18,18 @@ export interface NameFieldProps {
   onEnter?: () => void;
   /** A quiet note after a suggestion, such as why it can't be used yet. */
   note?: (name: string) => string | undefined;
+  /** Names suggested ahead of the rest, in this order: the starred ones. */
+  first?: string[];
 }
+
+/** `names`, those in `first` ahead of the rest in `first`'s order. */
+const ahead = (names: string[], first: string[]) =>
+  first.length === 0
+    ? names
+    : [
+        ...first.filter((f) => names.includes(f)),
+        ...names.filter((n) => !first.includes(n)),
+      ];
 
 /** A text field suggesting the names that match what's typed. The list is
  * drawn in the page, since the webview puts a datalist's popup far from its
@@ -32,11 +43,12 @@ export function NameField({
   placeholder,
   onEnter,
   note,
+  first = [],
 }: NameFieldProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
 
-  const shown = open ? matching(names, value) : [];
+  const shown = open ? matching(ahead(names, first), value) : [];
 
   const pick = (name: string) => {
     onChange(name);

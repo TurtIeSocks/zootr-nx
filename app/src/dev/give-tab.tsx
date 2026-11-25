@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DevCard } from "@/dev/dev-card";
 import { give, giveLabel } from "@/dev/requests";
+import { FieldStar, StarredNames } from "@/dev/starred-names";
+import { useStars } from "@/dev/stars";
 import { useDevValue } from "@/dev/use-dev-value";
 import { call } from "@/lib/api";
 import { SAVED, stepOf, stepsOf } from "@/lib/quest-step";
@@ -36,6 +38,10 @@ function GiveCard() {
         <GiveCount />
         <GiveButton />
       </div>
+      <StarredNames
+        kind="items"
+        onPick={(item) => useUi.setPath("dev.give.item", item)}
+      />
       <RecentGives />
     </DevCard>
   );
@@ -46,8 +52,19 @@ function GiveSelect() {
   const [items] = useDev.usePath("options.items");
   const [item, setItem] = useUi.usePath("dev.give.item");
 
+  const stars = useStars("items");
+
   return (
-    <NameField label="Item" names={items} value={item} onChange={setItem} />
+    <>
+      <NameField
+        label="Item"
+        names={items}
+        value={item}
+        onChange={setItem}
+        first={stars.list}
+      />
+      <FieldStar kind="items" value={item} names={items} />
+    </>
   );
 }
 
@@ -149,6 +166,7 @@ function QuestStepCard() {
     ? pick.challenge.trim()
     : "";
   const [round, setRound] = useState(0);
+  const starred = useStars("quests");
 
   return (
     <DevCard
@@ -156,9 +174,25 @@ function QuestStepCard() {
       icon={Signpost}
       meta="through the game's quest system"
     >
-      <QuestStepPicker quests={quests} value={pick} onChange={setPick}>
+      <QuestStepPicker
+        quests={quests}
+        value={pick}
+        onChange={setPick}
+        starred={starred.list}
+        star={
+          <FieldStar
+            kind="quests"
+            value={pick.challenge}
+            names={Object.keys(quests)}
+          />
+        }
+      >
         <MoveButton onMoved={() => setRound((r) => r + 1)} />
       </QuestStepPicker>
+      <StarredNames
+        kind="quests"
+        onPick={(challenge) => setPick({ challenge, step: "" })}
+      />
       {challenge && <SavedCopy challenge={challenge} round={round} />}
     </DevCard>
   );

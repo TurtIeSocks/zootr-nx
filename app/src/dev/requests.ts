@@ -4,8 +4,11 @@ import { call } from "@/lib/api";
 import { send, useDev } from "@/stores/dev";
 import { type DevGive, remember, useUi } from "@/stores/ui";
 
-/** How many places Warp's Recent keeps. */
+/** How many places Warp's Recent shows. */
 export const RECENT_PLACES = 5;
+/** How many places Warp's Recent keeps: more than it shows, so it still
+ * shows five once starred ones leave it. */
+export const RECENT_PLACES_KEPT = 20;
 /** How many gives Give's recents keep. */
 export const RECENT_GIVES = 3;
 /** How many names Values' Recent keeps. */
@@ -23,7 +26,7 @@ export const warpTo = (spot: Spot) =>
     const said = await call(commands.devTeleport(spot.place));
     useDev.setPath("lastWarp", { map: spot.map, spot: spot.spot });
     useUi.setPath("dev.recent.places", (r) =>
-      remember(r, spot.place, RECENT_PLACES),
+      remember(r, spot.place, RECENT_PLACES_KEPT),
     );
     return said;
   });

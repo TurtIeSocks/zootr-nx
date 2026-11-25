@@ -8,6 +8,10 @@ import { Ago } from "@/dev/activity";
 import { DevCard, GroupHead } from "@/dev/dev-card";
 import { MapActors, MapGate, SearchField } from "@/dev/map-actors";
 import { warpBeside } from "@/dev/requests";
+import { sortRows } from "@/dev/sort";
+import { SortToggle } from "@/dev/sort-toggle";
+import { StarButton } from "@/dev/star-button";
+import { useStars } from "@/dev/stars";
 import { HOVER_ACTION, LIST, ROW, ROW_BUTTON } from "@/dev/styles";
 import {
   type HiddenChip,
@@ -44,7 +48,9 @@ export function ActorsTab() {
         value={tab}
         onValueChange={setTab}
       />
-      <MapGate>{tab === "nearby" ? <Nearby /> : <MapActors />}</MapGate>
+      <MapGate>
+        {tab === "nearby" ? <Nearby /> : <MapActors list="all" />}
+      </MapGate>
     </div>
   );
 }
@@ -136,6 +142,7 @@ function LiveControls() {
         onChange={setQuery}
         className="flex-1"
       />
+      <SortToggle list="nearby" />
       <Switch id="live-follow" checked={follow} onCheckedChange={setFollow} />
       <Label htmlFor="live-follow" className="text-xs">
         Follow
@@ -144,19 +151,30 @@ function LiveControls() {
   );
 }
 
-/** The live actors matching the search, nearest first at the last read,
- * or why there are none to show. */
+/** The starred live actors, then every one matching the search, in the
+ * picked order at the last read. Or why there are none to show. */
 function LiveList() {
   const live = useLiveRows();
   const [map] = useDev.usePath("game.state.map");
   const [ready] = useDev.usePath("ready");
+  const [sort] = useUi.usePath("dev.sort.nearby");
+  const stars = useStars("actors");
+  const rows =
+    live.status === "ok"
+      ? sortRows(live.rows, sort, (r) => ({
+          name: r.near.actor,
+          tag: r.tag,
+          distance: r.near.distance ?? undefined,
+        }))
+      : [];
+  const starred = rows.filter((r) => stars.has(r.near.hash));
 
   return (
     <div className={cn(LIST, "min-h-0 flex-1 pb-1")}>
       <div className="sticky top-0 z-1 flex items-center bg-surface pr-1">
         <div className="min-w-0 flex-1">
           <GroupHead
-            title="Nearest First"
+            title={sort === "near" ? "Nearest First" : "A–Z"}
             count={
               live.status === "ok" ? (
                 <span className="normal-case tracking-normal">
@@ -176,9 +194,17 @@ function LiveList() {
           <RefreshCw />
         </Button>
       </div>
+      {live.status === "ok" && starred.length > 0 && (
+        <>
+          <GroupHead title="Starred" count={starred.length} />
+          <ul aria-label="Starred live actors">
+            <LiveRows rows={starred} map={live.map} />
+          </ul>
+        </>
+      )}
       <ul aria-label={`Live actors in ${map}`}>
         {live.status === "ok" ? (
-          <LiveRows rows={live.rows} map={live.map} />
+          <LiveRows rows={rows} map={live.map} />
         ) : (
           <li className="px-3 py-1 text-ink-faint text-xs">
             {live.status === "error" ? live.error : "Reading the actors…"}
@@ -241,6 +267,7 @@ function LiveActor({ row, map }: { row: LiveRow; map: string }) {
   const hidden = row.near.hidden === "ours";
   const { actor, hash } = row.near;
   const name = named(actor, row.tag);
+  const stars = useStars("actors");
 
   return (
     <div className={cn(ROW, "group")}>
@@ -269,6 +296,11 @@ function LiveActor({ row, map }: { row: LiveRow; map: string }) {
           <Navigation />
         </button>
       </Tip>
+      <StarButton
+        name={name}
+        on={stars.has(hash)}
+        onToggle={() => stars.toggle(hash)}
+      />
     </div>
   );
 }
