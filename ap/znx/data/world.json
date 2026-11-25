@@ -8364,6 +8364,21 @@
     {
       "at": [
         {
+          "place": "gerudo-training-ground-adult",
+          "rule": {
+            "ref": 245
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "4961588221597286817",
+      "id": 1575,
+      "name": "Gerudo Training Ground Hammer Room Clear Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "kakariko-village-adult-alternative-adult",
           "rule": {
             "ref": 21
@@ -18495,6 +18510,21 @@
     {
       "at": [
         {
+          "place": "gerudo-training-ground-adult",
+          "rule": {
+            "ref": 245
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11182647876438515984",
+      "id": 1576,
+      "name": "Gerudo Training Ground Lobby Left Chest",
+      "unprovable": false
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-fortress-adult",
           "rule": {
             "ref": 49
@@ -24608,6 +24638,21 @@
       "when": {
         "setting": "rocks"
       }
+    },
+    {
+      "at": [
+        {
+          "place": "forest-temple-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15117164073907033527",
+      "id": 1577,
+      "name": "Forest Temple 1F Falling Ceiling Room Chest",
+      "unprovable": false
     },
     {
       "at": [

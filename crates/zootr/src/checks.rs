@@ -46,6 +46,12 @@ const PLAIN_CHEST: &Name = actor::OBJ_T_BOX_A_01;
 const NO_BAKE: &str = "_NoBake";
 /// The prefix every chest's actor name starts with.
 pub const CHEST: &str = "Obj_TBox_";
+/// What a chest placed with no `DROP_ACTOR` gives: seen live in Gerudo
+/// Training Ground's lobby and hammer room (2026-11-25). Three such chests.
+const BARE_CHEST_DROP: &Name = actor::T_BOX_RUPEE_RED;
+/// The ice-trap chest: it breathes ice on Link and breaks, and never opens.
+/// Placed with no `DROP_ACTOR`, and no check until it can give an item.
+const TRAP_CHEST: &Name = actor::OBJ_T_BOX_A_04;
 
 #[derive(Clone)]
 pub struct ItemCheck {
@@ -108,6 +114,12 @@ pub fn area_of(rel: &str) -> &str {
 /// Whether `holder`, a placed actor's name, is a chest.
 pub fn is_chest(holder: &str) -> bool {
     holder.starts_with(CHEST)
+}
+
+/// What placed `holder` drops when its params name nothing: a chest that
+/// opens gives [`BARE_CHEST_DROP`], anything else isn't a check.
+fn bare_drop(holder: &str) -> Option<&'static str> {
+    (is_chest(holder) && holder != &**TRAP_CHEST).then(|| &**BARE_CHEST_DROP)
 }
 
 /// Whether Banc file `rel` is a child map's.
@@ -227,7 +239,8 @@ fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
             let Some(dynamic) = actor.as_map()?.get(DYNAMIC) else {
                 continue;
             };
-            let Some(drop) = str_field(dynamic, DROP_ACTOR) else {
+            let holder = str_field(actor, GYAML).unwrap_or_default();
+            let Some(drop) = str_field(dynamic, DROP_ACTOR).or_else(|| bare_drop(holder)) else {
                 let scrub = hash_of(actor).filter(|h| crate::scrubs::at(*h).is_some());
                 if let (Some(hash), Some(room)) = (scrub, room_of(actor)) {
                     rooms.insert(hash, room);
@@ -243,7 +256,7 @@ fn read_rooms(romfs: &Romfs) -> Result<(Vec<ItemCheck>, HashMap<u64, u32>)> {
                 file: file.clone(),
                 area: area_of(&file).to_owned(),
                 hash: hash_of(actor).context("actor without Hash")?,
-                holder: str_field(actor, GYAML).unwrap_or_default().to_owned(),
+                holder: holder.to_owned(),
                 item: item.to_owned(),
                 get_event: str_field(dynamic, GET_EVENT).map(str::to_owned),
                 substitute: substitute.map(str::to_owned),
@@ -343,10 +356,11 @@ pub fn set_drops(
             ""
         };
         let guarded = gyaml.starts_with(&**SUBSTITUTE_CHEST);
+        let bare = bare_drop(gyaml).is_some();
         let Some(dynamic) = actor.as_mut_map()?.get_mut(DYNAMIC) else {
             continue;
         };
-        if str_field(dynamic, DROP_ACTOR).is_none() {
+        if str_field(dynamic, DROP_ACTOR).is_none() && !bare {
             continue;
         }
         let posed = str_field(dynamic, DROP_ACTOR) != Some(item.as_str())
@@ -906,6 +920,20 @@ mod tests {
     }
 
     #[test]
+    fn a_chest_placed_without_a_drop_takes_one_and_a_trap_chest_doesnt() {
+        needs_names!();
+        let drops = HashMap::from([(1, Drop::from("Item_A".to_owned()))]);
+        let set = |gyaml| {
+            let mut root = chest_in(gyaml, [("DefaultDungeonRoomIndex", "0")]);
+            let changed = set_drops(&mut root, &drops, |_| false).unwrap();
+            let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
+            (changed, str_field(dynamic, DROP_ACTOR).map(str::to_owned))
+        };
+        assert_eq!(set(actor::OBJ_T_BOX_A_01), (vec![1], Some("Item_A".into())));
+        assert_eq!(set(actor::OBJ_T_BOX_A_04), (vec![], None));
+    }
+
+    #[test]
     fn a_chest_guarding_its_drop_pools_the_substitute() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
@@ -915,6 +943,33 @@ mod tests {
         assert_eq!(gerudo.unwrap().item, actor::T_BOX_ARROW_BUNDLE_SMALL);
         let shield = checks.iter().find(|c| c.hash == 874970148260328653);
         assert_eq!(shield.unwrap().item, actor::T_BOX_SHIELD_DEKU);
+    }
+
+    #[test]
+    fn chests_placed_without_a_drop_are_checks_but_trap_chests_arent() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let checks = scan(&romfs).unwrap();
+        let item = |hash| {
+            checks
+                .iter()
+                .find(|c| c.hash == hash)
+                .map(|c| c.item.clone())
+        };
+        let red = Some(actor::T_BOX_RUPEE_RED.to_string());
+        // Gerudo Training Ground's lobby left chest and the Forest Temple's
+        // falling ceiling room chest.
+        assert_eq!(
+            [11182647876438515984, 15117164073907033527].map(item),
+            [red.clone(), red]
+        );
+        // The hammer room's clear chest gives arrows once Link has a bow.
+        assert_eq!(
+            item(4961588221597286817),
+            Some(actor::T_BOX_ARROW_BUNDLE_MEDIUM.to_string())
+        );
+        assert!(!checks.iter().any(|c| c.holder == &**actor::OBJ_T_BOX_A_04));
     }
 
     #[test]
