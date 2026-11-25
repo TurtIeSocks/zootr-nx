@@ -14,44 +14,45 @@ const FILES: &[(&str, &str)] = &[(
     include_str!("../logic/names/water-temple.toml"),
 )];
 
-/// Each area's prefix, in OoTR's style: dungeons spelled out, overworld
+/// Each area's prefixes, in OoTR's style: dungeons spelled out, overworld
 /// areas by OoTR's abbreviations, apostrophes dropped. Keyed by the area's
-/// Archipelago name (`ap::names::area`).
-const PREFIXES: &[(&str, &str)] = &[
-    ("Bottom of the Well", "Bottom of the Well"),
-    ("Death Mountain Crater", "DMC"),
-    ("Death Mountain Trail", "DMT"),
-    ("Deku Tree", "Deku Tree"),
-    ("Desert Colossus", "Colossus"),
-    ("Dodongo's Cavern", "Dodongos Cavern"),
-    ("Dream World", "Dream World"),
-    ("Fire Temple", "Fire Temple"),
-    ("Forest Temple", "Forest Temple"),
-    ("Ganon's Castle", "Ganons Castle"),
-    ("Gerudo Training Ground", "Gerudo Training Ground"),
-    ("Gerudo Valley", "GV"),
-    ("Gerudo's Fortress", "GF"),
-    ("Goron City", "GC"),
-    ("Graveyard", "Graveyard"),
-    ("Haunted Wasteland", "Wasteland"),
-    ("Hyrule Castle", "HC"),
-    ("Hyrule Field", "HF"),
-    ("Ice Cavern", "Ice Cavern"),
-    ("Jabu-Jabu's Belly", "Jabu Jabus Belly"),
-    ("Kakariko Village", "Kak"),
-    ("Kokiri Forest", "KF"),
-    ("Lake Hylia", "LH"),
-    ("Lon Lon Ranch", "LLR"),
-    ("Lost Woods", "LW"),
-    ("Market", "Market"),
-    ("Outside Ganon's Castle", "OGC"),
-    ("Sacred Forest Meadow", "SFM"),
-    ("Shadow Temple", "Shadow Temple"),
-    ("Spirit Temple", "Spirit Temple"),
-    ("Water Temple", "Water Temple"),
-    ("Zora's Domain", "ZD"),
-    ("Zora's Fountain", "ZF"),
-    ("Zora's River", "ZR"),
+/// Archipelago name (`ap::names::area`). The remake's Hyrule Field map
+/// holds Lake Hylia and Lon Lon Ranch too, so its checks take whichever
+/// of the three they stand in. Kokiri Forest's map holds the bridge to the
+/// Lost Woods, where OoTR's `LW Gift from Saria` stands.
+const PREFIXES: &[(&str, &[&str])] = &[
+    ("Bottom of the Well", &["Bottom of the Well"]),
+    ("Death Mountain Crater", &["DMC"]),
+    ("Death Mountain Trail", &["DMT"]),
+    ("Deku Tree", &["Deku Tree"]),
+    ("Desert Colossus", &["Colossus"]),
+    ("Dodongo's Cavern", &["Dodongos Cavern"]),
+    ("Dream World", &["Dream World"]),
+    ("Fire Temple", &["Fire Temple"]),
+    ("Forest Temple", &["Forest Temple"]),
+    ("Ganon's Castle", &["Ganons Castle"]),
+    ("Gerudo Training Ground", &["Gerudo Training Ground"]),
+    ("Gerudo Valley", &["GV"]),
+    ("Gerudo's Fortress", &["GF"]),
+    ("Goron City", &["GC"]),
+    ("Graveyard", &["Graveyard"]),
+    ("Haunted Wasteland", &["Wasteland"]),
+    ("Hyrule Castle", &["HC"]),
+    ("Hyrule Field", &["HF", "LH", "LLR"]),
+    ("Ice Cavern", &["Ice Cavern"]),
+    ("Jabu-Jabu's Belly", &["Jabu Jabus Belly"]),
+    ("Kakariko Village", &["Kak"]),
+    ("Kokiri Forest", &["KF", "LW"]),
+    ("Lost Woods", &["LW"]),
+    ("Market", &["Market"]),
+    ("Outside Ganon's Castle", &["OGC"]),
+    ("Sacred Forest Meadow", &["SFM"]),
+    ("Shadow Temple", &["Shadow Temple"]),
+    ("Spirit Temple", &["Spirit Temple"]),
+    ("Water Temple", &["Water Temple"]),
+    ("Zora's Domain", &["ZD"]),
+    ("Zora's Fountain", &["ZF"]),
+    ("Zora's River", &["ZR"]),
 ];
 
 /// `hash`'s name, if its region has been named.
@@ -62,8 +63,8 @@ pub fn of(hash: u64) -> Option<&'static str> {
     names.get(&hash).map(String::as_str)
 }
 
-/// The prefix every name in `area` (its Archipelago name) starts with.
-pub fn prefix(area: &str) -> Option<&'static str> {
+/// The prefixes a name in `area` (its Archipelago name) may start with.
+pub fn prefixes(area: &str) -> Option<&'static [&'static str]> {
     PREFIXES.iter().find(|(a, _)| *a == area).map(|(_, p)| *p)
 }
 
@@ -145,9 +146,12 @@ mod tests {
             match areas.get(hash) {
                 None => wrong.push(format!("{hash} ({name}) isn't a dealt check")),
                 Some(area) => {
-                    let prefix = prefix(area).unwrap_or_else(|| panic!("no prefix for {area}"));
-                    if !name.starts_with(&format!("{prefix} ")) {
-                        wrong.push(format!("{name} doesn't start with {prefix}"));
+                    let prefixes = prefixes(area).unwrap_or_else(|| panic!("no prefix for {area}"));
+                    if !prefixes.iter().any(|p| name.starts_with(&format!("{p} "))) {
+                        wrong.push(format!(
+                            "{name} doesn't start with {}",
+                            prefixes.join(" or ")
+                        ));
                     }
                 }
             }
