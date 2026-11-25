@@ -226,6 +226,7 @@ function Room({ entry }: { entry: Summary }) {
           <div className="relative">
             <Input
               id={`${id}-password`}
+              clearable={false}
               className="h-8 pr-9"
               type={shown ? "text" : "password"}
               placeholder="None"

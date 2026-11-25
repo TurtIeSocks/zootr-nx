@@ -8,6 +8,8 @@ import { ValueInput } from "@/components/value-input";
 import { DevCard } from "@/dev/dev-card";
 import { openTab } from "@/dev/nav";
 import { RECENT_VALUES } from "@/dev/requests";
+import { FieldStar, StarredNames } from "@/dev/starred-names";
+import { useStars } from "@/dev/stars";
 import { useDevValue } from "@/dev/use-dev-value";
 import { call } from "@/lib/api";
 import { SAVED, stepsOf } from "@/lib/quest-step";
@@ -213,14 +215,22 @@ function SetValueButton({ again }: { again: () => void }) {
 function ValueSelect() {
   const [names] = useDev.usePath("options.names");
   const [name, setName] = useUi.usePath("dev.set.name");
+  const stars = useStars("values");
 
   return (
-    <NameField
-      label="GameData Name"
-      names={names}
-      value={name}
-      onChange={setName}
-    />
+    <>
+      <div className="flex gap-1.5">
+        <NameField
+          label="GameData Name"
+          names={names}
+          value={name}
+          onChange={setName}
+          first={stars.list}
+        />
+        <FieldStar kind="values" value={name} names={names} />
+      </div>
+      <StarredNames kind="values" onPick={load} />
+    </>
   );
 }
 

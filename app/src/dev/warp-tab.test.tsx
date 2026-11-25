@@ -76,7 +76,7 @@ test("a star toggles, persists, and lists the place under Starred", async () => 
   expect(screen.queryByRole("list", { name: "Starred" })).toBeNull();
 });
 
-test("a warp that works heads Recent, with no repeats and at most five", async () => {
+test("a warp that works heads Recent, with no repeats, keeping more than it shows", async () => {
   useUi.setPath(
     "dev.recent.places",
     ["1", "2", "3", "4", "5"].map((n) => `FakeHill_Child/Fake_${n}`),
@@ -88,7 +88,9 @@ test("a warp that works heads Recent, with no repeats and at most five", async (
       `FakeKakariko_Child/${GATE}`,
     ),
   );
-  expect(useUi.getPath("dev.recent.places")).toHaveLength(RECENT_PLACES);
+  expect(useUi.getPath("dev.recent.places")).toHaveLength(6);
+  const shown = screen.getByRole("list", { name: "Recent" });
+  expect(within(shown).getAllByRole("listitem")).toHaveLength(RECENT_PLACES);
   fireEvent.click(place("FakeHill", MARKET));
   await vi.waitFor(() =>
     expect(useUi.getPath("dev.recent.places").slice(0, 2)).toEqual([
@@ -103,7 +105,7 @@ test("a warp that works heads Recent, with no repeats and at most five", async (
       `FakeHill_Child/${MARKET}`,
     ]),
   );
-  expect(useUi.getPath("dev.recent.places")).toHaveLength(RECENT_PLACES);
+  expect(useUi.getPath("dev.recent.places")).toHaveLength(7);
 
   devTeleport.mockImplementationOnce(() => err("an event is playing"));
   const before = useUi.getPath("dev.recent.places");
@@ -121,12 +123,12 @@ test("Actors in Map lists the map's actors, and search narrows them", async () =
   expect(devActors).toHaveBeenCalledWith("FakeHill_Child");
   expect(await within(list).findByText("Field_000")).toBeTruthy();
   expect(within(list).getByText("#2")).toBeTruthy();
-  expect(within(list).getAllByRole("button")).toHaveLength(3);
+  expect(within(list).getAllByRole("listitem")).toHaveLength(3);
   const search = screen.getByRole("textbox", { name: "Search actors" });
   fireEvent.change(search, { target: { value: "npc" } });
-  expect(within(list).getAllByRole("button")).toHaveLength(1);
+  expect(within(list).getAllByRole("listitem")).toHaveLength(1);
   fireEvent.change(search, { target: { value: "field_0" } });
-  expect(within(list).getAllByRole("button")).toHaveLength(1);
+  expect(within(list).getAllByRole("listitem")).toHaveLength(1);
   // Its tag counts over the whole map, so the search keeps its label.
   expect(within(list).getByText("Field_000")).toBeTruthy();
 });
@@ -170,4 +172,83 @@ test("the picked tabs and searches are kept in the view", async () => {
     (screen.getByRole("textbox", { name: "Search places" }) as HTMLInputElement)
       .value,
   ).toBe("gate");
+});
+
+test("a starred place leaves Recent, which still shows five, and comes back once unstarred", async () => {
+  const recent = ["1", "2", "3", "4", "5", "6"].map(
+    (n) => `FakeHill_Child/Fake_${n}`,
+  );
+  useUi.setPath("dev.recent.places", recent);
+  useUi.setPath("dev.starred", ["FakeHill_Child/Fake_1"]);
+  await renderReady();
+  const shown = () =>
+    within(screen.getByRole("list", { name: "Recent" }))
+      .getAllByRole("listitem")
+      .map((li) => li.textContent);
+  expect(shown()).toHaveLength(RECENT_PLACES);
+  expect(shown()[0]).toMatch(/^Fake_2/);
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Unstar Fake_1" })[0] as HTMLElement,
+  );
+  expect(shown()[0]).toMatch(/^Fake_1/);
+  expect(useUi.getPath("dev.recent.places")).toEqual(recent);
+});
+
+/** Warp's actor list, once read. */
+async function warpActors() {
+  await renderReady();
+  fireEvent.click(screen.getByRole("button", { name: "Actors in Map" }));
+  const list = await screen.findByRole("list", {
+    name: "Actors in FakeHill_Child",
+  });
+  await within(list).findByText("Field_000");
+  return list;
+}
+
+const rowNames = (list: HTMLElement) =>
+  within(list)
+    .getAllByRole("listitem")
+    .map((li) => li.querySelector("span")?.textContent);
+
+test("a map actor's star saves its placement and lists it under Starred", async () => {
+  await warpActors();
+  expect(screen.queryByRole("list", { name: "Starred actors" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Star Npc_A" }));
+  expect(useUi.getPath("dev.stars.actors")).toEqual(["1"]);
+  const starred = screen.getByRole("list", { name: "Starred actors" });
+  expect(rowNames(starred)).toEqual(["Npc_A"]);
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Unstar Npc_A" })[0] as HTMLElement,
+  );
+  expect(useUi.getPath("dev.stars.actors")).toEqual([]);
+});
+
+test("a star kept for another map's placement shows nothing here and stays saved", async () => {
+  useUi.setPath("dev.stars.actors", ["999"]);
+  await warpActors();
+  expect(screen.queryByRole("list", { name: "Starred actors" })).toBeNull();
+  expect(useUi.getPath("dev.stars.actors")).toEqual(["999"]);
+});
+
+test("Nearest sorts Warp's actors by placed distance, leaving the other lists' order", async () => {
+  const list = await warpActors();
+  expect(rowNames(list)).toEqual(["Npc_A", "Obj_A", "Obj_A"]);
+  fireEvent.click(screen.getByRole("button", { name: "Nearest" }));
+  await vi.waitFor(() => expect(within(list).getByText("1.0 m")).toBeTruthy());
+  expect(
+    within(list)
+      .getAllByRole("listitem")
+      .map((li) =>
+        [...li.querySelectorAll("span")].map((span) => span.textContent),
+      ),
+  ).toEqual([
+    ["Obj_A", "#2", "1.0 m"],
+    ["Obj_A", "Field_000", "5.0 m"],
+    ["Npc_A", "10.0 m"],
+  ]);
+  expect(useUi.getPath("dev.sort")).toEqual({
+    warp: "near",
+    all: "az",
+    nearby: "near",
+  });
 });

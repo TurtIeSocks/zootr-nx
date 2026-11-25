@@ -59,6 +59,7 @@ function SeedInput() {
   return (
     <div className="relative w-[280px] max-w-full">
       <Input
+        clearable={false}
         className="h-10 pr-10 font-mono text-[15px]"
         placeholder="Random, or a share code"
         aria-label="Seed or share code"

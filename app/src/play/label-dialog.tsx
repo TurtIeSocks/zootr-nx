@@ -100,6 +100,7 @@ function NameForm({ label, onSave, onSaved }: NameFormProps) {
   return (
     <form className="flex flex-col gap-4" onSubmit={submit}>
       <Input
+        clearable={false}
         autoFocus
         aria-label="Name"
         placeholder="Name"

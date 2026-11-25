@@ -137,3 +137,26 @@ test("Give's draft is kept in the view", async () => {
     (screen.getByRole("textbox", { name: "Item" }) as HTMLInputElement).value,
   ).toBe("Item_A");
 });
+
+test("the item field's star saves the item, which fills the field from Starred and leads the suggestions", async () => {
+  await renderReady();
+  await openTab("Give");
+  const item = screen.getByRole("textbox", { name: "Item" });
+  expect(
+    screen
+      .getByRole("button", { name: "Star an item" })
+      .hasAttribute("disabled"),
+  ).toBe(true);
+  fireEvent.change(item, { target: { value: "Item_FakeBomb" } });
+  fireEvent.click(screen.getByRole("button", { name: "Star Item_FakeBomb" }));
+  expect(useUi.getPath("dev.stars.items")).toEqual(["Item_FakeBomb"]);
+
+  fireEvent.change(item, { target: { value: "item" } });
+  const list = screen.getByRole("list", { name: "Item suggestions" });
+  expect(within(list).getAllByRole("button")[0]?.textContent).toBe(
+    "Item_FakeBomb",
+  );
+  fireEvent.change(item, { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Fill Item_FakeBomb" }));
+  expect((item as HTMLInputElement).value).toBe("Item_FakeBomb");
+});

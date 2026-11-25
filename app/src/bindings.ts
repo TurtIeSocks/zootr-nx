@@ -182,6 +182,8 @@ export const commands = {
 	devWarp: (actor: string, side: Side) => typedError<string, string>(__TAURI_INVOKE("dev_warp", { actor, side })),
 	/**  The live actors placements made, nearest Link first. */
 	devNearby: () => typedError<DevNear[], string>(__TAURI_INVOKE("dev_nearby")),
+	/**  Where Link stands, for sorting the map's placements by distance. */
+	devLink: () => typedError<[(number | null), (number | null), (number | null)], string>(__TAURI_INVOKE("dev_link")),
 	/**
 	 *  Hide the live actors of these placements, or show them again. Answers
 	 *  the hashes that had one.
@@ -461,6 +463,8 @@ export type DevActor = {
 	hash: string,
 	/**  Its own `Name`, telling it from the actor's other placements. */
 	label: string | null,
+	/**  Where the map's files place it, for sorting by distance. */
+	pos: [(number | null), (number | null), (number | null)],
 };
 
 /**  A live actor a placement made, for the panel's Live actors. */
