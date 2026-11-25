@@ -55,6 +55,10 @@ ln -sf /dump/oot.nup dump/oot.nup
 log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
 # The nightly run adds the checks too slow for every PR.
 [ "${GITHUB_EVENT_NAME:-}" = schedule ] && export ZOOTR_NIGHTLY=1
+# Every run but a PR's (main, the nightly, the release PR's dispatch) adds
+# the checks that only need to catch up after a merge: the committed
+# derives against fresh ones, about 470 s.
+[ "${GITHUB_EVENT_NAME:-}" != pull_request ] && export ZOOTR_AFTER_MERGE=1
 export CARGO_TERM_COLOR=never
 # Two jobs share a box, so each runs its tests on its slot's half of the
 # cores. The test threads and par_map follow the CPU affinity, so a job

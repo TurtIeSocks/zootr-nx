@@ -878,6 +878,9 @@ mod tests {
     #[test]
     fn the_committed_deku_tree_rooms_match_a_fresh_derive() {
         needs_names!();
+        if !crate::game::after_merge() {
+            return;
+        }
         let Some(fresh) = fresh("deku-tree") else {
             return;
         };

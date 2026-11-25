@@ -192,6 +192,9 @@ mod tests {
     /// The committed baseline matches a fresh derive, like the AP export.
     #[test]
     fn the_committed_kinds_match_a_fresh_derive() {
+        if !crate::game::after_merge() {
+            return;
+        }
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
