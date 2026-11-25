@@ -79,6 +79,18 @@ pub(super) fn grant_after(
     scene: &str,
     item: &str,
 ) -> Result<()> {
+    grant_after_unless(flow, flows, scene, item, None)
+}
+
+/// [`grant_after`], passed over once Bool `given` is set, which the grant
+/// then sets: a check another holder may have given already.
+pub(super) fn grant_after_unless(
+    flow: &mut Flowchart,
+    flows: &Flows,
+    scene: &str,
+    item: &str,
+    given: Option<&str>,
+) -> Result<()> {
     let (plays, swapped) = scene_marks(flow, scene);
     ensure!(
         !plays.is_empty() || !swapped.is_empty(),
@@ -94,9 +106,14 @@ pub(super) fn grant_after(
         let EventKind::Action { next, .. } = flow.events[at as usize].kind else {
             unreachable!("transition found an action");
         };
-        let mut first = inline.push(flow, string(item), next)?;
+        let set = given.map(|name| set_true(flow, name, next)).transpose()?;
+        let mut first = inline.push(flow, string(item), set.or(next))?;
         if fade {
             first = flows::fade_in(flow, Some(first));
+        }
+        if let (Some(name), Some(set)) = (given, set) {
+            let ask = bool_switch(flow, name, vec![(0, set), (1, first)])?;
+            first = flow.push(ask);
         }
         flow.link(Link::Next(at), Some(first))?;
     }

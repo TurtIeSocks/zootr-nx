@@ -146,7 +146,6 @@ impl<'p, 'a> Banc<'p, 'a> {
             changed.extend(enemies::hide(root, kept)?);
         }
         changed.extend(checks::clear_drops(root, self.carried)?);
-        changed.extend(gifts::egg::malon(root, &new_game.on)?);
         changed.extend(checks::clear_tables(root, &self.tabled)?);
         let (all, posed) = (self.all, &mut self.posed);
         let shows_off = |e: &str| {

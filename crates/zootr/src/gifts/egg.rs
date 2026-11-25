@@ -3,29 +3,29 @@
 //! once Malon's talk has moved the castle quest to Step03, whatever she
 //! gave. So her check holds the cucco in the egg's place ([`own`]) and
 //! nothing hatches: her talk no longer moves the quest, and a new game
-//! marks the hatch played, which deletes its trigger. Talon woken first
-//! moves the quest past the step she stood until, so she stands until her
-//! check is given instead. With gifts off it all stays the game's own.
+//! marks the hatch played, which deletes its trigger. A cucco found first
+//! wakes Talon before her talk, and she leaves for the ranch once he's up,
+//! so his wake hands over her check instead ([`from_talon`]). With gifts
+//! off it all stays the game's own.
 //! Spec: the cucco takes the Weird Egg's place (2026-11-25).
 
 use std::collections::BTreeSet;
 
-use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, Flowchart};
+use anyhow::{Context, Result};
+use ounce_formats::{Flowchart, Romfs};
 
-use super::{GIFTS, Gift};
-use crate::checks::{ItemCheck, actors_mut, gate, hash_of};
+use super::{GIFTS, Gift, Rewrites, later};
+use crate::checks::ItemCheck;
 use crate::cutscenes::played_flag;
+use crate::events::Flows;
 use crate::flows;
-use crate::known::{Name, flow, item};
+use crate::known::{Name, flow, item, scene};
 use crate::settings::NPC_GIFTS;
 use crate::starting::Start;
 
 pub(super) const FLOW: &Name = flow::GOTO_HYRULE_CASTLE;
 /// The castle quest's step Malon's talk moves it to, which the hatch waits on.
 const HATCH_STEP: &str = "Step03";
-/// Malon at the castle wall.
-const MALON: u64 = 3576280271882277111;
 /// The starting words for the egg and the cucco.
 const EGG: &str = "weird-egg";
 const CUCCO: &str = "cucco";
@@ -59,27 +59,24 @@ pub fn hatched(on: &BTreeSet<String>) -> Option<String> {
     (on.contains(NPC_GIFTS)).then(|| format!("{}=true", played_flag(hatch)))
 }
 
-/// Gate Malon at the castle wall on her check's Bool, with NPC gifts on, so
-/// she stands until it's given at any step of the quest. Not with Met
-/// Zelda: the opening gives her check and starts the quest past her.
-/// Returns the hashes changed.
-pub fn malon(root: &mut Byml, on: &BTreeSet<String>) -> Result<Vec<u64>> {
-    let gift = gift();
-    if !gift.dealt(on) || gift.pocket(on) {
-        return Ok(Vec::new());
-    }
-    let given = gift.found().context("Malon's check sets no Bool")?;
-    let mut changed = Vec::new();
-    for actor in actors_mut(root)?.iter_mut() {
-        if hash_of(actor) != Some(MALON) {
-            continue;
-        }
-        ensure!(changed.is_empty(), "Malon is placed twice");
-        actor.as_mut_map()?.remove("Presence");
-        gate(actor, &given, true)?;
-        changed.push(MALON);
-    }
-    Ok(changed)
+/// Whether `gift` is Weird Egg ✅.
+pub(super) fn is(gift: &Gift) -> bool {
+    gift.item == item::WEIRD_EGG
+}
+
+/// Have Talon's wake hand over Weird Egg ✅'s `item` unless Malon already
+/// did, whether his scene plays or a skip marks it played.
+pub(super) fn from_talon(
+    romfs: &Romfs,
+    flows: &Flows,
+    rewrites: &mut Rewrites,
+    item: &str,
+) -> Result<()> {
+    let given = gift().found().context("Malon's check sets no Bool")?;
+    let wake = scene::HRL_CASTLE_0020.get();
+    flows::edit(romfs, rewrites, FLOW, |f| {
+        later::grant_after_unless(f, flows, wake, item, Some(&given))
+    })
 }
 
 /// With NPC gifts on, a starting egg starts as the cucco it would hatch
@@ -98,10 +95,8 @@ mod tests {
     use super::super::tests::written;
     use super::super::{Rewrites, give_all};
     use super::*;
-    use crate::checks::{actors, load_banc};
     use crate::events::Flows;
-    use crate::known::{field, map};
-    use crate::settings::MET_ZELDA;
+    use crate::known::actor;
 
     fn on(ids: &[&str]) -> BTreeSet<String> {
         ids.iter().map(|s| (*s).to_owned()).collect()
@@ -153,44 +148,61 @@ mod tests {
     }
 
     #[test]
+    fn talon_s_wake_hands_over_her_check_unless_malon_did() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let rewrites = dealt(&romfs, Some(actor::OBJ_HEART_PIECE));
+        let flow = written(&rewrites, FLOW);
+        let text = flows::render(&flow);
+        let lines: Vec<&str> = text.lines().collect();
+        let event = |n: &str| {
+            lines
+                .iter()
+                .find(|l| l.starts_with(&format!("{n} ")))
+                .unwrap()
+        };
+        // The wake's transition leads to a question on her check's Bool.
+        let wake = (lines.iter())
+            .find(|l| l.contains(&format!("\"{}\"", scene::HRL_CASTLE_0020)))
+            .unwrap();
+        let asks = event(wake.rsplit_once(" -> ").unwrap().1);
+        let given = gift().found().unwrap();
+        assert!(
+            asks.contains("IsGameDataBool") && asks.contains(&given),
+            "{asks}"
+        );
+        // Given, it only sets the Bool again. Not given, the grant runs first.
+        let (_, cases) = asks.rsplit_once("? ").unwrap();
+        let [set, grant] = [" 0:", " 1:"].map(|c| {
+            let at = format!(" {cases}")
+                .split(c)
+                .nth(1)
+                .unwrap()
+                .split(' ')
+                .next()
+                .unwrap()
+                .to_owned();
+            *event(&at)
+        });
+        assert!(
+            set.contains("SetGameDataBool") && set.contains(&given),
+            "{set}"
+        );
+        assert!(!grant.contains("SetGameDataBool"), "{grant}");
+        assert_eq!(
+            text.matches(&super::super::tests::granting(actor::OBJ_HEART_PIECE.get()))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
     fn only_gifts_mark_the_hatch_played() {
         needs_names!();
         let played = hatched(&on(&[NPC_GIFTS])).unwrap();
         assert!(played.ends_with("_Areaboot=true"), "{played}");
         assert_eq!(hatched(&on(&[])), None);
-    }
-
-    #[test]
-    fn with_gifts_malon_stands_until_her_check_is_given() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let rel = format!(
-            "Banc/{0}/{0}_Static.bcett.byml.zs",
-            map::HYRULE_CASTLE.get()
-        );
-        let gate_of = |root: &Byml| {
-            let malon = actors(root)
-                .unwrap()
-                .iter()
-                .find(|a| hash_of(a) == Some(MALON));
-            let p = malon.unwrap().as_map().unwrap()["Presence"]
-                .as_map()
-                .unwrap();
-            (
-                p[field::FLAG_NAME.get()].as_string().unwrap().to_string(),
-                p[field::IS_NEGATION.get()].as_bool().unwrap(),
-            )
-        };
-        let vanilla = load_banc(&romfs, &rel).unwrap().root;
-        for off in [on(&[]), on(&[NPC_GIFTS, MET_ZELDA])] {
-            let mut root = vanilla.clone();
-            assert!(malon(&mut root, &off).unwrap().is_empty());
-            assert_eq!(gate_of(&root), gate_of(&vanilla));
-        }
-        let mut root = vanilla.clone();
-        assert_eq!(malon(&mut root, &on(&[NPC_GIFTS])).unwrap(), [MALON]);
-        assert_eq!(gate_of(&root), (gift().found().unwrap(), true));
     }
 
     #[test]
