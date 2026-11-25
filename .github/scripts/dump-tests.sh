@@ -55,7 +55,17 @@ ln -sf /dump/oot.nup dump/oot.nup
 log=/logs/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.log
 # The nightly run adds the checks too slow for every PR.
 [ "${GITHUB_EVENT_NAME:-}" = schedule ] && export ZOOTR_NIGHTLY=1
-CARGO_TERM_COLOR=never cargo test -p zootr --lib --bins --tests > "$log" 2>&1
+export CARGO_TERM_COLOR=never
+# Two jobs share a box, so each runs its tests on its slot's half of the
+# cores. The test threads and par_map follow the CPU affinity, so a job
+# runs half as much at once: on 4 of 8 cores the suite peaked at 4.5 GB
+# against 6.6 GB on all 8, in about the same time, which a few long tests
+# set. Two at 6.6 GB OOM-killed each other on 15 GB. The build uses
+# every core.
+half=$(($(nproc) / 2))
+cores=$((slot * half))-$((slot * half + half - 1))
+cargo test -p zootr --lib --bins --tests --no-run > "$log" 2>&1 &&
+  taskset -c "$cores" cargo test -p zootr --lib --bins --tests >> "$log" 2>&1
 status=$?
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"
