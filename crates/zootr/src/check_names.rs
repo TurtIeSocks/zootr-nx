@@ -249,22 +249,22 @@ mod tests {
         assert_eq!(on_disk, built);
     }
 
-    /// Every name is a check the export deals, starting with its area's
-    /// prefix.
+    /// Every check the export deals has a name, and every name is a dealt
+    /// check starting with its area's prefix.
     #[test]
-    fn every_name_is_a_dealt_check_under_its_area_s_prefix() {
+    fn names_and_dealt_checks_match_one_to_one() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let names = parse(FILES).unwrap();
-        if names.is_empty() {
-            return;
-        }
         let checks = crate::ap::export::checks(&romfs).unwrap();
         let areas: BTreeMap<u64, &str> = (checks.iter())
             .map(|c| (c.hash, crate::ap::names::area(&c.area).unwrap()))
             .collect();
-        let mut wrong = Vec::new();
+        let mut wrong: Vec<String> = (checks.iter())
+            .filter(|c| !names.contains_key(&c.hash))
+            .map(|c| format!("{} in {} has no name", c.hash, c.area))
+            .collect();
         for (hash, name) in &names {
             match areas.get(hash) {
                 None => wrong.push(format!("{hash} ({name}) isn't a dealt check")),
