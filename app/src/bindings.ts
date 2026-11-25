@@ -1380,11 +1380,10 @@ export type TrackView = {
 	/**  The song's length in milliseconds. */
 	ms: number,
 	looping: boolean,
-	/**
-	 *  Whether it gives a song another track can play. Without one, its
-	 *  music is in sections: it only receives.
-	 */
+	/**  Whether it gives a song another track can play. */
 	song: boolean,
+	/**  Why it gives none, in player words: it only receives. */
+	gives_none: string | null,
 };
 
 /**  How the grid looks, in the tab and the pop out. */

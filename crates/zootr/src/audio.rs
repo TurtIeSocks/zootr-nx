@@ -3,25 +3,34 @@
 //! streams its asset nodes play and copies each new stream's call into the
 //! track's SLink2 user, since a key the user lacks plays silence. Moving
 //! graphs between tracks left them silent in every live test. The ocarina
-//! songs aren't in the music table: each is a call of the `Ocarina` user,
-//! repointed at another's asset. Romfs files only: the hook patch never
+//! songs and the shops' music aren't in the music table: each is a call of
+//! an SLink2 user, repointed at another's asset. Romfs files only: the hook patch never
 //! differs by music. See
 //! `superpowers/specs/2026-11-24-audio-design.md`.
 
 mod files;
 pub mod listen;
 mod pick;
+mod write;
 
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::{Byml, BymlDoc, ModBuilder, xlink_call_table, xlink_calls, xlink_copy_call};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::ageless_items::SOUNDS;
 pub use files::{HELD, OCARINA, STREAMS, TABLE, TRACKS};
 pub use pick::{Audio, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve};
+pub use write::write;
+
+/// Where a track's music plays from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Via {
+    /// Its graph in the music table.
+    Table,
+    /// The call of this SLink2 user named its graph (an ocarina song). It
+    /// trades only within the user: across users, a swap played silence.
+    Call(&'static str),
+}
 
 /// A track's kind. Tracks shuffle only within their pool.
 #[derive(
@@ -87,9 +96,9 @@ pub struct Track {
     /// In player words.
     pub label: &'static str,
     pub pool: Pool,
-    /// The graph's name in the music table, or an ocarina song's call in
-    /// the [`OCARINA`] user.
+    /// The graph's name in the music table, or its call's.
     pub graph: &'static str,
+    pub via: Via,
     /// The one stream this track gives another: its only stream, or a
     /// sectioned track's whole-song stream. None: it receives only.
     pub song: Option<&'static str>,
@@ -100,6 +109,12 @@ pub struct Track {
 }
 
 impl Track {
+    /// Why it gives no song, in player words. None when it gives one.
+    pub fn gives_none(&self) -> Option<&'static str> {
+        (self.song.is_none())
+            .then_some("Its music is in sections, so it plays others' songs but gives none")
+    }
+
     /// Its length band in its pool: 0 for a loop or a pool without bands,
     /// else 1 and up, shortest first. A one-shot shuffles within its band.
     pub fn band(&self) -> usize {
@@ -193,121 +208,12 @@ pub fn spoiler(audio: &Audio) -> String {
     }
 }
 
-/// Play each slot's new song. Writes nothing for a seed in vanilla music.
-pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
-    let (songs, music): (Audio, Audio) = (audio.clone().into_iter())
-        .partition(|(slot, _)| track(slot).is_ok_and(|t| t.pool == Pool::Ocarina));
-    if !music.is_empty() {
-        write_music(builder, &music)?;
-    }
-    if !songs.is_empty() {
-        write_songs(builder, &songs)?;
-    }
-    Ok(())
-}
-
-/// Each ocarina slot's call takes its donor call's params, all read before
-/// any is written, so two songs can trade places.
-fn write_songs(builder: &mut ModBuilder, songs: &Audio) -> Result<()> {
-    let mut slink = builder.read(SOUNDS)?;
-    let names = xlink_calls(&slink, OCARINA)?;
-    let calls = xlink_call_table(&slink, OCARINA)?;
-    let call = |id: &str| {
-        let name = track(id)?.graph;
-        let i = (names.iter().position(|n| *n == name))
-            .with_context(|| format!("{OCARINA} has no call {name}"))?;
-        ensure!(!calls[i].container, "{name} isn't an asset");
-        Ok(&calls[i])
-    };
-    let moves = (songs.iter())
-        .map(|(slot, donor)| Ok((call(slot)?.param_at(), call(donor)?.param)))
-        .collect::<Result<Vec<_>>>()?;
-    for (at, param) in moves {
-        slink[at..at + 4].copy_from_slice(&param.to_le_bytes());
-    }
-    builder.write(SOUNDS, &slink)
-}
-
-/// Each music slot's graph keys repointed at its new song, and its user
-/// given the song's call.
-fn write_music(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
-    let mut doc = BymlDoc::parse(&builder.read(TABLE)?)?;
-    let mut slink = builder.read(SOUNDS)?;
-    let graphs = (doc.root.as_mut_map()?.get_mut("BGM"))
-        .context("the music table has no BGM")?
-        .as_mut_map()?;
-    let users = graphs
-        .iter()
-        .map(|(name, graph)| Ok((name.to_string(), user(graph)?)))
-        .collect::<Result<BTreeMap<_, _>>>()?;
-    for (slot, donor) in audio {
-        let (slot, donor) = (track(slot)?, track(donor)?);
-        let song = donor
-            .song
-            .with_context(|| format!("{} gives no song", donor.id))?;
-        let from = users
-            .get(donor.graph)
-            .with_context(|| format!("no {}", donor.graph))?;
-        ensure!(
-            xlink_calls(&slink, from)?.contains(&song),
-            "{}: its user {from} has no call {song}",
-            donor.id
-        );
-        let graph = graphs
-            .get_mut(slot.graph)
-            .with_context(|| format!("no {}", slot.graph))?;
-        let to = user(graph)?;
-        let own = xlink_calls(&slink, &to)?;
-        let replaced = rekey(graph, song)?;
-        ensure!(!replaced.is_empty(), "{}: no stream to replace", slot.id);
-        // A key its own user lacks: the table isn't the one the dump has.
-        if let Some(old) = replaced.iter().find(|k| !own.contains(&k.as_str())) {
-            bail!("{}: plays {old}, which its user {to} lacks", slot.id);
-        }
-        if !own.contains(&song) {
-            slink = xlink_copy_call(&slink, from, song, &to, song)?;
-        }
-    }
-    builder.write(SOUNDS, &slink)?;
-    builder.write(TABLE, &doc.to_binary())
-}
-
-fn user(graph: &Byml) -> Result<String> {
-    match graph.as_map()?.get("SLinkUserName") {
-        Some(Byml::String(s)) => Ok(s.to_string()),
-        _ => bail!("a music graph without an SLinkUserName"),
-    }
-}
-
-/// A graph's nodes, kept as an array or a map.
-fn nodes(graph: &mut Byml) -> Result<Vec<&mut Byml>> {
-    Ok(match graph.as_mut_map()?.get_mut("Node") {
-        Some(Byml::Array(a)) => a.iter_mut().collect(),
-        Some(Byml::Map(m)) => m.values_mut().collect(),
-        None => vec![],
-        _ => bail!("a music graph's Node is neither array nor map"),
-    })
-}
-
-/// Point every asset key but the held ones at `song`, returning the keys
-/// replaced.
-fn rekey(graph: &mut Byml, song: &str) -> Result<Vec<String>> {
-    let mut replaced = Vec::new();
-    for node in nodes(graph)? {
-        if let Ok(map) = node.as_mut_map()
-            && let Some(Byml::String(key)) = map.get_mut("Key")
-            && !HELD.contains(&key.as_str())
-        {
-            replaced.push(key.to_string());
-            *key = song.into();
-        }
-    }
-    Ok(replaced)
-}
-
 #[cfg(test)]
 mod tests {
+    use ounce_formats::{Byml, BymlDoc, xlink_calls};
+
     use super::*;
+    use crate::ageless_items::SOUNDS;
 
     #[test]
     fn ids_are_unique_and_every_shuffled_track_has_a_band() {
@@ -332,6 +238,8 @@ mod tests {
         assert_eq!(band("taught-suns-song"), "<7s");
         assert_eq!(band("played-zeldas-lullaby"), "7-14s");
         assert_eq!(band("played-requiem-of-spirit"), ">14s");
+        assert!(track("gerudo-fortress").unwrap().gives_none().is_some());
+        assert!(track("drugstore").unwrap().gives_none().is_none());
     }
 
     /// The dump's music table and streams match the catalog: every track
@@ -368,7 +276,7 @@ mod tests {
         let slink = romfs.read(SOUNDS).unwrap();
         let graphs = doc.root.as_map().unwrap()["BGM"].as_map().unwrap();
         let mut names: Vec<_> = graphs.keys().map(|k| k.to_string()).collect();
-        let (songs, music): (Vec<_>, Vec<_>) = TRACKS.iter().partition(|t| t.pool == Pool::Ocarina);
+        let (called, music): (Vec<_>, Vec<_>) = TRACKS.iter().partition(|t| t.via != Via::Table);
         let mut listed: Vec<_> = music.iter().map(|t| t.graph.to_owned()).collect();
         names.sort();
         listed.sort();
@@ -380,12 +288,11 @@ mod tests {
                 .unwrap_or_else(|| panic!("no stream {name}"));
             ounce_formats::bwav::header(data).unwrap()
         };
-        let ocarina = xlink_calls(&slink, OCARINA).unwrap();
-        let calls = xlink_call_table(&slink, OCARINA).unwrap();
-        for t in songs {
-            let i = (ocarina.iter().position(|n| *n == t.graph))
-                .unwrap_or_else(|| panic!("{OCARINA} lacks {}", t.graph));
-            assert!(!calls[i].container, "{}", t.id);
+        for t in called {
+            let Via::Call(user) = t.via else {
+                unreachable!("{}", t.id)
+            };
+            write::asset(&slink, user, t.graph).unwrap();
             let head = header(t.song.unwrap());
             assert!(
                 (head.seconds() - t.secs).abs() < 0.01,
@@ -397,7 +304,7 @@ mod tests {
         }
         for t in music {
             let mut graph = graphs[t.graph].clone();
-            let mut keys: Vec<String> = (nodes(&mut graph).unwrap().into_iter())
+            let mut keys: Vec<String> = (write::nodes(&mut graph).unwrap().into_iter())
                 .filter_map(|n| match n.as_map().ok()?.get("Key") {
                     Some(Byml::String(k)) if !HELD.contains(&k.as_str()) => Some(k.to_string()),
                     _ => None,
@@ -408,7 +315,7 @@ mod tests {
                 assert!(keys.is_empty() && t.song.is_none(), "{}", t.id);
                 continue;
             }
-            let user = user(&graph).unwrap();
+            let user = write::user(&graph).unwrap();
             let calls = xlink_calls(&slink, &user).unwrap();
             if let Some(song) = t.song {
                 assert!(calls.contains(&song), "{}: {user} lacks {song}", t.id);
@@ -419,74 +326,6 @@ mod tests {
             let looping = heads.iter().any(|h| h.loop_start.is_some());
             assert!((secs - t.secs).abs() < 0.01, "{}: {secs} s", t.id);
             assert_eq!(looping, t.looping, "{}", t.id);
-        }
-    }
-
-    /// Goron City's song into Kokiri Forest, a sectioned track whose user
-    /// lacks it, and the medallion's into a get with the held build-up.
-    #[test]
-    fn a_slot_plays_its_donors_song_and_its_user_gains_the_call() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let dir = std::env::temp_dir().join(format!("zootr-audio-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let audio = Audio::from([
-            ("kokiri-forest".into(), "goron-city".into()),
-            ("item-get-small".into(), "medal-get".into()),
-        ]);
-        write(&mut builder, &audio).unwrap();
-        builder.finish().unwrap();
-        let doc = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, TABLE)).unwrap();
-        let slink = crate::game::read_built(&romfs, &dir, SOUNDS);
-        std::fs::remove_dir_all(dir).unwrap();
-        let graphs = doc.root.as_map().unwrap()["BGM"].as_map().unwrap();
-        for (slot, donor) in &audio {
-            let (slot, song) = (track(slot).unwrap(), track(donor).unwrap().song.unwrap());
-            let mut graph = graphs[slot.graph].clone();
-            let keys: Vec<String> = (nodes(&mut graph).unwrap().into_iter())
-                .filter_map(|n| match n.as_map().ok()?.get("Key") {
-                    Some(Byml::String(k)) => Some(k.to_string()),
-                    _ => None,
-                })
-                .collect();
-            assert!(keys.iter().all(|k| k == song || HELD.contains(&k.as_str())));
-            assert!(keys.iter().any(|k| k == song), "{}", slot.id);
-            let user = user(&graph).unwrap();
-            assert!(xlink_calls(&slink, &user).unwrap().contains(&song));
-        }
-    }
-
-    /// Two ocarina songs trade places: each call plays the other's asset,
-    /// and the music table is left alone.
-    #[test]
-    fn two_ocarina_songs_trade_places() {
-        let Some(romfs) = crate::game::dev_dump() else {
-            return;
-        };
-        let dir = std::env::temp_dir().join(format!("zootr-ocarina-{}", std::process::id()));
-        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
-        let audio = Audio::from([
-            ("played-eponas-song".into(), "played-suns-song".into()),
-            ("played-suns-song".into(), "played-eponas-song".into()),
-        ]);
-        write(&mut builder, &audio).unwrap();
-        builder.finish().unwrap();
-        let built = crate::game::read_built(&romfs, &dir, SOUNDS);
-        let wrote_table = dir.join("romfs").join(TABLE).exists();
-        std::fs::remove_dir_all(dir).unwrap();
-        assert!(!wrote_table);
-        let param = |file: &[u8], id: &str| {
-            let names = xlink_calls(file, OCARINA).unwrap();
-            let i = names
-                .iter()
-                .position(|n| *n == track(id).unwrap().graph)
-                .unwrap();
-            xlink_call_table(file, OCARINA).unwrap()[i].param
-        };
-        let vanilla = romfs.read(SOUNDS).unwrap();
-        for (slot, donor) in &audio {
-            assert_eq!(param(&built, slot), param(&vanilla, donor), "{slot}");
         }
     }
 }
