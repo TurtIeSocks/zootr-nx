@@ -18,6 +18,7 @@ const TUNIC: PaletteView = {
   vanilla: ["#40522b"],
   names: [],
   follows: null,
+  views: [],
   sheets: 7,
   problem: null,
 };

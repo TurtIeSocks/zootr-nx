@@ -768,10 +768,11 @@ pub fn run() -> tauri::Result<()> {
             let app = ctx.app_handle().clone();
             std::thread::spawn(move || {
                 let uri = request.uri();
-                let png = app
+                let body = app
                     .state::<colors::ColorPreviews>()
                     .serve(uri.path(), uri.query().unwrap_or_default());
-                responder.respond(served(png, "image/png", uri));
+                let mime = body.as_ref().map_or("image/png", |(_, mime)| *mime);
+                responder.respond(served(body.map(|(body, _)| body), mime, uri));
             });
         })
         .register_asynchronous_uri_scheme_protocol(ICONS, |ctx, request, responder| {

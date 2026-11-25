@@ -3,14 +3,15 @@
 //! sphere lit with a material's colours where the palette writes params.
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ounce_formats::{Romfs, Texture};
 
-use super::files::{Tex, TexKey};
+use super::files::{Tex, TexKey, stem};
 use super::paint::{self, Hues};
-use super::{Kind, Palette, Picked, jobs, oklch, paint_jobs, palette};
+use super::{Kind, PALETTES, Palette, Picked, jobs, oklch, paint_jobs, palette};
 
 /// The longest side of a preview, in pixels.
 pub const SIZE: usize = 256;
@@ -55,21 +56,103 @@ pub fn sheets(palette: &Palette) -> Vec<Sheet> {
     out
 }
 
-/// The vanilla textures previews start from, each decoded once.
+/// The vanilla textures previews start from, each decoded once: the ones
+/// palettes paint, and the others a model's shapes name.
 #[derive(Default)]
-pub struct Previews(Mutex<HashMap<TexKey, Arc<Texture>>>);
+pub struct Previews {
+    painted: Mutex<HashMap<TexKey, Arc<Texture>>>,
+    others: Mutex<HashMap<String, Arc<Texture>>>,
+}
 
 impl Previews {
     fn vanilla(&self, romfs: &Romfs, texture: &Tex) -> Result<Arc<Texture>> {
-        if let Some(kept) = self.0.lock().unwrap().get(&texture.key()) {
+        if let Some(kept) = self.painted.lock().unwrap().get(&texture.key()) {
             return Ok(kept.clone());
         }
         let decoded = Arc::new(texture.texels(&romfs.read(texture.path)?)?);
-        self.0
-            .lock()
-            .unwrap()
-            .insert(texture.key(), decoded.clone());
+        (self.painted.lock().unwrap()).insert(texture.key(), decoded.clone());
         Ok(decoded)
+    }
+
+    /// Reads each texture `names` lists that no palette paints and isn't
+    /// kept yet, in one walk of the dump at `game`: a model's albedos.
+    /// One the dump doesn't have is left out.
+    pub fn fetch(&self, romfs: &Romfs, game: &Path, names: &[String]) -> Result<()> {
+        let wanted: Vec<&str> = {
+            let kept = self.others.lock().unwrap();
+            (names.iter())
+                .filter(|n| !kept.contains_key(*n) && painted_as(n).is_none())
+                .map(String::as_str)
+                .collect()
+        };
+        if wanted.is_empty() {
+            return Ok(());
+        }
+        let named = |path: &str| -> Option<String> {
+            let stem = stem(path)?;
+            wanted.contains(&stem).then(|| stem.to_owned())
+        };
+        crate::game::each_where(
+            game,
+            |p| named(p).is_some(),
+            |path, data| {
+                let stem = named(&path).expect("kept by its name");
+                let texture = ounce_formats::top_level(&romfs.dicts().decompress(&path, &data)?)?;
+                (self.others.lock().unwrap()).insert(stem, Arc::new(texture));
+                Ok(())
+            },
+        )
+    }
+
+    /// Texture `name` as palette `id` paints it with `picked` (vanilla
+    /// when it isn't one of the palette's), as a PNG at most `SIZE` a
+    /// side. One no palette paints must have been fetched.
+    pub fn albedo(
+        &self,
+        romfs: &Romfs,
+        id: &str,
+        name: &str,
+        picked: Option<&Picked>,
+    ) -> Result<Vec<u8>> {
+        let palette = palette(id)?;
+        let (vanilla, rgba) = match painted_as(name) {
+            Some(texture) => {
+                let mine = (palette.writes.iter().filter_map(|w| w.texture()))
+                    .any(|t| t.key() == texture.key());
+                self.painted(romfs, palette, texture, picked.filter(|_| mine))?
+            }
+            None => {
+                let kept = self.others.lock().unwrap().get(name).cloned();
+                let kept = kept.with_context(|| format!("no texture {name} fetched"))?;
+                let rgba = kept.rgba.clone();
+                (kept, rgba)
+            }
+        };
+        // An albedo keeps its alpha (hair ends cut out); a mask is read by
+        // its channels, so it shows opaque.
+        let alpha = super::model::is_albedo(name);
+        crate::sprites::png(&shrink(&rgba, vanilla.width, vanilla.height, alpha))
+    }
+
+    /// `texture`'s vanilla texels, and the same painted by `palette`'s
+    /// writes on it with `picked`, or as they are without.
+    fn painted(
+        &self,
+        romfs: &Romfs,
+        palette: &Palette,
+        texture: &Tex,
+        picked: Option<&Picked>,
+    ) -> Result<(Arc<Texture>, Vec<u8>)> {
+        let vanilla = self.vanilla(romfs, texture)?;
+        let mut rgba = vanilla.rgba.clone();
+        if let Some(picked) = picked {
+            let here = jobs(palette, picked)?.into_iter();
+            let here: Vec<_> = here
+                .filter(|j| j.write.texture().is_some_and(|t| t.key() == texture.key()))
+                .collect();
+            paint_jobs(&mut rgba, &here)?;
+        }
+        Ok((vanilla, rgba))
     }
 
     /// Why `palette` can't be painted on this dump, if it can't: a write
@@ -119,15 +202,7 @@ impl Previews {
             .filter_map(|w| w.texture())
             .find(|t| t.key() == key)
             .expect("a sheet is one of its palette's textures");
-        let vanilla = self.vanilla(romfs, texture)?;
-        let mut rgba = vanilla.rgba.clone();
-        if let Some(picked) = picked {
-            let here = jobs(palette, picked)?.into_iter();
-            let here: Vec<_> = here
-                .filter(|j| j.write.texture().is_some_and(|t| t.key() == key))
-                .collect();
-            paint_jobs(&mut rgba, &here)?;
-        }
+        let (vanilla, mut rgba) = self.painted(romfs, palette, texture, picked)?;
         if vanilla.height <= GRADIENT {
             // A gradient (the hair's) reads better on a sphere than as a strip.
             let row = rgba[..vanilla.width * 4].chunks(4);
@@ -143,6 +218,25 @@ impl Previews {
         let small = shrink(&rgba, vanilla.width, vanilla.height, texture.name.is_some());
         crate::sprites::png(&small)
     }
+}
+
+/// Every texture some palette paints.
+fn painted_textures() -> impl Iterator<Item = &'static Tex> {
+    (PALETTES.iter().flat_map(|p| p.writes)).filter_map(|w| w.texture())
+}
+
+/// The texture some palette paints that a model names `name`: its file
+/// is `Tex/<name>.bntx.zs`.
+fn painted_as(name: &str) -> Option<&'static Tex> {
+    painted_textures().find(|t| t.stem() == Some(name))
+}
+
+/// The name of the file a model's texture name `name` reads: its own, or
+/// the one the texture table points it at (child Link's hair is Link's).
+pub fn file_name(name: &str) -> &str {
+    let aliased = painted_textures()
+        .find(|t| (t.copy.as_ref()).is_some_and(|c| c.aliases.iter().any(|(a, _)| *a == name)));
+    aliased.and_then(Tex::stem).unwrap_or(name)
 }
 
 /// Every texel no write of `palette` on `key` moves, greyed and dimmed.
@@ -358,6 +452,52 @@ mod tests {
         );
         for palette in super::super::PALETTES {
             previews.check(&romfs, palette).unwrap();
+        }
+    }
+
+    #[test]
+    fn a_models_albedos_change_with_the_pick_only_where_the_palette_paints() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let previews = Previews::default();
+        let (_, albedos) = super::super::model::mesh(&romfs, "goron-tunic", 0).unwrap();
+        previews
+            .fetch(&romfs, Path::new(crate::game::DEV_DUMP), &albedos)
+            .unwrap();
+        let red = Picked::of([200, 30, 30]);
+        let look = |name: &str, picked| previews.albedo(&romfs, "goron-tunic", name, picked);
+        let vest = super::super::files::GORON_VEST.stem().unwrap();
+        assert_ne!(look(vest, None).unwrap(), look(vest, Some(&red)).unwrap());
+        // Painted by another palette, so it keeps its colours here.
+        let glove = super::super::files::ADULT_GLOVE.stem().unwrap();
+        assert!(albedos.iter().any(|a| a == glove));
+        assert_eq!(look(glove, None).unwrap(), look(glove, Some(&red)).unwrap());
+        assert!(look("Mt_FakeCloak_Alb", None).is_err());
+    }
+
+    #[test]
+    fn every_texture_a_view_names_is_found_or_painted() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut names = std::collections::BTreeSet::new();
+        for palette in super::super::PALETTES {
+            for v in 0..super::super::model::labels(palette.id).len() {
+                names.extend(super::super::model::mesh(&romfs, palette.id, v).unwrap().1);
+            }
+        }
+        let names: Vec<String> = names.into_iter().collect();
+        let previews = Previews::default();
+        previews
+            .fetch(&romfs, Path::new(crate::game::DEV_DUMP), &names)
+            .unwrap();
+        let kept = previews.others.lock().unwrap();
+        for name in names {
+            assert!(
+                kept.contains_key(&name) || painted_as(&name).is_some(),
+                "no {name}"
+            );
         }
     }
 }

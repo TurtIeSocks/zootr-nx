@@ -91,13 +91,32 @@ export interface PreviewOf {
 
 const digits = (hex: string) => hex.replace(/^#/, "");
 
-/** The backend's render of `preview`, as the seed would paint it. */
-export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
-  const query = new URLSearchParams({ t: String(sheet) });
+const BASE = "zootr-colors://localhost";
+
+/** `query` with `picked`'s colours, for a render painted with them. */
+function withColours(query: URLSearchParams, picked: Picked | null) {
   if (picked) {
     query.set("c", digits(picked.hex));
     for (const s of picked.split ?? []) query.append("s", digits(s));
   }
+  return query;
+}
+
+/** The backend's render of `preview`, as the seed would paint it. */
+export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
+  const query = withColours(new URLSearchParams({ t: String(sheet) }), picked);
   if (changes) query.set("v", "changes");
-  return `zootr-colors://localhost/${id}.png?${query}`;
+  return `${BASE}/${id}.png?${query}`;
+}
+
+/** Palette `id`'s model in view number `view`: the binary
+ * `colors::model::mesh` writes. */
+export const modelUrl = (id: string, view: number) =>
+  `${BASE}/${id}.model?v=${view}`;
+
+/** Albedo `name` of palette `id`'s model, painted with `picked` when it's
+ * one the palette paints. */
+export function albedoUrl(id: string, name: string, picked: Picked | null) {
+  const query = withColours(new URLSearchParams({ a: name }), picked);
+  return `${BASE}/${id}.png?${query}`;
 }

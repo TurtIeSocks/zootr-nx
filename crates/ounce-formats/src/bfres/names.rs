@@ -20,12 +20,12 @@ pub fn shape_names(data: &[u8]) -> Vec<String> {
 }
 
 /// Every shape header's offset.
-fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
+pub(super) fn shapes(data: &[u8]) -> impl Iterator<Item = usize> + '_ {
     // The furthest field any reader takes is the mesh count byte.
     find_magic(data, b"FSHP", SHAPE_MESH_COUNT + 1, 8)
 }
 
-fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
+pub(super) fn shape_name(data: &[u8], shape: usize) -> Option<&[u8]> {
     name_at(data, shape + SHAPE_NAME)
 }
 

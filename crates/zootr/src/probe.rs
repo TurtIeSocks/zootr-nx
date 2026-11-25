@@ -171,10 +171,25 @@ pub enum Probe {
     /// colours Colors can write. Linear light, as the shader reads them.
     /// A path to a file on disk (a built mod's) reads that file instead.
     Materials { model: String },
+    /// Each shape of a model, by a piece of its path as for `materials`:
+    /// its material and that material's textures, the bone it hangs from,
+    /// its skin count (0 or 1: its vertices sit in that bone's space) and
+    /// its vertex count. What the colours model viewer draws.
+    Model {
+        model: String,
+        /// Also write the decompressed model here.
+        #[arg(long)]
+        raw: Option<PathBuf>,
+    },
     /// A texture's average colour, and the average of its texels in each
     /// hue band given (`LO-HI`, 0 to 1, wrapping past 1): the vanilla
-    /// colours a Colors palette records.
-    Band { texture: String, bands: Vec<String> },
+    /// colours a Colors palette records. `--png` also writes it out.
+    Band {
+        texture: String,
+        bands: Vec<String>,
+        #[arg(long)]
+        png: Option<PathBuf>,
+    },
     /// An effect bundle's colour constants (`Effect/` and its owner's
     /// name, or a built file's path), under the eset each one falls in:
     /// where its value is in the decompressed file, its descriptor's name
@@ -609,7 +624,12 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Materials { model } => colors::materials(romfs, game, &model),
-        Probe::Band { texture, bands } => colors::band(romfs, game, &texture, &bands),
+        Probe::Model { model, raw } => colors::model(romfs, game, &model, raw.as_deref()),
+        Probe::Band {
+            texture,
+            bands,
+            png,
+        } => colors::band(romfs, game, &texture, &bands, png.as_deref()),
         Probe::Layout { name, uses, record } => {
             colors::layout(romfs, &name, uses, record.as_deref())
         }

@@ -5,6 +5,7 @@
 mod catalog;
 mod files;
 pub(crate) use files::LAYOUT_ARCHIVES;
+pub mod model;
 mod oklch;
 pub mod paint;
 mod pick;
@@ -59,7 +60,10 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         });
         texture.chain(params.iter().copied())
     });
+    let models = PALETTES.iter().flat_map(|p| files::views(p.id));
     writes
+        .chain(models.flat_map(|v| v.models.iter().copied().chain(v.worn)))
+        .chain([files::PLAYER_BASE])
         .chain([files::EFFECT_INDEX])
         .chain(files::LAYOUT_ARCHIVES)
 }

@@ -12,14 +12,18 @@ use crate::reader::Reader;
 mod codec;
 mod names;
 mod relocate;
+mod shape;
+mod skeleton;
 
-use codec::{half_at, to_half, unorm_at};
+use codec::{half_at, snorm_at, to_half, unorm_at};
 pub use codec::{pack, unpack};
 pub use names::shape_names;
 pub(crate) use names::{find_magic, name_at};
 use names::{shape_at, try_name_at};
 pub use relocate::pointers;
 use relocate::{Pool, grow_blocks, pad, put, relocate};
+pub use shape::{Shape, shapes_of};
+pub use skeleton::{Affine, Skeleton, model_vertices, skeleton};
 
 /// Where the header keeps the file's size (u32).
 const FILE_SIZE: usize = 0x1c;
@@ -59,12 +63,13 @@ const VERTEX_COUNT: usize = 0x50;
 /// An attribute record's size.
 const ATTRIBUTE_SIZE: usize = 16;
 /// The attribute formats the game's models use: three and two floats,
-/// four and two halves, two 16-bit unorms, and 10:10:10:2 snorms.
+/// four and two halves, two 16-bit unorms or snorms, and 10:10:10:2 snorms.
 const FLOAT3: u32 = 0x1805;
 const FLOAT2: u32 = 0x1705;
 const HALF4: u32 = 0x1505;
 const HALF2: u32 = 0x1205;
 const UNORM16X2: u32 = 0x1201;
+const SNORM16X2: u32 = 0x1202;
 const SNORM10X3_2: u32 = 0xe02;
 /// The attributes edited, by name and the one format each is read in. A
 /// normal and a tangent are kept as stored.
@@ -161,7 +166,7 @@ fn attr_records(data: &[u8], v: usize) -> Result<impl Iterator<Item = AttrRecord
 /// Every vertex's value of attribute `name` (`_p0`, `_u0`, `_n0`) in the
 /// shape named `shape`, whichever of its buffers holds it, as up to four
 /// floats (missing ones 0). Reads the formats the game's models use for
-/// them: floats, halves, 16-bit unorms and 10:10:10:2 snorms.
+/// them: floats, halves, 16-bit unorms and snorms, and 10:10:10:2 snorms.
 pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> {
     let r = Reader(data);
     let at = shape_at(data, shape)?;
@@ -192,12 +197,14 @@ pub fn attribute(data: &[u8], shape: &str, name: &str) -> Result<Vec<[f32; 4]>> 
             let half = |k: usize| half_at(&r, at + 2 * k);
             let float = |k: usize| r.f32(at + 4 * k);
             let unorm = |k: usize| unorm_at(&r, at + 2 * k);
+            let snorm = |k: usize| snorm_at(&r, at + 2 * k);
             Ok(match format {
                 FLOAT3 => [float(0)?, float(1)?, float(2)?, 0.0],
                 FLOAT2 => [float(0)?, float(1)?, 0.0, 0.0],
                 HALF4 => [half(0)?, half(1)?, half(2)?, half(3)?],
                 HALF2 => [half(0)?, half(1)?, 0.0, 0.0],
                 UNORM16X2 => [unorm(0)?, unorm(1)?, 0.0, 0.0],
+                SNORM16X2 => [snorm(0)?, snorm(1)?, 0.0, 0.0],
                 SNORM10X3_2 => unpack(r.u32(at)?),
                 other => bail!("{shape}: {name} in format {other:#x}"),
             })

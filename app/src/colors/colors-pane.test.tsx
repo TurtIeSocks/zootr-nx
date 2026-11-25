@@ -29,11 +29,15 @@ const palette = (
   names: [],
   follows: null,
   sheets: 2,
+  views: [],
   problem,
 });
 
 const CATALOG = [
-  palette("kokiri-tunic", "Kokiri Tunic", "link"),
+  {
+    ...palette("kokiri-tunic", "Kokiri Tunic", "link"),
+    views: ["Adult", "Child"],
+  },
   palette("leather", "Leather", "link"),
   {
     ...palette("hair", "Hair", "link"),
@@ -63,6 +67,13 @@ vi.mock("@/bindings", () => ({
     }),
     setConfig: (c: FullConfig) => setConfig(c),
   },
+}));
+
+// jsdom has no WebGL: the model stands in as its palette's name.
+vi.mock("./model-view", () => ({
+  ModelView: ({ palette }: { palette: PaletteView }) => (
+    <p>model of {palette.id}</p>
+  ),
 }));
 
 Element.prototype.hasPointerCapture = () => false;
@@ -162,6 +173,15 @@ test("the HUD tab previews every HUD palette on one mock HUD", async () => {
   ).toBeTruthy();
   expect(screen.getByLabelText("Low health")).toBeTruthy();
   expect(screen.getByLabelText("Using magic")).toBeTruthy();
+});
+
+test("a palette with a model gets a Model tab, one without keeps its texture", async () => {
+  show(full({ game: "/fake/game", game_assets: true }));
+  await screen.findAllByText("Kokiri Tunic");
+  fireEvent.click(screen.getByRole("button", { name: "Model" }));
+  expect(screen.getByText("model of kokiri-tunic")).toBeTruthy();
+  fireEvent.mouseEnter(within("Leather"));
+  expect(screen.queryByRole("button", { name: "Model" })).toBeNull();
 });
 
 test("Split gives each slot a picker, starting where the slots followed", async () => {

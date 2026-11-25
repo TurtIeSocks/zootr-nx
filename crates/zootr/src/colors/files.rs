@@ -34,6 +34,15 @@ impl Tex {
         (self.path, self.name)
     }
 
+    /// The name a model's material gives it, for a file of one:
+    /// `Tex/<name>.bntx.zs`.
+    pub fn stem(&self) -> Option<&'static str> {
+        match self.name {
+            None => stem(self.path),
+            Some(_) => None,
+        }
+    }
+
     /// Its first level, from its file's `data`.
     pub fn texels(&self, data: &[u8]) -> anyhow::Result<ounce_formats::Texture> {
         match self.name {
@@ -49,6 +58,12 @@ impl Tex {
             Some(name) => ounce_formats::redraw_named(data, name, rgba, |_, _| false),
         }
     }
+}
+
+/// The texture name a `Tex/<name>.bntx.zs` file holds. A name may end
+/// in a variant's number (`_Alb.00`), as a material names it.
+pub fn stem(path: &str) -> Option<&str> {
+    path.strip_prefix("Tex/")?.strip_suffix(".bntx.zs")
 }
 
 /// A texture in the UI's atlas, by name.
@@ -223,6 +238,10 @@ pub const JEWELRY: &str = "Mt_Jewelry";
 pub const BRACELET_GLASS: &str = "Mt_Item_Gauntlet_Goron_Glass";
 pub const BOOTS_GLASS: &str = "Mt_Boots_TransParent";
 pub const BOOMERANG_GEM: &str = "Mt_Item_Boomerang_Gem";
+
+// Layers the game draws over Link's eyes through its shader (a glint, a
+// shadow), with no albedo: the Model tab leaves them out.
+pub const EYE_LAYERS: [&str; 2] = ["Mt_Eye_Outer", "Mt_Eyeshadow"];
 pub const BOOMERANG_TILE_1: &str = "Mt_Item_Boomerang_Tile_01";
 pub const BOOMERANG_TILE_2: &str = "Mt_Item_Boomerang_Tile_02";
 pub const BOOMERANG_TILE_3: &str = "Mt_Item_Boomerang_Tile_03";
@@ -287,3 +306,168 @@ pub const MAGIC_GLOW: [Tex; 4] = [
 ];
 pub const RUPEE_ICON: Tex = atlas("Nt_RupeeIconNew_00");
 pub const MENU_HEADER: Tex = atlas("MenuHeader_00");
+
+/// One way the Model tab shows a palette: models drawn together.
+pub struct View {
+    pub label: &'static str,
+    pub models: &'static [&'static str],
+    /// The pack of an armor worn over the first model (Link), whose
+    /// ArmorParam names the material groups of his that it hides.
+    pub worn: Option<&'static str>,
+}
+
+const fn view(label: &'static str, models: &'static [&'static str]) -> View {
+    View {
+        label,
+        models,
+        worn: None,
+    }
+}
+
+/// Link (`models`, his first) in an armor from pack `pack`, as the game
+/// dresses him.
+const fn worn(label: &'static str, models: &'static [&'static str], pack: &'static str) -> View {
+    View {
+        label,
+        models,
+        worn: Some(pack),
+    }
+}
+
+/// Armor `model` from pack `pack` worn by adult Link, then alone.
+macro_rules! on_link {
+    ($model:expr, $pack:expr) => {
+        &[
+            worn("On Link", &[ADULT, $model], $pack),
+            view("Alone", &[$model]),
+        ]
+    };
+}
+
+const HEAVY: &str = "Model/Armor_Adult_HeavyBoot.Armor_Adult_HeavyBoot.bfres.zs";
+
+/// The pack holding Link's own params: each material group armor hides.
+pub const PLAYER_BASE: &str = "Pack/Actor/Player_Base.pack.zs";
+
+const ADULT_VIEW: View = view("Adult", &[ADULT]);
+const CHILD_VIEW: View = view("Child", &[CHILD]);
+
+const LINK_VIEWS: &[View] = &[ADULT_VIEW, CHILD_VIEW];
+
+/// Each palette with a model, and the views it shows on.
+const VIEWS: &[(&str, &[View])] = &[
+    ("kokiri-tunic", LINK_VIEWS),
+    ("leather", LINK_VIEWS),
+    ("hair", LINK_VIEWS),
+    ("brows", LINK_VIEWS),
+    (
+        "goron-tunic",
+        &[worn(
+            "Adult",
+            &[ADULT, "Model/Armor_Adult_Goron.Armor_Adult_Goron.bfres.zs"],
+            "Pack/Actor/Armor_Adult_Goron.pack.zs",
+        )],
+    ),
+    (
+        "zora-tunic",
+        &[worn(
+            "Adult",
+            &[ADULT, "Model/Armor_Adult_Zora.Armor_Adult_Zora.bfres.zs"],
+            "Pack/Actor/Armor_Adult_Zora.pack.zs",
+        )],
+    ),
+    (
+        "kokiri-sword",
+        &[view(
+            "Sword",
+            &["Model/Weapon_Sword_Kokiri.Weapon_Sword_Kokiri.bfres.zs"],
+        )],
+    ),
+    (
+        "biggoron-sword",
+        &[view(
+            "Sword",
+            &["Model/Weapon_Sword_Biggoron.Weapon_Sword_Biggoron.bfres.zs"],
+        )],
+    ),
+    ("master-sword", &[view("Sword", &[MASTER])]),
+    (
+        "deku-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Deku.Weapon_Shield_Deku.bfres.zs"],
+        )],
+    ),
+    (
+        "hylian-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Hylian.Weapon_Shield_Hylian.bfres.zs"],
+        )],
+    ),
+    (
+        "mirror-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Mirror.Weapon_Shield_Mirror.bfres.zs"],
+        )],
+    ),
+    (
+        "iron-boots",
+        on_link!(HEAVY, "Pack/Actor/Armor_Adult_HeavyBoot.pack.zs"),
+    ),
+    (
+        "hover-boots",
+        on_link!(HOVER, "Pack/Actor/Armor_Adult_HoverBoot.pack.zs"),
+    ),
+    (
+        "hammer",
+        &[view("Hammer", &["Model/Item_Hammer.Item_Hammer.bfres.zs"])],
+    ),
+    (
+        "bow",
+        &[view(
+            "Bow",
+            &["Model/Weapon_Range_Bow.Weapon_Range_Bow.bfres.zs"],
+        )],
+    ),
+    (
+        "slingshot",
+        &[view(
+            "Slingshot",
+            &["Model/Weapon_Range_SlingShot.Weapon_Range_SlingShot.bfres.zs"],
+        )],
+    ),
+    (
+        "hookshot",
+        &[view(
+            "Hookshot",
+            &["Model/Item_Hookshot.Item_Hookshot_Body.bfres.zs"],
+        )],
+    ),
+    (
+        "fairy-ocarina",
+        &[view(
+            "Ocarina",
+            &["Model/Item_Ocarina_Fairy.Item_Ocarina_Fairy.bfres.zs"],
+        )],
+    ),
+    (
+        "ocarina-of-time",
+        &[view(
+            "Ocarina",
+            &["Model/Item_Ocarina_Time.Item_Ocarina_Time.bfres.zs"],
+        )],
+    ),
+    // Alone: the gauntlets bind in a T pose and Link in an A pose, so worn
+    // they float until they are skinned to his bones by name.
+    ("silver-gauntlets", &[view("Gauntlets", &[SILVER])]),
+    ("gold-gauntlets", &[view("Gauntlets", &[GOLD])]),
+    ("goron-bracelet", &[view("Bracelet", &[BRACELET])]),
+    ("boomerang", &[view("Boomerang", &[BOOMERANG_MODEL])]),
+];
+
+/// The views palette `id` shows on, none for one with no model.
+pub fn views(id: &str) -> &'static [View] {
+    VIEWS.iter().find(|(p, _)| *p == id).map_or(&[], |(_, v)| v)
+}

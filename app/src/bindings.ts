@@ -842,6 +842,8 @@ export type PaletteView = {
 	 *  for each material whose colours it writes.
 	 */
 	sheets: number,
+	/**  The views its Model tab shows it on, by label: none without one. */
+	views: string[],
 	/**  Why this dump can't paint it, when it can't. */
 	problem: string | null,
 };

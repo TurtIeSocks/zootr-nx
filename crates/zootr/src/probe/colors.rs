@@ -30,6 +30,45 @@ pub(super) fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
     Ok(())
 }
 
+/// `probe model`.
+pub(super) fn model(romfs: &Romfs, game: &Path, model: &str, raw: Option<&Path>) -> Result<()> {
+    let data = load(romfs, game, model, model, "model")?;
+    if let Some(raw) = raw {
+        std::fs::write(raw, &data)?;
+    }
+    let materials = ounce_formats::materials(&data)?;
+    let skeleton = ounce_formats::skeleton(&data)?;
+    for s in ounce_formats::shapes_of(&data)? {
+        let placed = ounce_formats::model_vertices(&data, &skeleton, &s.name)?;
+        let mut centre = [0.0f32; 3];
+        for (p, _) in &placed {
+            (0..3).for_each(|i| centre[i] += p[i] / placed.len() as f32);
+        }
+        let [x, y, z] = centre;
+        println!(
+            "{}  bone {}  skin {}  {} vertices  centre {x:.2} {y:.2} {z:.2}",
+            s.name,
+            s.bone,
+            s.skin,
+            placed.len()
+        );
+        if let Ok(uvs) = ounce_formats::attribute(&data, &s.name, "_u0") {
+            let range = |c: usize| {
+                let each = uvs.iter().map(|uv| uv[c]);
+                let lo = each.clone().fold(f32::INFINITY, f32::min);
+                (lo, each.fold(f32::NEG_INFINITY, f32::max))
+            };
+            let ((u0, u1), (v0, v1)) = (range(0), range(1));
+            println!("  uv {u0:.2}..{u1:.2} x {v0:.2}..{v1:.2}");
+        }
+        match materials.get(s.material) {
+            Some(m) => println!("  {} {}", m.name, m.textures.join(" ")),
+            None => println!("  material {} missing", s.material),
+        }
+    }
+    Ok(())
+}
+
 /// `probe vfx`.
 pub(super) fn vfx(
     romfs: &Romfs,
@@ -64,11 +103,22 @@ pub(super) fn vfx(
 }
 
 /// `probe band`.
-pub(super) fn band(romfs: &Romfs, game: &Path, texture: &str, bands: &[String]) -> Result<()> {
+pub(super) fn band(
+    romfs: &Romfs,
+    game: &Path,
+    texture: &str,
+    bands: &[String],
+    png: Option<&Path>,
+) -> Result<()> {
     use crate::colors::paint;
     let data = crate::nav::dump_file(romfs, game, texture)?
         .with_context(|| format!("no texture {texture}"))?;
-    let rgba = ounce_formats::top_level(&data)?.rgba;
+    let top = ounce_formats::top_level(&data)?;
+    if let Some(png) = png {
+        std::fs::write(png, crate::sprites::png(&top)?)?;
+    }
+    println!("{}x{}", top.width, top.height);
+    let rgba = top.rgba;
     let n = (rgba.len() / 4).max(1) as u64;
     let mean: [u64; 3] =
         std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
