@@ -33,7 +33,7 @@ export function PlandoPane() {
       <PageHeader
         title="Plando"
         help="plando"
-        description="Pin items to checks. The next seed you generate gets the pins on this page and shuffles everything else around them. Each change saves as you make it."
+        description="Pin items to checks."
         actions={<PaneResetButton pane="plando" />}
       />
       <SavedSets

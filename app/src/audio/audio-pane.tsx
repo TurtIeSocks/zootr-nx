@@ -91,7 +91,7 @@ export function AudioPane() {
       <PageHeader
         title="Audio"
         help="audio"
-        description="Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs, and Link's voice by age. The next seed you generate plays it this way, or apply it to the installed seed from the bar below without a new shuffle. Each change saves as you make it."
+        description="Shuffle the game's music and Link's voice."
         actions={<Actions />}
       />
       <SavedSets

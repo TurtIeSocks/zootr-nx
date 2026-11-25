@@ -76,7 +76,7 @@ export function ColorsPane() {
       <PageHeader
         title="Colors"
         help="colors"
-        description="Recolor Link, his gear, Navi and the HUD. The next seed you generate is painted this way, or apply them to the installed seed from the bar below without a new shuffle. Each change saves as you make it."
+        description="Recolor Link, his gear, Navi and the HUD."
         actions={<Actions palettes={catalog.palettes} />}
       />
       <SavedSets
