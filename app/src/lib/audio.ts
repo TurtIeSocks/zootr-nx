@@ -8,6 +8,8 @@ export const POOLS: readonly Pool[] = [
   "event",
   "fanfare",
   "ocarina",
+  "voice-adult",
+  "voice-child",
 ];
 
 /** A track override's value for "keep this one vanilla", as the backend

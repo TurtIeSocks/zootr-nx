@@ -3,9 +3,9 @@
 //! streams its asset nodes play and copies each new stream's call into the
 //! track's SLink2 user, since a key the user lacks plays silence. Moving
 //! graphs between tracks left them silent in every live test. The ocarina
-//! songs and the shops' music aren't in the music table: each is a call of
-//! an SLink2 user, repointed at another's asset. Romfs files only: the hook patch never
-//! differs by music. See
+//! songs and Link's voice aren't in the music table: each is a call of an
+//! SLink2 user, repointed at another's asset within that user. Romfs files
+//! only: the hook patch never differs by music. See
 //! `superpowers/specs/2026-11-24-audio-design.md`.
 
 mod files;
@@ -15,10 +15,11 @@ mod write;
 
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail, ensure};
+use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
-pub use files::{HELD, OCARINA, STREAMS, TABLE, TRACKS};
+pub use files::{BANKS, HELD, OCARINA, STREAMS, TABLE, TRACKS};
 pub use pick::{Audio, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve};
 pub use write::write;
 
@@ -30,6 +31,11 @@ pub enum Via {
     /// The call of this SLink2 user named its graph (an ocarina song). It
     /// trades only within the user: across users, a swap played silence.
     Call(&'static str),
+    /// The voice calls of this SLink2 user named its graph and a number
+    /// (`SwordAttack_S_01`...), which the game calls by name: a cue of
+    /// variants. A slot's variants take the donor's in turn, within the
+    /// user.
+    Cue(&'static str),
 }
 
 /// A track's kind. Tracks shuffle only within their pool.
@@ -59,20 +65,26 @@ pub enum Pool {
     Fanfare,
     /// The songs Link plays and the ones he's taught.
     Ocarina,
+    /// Adult Link's voice: his yells, grunts and breaths, by cue.
+    #[serde(rename = "voice-adult")]
+    VoiceAdult,
+    /// Child Link's voice.
+    #[serde(rename = "voice-child")]
+    VoiceChild,
     /// The silences: never shuffled.
     Fixed,
 }
 
 impl Pool {
     /// Where a one-shot's length band ends, in seconds. A pool without
-    /// edges has no bands: its tracks loop.
+    /// edges has no bands: its tracks loop, or are all a moment long.
     fn edges(self) -> &'static [f32] {
         match self {
             Pool::Event => &[12.0, 25.0],
             Pool::Fanfare => &[5.0, 12.0],
             // Lessons and the short songs, the longer songs, the warp songs.
             Pool::Ocarina => &[7.0, 14.0],
-            Pool::Area | Pool::Battle | Pool::Fixed => &[],
+            Pool::Area | Pool::Battle | Pool::VoiceAdult | Pool::VoiceChild | Pool::Fixed => &[],
         }
     }
 
@@ -83,6 +95,8 @@ impl Pool {
             Pool::Event => "event",
             Pool::Fanfare => "fanfare",
             Pool::Ocarina => "ocarina",
+            Pool::VoiceAdult => "voice-adult",
+            Pool::VoiceChild => "voice-child",
             Pool::Fixed => "fixed",
         }
     }
@@ -154,9 +168,32 @@ pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
     let name = stream_name(name)?;
     let path = format!("{STREAMS}{name}.bwav");
     let found = crate::game::search(game, &path)?;
-    let (_, data) = (found.into_iter().find(|(p, _)| *p == path))
-        .with_context(|| format!("no stream {name}"))?;
-    Ok((name, data))
+    if let Some((_, data)) = found.into_iter().find(|(p, _)| *p == path) {
+        return Ok((name, data));
+    }
+    let romfs = crate::game::prepare(game, None, &crate::progress::Run::silent())?;
+    for bank in banks(&romfs, game)? {
+        if let Some(data) = ounce_formats::bars::bwav(&bank, name)? {
+            return Ok((name, data.to_vec()));
+        }
+    }
+    bail!("no stream {name}")
+}
+
+/// Link's banks from the dump at `game`, decompressed, in [`BANKS`] order.
+pub fn banks(romfs: &Romfs, game: &Path) -> Result<Vec<Vec<u8>>> {
+    let mut found = vec![];
+    crate::game::each_where(
+        game,
+        |p| BANKS.contains(&p),
+        |path, data| {
+            found.push((path.clone(), romfs.dicts().decompress(&path, &data)?));
+            Ok(())
+        },
+    )?;
+    found.sort_by_key(|(path, _)| BANKS.iter().position(|b| b == path));
+    ensure!(found.len() == BANKS.len(), "the dump lacks Link's banks");
+    Ok(found.into_iter().map(|(_, bank)| bank).collect())
 }
 
 /// `name`'s stream as a stereo WAV.
@@ -282,12 +319,44 @@ mod tests {
         listed.sort();
         assert_eq!(names, listed);
         let streams = crate::game::search(game, STREAMS).unwrap();
+        let banks = banks(&romfs, game).unwrap();
         let header = |name: &str| {
             let path = format!("{STREAMS}{name}.bwav");
-            let (_, data) = (streams.iter().find(|(p, _)| *p == path))
-                .unwrap_or_else(|| panic!("no stream {name}"));
+            let data = match streams.iter().find(|(p, _)| *p == path) {
+                Some((_, data)) => data.as_slice(),
+                None => (banks.iter())
+                    .find_map(|b| ounce_formats::bars::bwav(b, name).unwrap())
+                    .unwrap_or_else(|| panic!("no stream {name}")),
+            };
             ounce_formats::bwav::header(data).unwrap()
         };
+        let (cues, called): (Vec<_>, Vec<_>) = called
+            .into_iter()
+            .partition(|t| matches!(t.via, Via::Cue(_)));
+        for t in cues {
+            let Via::Cue(user) = t.via else {
+                unreachable!()
+            };
+            let heard: Vec<_> = (write::variants(&slink, user, t.graph).unwrap().iter())
+                .map(|(_, call)| {
+                    let names = ounce_formats::xlink_asset_names(&slink, call.param).unwrap();
+                    let (_, stream) = names.into_iter().find(|(bit, _)| *bit == 1).unwrap();
+                    (stream.to_owned(), header(stream))
+                })
+                .collect();
+            assert_eq!(heard[0].0, t.song.unwrap(), "{}", t.id);
+            let secs = heard.iter().map(|(_, h)| h.seconds()).fold(0.0, f32::max);
+            assert!(
+                (secs - t.secs).abs() < 0.01 && secs < 6.0,
+                "{}: {secs} s",
+                t.id
+            );
+            assert!(
+                heard.iter().all(|(_, h)| h.loop_start.is_none()),
+                "{}",
+                t.id
+            );
+        }
         for t in called {
             let Via::Call(user) = t.via else {
                 unreachable!("{}", t.id)
