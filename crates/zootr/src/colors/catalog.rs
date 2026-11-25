@@ -27,6 +27,18 @@ pub struct Palette {
     pub writes: &'static [Write],
 }
 
+impl Palette {
+    /// `other` moved as `from` moved to `to`, the way this palette's parts
+    /// follow its slots. An effect's parts follow by hue alone: their
+    /// brightness is their own, and a lighter pick would wash them white.
+    pub fn follow(&self, to: Colour, from: Colour, other: Colour) -> Colour {
+        match self.group {
+            Group::Effects => super::oklch::follow_hue(to, from, other),
+            Group::Link | Group::Gear => super::oklch::follow(to, from, other),
+        }
+    }
+}
+
 /// One change a palette makes, following one of its slots.
 pub struct Write {
     pub slot: usize,

@@ -80,7 +80,7 @@ impl Picked {
             let from = palette.vanilla[0];
             let follow = palette.vanilla[1..]
                 .iter()
-                .map(|&v| oklch::follow(first, from, v));
+                .map(|&v| palette.follow(first, from, v));
             return Ok([first].into_iter().chain(follow).collect());
         }
         ensure!(
