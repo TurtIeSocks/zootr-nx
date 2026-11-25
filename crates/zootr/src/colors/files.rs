@@ -196,3 +196,56 @@ macro_rules! effect {
 pub const STATIC_FX: &str = effect!("static");
 /// The index of the bundles the game loads.
 pub const EFFECT_INDEX: &str = "Effect/EffectFileInfo.Product.110.Nin_Ounce_NVN2.byml.zs";
+
+// Navi: her model, its two body materials, and her cutscene double's
+// effects.
+pub const NAVI: &str = "Model/Npc_Navi.Npc_Navi.bfres.zs";
+pub const NAVI_BODY: &str = "Mt_Body";
+pub const NAVI_BODY_MASK: &str = "Mt_Body_AlphaMask";
+pub const NAVI_FX: &str = effect!("Dm_Npc_Navi");
+
+// Each effect bundle an item, a pickup or a spell loads by name.
+pub const BOOMERANG_FX: &str = effect!("Item_Boomerang");
+pub const FIRE_ARROW_FX: &[&str] = &[
+    effect!("Item_Arrow_Fire"),
+    effect!("Obj_Arrow_Fire"),
+    effect!("Pouch_Arrow_Fire"),
+    effect!("Pouch_Range_BowAndArrow_Fire"),
+];
+pub const ICE_ARROW_FX: &[&str] = &[
+    effect!("Item_Arrow_Ice"),
+    effect!("Pouch_Arrow_Ice"),
+    effect!("Pouch_Range_BowAndArrow_Ice"),
+];
+pub const LIGHT_ARROW_FX: &[&str] = &[
+    effect!("Item_Arrow_Light"),
+    effect!("Pouch_Arrow_Light"),
+    effect!("Pouch_Range_BowAndArrow_Light"),
+];
+pub const DINS_FIRE_FX: &[&str] = &[effect!("Item_DinFire"), effect!("Pouch_DinFire")];
+pub const FARORES_MARKER_FX: &str = effect!("FaroreWindWarpPoint");
+pub const LENS_FX: &str = effect!("Ref_Player_GlassOfTruth");
+pub const WARP_PAD_FX: &str = effect!("Obj_WarpPoint_A_01");
+pub const FAIRY_FX: &[&str] = &[
+    effect!("Obj_Fairy"),
+    effect!("Obj_Fairy_FromButterfly"),
+    effect!("Weapon_Bottle_Fairy"),
+    effect!("Pouch_Bottle_Fairy"),
+    effect!("Shop_Bottle_Fairy"),
+    effect!("Dm_Npc_RevivalFairy"),
+];
+pub const HEART_CONTAINER_FX: &str = effect!("Obj_Heart_Container");
+pub const HEART_PIECE_FX: &[&str] = &[
+    effect!("Obj_Heart_Piece"),
+    effect!("Obj_Heart_Piece_MiniGame"),
+];
+pub const MAGIC_JAR_FX: &[&str] = &[
+    effect!("Obj_MagicJar_Small"),
+    effect!("Obj_MagicJar_Large"),
+    effect!("Shop_MagicJar_Small"),
+];
+
+// Effect sets named whole, where a prefix would take their siblings too.
+pub const NAVI_TALK: &str = "Npc_Navi_Talk_00";
+pub const NAVI_TALK_LOCKED: &str = "Npc_Navi_Talk_01";
+pub const GOLD_SPARKLE: &str = "Obj_Rupee_Gold_Wait";

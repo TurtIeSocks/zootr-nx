@@ -78,28 +78,37 @@ pub fn spoiler(colors: &Colors) -> String {
 /// moved from vanilla.
 #[derive(Clone)]
 struct Job<'a> {
-    palette: &'a str,
+    palette: &'a Palette,
     write: &'a Write,
+    /// Its slot's colour.
+    to: Colour,
+    /// Its part's colour: for an effect, whose constants each follow the
+    /// slot by their own, the slot's.
     goal: Colour,
+}
+
+impl Job<'_> {
+    /// `vanilla` moved as this job's slot moved.
+    fn follow(&self, vanilla: Colour) -> Colour {
+        let from = self.palette.vanilla[self.write.slot];
+        self.palette.follow(self.to, from, vanilla)
+    }
 }
 
 /// The writes `picked` makes in `palette`, each with its goal.
 fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
     let slots = picked.slots(palette)?;
     let job = |write: &'a Write| {
-        let follow = match write.kind {
-            Kind::Vfx { .. } => oklch::follow_hue,
-            _ => oklch::follow,
-        };
-        Job {
-            palette: palette.id,
+        let mut job = Job {
+            palette,
             write,
-            goal: follow(
-                slots[write.slot],
-                palette.vanilla[write.slot],
-                write.vanilla(),
-            ),
+            to: slots[write.slot],
+            goal: slots[write.slot],
+        };
+        if let Some(vanilla) = write.vanilla() {
+            job.goal = job.follow(vanilla);
         }
+        job
     };
     Ok(palette.writes.iter().map(job).collect())
 }
@@ -179,7 +188,7 @@ fn paint_model(model: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
         let Kind::Param { material, hash, .. } = job.write.kind else {
             unreachable!("a model's jobs are params");
         };
-        let old = check_param(&data, job.write).with_context(|| job.palette.to_owned())?;
+        let old = check_param(&data, job.write).with_context(|| job.palette.id)?;
         data = set_material_param(&data, material, hash, param_value(job.goal, old))?;
     }
     Ok(data)
@@ -213,40 +222,66 @@ fn check_param(model: &[u8], write: &Write) -> Result<[f32; 4]> {
 fn paint_bundle(bundle: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
     let mut data = bundle.to_vec();
     for job in jobs {
-        for c in check_vfx(bundle, job.write).with_context(|| job.palette.to_owned())? {
-            let [r, g, b, _] = param_value(job.goal, c.value);
+        let found = check_vfx(bundle, job.write).with_context(|| job.palette.id)?;
+        for c in found {
+            let Some(hue) = hue(c.value) else {
+                continue;
+            };
+            let [r, g, b, _] = param_value(job.follow(hue), c.value);
             vfx::set_constant(&mut data, c.at, [r, g, b]);
         }
     }
     Ok(data)
 }
 
-/// The constants `write` changes in `bundle`: every one with its hash
-/// holding its colour. Fails when there's none.
+/// The constants `write` changes in `bundle`: every one in its esets.
+/// Fails when there's none, or their sum isn't the one recorded.
 fn check_vfx(bundle: &[u8], write: &Write) -> Result<Vec<vfx::Constant>> {
-    let Kind::Vfx { hash, vanilla, .. } = write.kind else {
-        anyhow::bail!("not an effect constant");
+    let Kind::Vfx { esets, sum, .. } = write.kind else {
+        anyhow::bail!("not an effect");
     };
-    let found: Vec<_> = vfx::constants(bundle)?
-        .into_iter()
-        .filter(|c| c.hash == hash)
-        .collect();
-    let held: Vec<_> = found
-        .iter()
-        .filter(|c| {
-            c.value
-                .iter()
-                .zip(vanilla)
-                .all(|(o, v)| (o - v).abs() <= PARAM_SLACK)
-        })
-        .cloned()
-        .collect();
+    let (got, found) = in_esets(bundle, esets)?;
+    ensure!(!found.is_empty(), "no colour in the esets {esets:?}");
     ensure!(
-        !held.is_empty(),
-        "no effect constant {hash:016x} holds {vanilla:?}: {:?}",
-        found.iter().map(|c| &c.value[..3]).collect::<Vec<_>>()
+        got == sum,
+        "the esets {esets:?} sum to {got:#010x} where {sum:#010x} was recorded"
     );
-    Ok(held)
+    Ok(found)
+}
+
+/// The colour constants in `bundle`'s esets whose names start with one of
+/// `esets`, and their sum: the crc32 of each one's descriptor hash and
+/// floats, in file order.
+pub(crate) fn in_esets(bundle: &[u8], esets: &[&str]) -> Result<(u32, Vec<vfx::Constant>)> {
+    let within = |eset: &Option<String>| {
+        let eset = eset.as_deref().unwrap_or_default();
+        esets.iter().any(|e| eset.starts_with(e))
+    };
+    let found: Vec<_> = vfx::constants_by_eset(bundle)?
+        .into_iter()
+        .filter(|(eset, _)| within(eset))
+        .map(|(_, c)| c)
+        .collect();
+    let bytes: Vec<u8> = found
+        .iter()
+        .flat_map(|c| {
+            let floats = c.value.iter().flat_map(|v| v.to_le_bytes());
+            c.hash.to_le_bytes().into_iter().chain(floats)
+        })
+        .collect();
+    Ok((ounce_formats::crc32(&bytes), found))
+}
+
+/// An effect constant's hue, as sRGB at full brightness, or none for one
+/// that isn't a colour: grey, black, or below 0 in a channel.
+fn hue(value: [f32; 4]) -> Option<Colour> {
+    let rgb = [value[0], value[1], value[2]];
+    let top = rgb.iter().copied().fold(0.0, f32::max);
+    if top <= 0.0 || rgb.iter().any(|&c| c < 0.0) {
+        return None;
+    }
+    let hue = oklch::from_linear(rgb.map(|c| c / top));
+    (!oklch::grey(hue)).then_some(hue)
 }
 
 /// The param that shows `goal` at the brightness `old` had: its colour
@@ -319,7 +354,7 @@ fn write_painted(
 /// painted into it. The seed and the app's preview both paint here.
 fn paint_jobs(rgba: &mut [u8], jobs: &[Job]) -> Result<()> {
     for job in jobs {
-        check(rgba, job.write).with_context(|| job.palette.to_owned())?;
+        check(rgba, job.write).with_context(|| job.palette.id)?;
     }
     let bands: Vec<Band> = jobs
         .iter()
@@ -350,7 +385,8 @@ fn paint_jobs(rgba: &mut [u8], jobs: &[Job]) -> Result<()> {
 /// Fails unless `write`'s part in `rgba` is the colour the catalog
 /// recorded: a newer dump is refused, not painted wrong.
 fn check(rgba: &[u8], write: &Write) -> Result<()> {
-    let (got, want) = (measure(rgba, write)?, write.vanilla());
+    let want = write.vanilla().context("an effect has no one colour")?;
+    let got = measure(rgba, write)?;
     ensure!(
         matches(write, got, want),
         "the dump's colour here is {} where {} was recorded",
@@ -543,6 +579,7 @@ mod tests {
         write(&mut builder, &colors).unwrap();
         builder.finish().unwrap();
         let has = |data: &[u8], name: &str| data.windows(name.len()).any(|w| w == name.as_bytes());
+        let mut pinked = std::collections::HashSet::new();
         for palette in PALETTES {
             for (i, w) in palette.writes.iter().enumerate() {
                 if let Kind::Param {
@@ -575,15 +612,18 @@ mod tests {
                         "{} {bundle} is painted",
                         palette.id
                     );
-                    if i == 0 {
-                        let vanilla = romfs.read(bundle).unwrap();
-                        let at = check_vfx(&vanilla, w).unwrap()[0].at;
-                        let c = &vfx::constants(&data).unwrap();
-                        let got = c.iter().find(|c| c.at == at).unwrap().value;
-                        let top = got[..3].iter().copied().fold(0.0, f32::max);
-                        let got = oklch::from_linear([got[0] / top, got[1] / top, got[2] / top]);
-                        let near = (paint::hsv(got).0 - paint::hsv(pink).0).abs();
-                        assert!(near < 0.03, "{} {bundle} is {got:?}", palette.id);
+                    // Some constant of the first slot's has its hue and
+                    // takes pink.
+                    let Kind::Vfx { esets, .. } = w.kind else {
+                        unreachable!()
+                    };
+                    let (_, got) = in_esets(&data, esets).unwrap();
+                    let near = |c: &vfx::Constant| {
+                        hue(c.value)
+                            .is_some_and(|h| (paint::hsv(h).0 - paint::hsv(pink).0).abs() < 0.03)
+                    };
+                    if w.slot == 0 && got.iter().any(near) {
+                        pinked.insert(palette.id);
                     }
                     continue;
                 }
@@ -640,6 +680,15 @@ mod tests {
                     assert!(paint::mean(&rgba, near).is_some(), "{} {path}", palette.id);
                 }
             }
+        }
+        for palette in PALETTES.iter().filter(|p| p.group == Group::Effects) {
+            let vfx = |w: &Write| w.slot == 0 && matches!(w.kind, Kind::Vfx { .. });
+            let vfx = palette.writes.iter().any(vfx);
+            assert!(
+                !vfx || pinked.contains(palette.id),
+                "{} takes pink",
+                palette.id
+            );
         }
         std::fs::remove_dir_all(dir).ok();
     }
@@ -699,7 +748,7 @@ mod tests {
                 let path = write.texture().unwrap().path;
                 let rgba = top_level(&romfs.read(path).unwrap()).unwrap().rgba;
                 match measure(&rgba, write) {
-                    Ok(got) if matches(write, got, write.vanilla()) => {}
+                    Ok(got) if matches(write, got, write.vanilla().unwrap()) => {}
                     Ok(got) => wrong.push(format!("{} {path}: {}", palette.id, hex(got))),
                     Err(e) => wrong.push(format!("{} {path}: {e}", palette.id)),
                 }

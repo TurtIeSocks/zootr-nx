@@ -96,6 +96,17 @@ pub fn esets(data: &[u8]) -> Result<Vec<(String, usize)>> {
     Ok(out)
 }
 
+/// Every colour constant in a decompressed bundle with the eset it falls
+/// in (see `esets`), none for one before the first.
+pub fn constants_by_eset(data: &[u8]) -> Result<Vec<(Option<String>, Constant)>> {
+    let esets = esets(data)?;
+    let eset = |at| esets.iter().rev().find(|(_, start)| *start <= at);
+    Ok(constants(data)?
+        .into_iter()
+        .map(|c| (eset(c.at).map(|(name, _)| name.clone()), c))
+        .collect())
+}
+
 /// The eset names a bundle's BYML lists.
 fn eset_names(data: &[u8]) -> Result<Vec<String>> {
     let doc = Byml::from_binary(data)?;

@@ -70,13 +70,15 @@ pub enum Kind {
         hash: u64,
         vanilla: [f32; 3],
     },
-    /// Every effect constant in `bundle` whose descriptor hash is `hash`
-    /// and whose value is `vanilla` (linear, often above 1), its brightest
-    /// channel kept as a param's is.
+    /// Every coloured constant in `bundle`'s esets whose names start with
+    /// one of `esets`: each turned as the slot turned from vanilla, by
+    /// its own hue, its brightest channel kept as a param's is. Greys stay
+    /// grey. `sum` is the crc32 of those esets' constants in the dump
+    /// (`probe vfx BUNDLE --sum PREFIX`), so a newer dump fails the build.
     Vfx {
         bundle: &'static str,
-        hash: u64,
-        vanilla: [f32; 3],
+        esets: &'static [&'static str],
+        sum: u32,
     },
 }
 
@@ -89,16 +91,13 @@ impl Write {
         }
     }
 
-    /// Its part's colour in the vanilla game, as sRGB.
-    pub fn vanilla(&self) -> Colour {
+    /// Its part's colour in the vanilla game, as sRGB. None for an
+    /// effect: each of its constants has its own.
+    pub fn vanilla(&self) -> Option<Colour> {
         match self.kind {
-            Kind::Band { vanilla, .. } | Kind::Tint { vanilla, .. } => vanilla,
-            Kind::Param { vanilla, .. } => super::oklch::from_linear(vanilla),
-            // Its hue: an effect's brightness is past what sRGB holds.
-            Kind::Vfx { vanilla, .. } => {
-                let top = vanilla.iter().copied().fold(f32::MIN_POSITIVE, f32::max);
-                super::oklch::from_linear(vanilla.map(|c| c / top))
-            }
+            Kind::Band { vanilla, .. } | Kind::Tint { vanilla, .. } => Some(vanilla),
+            Kind::Param { vanilla, .. } => Some(super::oklch::from_linear(vanilla)),
+            Kind::Vfx { .. } => None,
         }
     }
 
@@ -107,11 +106,6 @@ impl Write {
         Write { slot, ..self }
     }
 }
-
-// The two colour constants a rupee's sparkle has, by descriptor hash:
-// its glow and its shade.
-const SPARKLE: u64 = 0x219e_2577_fcfe_f53c;
-const SPARKLE_SHADE: u64 = 0x583d_c335_cea7_8c12;
 
 // The four colour params Link's and the gear's materials share, by name
 // hash. What each means is the shader's: base, shade, rim or shine, tip.
@@ -144,14 +138,10 @@ const fn param(
     }
 }
 
-const fn vfx(bundle: &'static str, hash: u64, vanilla: [f32; 3]) -> Write {
+const fn vfx(bundle: &'static str, esets: &'static [&'static str], sum: u32) -> Write {
     Write {
         slot: 0,
-        kind: Kind::Vfx {
-            bundle,
-            hash,
-            vanilla,
-        },
+        kind: Kind::Vfx { bundle, esets, sum },
     }
 }
 
@@ -593,17 +583,335 @@ pub const PALETTES: &[Palette] = &[
         ],
     },
     Palette {
+        id: "navi-idle",
+        label: "Navi, idle",
+        group: Group::Effects,
+        vanilla: &[[222, 215, 203], [225, 249, 255]],
+        names: &["Inner", "Outer"],
+        writes: &[
+            param(&[NAVI], NAVI_BODY, C1, [0.7312, 0.6775, 0.5954]),
+            param(&[NAVI], NAVI_BODY_MASK, C1, [0.7312, 0.6775, 0.5954]),
+            vfx(STATIC_FX, &["Npc_Navi_Wait_"], 0xf96a_bf84).at(1),
+            vfx(NAVI_FX, &["Npc_Navi_Wait_"], 0xf96a_bf84).at(1),
+        ],
+    },
+    Palette {
+        id: "navi-enemy",
+        label: "Navi, at an enemy",
+        group: Group::Effects,
+        vanilla: &[[225, 249, 255], [255, 149, 149]],
+        names: &["Near", "Locked on"],
+        writes: &[
+            vfx(STATIC_FX, &["Npc_Navi_Attention_Enemy_"], 0x5ca7_dc07),
+            vfx(
+                STATIC_FX,
+                &["Npc_Navi_LockOn_Enemy_", "Npc_Navi_LockOn_St_Enemy_"],
+                0xd431_f5dc,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "navi-prop",
+        label: "Navi, at a person or thing",
+        group: Group::Effects,
+        vanilla: &[[225, 249, 255], [255, 149, 149]],
+        names: &["Near", "Locked on"],
+        writes: &[
+            vfx(
+                STATIC_FX,
+                &["Npc_Navi_Attention_Gimmick_", NAVI_TALK],
+                0xfd4a_4464,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Npc_Navi_LockOn_Gimmick_", NAVI_TALK_LOCKED],
+                0x0376_fa33,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "spin-attack",
+        label: "Spin attack",
+        group: Group::Effects,
+        vanilla: &[[0, 219, 255], [255, 129, 255]],
+        names: &["Charge", "Release"],
+        writes: &[
+            vfx(
+                STATIC_FX,
+                &["Ply_ChargeLv2_", "Ply_ChargeLv3_"],
+                0x8f9a_8897,
+            ),
+            vfx(STATIC_FX, &["Ply_Attack_Rotation_"], 0x978f_5d20).at(1),
+        ],
+    },
+    Palette {
+        id: "boomerang-trail",
+        label: "Boomerang trail",
+        group: Group::Effects,
+        vanilla: &[[255, 243, 203]],
+        names: &[],
+        writes: &[vfx(BOOMERANG_FX, &["Wpn_Boomerang_Tail_"], 0x6804_03a3)],
+    },
+    Palette {
+        id: "bombchu-trail",
+        label: "Bombchu trail",
+        group: Group::Effects,
+        vanilla: &[[170, 170, 255]],
+        names: &[],
+        writes: &[vfx(STATIC_FX, &["Wpn_Trail_Bombchu_"], 0xf0cb_b446)],
+    },
+    Palette {
+        id: "hammer-trail",
+        label: "Hammer swing",
+        group: Group::Effects,
+        vanilla: &[[147, 235, 255]],
+        names: &[],
+        writes: &[vfx(STATIC_FX, &["Wpn_Hammer_Blur_"], 0xf951_7d7a)],
+    },
+    Palette {
+        id: "arrow-normal",
+        label: "Arrow trail",
+        group: Group::Effects,
+        vanilla: &[[113, 255, 113]],
+        names: &[],
+        writes: &[vfx(STATIC_FX, &["Wpn_Arrow_Trail_"], 0x5e16_700f)],
+    },
+    Palette {
+        id: "arrow-fire",
+        label: "Fire Arrows",
+        group: Group::Effects,
+        vanilla: &[[255, 115, 55], [255, 190, 88]],
+        names: &["Core", "Trail"],
+        writes: &[
+            vfx(
+                FIRE_ARROW_FX[0],
+                &[
+                    "Obj_ItemArrowFire_",
+                    "Obj_ArrowFire_",
+                    "Obj_Magic_Item_Arrow_Far_",
+                ],
+                0xce09_c19c,
+            ),
+            vfx(
+                FIRE_ARROW_FX[1],
+                &[
+                    "Obj_ItemArrowFire_",
+                    "Obj_ArrowFire_",
+                    "Obj_Magic_Item_Arrow_Far_",
+                ],
+                0xb38c_d6c5,
+            ),
+            vfx(
+                FIRE_ARROW_FX[2],
+                &[
+                    "Obj_ItemArrowFire_",
+                    "Obj_ArrowFire_",
+                    "Obj_Magic_Item_Arrow_Far_",
+                ],
+                0xd7e9_af1a,
+            ),
+            vfx(
+                FIRE_ARROW_FX[3],
+                &[
+                    "Obj_ItemArrowFire_",
+                    "Obj_ArrowFire_",
+                    "Obj_Magic_Item_Arrow_Far_",
+                ],
+                0x70eb_d80a,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Wpn_ItemArrowFire_", "Obj_Arrow_Fire_Get_"],
+                0x2481_d467,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Wpn_ArrowFire_Trail_", "RctHit_Arrow_Fire_"],
+                0x9405_6456,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "arrow-ice",
+        label: "Ice Arrows",
+        group: Group::Effects,
+        vanilla: &[[176, 215, 255], [126, 228, 255]],
+        names: &["Core", "Trail"],
+        writes: &[
+            vfx(ICE_ARROW_FX[0], &["Obj_Magic_Item_Arrow_Ice_"], 0x7385_ca8e),
+            vfx(ICE_ARROW_FX[1], &["Obj_Magic_Item_Arrow_Ice_"], 0xa127_a112),
+            vfx(ICE_ARROW_FX[2], &["Obj_Magic_Item_Arrow_Ice_"], 0x7385_ca8e),
+            vfx(
+                STATIC_FX,
+                &[
+                    "Wpn_Item_Arrow_Ice_",
+                    "Wpn_ItemArrowIce_",
+                    "Wpn_Arrow_Ice_Disappear_",
+                ],
+                0x46f1_ae9f,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Wpn_ArrowIce_Trail_", "RctHit_Arrow_Ice_"],
+                0x4b1e_ebc2,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "arrow-light",
+        label: "Light Arrows",
+        group: Group::Effects,
+        vanilla: &[[255, 243, 209], [255, 146, 66]],
+        names: &["Core", "Trail"],
+        writes: &[
+            vfx(
+                LIGHT_ARROW_FX[0],
+                &["Obj_Magic_Item_Arrow_Light_"],
+                0x04b6_ee2f,
+            ),
+            vfx(
+                LIGHT_ARROW_FX[1],
+                &["Obj_Magic_Item_Arrow_Light_"],
+                0x17ff_0c50,
+            ),
+            vfx(
+                LIGHT_ARROW_FX[2],
+                &["Obj_Magic_Item_Arrow_Light_"],
+                0x6e4f_5db0,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Wpn_Item_Arrow_Light_", "Wpn_ItemArrowLight_"],
+                0x93ce_c1f6,
+            ),
+            vfx(
+                STATIC_FX,
+                &["Wpn_ArrowLight_Trail_", "RctHit_Arrow_Light_"],
+                0x68d9_529d,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "dins-fire",
+        label: "Din's Fire",
+        group: Group::Effects,
+        vanilla: &[[255, 75, 25], [255, 71, 71]],
+        names: &["Cast", "Orb"],
+        writes: &[
+            vfx(STATIC_FX, &["Ply_Magic_DinFire_"], 0x00df_0b9d),
+            vfx(DINS_FIRE_FX[0], &["Obj_DinFire_"], 0xfcc8_1b02).at(1),
+            vfx(DINS_FIRE_FX[1], &["Obj_DinFire_"], 0xcc70_1286).at(1),
+        ],
+    },
+    Palette {
+        id: "nayrus-love",
+        label: "Nayru's Love",
+        group: Group::Effects,
+        vanilla: &[[108, 149, 255], [85, 149, 255]],
+        names: &["Cast", "Shell"],
+        writes: &[
+            vfx(STATIC_FX, &["Ply_Magic_NayruLove_"], 0xd9ad_cae8),
+            vfx(STATIC_FX, &["Chm_Magic_Item_NayruLove_"], 0xf782_81ba).at(1),
+        ],
+    },
+    Palette {
+        id: "farores-wind",
+        label: "Farore's Wind",
+        group: Group::Effects,
+        vanilla: &[[124, 255, 89], [170, 255, 124]],
+        names: &["Cast", "Marker"],
+        writes: &[
+            vfx(STATIC_FX, &["Ply_Magic_FaroreWind_"], 0x658a_e8e7),
+            vfx(
+                FARORES_MARKER_FX,
+                &["FaroreWind_Marker_", "Ply_Magic_FaroreWind_Marker_"],
+                0xee40_7a10,
+            )
+            .at(1),
+        ],
+    },
+    Palette {
+        id: "lens",
+        label: "Lens of Truth",
+        group: Group::Effects,
+        vanilla: &[[170, 206, 255]],
+        names: &[],
+        writes: &[
+            vfx(LENS_FX, &["Ply_GlassTruth_"], 0x8d31_dec9),
+            vfx(
+                STATIC_FX,
+                &["Ply_GlassTruthWall_", "Ply_GlassTruthFakeWall_"],
+                0x2a04_085d,
+            ),
+        ],
+    },
+    Palette {
+        id: "warp-pads",
+        label: "Blue warps",
+        group: Group::Effects,
+        vanilla: &[[127, 203, 255]],
+        names: &[],
+        writes: &[vfx(WARP_PAD_FX, &["Obj_WarpPoint_"], 0xdc4c_f935)],
+    },
+    Palette {
+        id: "fairies",
+        label: "Healing fairies",
+        group: Group::Effects,
+        vanilla: &[[255, 89, 217]],
+        names: &[],
+        writes: &[
+            vfx(FAIRY_FX[0], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0x07ec_2ac7),
+            vfx(FAIRY_FX[1], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0x07ec_2ac7),
+            vfx(FAIRY_FX[2], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0xf0b9_3cd7),
+            vfx(FAIRY_FX[3], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0xf3b0_3130),
+            vfx(FAIRY_FX[4], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0xf0b9_3cd7),
+            vfx(FAIRY_FX[5], &["Obj_Fairy_", "UI_Icon_Fairy_"], 0x1eba_f03c),
+        ],
+    },
+    Palette {
+        id: "heart-glow",
+        label: "Heart Container and piece glow",
+        group: Group::Effects,
+        vanilla: &[[255, 63, 89]],
+        names: &[],
+        writes: &[
+            vfx(HEART_CONTAINER_FX, &["Obj_Heart_Container_"], 0x744c_60e6),
+            vfx(HEART_PIECE_FX[0], &["Obj_HeartPiece_"], 0x0d87_0b78),
+            vfx(HEART_PIECE_FX[1], &["Obj_HeartPiece_"], 0x0d87_0b78),
+            vfx(
+                STATIC_FX,
+                &["Obj_Heart_Countainer_Get_", "Obj_Heart_Piece_Get_"],
+                0x4349_30d8,
+            ),
+        ],
+    },
+    Palette {
+        id: "magic-jars",
+        label: "Magic jar glow",
+        group: Group::Effects,
+        vanilla: &[[89, 255, 170]],
+        names: &[],
+        writes: &[
+            vfx(MAGIC_JAR_FX[0], &["Obj_MagicJar_"], 0xd6e9_f3c2),
+            vfx(MAGIC_JAR_FX[1], &["Obj_MagicJar_"], 0xd6e9_f3c2),
+            vfx(MAGIC_JAR_FX[2], &["Obj_MagicJar_"], 0x063b_9e53),
+            vfx(STATIC_FX, &["Obj_MagicJar_Get_"], 0x9839_ee0e),
+        ],
+    },
+    Palette {
         id: "rupee-sparkle",
         label: "Rupee sparkle",
         group: Group::Effects,
         vanilla: &[[170, 89, 255], [255, 203, 89]],
         names: &["Purple", "Gold"],
         writes: &[
-            vfx(STATIC_FX, SPARKLE, [3.0, 0.75, 7.5]),
-            // The Gold Rupee's sparkle has the Purple's shade too, so it
-            // follows the Purple's.
-            vfx(STATIC_FX, SPARKLE_SHADE, [0.11, 0.055, 0.165]),
-            vfx(STATIC_FX, SPARKLE, [5.0, 3.0, 0.5]).at(1),
+            vfx(STATIC_FX, &["Obj_Rupee_Purple_Wait_"], 0xa9a0_ae0c),
+            vfx(STATIC_FX, &[GOLD_SPARKLE], 0xe704_acc4).at(1),
         ],
     },
 ];

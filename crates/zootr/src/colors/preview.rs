@@ -170,7 +170,7 @@ fn material_colours(
             .writes
             .iter()
             .filter(|w| on(&w.kind))
-            .map(|w| w.vanilla())
+            .filter_map(|w| w.vanilla())
             .collect(),
     };
     Ok(goals.into_iter().map(oklch::to_linear).collect())

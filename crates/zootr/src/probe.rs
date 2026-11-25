@@ -177,8 +177,14 @@ pub enum Probe {
     /// An effect bundle's colour constants (`Effect/` and its owner's
     /// name, or a built file's path), under the eset each one falls in:
     /// where its value is in the decompressed file, its descriptor's name
-    /// hash, and its floats, linear and often above 1.
-    Vfx { bundle: String },
+    /// hash, and its floats, linear and often above 1. With `--sum`, the
+    /// sum a Colors effect write records for the esets starting with each
+    /// prefix given.
+    Vfx {
+        bundle: String,
+        #[arg(long)]
+        sum: Vec<String>,
+    },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -570,7 +576,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Materials { model } => materials(romfs, game, &model),
         Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
-        Probe::Vfx { bundle } => vfx(romfs, game, &bundle),
+        Probe::Vfx { bundle, sum } => vfx(romfs, game, &bundle, &sum),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -904,30 +910,29 @@ fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
 }
 
 /// `probe vfx`.
-fn vfx(romfs: &Romfs, game: &Path, bundle: &str) -> Result<()> {
+fn vfx(romfs: &Romfs, game: &Path, bundle: &str, sum: &[String]) -> Result<()> {
     use ounce_formats::vfx;
     let data = match Path::new(bundle).is_file() {
         true => romfs.dicts().decompress(bundle, &std::fs::read(bundle)?)?,
         false => crate::nav::dump_file(romfs, game, &format!("{bundle}."))?
             .with_context(|| format!("no bundle {bundle}"))?,
     };
-    let esets = vfx::esets(&data)?;
     let mut last = None;
-    for c in vfx::constants(&data)? {
-        let eset = esets
-            .iter()
-            .rev()
-            .find(|(_, at)| *at <= c.at)
-            .map(|(n, _)| n);
-        if eset != last {
-            println!("{}", eset.map_or("(before any eset)", |n| n.as_str()));
-            last = eset;
+    for (eset, c) in vfx::constants_by_eset(&data)? {
+        if last.as_ref() != Some(&eset) {
+            println!("{}", eset.as_deref().unwrap_or("(before any eset)"));
+            last = Some(eset);
         }
         let [r, g, b, a] = c.value;
         println!(
             "  {:#08x}  {:016x}  {r:.4} {g:.4} {b:.4} {a:.4}",
             c.at, c.hash
         );
+    }
+    if !sum.is_empty() {
+        let esets: Vec<&str> = sum.iter().map(String::as_str).collect();
+        let (sum, found) = crate::colors::in_esets(&data, &esets)?;
+        println!("sum {sum:#010x} over {} constants", found.len());
     }
     Ok(())
 }

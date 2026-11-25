@@ -97,6 +97,11 @@ pub fn colour(lch: Lch) -> Colour {
 /// Below this chroma a colour is grey and its hue means nothing.
 const GREY: f32 = 0.02;
 
+/// Whether `c` is too grey to have a hue.
+pub fn grey(c: Colour) -> bool {
+    lch(c).c < GREY
+}
+
 /// `other` moved as `from` moved to `to`: its hue turned by the same
 /// angle, its chroma and lightness scaled by the same ratios. A grey
 /// `from` has no hue or chroma to scale from: `other` takes `to`'s.
