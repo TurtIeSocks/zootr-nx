@@ -45,7 +45,7 @@ const CATALOG = [
     names: ["Hair", "Shade"],
   },
   { ...palette("brows", "Eyebrows", "link"), follows: "Hair" },
-  palette("goron-tunic", "Goron Tunic", "link", "the dump's colour differs"),
+  palette("goron-tunic", "Goron Tunic", "link", "the dump's color differs"),
   palette("bow", "Fairy Bow", "gear"),
   {
     ...palette("hearts", "Hearts", "hud"),
@@ -147,7 +147,7 @@ test("Randomize All sets each unlocked palette to Random, followers too", async 
   );
 });
 
-test("shift-click Randomize All draws colours now", async () => {
+test("shift-click Randomize All draws colors now", async () => {
   show(full({}));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }), {
@@ -170,7 +170,7 @@ test("the HUD tab previews every HUD palette on one mock HUD", async () => {
   fireEvent.click(tab);
   expect(await screen.findByText("Hearts")).toBeTruthy();
   expect(
-    screen.getByRole("img", { name: "The HUD in the picked colours" }),
+    screen.getByRole("img", { name: "The HUD in the picked colors" }),
   ).toBeTruthy();
   expect(screen.getByLabelText("Low health")).toBeTruthy();
   expect(screen.getByLabelText("Using magic")).toBeTruthy();
@@ -197,7 +197,7 @@ test("Split gives each slot a picker, starting where the slots followed", async 
   );
 });
 
-test("Split off goes back to one colour", async () => {
+test("Split off goes back to one color", async () => {
   show(full({ colors: { hair: { hex: "#3050d0", split: ["#223344"] } } }));
   await screen.findByText("Kokiri Tunic");
   expect(within("Hair").textContent).toContain("Shade");

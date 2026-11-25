@@ -1,5 +1,5 @@
 //! Where each face of a model lands on its textures: every shape's finest
-//! triangles painted in UV space, coloured by the way each faces.
+//! triangles painted in UV space, colored by the way each faces.
 
 use std::path::Path;
 
@@ -161,7 +161,7 @@ impl Heights {
     }
 }
 
-/// The colour of a face whose normal is `n`.
+/// The color of a face whose normal is `n`.
 fn facing(n: [f32; 3]) -> [u8; 4] {
     let axis = (0..3)
         .max_by(|&a, &b| n[a].abs().total_cmp(&n[b].abs()))
@@ -171,24 +171,24 @@ fn facing(n: [f32; 3]) -> [u8; 4] {
     c
 }
 
-/// `tri`, in UV space wrapped into the picture, filled with `colour`. It
+/// `tri`, in UV space wrapped into the picture, filled with `color`. It
 /// wraps whole, so a triangle across a tile's edge stays one piece: moved
 /// to start in the first tile, then painted again a tile back on each axis
 /// for the part that runs into the next.
-fn fill(rgba: &mut [u8], tri: [[f32; 2]; 3], colour: [u8; 4]) {
+fn fill(rgba: &mut [u8], tri: [[f32; 2]; 3], color: [u8; 4]) {
     let start = |k: usize| tri.iter().map(|p| p[k]).fold(f32::MAX, f32::min).floor();
     let (u0, v0) = (start(0), start(1));
     let px = tri.map(|[u, v]| [(u - u0) * SIDE as f32, (v - v0) * SIDE as f32]);
     let back = -(SIDE as f32);
     for dx in [0.0, back] {
         for dy in [0.0, back] {
-            paint(rgba, px.map(|[x, y]| [x + dx, y + dy]), colour);
+            paint(rgba, px.map(|[x, y]| [x + dx, y + dy]), color);
         }
     }
 }
 
-/// `px`, in pixels, filled with `colour` where it overlaps the picture.
-fn paint(rgba: &mut [u8], px: [[f32; 2]; 3], colour: [u8; 4]) {
+/// `px`, in pixels, filled with `color` where it overlaps the picture.
+fn paint(rgba: &mut [u8], px: [[f32; 2]; 3], color: [u8; 4]) {
     let x0 = px.iter().map(|p| p[0]).fold(f32::MAX, f32::min).max(0.0) as usize;
     let x1 = (px.iter().map(|p| p[0]).fold(0.0, f32::max) as usize).min(SIDE - 1);
     let y0 = px.iter().map(|p| p[1]).fold(f32::MAX, f32::min).max(0.0) as usize;
@@ -210,7 +210,7 @@ fn paint(rgba: &mut [u8], px: [[f32; 2]; 3], colour: [u8; 4]) {
             ];
             if w.iter().all(|w| w * area >= 0.0) {
                 let at = (y * SIDE + x) * 4;
-                rgba[at..at + 4].copy_from_slice(&colour);
+                rgba[at..at + 4].copy_from_slice(&color);
             }
         }
     }

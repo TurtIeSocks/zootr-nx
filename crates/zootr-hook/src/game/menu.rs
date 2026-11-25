@@ -72,7 +72,7 @@ const PANE_COUNT: usize = 0x13c;
 const PANE_ARRAY: usize = 0x100;
 const PANE: usize = 0xb0;
 const PANE_MATERIAL: usize = 8;
-const MATERIAL_COLOUR: usize = 0x20;
+const MATERIAL_COLOR: usize = 0x20;
 /// The border while Link cycles the slot, and as the game draws it.
 const CYCLING: [f32; 4] = [0.2, 0.6, 1.0, 1.0];
 const PLAIN: [f32; 4] = [1.0; 4];
@@ -293,18 +293,18 @@ unsafe fn seek(
     Some(())
 }
 
-/// Tint the cell's cursor border, unless it's that colour.
+/// Tint the cell's cursor border, unless it's that color.
 ///
 /// # Safety
 /// `cell` is a page's cell.
-unsafe fn tint(cell: usize, cursor_line: usize, colour: [f32; 4]) -> Option<()> {
+unsafe fn tint(cell: usize, cursor_line: usize, color: [f32; 4]) -> Option<()> {
     unsafe {
         let panes = at(at(cell, CELL_LAYOUT)?, LAYOUT_PANES)?;
         (usize::from(*((panes + PANE_COUNT) as *const u16)) > cursor_line).then_some(())?;
         let line = at(panes, PANE_ARRAY)? + cursor_line * PANE;
-        let now = (at(line, PANE_MATERIAL)? + MATERIAL_COLOUR) as *mut [f32; 4];
-        if *now != colour {
-            *now = colour;
+        let now = (at(line, PANE_MATERIAL)? + MATERIAL_COLOR) as *mut [f32; 4];
+        if *now != color {
+            *now = color;
         }
     }
     Some(())

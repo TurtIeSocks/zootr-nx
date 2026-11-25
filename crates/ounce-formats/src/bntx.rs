@@ -248,12 +248,12 @@ const ASTC_4X4: u32 = 0x2d;
 /// level row-major at its size, in every mip level, each level the one
 /// above box-filtered. A block whose texels `keep` (by first-level x and y)
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
-/// change. Each ASTC block is the closest of one colour or two, each BC1
+/// change. Each ASTC block is the closest of one color or two, each BC1
 /// block of four. BC4 takes the red channel. BC7, which isn't encoded,
 /// comes back as ASTC 4x4, every block encoded and `keep` ignored.
 ///
 /// Each redraw is kept for the process, by its inputs: a seed redraws the
-/// same textures in the same colours (a key's dungeon, a mark's kind), and
+/// same textures in the same colors (a key's dungeon, a mark's kind), and
 /// a process makes many seeds (the app, the tests), so each encodes once.
 pub fn redraw(
     data: &[u8],
@@ -273,7 +273,7 @@ pub fn redraw(
 
 /// [`redraw`] for the texture named `name` in a file of many (the UI's
 /// atlas): the rest of the file stays byte for byte. Not kept for the
-/// process: a copy of a file that big for each colour would pile up.
+/// process: a copy of a file that big for each color would pile up.
 pub fn redraw_named(
     data: &[u8],
     name: &str,

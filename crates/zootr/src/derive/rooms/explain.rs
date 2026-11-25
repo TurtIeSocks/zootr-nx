@@ -34,7 +34,7 @@ const SCALE: f32 = 16.0;
 const MARGIN: f32 = 4.0;
 /// How far above or below the cut height a face is still drawn, in m.
 const LAYER: f32 = 6.0;
-/// Room colours, by room number.
+/// Room colors, by room number.
 const PALETTE: [Rgb; 12] = [
     [141, 211, 199],
     [255, 255, 179],
@@ -57,7 +57,7 @@ const SWIM: Rgb = [0, 150, 0];
 const CRAWL: Rgb = [230, 120, 0];
 const SPOT: Rgb = [230, 0, 0];
 
-/// A face's colour under water a child swims: its room's, darkened blue.
+/// A face's color under water a child swims: its room's, darkened blue.
 fn swum(c: Rgb) -> Rgb {
     [c[0] / 2 + 40, c[1] / 2 + 60, c[2] / 2 + 120]
 }
@@ -191,7 +191,7 @@ fn picture(graph: &Graph, room: &[Option<u32>], ask: &Ask) -> Result<Option<Vec<
     ];
     let inside = |p: [f32; 3]| (lo[0]..hi[0]).contains(&p[0]) && (lo[1]..hi[1]).contains(&p[2]);
     let mut pic = Picture::new(lo, hi, SCALE, [255, 255, 255]);
-    let colour = |r: Option<u32>| match r {
+    let color = |r: Option<u32>| match r {
         None => ROOMLESS,
         Some(r) if ask.rooms.is_empty() || ask.rooms.contains(&r) => {
             PALETTE[r as usize % PALETTE.len()]
@@ -207,9 +207,9 @@ fn picture(graph: &Graph, room: &[Option<u32>], ask: &Ask) -> Result<Option<Vec<
             .map(|e| [mesh.vertices[e.a][0], mesh.vertices[e.a][2]])
             .collect();
         let fill = if graph.deep(c) {
-            swum(colour(r))
+            swum(color(r))
         } else {
-            colour(r)
+            color(r)
         };
         pic.fill(&ring, fill);
     }

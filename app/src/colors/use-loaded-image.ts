@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 /** The newest `url` that has finished loading, with one request in flight
- * at a time: a picker dragged across the pad asks for its latest colour,
- * never a queue of every colour it passed. */
+ * at a time: a picker dragged across the pad asks for its latest color,
+ * never a queue of every color it passed. */
 export function useLoadedImage(url: string | null) {
   const [shown, setShown] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

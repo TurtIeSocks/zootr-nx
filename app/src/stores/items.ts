@@ -119,7 +119,7 @@ const started = once(async () => {
 export const { init, stop } = started;
 
 /** How long option edits settle before they're saved, so dragging the
- * colour picker saves once. */
+ * color picker saves once. */
 const SETTLE_MS = 300;
 /** The save waiting for the options to settle. */
 let saving: ReturnType<typeof setTimeout> | undefined;

@@ -26,9 +26,9 @@ const TAG =
 /** Props for {@link PreviewPanel}. */
 interface PreviewPanelProps {
   palette: PaletteView;
-  /** The colour to paint, as the picker has it now, or null for vanilla. */
+  /** The color to paint, as the picker has it now, or null for vanilla. */
   picked: Picked | null;
-  /** The colour as saved, which the thumbnails show: they skip the
+  /** The color as saved, which the thumbnails show: they skip the
    * drag's steps, so several sheets don't flood the backend. */
   saved: Picked | null;
   /** A line under the title: why it shows vanilla, say. */
@@ -36,7 +36,7 @@ interface PreviewPanelProps {
 }
 
 /** The selected palette's game texture, painted by the seed's own code as
- * the picker moves, or a sphere lit with a material's colours where it
+ * the picker moves, or a sphere lit with a material's colors where it
  * writes params. A wipe slides between vanilla and the pick, What Changes
  * greys the texels the palette leaves alone, and a palette with several
  * sheets shows each. */
@@ -84,14 +84,14 @@ export function PreviewPanel({
             {before.src && (
               <img
                 src={before.src}
-                alt={`${palette.label} in vanilla colours`}
+                alt={`${palette.label} in vanilla colors`}
                 className="absolute inset-0 size-full object-contain"
               />
             )}
             {after.src && (
               <img
                 src={after.src}
-                alt={`${palette.label} in the picked colour`}
+                alt={`${palette.label} in the picked color`}
                 style={{ clipPath: `inset(0 0 0 ${wipe}%)` }}
                 className="absolute inset-0 size-full object-contain"
               />

@@ -98,7 +98,7 @@ pub fn shortcut(tables: &mut standins::Tables, boots: &[&Name]) -> Result<usize>
 
 /// Write what a child's boots and tunics need: his packs with the groups
 /// their armor hides, and the armor of his Kokiri Tunic and of each of
-/// `tunics`, with its rows in `tables`, in the colours `colors` picks.
+/// `tunics`, with its rows in `tables`, in the colors `colors` picks.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,

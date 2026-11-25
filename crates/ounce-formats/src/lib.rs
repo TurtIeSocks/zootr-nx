@@ -84,7 +84,7 @@ pub use xlink::{
 pub use zs::{Dicts, frame_dict_id};
 
 /// `data` with three floats at `at` set to `rgb`, the fourth after them
-/// kept: an effect's colour constant, a layout's palette entry.
+/// kept: an effect's color constant, a layout's palette entry.
 pub fn set_rgb(data: &mut [u8], at: usize, rgb: [f32; 3]) {
     for (i, v) in rgb.iter().enumerate() {
         data[at + 4 * i..at + 4 * i + 4].copy_from_slice(&v.to_le_bytes());

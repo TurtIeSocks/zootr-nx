@@ -6,10 +6,10 @@ use ounce_formats::{Romfs, Texture, top_level};
 
 use crate::colors::paint::luma;
 use crate::known::texture;
-use crate::medallions::Colour;
+use crate::medallions::Color;
 
-/// The mark's colour.
-pub(super) const GOLD: Colour = [255, 200, 60];
+/// The mark's color.
+pub(super) const GOLD: Color = [255, 200, 60];
 
 /// A texel's brightness lifted and squeezed before it takes the gold, so a
 /// dark texel still reads gold and the grain stays.
@@ -40,14 +40,14 @@ impl Canvas {
         self.painted[self.at(x, y)]
     }
 
-    /// Texel (`x`, `y`) a `share` of the way (0 to 1) toward `colour`.
-    fn blend(&mut self, x: usize, y: usize, colour: [f32; 3], share: f32) {
+    /// Texel (`x`, `y`) a `share` of the way (0 to 1) toward `color`.
+    fn blend(&mut self, x: usize, y: usize, color: [f32; 3], share: f32) {
         if share <= 0.0 {
             return;
         }
         let at = self.at(x, y);
         let px = &mut self.texture.rgba[4 * at..4 * at + 3];
-        for (c, to) in px.iter_mut().zip(colour) {
+        for (c, to) in px.iter_mut().zip(color) {
             *c = (*c as f32 + (to - *c as f32) * share.min(1.0)).round() as u8;
         }
         self.painted[at] = true;

@@ -1,8 +1,8 @@
-//! Recolouring texels: a band of hues moved to a colour, or each texel
+//! Recoloring texels: a band of hues moved to a color, or each texel
 //! tinted by its brightness. The one copy of each, for Colors and every
 //! feature that paints a model (medallions, key tints, tunics, bags).
 
-pub type Colour = [u8; 3];
+pub type Color = [u8; 3];
 
 /// Hues from one to another, in turns. A band whose first hue is past its
 /// last wraps through red: `(0.92, 0.06)` is the reds either side of 0.
@@ -17,7 +17,7 @@ pub struct Band {
 /// Below this a texel is too grey to count as its hue (a chain, a seam).
 const BAND_SATURATION: f32 = 0.25;
 
-/// A texel's hue, saturation and value, when it's coloured and its hue is
+/// A texel's hue, saturation and value, when it's colored and its hue is
 /// in `hues`. A wrapping band's hues past red come back above 1, so a
 /// band's hues average and subtract without the seam.
 pub(crate) fn in_band(px: &[u8], (lo, hi): Hues) -> Option<(f32, f32, f32)> {
@@ -39,10 +39,10 @@ pub fn mean(rgba: &[u8], hues: Hues) -> Option<(f32, f32, f32)> {
     (!texels.is_empty()).then(|| (sum(|t| t.0), sum(|t| t.1), sum(|t| t.2)))
 }
 
-/// Each band's texels moved to its colour: hue shifted, saturation and
-/// value scaled by the band's own average to the colour's, so the band
+/// Each band's texels moved to its color: hue shifted, saturation and
+/// value scaled by the band's own average to the color's, so the band
 /// keeps its grain. Texels of no band, and greys, keep theirs. Every band
-/// reads the texels as they were, so one band's new colour never falls
+/// reads the texels as they were, so one band's new color never falls
 /// into the next.
 pub fn shift(rgba: &mut [u8], bands: &[Band]) {
     let from: Vec<_> = bands.iter().map(|b| mean(rgba, b.hues)).collect();
@@ -71,12 +71,12 @@ pub fn copy(rgba: &mut [u8], from: &[u8], hues: Hues) {
     }
 }
 
-/// Each texel in `colour`, scaled by its brightness, so a coloured
-/// albedo (the boss key's gold) takes the colour as cleanly as a grey one.
-pub fn tint(rgba: &mut [u8], colour: Colour) {
+/// Each texel in `color`, scaled by its brightness, so a colored
+/// albedo (the boss key's gold) takes the color as cleanly as a grey one.
+pub fn tint(rgba: &mut [u8], color: Color) {
     for px in rgba.chunks_mut(4) {
         let luma = luma(px);
-        for (c, tint) in px.iter_mut().zip(colour) {
+        for (c, tint) in px.iter_mut().zip(color) {
             *c = ((luma * tint as u32 + 127) / 255) as u8;
         }
     }
@@ -94,7 +94,7 @@ pub fn luma(px: &[u8]) -> u32 {
 }
 
 /// Hue in turns, saturation and value, each 0 to 1.
-pub fn hsv([r, g, b]: Colour) -> (f32, f32, f32) {
+pub fn hsv([r, g, b]: Color) -> (f32, f32, f32) {
     let (r, g, b) = (r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
     let (max, min) = (r.max(g).max(b), r.min(g).min(b));
     let d = max - min;
@@ -108,8 +108,8 @@ pub fn hsv([r, g, b]: Colour) -> (f32, f32, f32) {
     (hue, s, max)
 }
 
-/// [`hsv`] back to a colour. The hue may be any number of turns.
-pub fn rgb(hue: f32, s: f32, v: f32) -> Colour {
+/// [`hsv`] back to a color. The hue may be any number of turns.
+pub fn rgb(hue: f32, s: f32, v: f32) -> Color {
     let h = hue.rem_euclid(1.0) * 6.0;
     let c = v * s;
     let x = c * (1.0 - (h % 2.0 - 1.0).abs());
@@ -130,7 +130,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hsv_and_back_keeps_a_colour() {
+    fn hsv_and_back_keeps_a_color() {
         for c in [[170, 120, 255], [255, 70, 40], [90, 230, 90], [10, 10, 10]] {
             let (h, s, v) = hsv(c);
             let back = rgb(h, s, v);
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn a_band_moves_to_its_colour_and_keeps_its_grain() {
+    fn a_band_moves_to_its_color_and_keeps_its_grain() {
         // Two tans, a grey and a red.
         let mut rgba = [
             [200, 120, 40, 9],
@@ -205,14 +205,14 @@ mod tests {
     }
 
     #[test]
-    fn a_grey_texel_takes_the_colour_scaled_by_its_grey() {
+    fn a_grey_texel_takes_the_color_scaled_by_its_grey() {
         let mut rgba = [255, 255, 255, 255, 128, 128, 128, 200];
         tint(&mut rgba, [60, 220, 60]);
         assert_eq!(rgba, [60, 220, 60, 255, 30, 110, 30, 200]);
     }
 
     #[test]
-    fn a_gold_texel_takes_the_colour_by_its_brightness_not_its_hue() {
+    fn a_gold_texel_takes_the_color_by_its_brightness_not_its_hue() {
         let mut rgba = [255, 200, 100, 255];
         tint(&mut rgba, [60, 220, 60]);
         assert_eq!(rgba, [48, 176, 48, 255]);

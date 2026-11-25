@@ -1,10 +1,10 @@
-//! Vfx3 effect bundles (`Effect/*.vsetb.byml`): the colour constants in
+//! Vfx3 effect bundles (`Effect/*.vsetb.byml`): the color constants in
 //! their particle blob, and the effect set (eset) each one sits in.
 //!
 //! The blob (`PtclBin`, magic `BFFH`) is undocumented. Every pointer in it
 //! is a u64 from its start, so it's only ever overwritten in place. A
 //! property is a 16-byte descriptor, `[u64 name hash][u32 kind][u32 type]`,
-//! and its value follows. A colour constant has type `0x0c0d`, a kind whose
+//! and its value follows. A color constant has type `0x0c0d`, a kind whose
 //! low byte is `0x09`, and four floats `(r, g, b, 0)`, linear and often
 //! above 1.
 
@@ -16,7 +16,7 @@ use roead::byml::Byml;
 
 use crate::reader::Reader;
 
-/// A colour constant's descriptor type, and its kind's low byte.
+/// A color constant's descriptor type, and its kind's low byte.
 const CONSTANT_TYPE: u32 = 0x0c0d;
 const CONSTANT_KIND: u32 = 0x09;
 /// Where the blob's header gives the end of its data section, which the
@@ -24,7 +24,7 @@ const CONSTANT_KIND: u32 = 0x09;
 const DATA_END: usize = 0xb0;
 const DATA_START: usize = 0x1000;
 
-/// One colour constant: where its value is in the file, its descriptor's
+/// One color constant: where its value is in the file, its descriptor's
 /// name hash, and its four floats.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Constant {
@@ -44,7 +44,7 @@ pub fn blob(data: &[u8]) -> Result<Range<usize>> {
     Ok(at..at + size)
 }
 
-/// Every colour constant in a decompressed bundle, in file order.
+/// Every color constant in a decompressed bundle, in file order.
 pub fn constants(data: &[u8]) -> Result<Vec<Constant>> {
     let (r, blob) = (Reader(data), blob(data)?);
     let end = data_end(data, &blob)?.saturating_sub(32);
@@ -96,7 +96,7 @@ pub fn esets(data: &[u8]) -> Result<Vec<(String, usize)>> {
     Ok(out)
 }
 
-/// Every colour constant in a decompressed bundle with the eset it falls
+/// Every color constant in a decompressed bundle with the eset it falls
 /// in (see `esets`), none for one before the first.
 pub fn constants_by_eset(data: &[u8]) -> Result<Vec<(Option<String>, Constant)>> {
     let esets = esets(data)?;

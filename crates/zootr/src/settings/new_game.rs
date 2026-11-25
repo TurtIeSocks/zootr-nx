@@ -119,7 +119,7 @@ pub struct NewGame {
     /// The stones' hints AP picked, in an AP seed that has them: the seed
     /// picks none of its own.
     pub given_hints: Option<Vec<crate::hints::Hint>>,
-    /// The colours the seed paints.
+    /// The colors the seed paints.
     pub colors: crate::colors::Colors,
     /// The songs the seed plays.
     pub audio: crate::audio::Audio,

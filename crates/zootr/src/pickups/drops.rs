@@ -18,7 +18,7 @@ pub(super) const DROPPED: &Name = actor::OBJ_SHIELD_DEKU;
 pub(super) const PLACED_ONLY: [&Name; 2] = [actor::OBJ_HEART_PIECE, actor::OBJ_HEART_CONTAINER];
 /// World pickups already, which a holder gives as they are.
 const PICKUP: &str = "Obj_";
-/// A chest's rupee, which a holder drops as the floor rupee of its colour:
+/// A chest's rupee, which a holder drops as the floor rupee of its color:
 /// a stand-in rupee pays 1 (Mac, 2026-11-14).
 const CHEST_RUPEE: &str = "TBox_Rupee_";
 const FLOOR_RUPEE: &str = "Obj_Rupee_";
@@ -27,7 +27,7 @@ const FLOOR_RUPEE: &str = "Obj_Rupee_";
 /// shows where it's put: one that lands, when the holder `dropped` it.
 pub(super) fn pickup_for(item: &str, dropped: bool) -> Option<String> {
     let pickup = match item.strip_prefix(CHEST_RUPEE) {
-        Some(colour) => format!("{FLOOR_RUPEE}{colour}"),
+        Some(color) => format!("{FLOOR_RUPEE}{color}"),
         None => item.starts_with(PICKUP).then(|| item.to_owned())?,
     };
     (!dropped || !PLACED_ONLY.iter().any(|p| **p == *pickup)).then_some(pickup)

@@ -158,36 +158,36 @@ pub enum Probe {
     /// including those inside SARC archives.
     Icons { pattern: String, out: PathBuf },
     /// Paints each shape of the models whose path contains this to `out`,
-    /// as PNG: its triangles in UV space, coloured by the axis they face
+    /// as PNG: its triangles in UV space, colored by the axis they face
     /// (X red, Y green, Z blue, dark for the negative way), with each
     /// shape's UV bounds. Shows where a face lands on its textures.
     Uvs { pattern: String, out: PathBuf },
     /// Each material of a model, by a piece of its path (`Model/` and its
     /// actor name and a dot, the dot keeping its variants out):
     /// its textures and its four-float parameters by name hash, the
-    /// colours Colors can write. Linear light, as the shader reads them.
+    /// colors Colors can write. Linear light, as the shader reads them.
     /// A path to a file on disk (a built mod's) reads that file instead.
     Materials { model: String },
     /// Each shape of a model, by a piece of its path as for `materials`:
     /// its material and that material's textures, the bone it hangs from,
     /// its skin count (0 or 1: its vertices sit in that bone's space) and
-    /// its vertex count. What the colours model viewer draws.
+    /// its vertex count. What the colors model viewer draws.
     Model {
         model: String,
         /// Also write the decompressed model here.
         #[arg(long)]
         raw: Option<PathBuf>,
     },
-    /// A texture's average colour, and the average of its texels in each
+    /// A texture's average color, and the average of its texels in each
     /// hue band given (`LO-HI`, 0 to 1, wrapping past 1): the vanilla
-    /// colours a Colors palette records. `--png` also writes it out.
+    /// colors a Colors palette records. `--png` also writes it out.
     Band {
         texture: String,
         bands: Vec<String>,
         #[arg(long)]
         png: Option<PathBuf>,
     },
-    /// An effect bundle's colour constants (`Effect/` and its owner's
+    /// An effect bundle's color constants (`Effect/` and its owner's
     /// name, or a built file's path), under the eset each one falls in:
     /// where its value is in the decompressed file, its descriptor's name
     /// hash, and its floats, linear and often above 1. With `--sum`, the
@@ -201,8 +201,8 @@ pub enum Probe {
         #[arg(long)]
         raw: Option<PathBuf>,
     },
-    /// A UI layout's colour palette (every layout whose name contains
-    /// `name`, in every layout archive): each entry's index, colour, floats
+    /// A UI layout's color palette (every layout whose name contains
+    /// `name`, in every layout archive): each entry's index, color, floats
     /// and where they are in the layout, and how many copies the archive
     /// stores. Then each material's white index.
     Layout {
@@ -216,14 +216,14 @@ pub enum Probe {
         record: Option<String>,
     },
     /// The UI atlas's textures whose names contain `name`: each one's
-    /// size and average colour, over every texel and over the ones that
+    /// size and average color, over every texel and over the ones that
     /// show. With `--out`, each as a PNG there too.
     Atlas {
         name: String,
         #[arg(long)]
         out: Option<PathBuf>,
-        /// Also count each texture's shown, coloured texels by hue, in
-        /// steps of 10 degrees: what a colour band has to cover.
+        /// Also count each texture's shown, colored texels by hue, in
+        /// steps of 10 degrees: what a color band has to cover.
         #[arg(long)]
         hues: bool,
     },

@@ -104,7 +104,7 @@ pub enum IconSize {
 #[serde(default)]
 pub struct TrackerOptions {
     pub size: IconSize,
-    /// A CSS colour.
+    /// A CSS color.
     pub background: String,
     /// Every section once. The order within a column is the draw order.
     pub sections: Vec<Placement>,

@@ -297,7 +297,7 @@ async fn generate(
                 extras,
             ),
         };
-        // A share code leaves colours and music out: the seed takes this
+        // A share code leaves colors and music out: the seed takes this
         // draft's.
         let mut extras = extras;
         extras.colors = zootr::colors::resolve(&config.colors, seed)?;

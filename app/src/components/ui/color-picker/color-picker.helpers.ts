@@ -21,7 +21,7 @@ export function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
 }
 
-/** A colour regex's match: three channels always, the alpha only when
+/** A color regex's match: three channels always, the alpha only when
  * written. Typed once, so each parser reads its groups plainly. */
 type Groups = [string, string, string, string, string | undefined];
 

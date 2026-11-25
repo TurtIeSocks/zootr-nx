@@ -1,9 +1,9 @@
-//! UI layouts (`.buil` in `UI/Layout2Archive/*.blarc`): the colour
+//! UI layouts (`.buil` in `UI/Layout2Archive/*.blarc`): the color
 //! palette each one keeps.
 //!
 //! A layout is a `BFFH` file. Its palette is a table of RGBA floats whose
 //! header, at 0x2c0, is `[u64 entries][u32 count][u32 stride]`. A material
-//! names its colours by palette index (its white colour at +0x28 tints a
+//! names its colors by palette index (its white color at +0x28 tints a
 //! one-channel texture whole), so an entry is written in place, same size.
 //!
 //! An entry no record names isn't free: the item menu's count digits glow

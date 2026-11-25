@@ -1,5 +1,5 @@
 //! The Colors pane's backend: the palettes, their previews at
-//! `zootr-colors://localhost/<id>.png`, drawing colours now, and painting
+//! `zootr-colors://localhost/<id>.png`, drawing colors now, and painting
 //! the installed seed again.
 
 use std::collections::BTreeMap;
@@ -19,7 +19,7 @@ use zootr::history::History;
 use crate::{Res, blocking, icon_dump, romfs};
 
 /// Serves a palette's preview: `<id>.png`, with `t` the sheet's number
-/// (0 when left out), `c` the first slot's colour and an `s` for each
+/// (0 when left out), `c` the first slot's color and an `s` for each
 /// split slot (both hex, no `#`; vanilla without `c`), and `v=changes` to
 /// grey what the palette leaves alone; or with `a` naming one of its
 /// model's albedos in place of `t`. `<id>.model`, with `v` the view's
@@ -32,14 +32,14 @@ pub struct PaletteView {
     id: String,
     label: String,
     group: Group,
-    /// Each slot's vanilla colour, `#rrggbb`.
+    /// Each slot's vanilla color, `#rrggbb`.
     vanilla: Vec<String>,
     /// Each slot's name, when it has more than one: what Split shows.
     names: Vec<String>,
     /// The palette it moves with while left vanilla, by label.
     follows: Option<String>,
     /// How many pictures it previews on: its textures, then a lit sphere
-    /// for each material whose colours it writes.
+    /// for each material whose colors it writes.
     sheets: u32,
     /// The views its Model tab shows it on, by label: none without one.
     views: Vec<String>,
@@ -153,7 +153,7 @@ impl Request {
         request.picked = match first {
             Some(hex) => Some(Picked { hex, split }),
             None if split.is_empty() => None,
-            None => bail!("split colours without a first one"),
+            None => bail!("split colors without a first one"),
         };
         Ok(request)
     }
@@ -188,7 +188,7 @@ pub async fn colors_catalog(app: AppHandle) -> Res<Vec<PaletteView>> {
     .await
 }
 
-/// A Random colour for each of `ids` now, so the player can see and tweak
+/// A Random color for each of `ids` now, so the player can see and tweak
 /// it before generating.
 #[tauri::command]
 #[specta::specta]
@@ -200,7 +200,7 @@ pub fn colors_draw(ids: Vec<String>) -> Res<BTreeMap<String, String>> {
         .map_err(crate::text)
 }
 
-/// Each slot's colour, `#rrggbb`, when palette `id`'s first is `hex` and
+/// Each slot's color, `#rrggbb`, when palette `id`'s first is `hex` and
 /// the rest follow it: where Split starts.
 #[tauri::command]
 #[specta::specta]
@@ -224,7 +224,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_preview_url_reads_its_palette_texture_and_colours() {
+    fn a_preview_url_reads_its_palette_texture_and_colors() {
         let r = Request::parse("/bow.png", "t=0&c=20b060&s=aabbcc&v=changes").unwrap();
         assert_eq!(r.id, "bow");
         assert_eq!(r.view, View::Changes);

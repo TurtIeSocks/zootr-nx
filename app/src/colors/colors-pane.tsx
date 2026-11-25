@@ -56,17 +56,17 @@ const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
 const modes = (palette: PaletteView): { id: Mode; label: string }[] => [
   { id: "vanilla", label: vanillaLabel(palette) },
   { id: "random", label: "Random" },
-  { id: "colour", label: "Colour" },
+  { id: "color", label: "Color" },
 ];
 
 const SWATCHES = PRESETS.map(([, hex]) => hex);
 
-/** How long a dragged colour waits before it saves: the preview follows
+/** How long a dragged color waits before it saves: the preview follows
  * at once, the config file only once the hand rests. */
 const SAVE_AFTER_MS = 250;
 
-/** The palettes a seed can recolour, each set to Vanilla, Random or a
- * colour, with a live preview of the selected one. */
+/** The palettes a seed can recolor, each set to Vanilla, Random or a
+ * color, with a live preview of the selected one. */
 export function ColorsPane() {
   const catalog = useCatalog();
   return (
@@ -74,7 +74,7 @@ export function ColorsPane() {
       <PageHeader
         title="Colors"
         help="colors"
-        description="Recolour Link, his gear, Navi and the HUD. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
+        description="Recolor Link, his gear, Navi and the HUD. The next seed you generate is painted this way; Apply Cosmetics paints the installed seed again without a new shuffle. Each change saves as you make it."
         actions={<Actions palettes={catalog.palettes} />}
       />
       <SavedSets
@@ -82,11 +82,11 @@ export function ColorsPane() {
         id="colors-saved"
         words={{
           label: "Saved Color Sets",
-          hint: "Picking one loads its colours below, replacing them. Save keeps the colours below under the name, replacing a set with that name",
+          hint: "Picking one loads its colors below, replacing them. Save keeps the colors below under the name, replacing a set with that name",
           noun: "color set",
-          unit: "colour",
+          unit: "color",
           empty: "Every palette is vanilla",
-          unsaved: "Not saved. The next seed still gets these colours",
+          unsaved: "Not saved. The next seed still gets these colors",
         }}
       />
       <Palettes {...catalog} />
@@ -140,7 +140,7 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
   const why = !installed ? "No seed is installed" : blocked;
   return (
     <div className="flex flex-wrap gap-2">
-      <Tip tip="Shift-click to draw the colours now, to see and tweak them">
+      <Tip tip="Shift-click to draw the colors now, to see and tweak them">
         <Button
           variant="secondary"
           disabled={busy}
@@ -178,12 +178,12 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
   const [game] = useConfig.usePath("config.game");
   const [group, setGroup] = useState<Group>("link");
   const [selected, setSelected] = useState<string>();
-  /** Colours the pickers hold that haven't saved yet, by palette. */
+  /** Colors the pickers hold that haven't saved yet, by palette. */
   const [live, setLive] = useState<Record<string, Picked>>({});
   const store = useSaveConfig();
   const timers = useRef<Record<string, number>>({});
 
-  // A saved draft (a loaded set, Reset all) wins over a held colour.
+  // A saved draft (a loaded set, Reset all) wins over a held color.
   // biome-ignore lint/correctness/useExhaustiveDependencies: clears whenever the saved draft changes
   useEffect(() => setLive({}), [colors]);
 
@@ -262,14 +262,14 @@ function Palettes({ palettes, error }: ReturnType<typeof useCatalog>) {
 interface PaletteRowProps {
   palette: PaletteView;
   pick: Pick | undefined;
-  /** The colours the pickers hold before they save. */
+  /** The colors the pickers hold before they save. */
   live?: Picked;
   selected: boolean;
   onSelect: () => void;
   onLive: (picked: Picked) => void;
 }
 
-/** One palette: its name, Vanilla, Random or a colour, the picker, its
+/** One palette: its name, Vanilla, Random or a color, the picker, its
  * lock and reset. A palette with several slots can Split them, a picker
  * each. Hovering or focusing it shows it in the preview. */
 function PaletteRow({
@@ -283,14 +283,14 @@ function PaletteRow({
   const store = useSaveConfig();
   const { busy, run } = useRequest();
   const locked = useConfig((s) => s.config.color_locks.includes(palette.id));
-  const mode = live ? "colour" : modeOf(pick);
+  const mode = live ? "color" : modeOf(pick);
   const picked: Picked =
     live ??
     (typeof pick === "object" ? pick : { hex: swatchOf(palette, pick) });
   const split = !!picked.split?.length;
   const off = busy || !!palette.problem;
   const setMode = (m: Mode) =>
-    store(setPick(palette.id, m === "colour" ? { hex: picked.hex } : m));
+    store(setPick(palette.id, m === "color" ? { hex: picked.hex } : m));
   // Split starts from where the slots stood, following the first.
   const toggleSplit = () =>
     run(async () => {
@@ -342,7 +342,7 @@ function PaletteRow({
           value={mode}
           onValueChange={setMode}
           disabled={off}
-          aria-label={`${palette.label}: ${vanillaLabel(palette).toLowerCase()}, random or a colour`}
+          aria-label={`${palette.label}: ${vanillaLabel(palette).toLowerCase()}, random or a color`}
         />
         {mode === "random" ? (
           <span className="text-ink-muted text-xs">Drawn at build</span>
@@ -353,17 +353,17 @@ function PaletteRow({
               key={i}
               hex={hex}
               name={split ? palette.names[i] : undefined}
-              label={`${palette.label} ${split ? palette.names[i] : "colour"}`}
+              label={`${palette.label} ${split ? palette.names[i] : "color"}`}
               onChange={(h) => onLive(withSlot(picked, i, h))}
             />
           ))
         )}
-        {palette.names.length > 1 && mode === "colour" && (
+        {palette.names.length > 1 && mode === "color" && (
           <Tip
             tip={
               split
-                ? "One colour, the rest following it"
-                : `A colour for each: ${palette.names.join(", ")}`
+                ? "One color, the rest following it"
+                : `A color for each: ${palette.names.join(", ")}`
             }
           >
             <Button
@@ -397,7 +397,7 @@ interface SwatchProps {
   onChange: (hex: string) => void;
 }
 
-/** One colour: the picker with its presets and recent colours, and its
+/** One color: the picker with its presets and recent colors, and its
  * code. */
 function Swatch({ hex, name, label, onChange }: SwatchProps) {
   const store = useSaveConfig();

@@ -1,6 +1,6 @@
 //! The app's preview of a palette: one of its game textures, painted as
 //! the seed paints it, small enough to redraw as the picker moves, or a
-//! sphere lit with a material's colours where the palette writes params.
+//! sphere lit with a material's colors where the palette writes params.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -156,7 +156,7 @@ impl Previews {
     }
 
     /// Why `palette` can't be painted on this dump, if it can't: a write
-    /// whose part isn't the colour the catalog recorded (a newer dump).
+    /// whose part isn't the color the catalog recorded (a newer dump).
     pub fn check(&self, romfs: &Romfs, palette: &Palette) -> Result<()> {
         for write in palette.writes {
             match (write.texture(), &write.kind) {
@@ -192,7 +192,7 @@ impl Previews {
         let key = match sheets(palette).get(sheet) {
             Some(Sheet::Texture(key)) => *key,
             Some(Sheet::Material(material)) => {
-                return crate::sprites::png(&sphere(&material_colours(palette, material, picked)?));
+                return crate::sprites::png(&sphere(&material_colors(palette, material, picked)?));
             }
             None => anyhow::bail!("{id} has no sheet {sheet}"),
         };
@@ -261,9 +261,9 @@ fn grey_unchanged(rgba: &mut [u8], vanilla: &[u8], palette: &Palette, key: TexKe
     }
 }
 
-/// The colours `palette` writes to `material`, as `picked` sets them or
+/// The colors `palette` writes to `material`, as `picked` sets them or
 /// vanilla without a pick, in linear light.
-fn material_colours(
+fn material_colors(
     palette: &Palette,
     material: &str,
     picked: Option<&Picked>,
@@ -293,10 +293,10 @@ const GRADIENT: usize = 16;
 const LIGHT: [f32; 3] = [-0.45, 0.55, 0.7];
 
 /// A sphere `SIZE` across lit by `LIGHT`, its shading running through
-/// `colours` from the darkest in shadow to the brightest in the light,
+/// `colors` from the darkest in shadow to the brightest in the light,
 /// with a white glint. On a dark ground, so a pale gem still reads.
-fn sphere(colours: &[[f32; 3]]) -> Texture {
-    let mut ramp = colours.to_vec();
+fn sphere(colors: &[[f32; 3]]) -> Texture {
+    let mut ramp = colors.to_vec();
     let luma = |c: &[f32; 3]| 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     ramp.sort_by(|a, b| luma(a).total_cmp(&luma(b)));
     let norm = LIGHT.iter().map(|v| v * v).sum::<f32>().sqrt();
@@ -415,7 +415,7 @@ mod tests {
     }
 
     #[test]
-    fn a_sphere_is_lit_through_its_colours() {
+    fn a_sphere_is_lit_through_its_colors() {
         let dark = [0.02, 0.0, 0.0];
         let bright = [0.9, 0.1, 0.1];
         let ball = sphere(&[bright, dark]);
@@ -469,7 +469,7 @@ mod tests {
         let look = |name: &str, picked| previews.albedo(&romfs, "goron-tunic", name, picked);
         let vest = super::super::files::GORON_VEST.stem().unwrap();
         assert_ne!(look(vest, None).unwrap(), look(vest, Some(&red)).unwrap());
-        // Painted by another palette, so it keeps its colours here.
+        // Painted by another palette, so it keeps its colors here.
         let glove = super::super::files::ADULT_GLOVE.stem().unwrap();
         assert!(albedos.iter().any(|a| a == glove));
         assert_eq!(look(glove, None).unwrap(), look(glove, Some(&red)).unwrap());

@@ -133,7 +133,7 @@ export const FALLBACK_ICONS: Record<Glyph, LucideIcon> = {
   unknown: CircleHelp,
 };
 
-/** A `#rrggbb` colour's WCAG relative luminance, 0 for black to 1 for
+/** A `#rrggbb` color's WCAG relative luminance, 0 for black to 1 for
  * white, or null for anything else. */
 export function luminance(color: string): number | null {
   const hex = /^#([0-9a-f]{6})$/i.exec(color)?.[1];

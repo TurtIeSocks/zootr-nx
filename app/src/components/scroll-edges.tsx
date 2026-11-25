@@ -14,7 +14,7 @@ export interface EdgeMark {
   selector: string;
   /** Read after "Scroll left, " when one is past that edge. */
   label: string;
-  /** The dot's colour. */
+  /** The dot's color. */
   className: string;
 }
 

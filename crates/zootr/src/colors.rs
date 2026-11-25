@@ -1,5 +1,5 @@
-//! Colors: a seed's palettes recoloured, Link's tunics and gear first.
-//! Romfs files only: the hook patch never differs by colour. See
+//! Colors: a seed's palettes recolored, Link's tunics and gear first.
+//! Romfs files only: the hook patch never differs by color. See
 //! `superpowers/specs/2026-11-24-colors-design.md`.
 
 mod catalog;
@@ -20,7 +20,7 @@ use ounce_formats::{
 
 pub use catalog::{GREEN, Group, Kind, PALETTES, Palette, Write};
 use files::{Copy, Tex};
-use paint::{Band, Colour};
+use paint::{Band, Color};
 pub use pick::{
     Colors, Draft, Mode, Pick, Picked, args, draft, drawn, hex, parse_arg, parse_hex, resolve,
 };
@@ -32,8 +32,8 @@ pub fn palette(id: &str) -> Result<&'static Palette> {
         .with_context(|| format!("no palette {id}: `zootr colors list` names them"))
 }
 
-/// The colour of `id`'s first slot in `colors`, when it isn't vanilla.
-pub fn first(colors: &Colors, id: &str) -> Result<Option<Colour>> {
+/// The color of `id`'s first slot in `colors`, when it isn't vanilla.
+pub fn first(colors: &Colors, id: &str) -> Result<Option<Color>> {
     let Some(picked) = colors.get(id) else {
         return Ok(None);
     };
@@ -69,8 +69,8 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(files::LAYOUT_ARCHIVES)
 }
 
-/// The spoiler's section: each palette a seed changed and its colours.
-/// Nothing for a seed in vanilla colours.
+/// The spoiler's section: each palette a seed changed and its colors.
+/// Nothing for a seed in vanilla colors.
 pub fn spoiler(colors: &Colors) -> String {
     let width = colors.keys().map(|id| id.len()).max().unwrap_or(0);
     let lines = colors.iter().map(|(id, p)| {
@@ -83,22 +83,22 @@ pub fn spoiler(colors: &Colors) -> String {
     }
 }
 
-/// One write's goal: the colour its part ends up, as the palette's slot
+/// One write's goal: the color its part ends up, as the palette's slot
 /// moved from vanilla.
 #[derive(Clone)]
 struct Job<'a> {
     palette: &'a Palette,
     write: &'a Write,
-    /// Its slot's colour.
-    to: Colour,
-    /// Its part's colour: for an effect, whose constants each follow the
+    /// Its slot's color.
+    to: Color,
+    /// Its part's color: for an effect, whose constants each follow the
     /// slot by their own, the slot's.
-    goal: Colour,
+    goal: Color,
 }
 
 impl Job<'_> {
     /// `vanilla` moved as this job's slot moved.
-    fn follow(&self, vanilla: Colour) -> Colour {
+    fn follow(&self, vanilla: Color) -> Color {
         let from = self.palette.vanilla[self.write.slot];
         self.palette.follow(self.to, from, vanilla)
     }
@@ -199,7 +199,7 @@ fn with_followers(colors: &Colors) -> Result<Colors> {
     Ok(out)
 }
 
-/// How far a param may sit from the colour recorded, per channel.
+/// How far a param may sit from the color recorded, per channel.
 const PARAM_SLACK: f32 = 0.002;
 
 /// `model` with each of its param jobs written, each checked first.
@@ -215,7 +215,7 @@ fn paint_model(model: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
     Ok(data)
 }
 
-/// Fails unless `write`'s param in `model` holds the colour recorded, and
+/// Fails unless `write`'s param in `model` holds the color recorded, and
 /// returns what it holds.
 fn check_param(model: &[u8], write: &Write) -> Result<[f32; 4]> {
     let Kind::Param {
@@ -269,7 +269,7 @@ fn paint_archive(archive: &[u8], jobs: &[Job]) -> Result<Vec<u8>> {
 }
 
 /// Where the entries `write` changes are in `archive`: each one holding
-/// its colour in a layout it names, in every copy. Fails unless there are
+/// its color in a layout it names, in every copy. Fails unless there are
 /// as many as recorded, or when a layout's copies differ.
 fn check_layout(archive: &[u8], write: &Write) -> Result<Vec<usize>> {
     let Kind::Layout {
@@ -319,7 +319,7 @@ fn check_vfx(bundle: &[u8], write: &Write) -> Result<Vec<vfx::Constant>> {
         anyhow::bail!("not an effect");
     };
     let (got, found) = in_esets(bundle, esets)?;
-    ensure!(!found.is_empty(), "no colour in the esets {esets:?}");
+    ensure!(!found.is_empty(), "no color in the esets {esets:?}");
     ensure!(
         got == sum,
         "the esets {esets:?} sum to {got:#010x} where {sum:#010x} was recorded"
@@ -327,7 +327,7 @@ fn check_vfx(bundle: &[u8], write: &Write) -> Result<Vec<vfx::Constant>> {
     Ok(found)
 }
 
-/// The colour constants in `bundle`'s esets whose names start with one of
+/// The color constants in `bundle`'s esets whose names start with one of
 /// `esets`, and their sum: the crc32 of each one's descriptor hash and
 /// floats, in file order.
 pub(crate) fn in_esets(bundle: &[u8], esets: &[&str]) -> Result<(u32, Vec<vfx::Constant>)> {
@@ -351,8 +351,8 @@ pub(crate) fn in_esets(bundle: &[u8], esets: &[&str]) -> Result<(u32, Vec<vfx::C
 }
 
 /// An effect constant's hue, as sRGB at full brightness, or none for one
-/// that isn't a colour: grey, black, or below 0 in a channel.
-fn hue(value: [f32; 4]) -> Option<Colour> {
+/// that isn't a color: grey, black, or below 0 in a channel.
+fn hue(value: [f32; 4]) -> Option<Color> {
     let rgb = [value[0], value[1], value[2]];
     let top = rgb.iter().copied().fold(0.0, f32::max);
     if top <= 0.0 || rgb.iter().any(|&c| c < 0.0) {
@@ -362,9 +362,9 @@ fn hue(value: [f32; 4]) -> Option<Colour> {
     (!oklch::grey(hue)).then_some(hue)
 }
 
-/// The param that shows `goal` at the brightness `old` had: its colour
+/// The param that shows `goal` at the brightness `old` had: its color
 /// from `goal`, its brightest channel from `old`. Black stays black.
-fn param_value(goal: Colour, old: [f32; 4]) -> [f32; 4] {
+fn param_value(goal: Color, old: [f32; 4]) -> [f32; 4] {
     let lin = oklch::to_linear(goal);
     let top = lin.iter().copied().fold(0.0, f32::max);
     let keep = old[..3].iter().copied().fold(0.0, f32::max);
@@ -472,20 +472,20 @@ fn paint_jobs(rgba: &mut [u8], jobs: &[Job]) -> Result<()> {
     );
     paint::shift(rgba, &bands);
     if let [tint] = tints[..] {
-        let colour = brightened(tint.goal, mean_luma(rgba));
-        paint::tint(rgba, colour);
+        let color = brightened(tint.goal, mean_luma(rgba));
+        paint::tint(rgba, color);
     }
     Ok(())
 }
 
-/// Fails unless `write`'s part in `rgba` is the colour the catalog
+/// Fails unless `write`'s part in `rgba` is the color the catalog
 /// recorded: a newer dump is refused, not painted wrong.
 fn check(rgba: &[u8], write: &Write) -> Result<()> {
-    let want = write.vanilla().context("an effect has no one colour")?;
+    let want = write.vanilla().context("an effect has no one color")?;
     let got = measure(rgba, write)?;
     ensure!(
         matches(write, got, want),
-        "the dump's colour here is {} where {} was recorded",
+        "the dump's color here is {} where {} was recorded",
         hex(got),
         hex(want)
     );
@@ -494,7 +494,7 @@ fn check(rgba: &[u8], write: &Write) -> Result<()> {
 
 /// What a write's part averages in `rgba`: its band's texels, or every
 /// texel for a tint.
-fn measure(rgba: &[u8], write: &Write) -> Result<Colour> {
+fn measure(rgba: &[u8], write: &Write) -> Result<Color> {
     match write.kind {
         Kind::Band { hues, .. } => {
             let (h, s, v) = paint::mean(rgba, hues).context("no texel in the band")?;
@@ -507,7 +507,7 @@ fn measure(rgba: &[u8], write: &Write) -> Result<Colour> {
     }
 }
 
-fn matches(write: &Write, got: Colour, want: Colour) -> bool {
+fn matches(write: &Write, got: Color, want: Color) -> bool {
     match write.kind {
         Kind::Band { .. } => {
             let ((gh, gs, gv), (wh, ws, wv)) = (paint::hsv(got), paint::hsv(want));
@@ -523,8 +523,8 @@ fn matches(write: &Write, got: Colour, want: Colour) -> bool {
     }
 }
 
-/// The average colour of `rgba`.
-fn mean(rgba: &[u8]) -> Colour {
+/// The average color of `rgba`.
+fn mean(rgba: &[u8]) -> Color {
     let n = (rgba.len() / 4).max(1) as u64;
     std::array::from_fn(|c| {
         let sum: u64 = rgba.chunks(4).map(|px| px[c] as u64).sum();
@@ -540,7 +540,7 @@ fn mean_luma(rgba: &[u8]) -> u32 {
 /// The tint that brings a texture whose texels average `luma` to `goal`
 /// on average: a tint scales by brightness, so a dark texture needs a
 /// brighter one.
-fn brightened(goal: Colour, luma: u32) -> Colour {
+fn brightened(goal: Color, luma: u32) -> Color {
     goal.map(|c| (c as u32 * 255 / luma.max(1)).min(255) as u8)
 }
 
@@ -660,7 +660,7 @@ mod tests {
         assert_eq!(brightened([200, 50, 20], 64), [255, 199, 79]);
     }
 
-    /// Every palette paints: each texture rewritten in its colour, a
+    /// Every palette paints: each texture rewritten in its color, a
     /// shared one as a copy Link's models name instead.
     #[test]
     fn every_palette_paints_its_textures() {
@@ -711,7 +711,7 @@ mod tests {
                         palette.id
                     );
                     // Some constant has its slot's hue and takes the
-                    // slot's colour: pink, or what follows pink.
+                    // slot's color: pink, or what follows pink.
                     let Kind::Vfx { esets, .. } = w.kind else {
                         unreachable!()
                     };
@@ -732,7 +732,7 @@ mod tests {
                 }
                 if let Kind::Layout { archive, .. } = w.kind {
                     // Each entry moved off vanilla holds the write's goal:
-                    // its slot's colour, or what follows it.
+                    // its slot's color, or what follows it.
                     let data = crate::game::read_built(&romfs, &dir, archive);
                     assert!(
                         check_layout(&data, w).is_err(),
@@ -804,7 +804,7 @@ mod tests {
                     .rgba;
                 assert_ne!(rgba, vanilla, "{} {path} is painted", palette.id);
                 if let (0, Kind::Band { .. }) = (i, &w.kind) {
-                    // The palette's first part takes the colour itself.
+                    // The palette's first part takes the color itself.
                     let pink_hue = paint::hsv(pink).0;
                     let near = (pink_hue - 0.02, pink_hue + 0.02);
                     assert!(paint::mean(&rgba, near).is_some(), "{} {path}", palette.id);
@@ -853,7 +853,7 @@ mod tests {
     /// Every write finds its part in the dump as recorded, and every
     /// palette paints without error.
     #[test]
-    fn every_write_finds_its_vanilla_colour() {
+    fn every_write_finds_its_vanilla_color() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };

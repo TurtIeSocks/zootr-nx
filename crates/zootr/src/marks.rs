@@ -56,10 +56,10 @@ struct Model {
     fmdb: &'static Name,
     albedos: &'static [&'static Name],
     paint: Paint,
-    /// Whether its project's colour animation (`Model/PROJECT.anim`) swaps
+    /// Whether its project's color animation (`Model/PROJECT.anim`) swaps
     /// its albedo for another pot's by name, so the copy needs one naming
     /// the marked albedos.
-    coloured: bool,
+    colored: bool,
 }
 
 macro_rules! pot {
@@ -69,7 +69,7 @@ macro_rules! pot {
             fmdb: actor::$fmdb,
             albedos: &[texture::$albedo],
             paint: Paint::Pot,
-            coloured: false,
+            colored: false,
         }
     };
 }
@@ -87,28 +87,28 @@ static BIG_CRATE: Model = Model {
     fmdb: actor::OBJ_BROKEN_BOX_A_04,
     albedos: &[texture::OBJ_BROKEN_BOX_A_04_ALB],
     paint: Paint::Brace,
-    coloured: false,
+    colored: false,
 };
 static SMALL_CRATE: Model = Model {
     project: actor::OBJ_BROKEN_BOX_A,
     fmdb: actor::OBJ_BROKEN_BOX_A_03,
     albedos: &[texture::STONE_BROKEN_BOX_A_ALB],
     paint: Paint::Faces,
-    coloured: false,
+    colored: false,
 };
 static ROCK: Model = Model {
     project: actor::OBJ_ROCK_A,
     fmdb: actor::OBJ_LIFT_ROCK_A_01,
     albedos: &[texture::MT_ROCK_LIFT_ROCK_A_01_ALB],
     paint: Paint::Tint,
-    coloured: false,
+    colored: false,
 };
 static HIVE: Model = Model {
     project: actor::OBJ_KOKIRI_BEEHIVE_A,
     fmdb: actor::OBJ_KOKIRI_BEEHIVE_A_01,
     albedos: &[texture::OBJ_HIDING_HOLE_BEEHIVE_A_ALB],
     paint: Paint::Tint,
-    coloured: false,
+    colored: false,
 };
 /// Grass: its blades, and the billboard it's drawn as from afar.
 static GRASS: Model = Model {
@@ -119,17 +119,17 @@ static GRASS: Model = Model {
         texture::OBJ_PLANT_A_BILL_BOARD_ALB,
     ],
     paint: Paint::Tint,
-    coloured: false,
+    colored: false,
 };
 
-/// The flying pots' one model, the plain pot's mesh, coloured as each
+/// The flying pots' one model, the plain pot's mesh, colored as each
 /// temple's pot by its animation.
 static FLYING_POT: Model = Model {
     project: actor::ENEMY_FLYING_POT,
     fmdb: actor::ENEMY_FLYING_POT,
     albedos: &[texture::ROCK_POT_A_ALB],
     paint: Paint::Pot,
-    coloured: true,
+    colored: true,
 };
 
 /// Each breakable that's marked, and the model it shows. A respawning or
@@ -163,7 +163,7 @@ const MARKED: [(&Name, &Model); 24] = [
 ];
 
 /// Each shrub that's marked: drawn by the foliage system, so marked by its
-/// leaves' colour (`shrubs`).
+/// leaves' color (`shrubs`).
 const SHRUBS: [&Name; 1] = [actor::LAND_KOKIRI_PLANT_A_02_DROP_FIXED_03];
 
 // A pot's albedo runs up the pot from its foot (v 0) to its lip (v 0.45),
@@ -263,8 +263,8 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
         let (project, fmdb) = (marked(model.project)?, marked(model.fmdb)?);
         let template = ActorPack::load(romfs, host)?;
         let [actor, (at, info, like)] = pointed_at(&template, &name, &project, &fmdb)?;
-        let info = if model.coloured {
-            coloured_by(info, model.project, &project)?
+        let info = if model.colored {
+            colored_by(info, model.project, &project)?
         } else {
             info
         };
@@ -279,14 +279,14 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Re
     tags.write(builder)
 }
 
-/// `model`'s marked copy, naming its marked albedos, and its colour
+/// `model`'s marked copy, naming its marked albedos, and its color
 /// animation's when it has one.
 fn write_model(romfs: &Romfs, builder: &mut ModBuilder, model: &Model) -> Result<()> {
     let host = model_file(model.project, model.fmdb);
     let copy = copy_model(&romfs.read(&host)?, model)?;
     let project = marked(model.project)?;
     builder.add(&model_file(&project, &marked(model.fmdb)?), &copy, &host)?;
-    if model.coloured {
+    if model.colored {
         let like = anim_file(model.project);
         let copy = copy_anim(&romfs.read(&like)?, model.project)?;
         builder.add(&anim_file(&project), &copy, &like)?;
@@ -294,12 +294,12 @@ fn write_model(romfs: &Romfs, builder: &mut ModBuilder, model: &Model) -> Result
     Ok(())
 }
 
-/// A project's colour animation.
+/// A project's color animation.
 fn anim_file(project: &str) -> String {
     format!("Model/{project}.anim.bfres.zs")
 }
 
-/// `data`, `project`'s colour animation, renamed as its marked copy's: its
+/// `data`, `project`'s color animation, renamed as its marked copy's: its
 /// project marked, and every pot albedo it swaps in.
 fn copy_anim(data: &[u8], project: &str) -> Result<Vec<u8>> {
     let copy = rename(data, project, &marked(project)?)?;
@@ -311,14 +311,14 @@ fn copy_anim(data: &[u8], project: &str) -> Result<Vec<u8>> {
     })
 }
 
-/// ModelInfo `info` with each colour animation it plays named for
+/// ModelInfo `info` with each color animation it plays named for
 /// `project`'s marked copy, `marked`, not `project`.
-fn coloured_by(mut info: BymlDoc, project: &str, marked: &str) -> Result<BymlDoc> {
+fn colored_by(mut info: BymlDoc, project: &str, marked: &str) -> Result<BymlDoc> {
     let anims = info
         .root
         .as_mut_map()?
         .get_mut(field::MODEL_VARIATION_ANIMS.get());
-    let anims = anims.context("a coloured model's ModelInfo plays no animation")?;
+    let anims = anims.context("a colored model's ModelInfo plays no animation")?;
     for anim in anims.as_mut_array()? {
         let anim = anim.as_mut_map()?;
         let fmab = (anim.get(field::FMAB.get()))
@@ -465,7 +465,7 @@ mod tests {
             let file = model_file(model.project, model.fmdb);
             if !read.contains(&file) {
                 read.push(file);
-                if model.coloured {
+                if model.colored {
                     read.push(anim_file(model.project));
                 }
             }
@@ -526,7 +526,7 @@ mod tests {
     }
 
     #[test]
-    fn a_flying_pot_s_copy_colours_by_its_own_animation_and_the_marked_pots() {
+    fn a_flying_pot_s_copy_colors_by_its_own_animation_and_the_marked_pots() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
@@ -545,7 +545,7 @@ mod tests {
         let host = ActorPack::load(&romfs, actor::ENEMY_FLYING_POT_ICE_CAVERN).unwrap();
         let project = marked(FLYING_POT.project).unwrap();
         let [_, (_, info, _)] = pointed_at(&host, "Enemy_FakePot", &project, &project).unwrap();
-        let info = coloured_by(info, FLYING_POT.project, &project).unwrap();
+        let info = colored_by(info, FLYING_POT.project, &project).unwrap();
         let anims = &info.root.as_map().unwrap()[field::MODEL_VARIATION_ANIMS.get()];
         let fmab = anims.as_array().unwrap()[0].as_map().unwrap()[field::FMAB.get()].clone();
         let Byml::String(fmab) = fmab else {

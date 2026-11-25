@@ -167,7 +167,7 @@ pub const FAIRY_OCARINA: [Tex; 2] = [
 ];
 pub const OCARINA_OF_TIME: Tex = tex("Tex/Mt_Item_Ocarina_Time_Alb.bntx.zs");
 
-// Hair: its colour is its albedo, and its gradient (a LUT) colours the
+// Hair: its color is its albedo, and its gradient (a LUT) colors the
 // highlight (seen live). The albedo is Dark Link's too and the child's
 // through the texture table, so Link's is a copy, and the child's another.
 pub const HAIR: Tex = Tex {

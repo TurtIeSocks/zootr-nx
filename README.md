@@ -42,9 +42,9 @@ from Saria". Hosting one takes Archipelago and `znx.apworld`, and the
 
 ## Custom models
 
-A song placed in the world shows its own medallion, in the song's colour
+A song placed in the world shows its own medallion, in the song's color
 with its icon on the face, where the game would show a rupee. Keys take
-their dungeon's colour, so a key found far from home says where it belongs.
+their dungeon's color, so a key found far from home says where it belongs.
 zootr builds each model from your dump when it writes a seed.
 
 ## Less waiting

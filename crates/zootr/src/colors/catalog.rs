@@ -1,10 +1,10 @@
-//! Every palette a seed can recolour, and what each one paints. See
+//! Every palette a seed can recolor, and what each one paints. See
 //! `superpowers/specs/2026-11-24-colors-design.md`, The catalog.
 
 use serde::Serialize;
 
 use super::files::*;
-use super::paint::{Colour, Hues};
+use super::paint::{Color, Hues};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -16,13 +16,13 @@ pub enum Group {
     Hud,
 }
 
-/// One thing a player recolours: its colour in the vanilla game for each
+/// One thing a player recolors: its color in the vanilla game for each
 /// slot, and the writes that paint it.
 pub struct Palette {
     pub id: &'static str,
     pub label: &'static str,
     pub group: Group,
-    pub vanilla: &'static [Colour],
+    pub vanilla: &'static [Color],
     /// Each slot's name, when there's more than one: what Split shows.
     pub names: &'static [&'static str],
     pub writes: &'static [Write],
@@ -32,7 +32,7 @@ impl Palette {
     /// `other` moved as `from` moved to `to`, the way this palette's parts
     /// follow its slots. An effect's parts follow by hue alone: their
     /// brightness is their own, and a lighter pick would wash them white.
-    pub fn follow(&self, to: Colour, from: Colour, other: Colour) -> Colour {
+    pub fn follow(&self, to: Color, from: Color, other: Color) -> Color {
         match self.group {
             Group::Effects => super::oklch::follow_hue(to, from, other),
             Group::Link | Group::Gear | Group::Hud => super::oklch::follow(to, from, other),
@@ -49,22 +49,22 @@ pub struct Write {
 /// What a write changes. Each holds what the dump has there, so a newer
 /// dump fails the build instead of being painted wrong.
 pub enum Kind {
-    /// The texels in a band of hues moved to the colour, keeping their
-    /// grain. `vanilla` is the band's average colour.
+    /// The texels in a band of hues moved to the color, keeping their
+    /// grain. `vanilla` is the band's average color.
     Band {
         texture: &'static Tex,
         hues: Hues,
-        vanilla: Colour,
+        vanilla: Color,
     },
-    /// Every texel the colour, by its brightness. `vanilla` is the
-    /// texture's average colour.
+    /// Every texel the color, by its brightness. `vanilla` is the
+    /// texture's average color.
     Tint {
         texture: &'static Tex,
-        vanilla: Colour,
+        vanilla: Color,
     },
-    /// A four-float colour in every material named `material` in each of
+    /// A four-float color in every material named `material` in each of
     /// `models`, in linear light: its brightest channel kept, so a gem
-    /// keeps its depth. `vanilla` is its colour, linear.
+    /// keeps its depth. `vanilla` is its color, linear.
     Param {
         models: &'static [&'static str],
         material: &'static str,
@@ -72,8 +72,8 @@ pub enum Kind {
         vanilla: [f32; 3],
     },
     /// An effect's light. The game reads an effect's constants at run
-    /// time only for its light: a particle's colour is compiled into its
-    /// shader, and these constants change nothing there. Every coloured
+    /// time only for its light: a particle's color is compiled into its
+    /// shader, and these constants change nothing there. Every colored
     /// constant in `bundle`'s esets whose names start with one of
     /// `esets`: each turned as the slot turned from vanilla, by its own
     /// hue, its brightest channel kept as a param's is. Greys stay grey. `sum` is the crc32 of those esets' constants in the dump
@@ -86,14 +86,14 @@ pub enum Kind {
     /// Every palette entry holding `vanilla` in the layouts of `archive`
     /// whose names start with `prefix`, in every copy the archive stores.
     /// A UI material tints its one-channel texture with an entry, so the
-    /// entry is the part's whole colour. Stored as it shows, not in linear
+    /// entry is the part's whole color. Stored as it shows, not in linear
     /// light, and its alpha kept. `count` is how many there are in one
     /// copy of each layout (`probe layout PREFIX`), so a newer dump fails
     /// the build.
     Layout {
         archive: &'static str,
         prefix: &'static str,
-        vanilla: Colour,
+        vanilla: Color,
         count: usize,
     },
 }
@@ -107,9 +107,9 @@ impl Write {
         }
     }
 
-    /// Its part's colour in the vanilla game, as sRGB. None for an
+    /// Its part's color in the vanilla game, as sRGB. None for an
     /// effect: each of its constants has its own.
-    pub fn vanilla(&self) -> Option<Colour> {
+    pub fn vanilla(&self) -> Option<Color> {
         match self.kind {
             Kind::Band { vanilla, .. }
             | Kind::Tint { vanilla, .. }
@@ -125,14 +125,14 @@ impl Write {
     }
 }
 
-// The four colour params Link's and the gear's materials share, by name
+// The four color params Link's and the gear's materials share, by name
 // hash. What each means is the shader's: base, shade, rim or shine, tip.
 const C0: u64 = 0x68e1_31e7_2bcd_91ad;
 const C1: u64 = 0xe647_277d_46e8_c1d8;
 const C2: u64 = 0x0187_464e_c654_1f6e;
 const C3: u64 = 0x9613_83b7_9667_f911;
 
-const fn tint(texture: &'static Tex, vanilla: Colour) -> Write {
+const fn tint(texture: &'static Tex, vanilla: Color) -> Write {
     Write {
         slot: 0,
         kind: Kind::Tint { texture, vanilla },
@@ -166,7 +166,7 @@ const fn vfx(bundle: &'static str, esets: &'static [&'static str], sum: u32) -> 
 const fn layout(
     archive: &'static str,
     prefix: &'static str,
-    vanilla: Colour,
+    vanilla: Color,
     count: usize,
 ) -> Write {
     Write {
@@ -180,7 +180,7 @@ const fn layout(
     }
 }
 
-const fn band(texture: &'static Tex, hues: Hues, vanilla: Colour) -> Write {
+const fn band(texture: &'static Tex, hues: Hues, vanilla: Color) -> Write {
     Write {
         slot: 0,
         kind: Kind::Band {
@@ -192,7 +192,7 @@ const fn band(texture: &'static Tex, hues: Hues, vanilla: Colour) -> Write {
 }
 
 /// Link's green, his vest's yellower stripes among it. His vest's brown
-/// patch keeps its colour.
+/// patch keeps its color.
 pub const GREEN: Hues = (0.15, 0.5);
 /// The Goron Tunic's red, either side of 0. Its tan trim stays.
 const RED: Hues = (0.9, 0.06);
@@ -204,10 +204,10 @@ const HEART: Hues = (0.95, 0.12);
 /// A part wholly wood or clay, its reds and yellows with it.
 const WOOD: Hues = (0.95, 0.2);
 
-/// The UI's text colour, cream.
-const CREAM: Colour = [255, 252, 198];
+/// The UI's text color, cream.
+const CREAM: Color = [255, 252, 198];
 /// Navi's blue in the UI.
-const NAVI_BLUE: Colour = [83, 112, 255];
+const NAVI_BLUE: Color = [83, 112, 255];
 
 /// Palettes that move with another while not picked themselves:
 /// (follower, leader).

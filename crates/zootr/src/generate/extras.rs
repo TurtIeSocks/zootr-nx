@@ -39,11 +39,11 @@ pub struct Extras {
     /// seed's hook is the same.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<Release>,
-    /// The colours the seed paints, Random already drawn. Cosmetic: left
+    /// The colors the seed paints, Random already drawn. Cosmetic: left
     /// out of the share code and the seed's icons ([`Self::cosmetic_free`]).
     #[serde(skip_serializing_if = "crate::colors::Colors::is_empty")]
     pub colors: crate::colors::Colors,
-    /// The songs the seed plays, each slot dealt. Cosmetic, as colours are.
+    /// The songs the seed plays, each slot dealt. Cosmetic, as colors are.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub audio: crate::audio::Audio,
     /// From before Shuffle items was a setting. History moves it there on

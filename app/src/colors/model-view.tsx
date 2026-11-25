@@ -19,7 +19,7 @@ import {
 /** Props for {@link ModelView}. */
 interface ModelViewProps {
   palette: PaletteView;
-  /** The colour to paint, as the picker has it now, or null for vanilla. */
+  /** The color to paint, as the picker has it now, or null for vanilla. */
   picked: Picked | null;
 }
 

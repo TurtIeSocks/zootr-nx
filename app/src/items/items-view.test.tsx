@@ -369,8 +369,8 @@ test("up and down reorder a column, hide and show round trip", async () => {
 
 test("an option changed just before leaving the tab is still saved", async () => {
   showItems();
-  const colour = await screen.findByDisplayValue("#00ff00");
-  fireEvent.change(colour, { target: { value: "#123456" } });
+  const color = await screen.findByDisplayValue("#00ff00");
+  fireEvent.change(color, { target: { value: "#123456" } });
   cleanup();
   await waitFor(() =>
     expect(itemsOptions).toHaveBeenCalledWith(

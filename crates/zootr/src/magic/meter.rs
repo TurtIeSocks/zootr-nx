@@ -38,7 +38,7 @@ static LOOK: Look = Look {
 /// green already and keep theirs.
 const GOLD: Hues = (10.0 / 360.0, 65.0 / 360.0);
 /// The magic meter's green, as hue, saturation and value. Saturated: the
-/// sigil is metal, so its colour reaches the eye as reflected light, and
+/// sigil is metal, so its color reaches the eye as reflected light, and
 /// the gold's own pale saturation read as gold under a chest's beam (live).
 const GREEN: (f32, f32, f32) = (125.0 / 360.0, 0.85, 0.7);
 

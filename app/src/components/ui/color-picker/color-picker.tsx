@@ -57,7 +57,7 @@ export interface ColorPickerProps<
    * read-only recents row.
    */
   onHistoryChange?: (history: ColorValue<TMode>[]) => void;
-  /** Show the alpha strip. Off for an opaque-only colour. Default true. */
+  /** Show the alpha strip. Off for an opaque-only color. Default true. */
   alpha?: boolean;
 }
 

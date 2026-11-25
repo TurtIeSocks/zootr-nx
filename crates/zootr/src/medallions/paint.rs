@@ -1,9 +1,9 @@
-//! The pictures a song's medallion wears: the host's, recoloured to the
-//! song's colour, with its songbook icon on the face.
+//! The pictures a song's medallion wears: the host's, recolored to the
+//! song's color, with its songbook icon on the face.
 
 use ounce_formats::Texture;
 
-pub use crate::colors::paint::Colour;
+pub use crate::colors::paint::Color;
 use crate::colors::paint::{hsv, rgb};
 
 /// Where the face sits on every host texture, as fractions of its size:
@@ -14,7 +14,7 @@ const FACE_RADIUS: f32 = 0.153;
 pub const FACE_SCALE: f32 = 1.389;
 /// How much of the face's width the icon spans.
 const ICON_SPAN: f32 = 1.6;
-/// The host's green's saturation, which a song's colour's stands in for.
+/// The host's green's saturation, which a song's color's stands in for.
 const HOST_SATURATION: f32 = 0.75;
 /// How much of the face's own light is left under the icon: dark enough
 /// for the glyph to read through the glass's glare.
@@ -28,10 +28,10 @@ pub fn on_face(w: usize, h: usize, x: usize, y: usize) -> bool {
     dx * dx + dy * dy < FACE_RADIUS * FACE_RADIUS
 }
 
-/// Every texel turned to `colour`'s hue, its saturation scaled as the
-/// host's green's is to the colour's, its brightness and alpha kept.
-pub fn recolour(t: &mut Texture, colour: Colour) {
-    let (hue, saturation, _) = hsv(colour);
+/// Every texel turned to `color`'s hue, its saturation scaled as the
+/// host's green's is to the color's, its brightness and alpha kept.
+pub fn recolor(t: &mut Texture, color: Color) {
+    let (hue, saturation, _) = hsv(color);
     for px in t.rgba.chunks_mut(4) {
         let (_, s, v) = hsv([px[0], px[1], px[2]]);
         let s = (s * saturation / HOST_SATURATION).min(1.0);
@@ -39,9 +39,9 @@ pub fn recolour(t: &mut Texture, colour: Colour) {
     }
 }
 
-/// The icon on the face, `colour` lightened, over the face dimmed.
-pub fn paint_icon(t: &mut Texture, icon: &Texture, colour: Colour) {
-    let glyph = colour.map(|c| c / 2 + 128);
+/// The icon on the face, `color` lightened, over the face dimmed.
+pub fn paint_icon(t: &mut Texture, icon: &Texture, color: Color) {
+    let glyph = color.map(|c| c / 2 + 128);
     for (x, y) in face(t) {
         let at = 4 * (y * t.width + x);
         let cover = coverage(icon, t, x as f32, y as f32);
@@ -53,7 +53,7 @@ pub fn paint_icon(t: &mut Texture, icon: &Texture, colour: Colour) {
 }
 
 /// A normal map's face made flat, with the icon raised on it. The map
-/// keeps X in its colour and Y in its alpha, 128 being level.
+/// keeps X in its color and Y in its alpha, 128 being level.
 pub fn emboss(t: &mut Texture, icon: &Texture) {
     for (x, y) in face(t) {
         let (fx, fy) = (x as f32, y as f32);
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn the_host_green_takes_the_songs_hue_and_keeps_its_brightness() {
         let mut t = texture(1, 1, [76, 126, 31, 200]);
-        recolour(&mut t, [255, 70, 40]);
+        recolor(&mut t, [255, 70, 40]);
         let (h, _, v) = hsv([t.rgba[0], t.rgba[1], t.rgba[2]]);
         assert!((h - hsv([255, 70, 40]).0).abs() < 0.01);
         assert!((v - hsv([76, 126, 31]).2).abs() < 0.01);
@@ -143,7 +143,7 @@ mod tests {
         let mut t = texture(100, 100, [100, 0, 0, 255]);
         paint_icon(&mut t, &icon(), [200, 100, 50]);
         let at = |x: usize, y: usize| t.rgba[4 * (y * 100 + x)];
-        assert_eq!(at(27, 27), 228, "the glyph's colour at the centre");
+        assert_eq!(at(27, 27), 228, "the glyph's color at the centre");
         assert_eq!(at(27, 15), 40, "the face dimmed beside the glyph");
         assert_eq!(at(90, 90), 100, "off the face");
     }

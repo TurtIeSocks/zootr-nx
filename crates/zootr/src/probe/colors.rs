@@ -1,5 +1,5 @@
-//! `zootr probe` on what the colours feature writes: a model's materials,
-//! an effect bundle's colour constants, a texture's hue bands.
+//! `zootr probe` on what the colors feature writes: a model's materials,
+//! an effect bundle's color constants, a texture's hue bands.
 
 use std::path::Path;
 
@@ -165,7 +165,7 @@ pub(super) fn layout(
             println!("{file_name}  {copies} copies in {archive}");
             for (i, e) in palette(file.data())?.iter().enumerate() {
                 let [r, g, b, a] = e.rgba;
-                // UI colours are stored as they show, not in linear light.
+                // UI colors are stored as they show, not in linear light.
                 let hex = crate::colors::hex([r, g, b].map(|c| (c * 255.0).round() as u8));
                 println!(
                     "  [{i:>2}] {hex}  {r:.4} {g:.4} {b:.4} {a:.4}  at {:#x}",
@@ -223,8 +223,8 @@ pub(super) fn atlas(romfs: &Romfs, name: &str, out: Option<&Path>, hues: bool) -
                 (0..3).for_each(|c| sum[c] += p[c] as u64);
                 n += 1;
             }
-            let colour = sum.map(|s| (s / n.max(1)) as u8);
-            crate::colors::hex(colour)
+            let color = sum.map(|s| (s / n.max(1)) as u8);
+            crate::colors::hex(color)
         };
         let all = mean(&mut t.rgba.chunks(4));
         let shown = mean(&mut t.rgba.chunks(4).filter(|p| p[3] > 0));

@@ -11,13 +11,13 @@ import { useLoadedImage } from "./use-loaded-image";
 interface HudPreviewProps {
   /** The HUD group's palettes. */
   palettes: PaletteView[];
-  /** A palette's colour as the picker has it now, or null for vanilla. */
+  /** A palette's color as the picker has it now, or null for vanilla. */
   picked: (palette: PaletteView) => Picked | null;
 }
 
 /** The HUD assembled: hearts, the magic meter, the rupee counter, the
  * pause menu's header and a line of Navi's, each texture painted by the
- * seed's own code and each layout colour laid on as the game tints it.
+ * seed's own code and each layout color laid on as the game tints it.
  * Low health pulses the hearts, Using magic lights the meter's glow. */
 export function HudPreview({ palettes, picked }: HudPreviewProps) {
   const [low, setLow] = useState(false);
@@ -42,7 +42,7 @@ export function HudPreview({ palettes, picked }: HudPreviewProps) {
       <div className="flex flex-col gap-3 p-4">
         <div
           role="img"
-          aria-label="The HUD in the picked colours"
+          aria-label="The HUD in the picked colors"
           className="relative aspect-video w-full overflow-hidden rounded-md border border-line bg-[radial-gradient(circle_at_50%_30%,#3b4a2a,#141a10)]"
         >
           {header && (
@@ -151,7 +151,7 @@ function useSheet(id: string, sheet: number, picked: Picked | null) {
   return useLoadedImage(previewUrl({ id, sheet, picked })).src;
 }
 
-/** Each slot's colour: vanilla without a pick, the split colours when
+/** Each slot's color: vanilla without a pick, the split colors when
  * split, else the pick and what the others follow it to. */
 function useSlots({
   palette,

@@ -63,14 +63,14 @@ pub struct Config {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[cfg_attr(feature = "specta", specta(type = BTreeMap<String, BTreeMap<String, String>>))]
     pub plandos: BTreeMap<String, Fixed>,
-    /// The Colors pane's draft: palette id to Vanilla, Random or a colour.
+    /// The Colors pane's draft: palette id to Vanilla, Random or a color.
     /// Random is drawn when a seed is built.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub colors: crate::colors::Draft,
-    /// Colour drafts kept by name, to load into `colors`.
+    /// Color drafts kept by name, to load into `colors`.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub color_sets: BTreeMap<String, crate::colors::Draft>,
-    /// The colour picker's recent colours, as `#rrggbb`, newest first.
+    /// The color picker's recent colors, as `#rrggbb`, newest first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub color_recents: Vec<String>,
     /// The Audio pane's draft: each pool's mode and each track's override.

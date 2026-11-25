@@ -2,7 +2,7 @@ import type { PaletteView, Pick, Picked } from "@/bindings";
 import type { FullConfig } from "@/lib/config";
 import { type Change, without } from "@/lib/saved-sets";
 
-/** The picker's preset swatches: plain colours with names, not a mode. */
+/** The picker's preset swatches: plain colors with names, not a mode. */
 export const PRESETS: readonly [name: string, hex: string][] = [
   ["Kokiri Green", "#2f8f3a"],
   ["Goron Red", "#b0201e"],
@@ -19,7 +19,7 @@ export const PRESETS: readonly [name: string, hex: string][] = [
 ];
 
 /** What a palette's row sets it to. */
-export type Mode = "vanilla" | "random" | "colour";
+export type Mode = "vanilla" | "random" | "color";
 
 /** What `pick` is, as the row's three-way switch shows it. */
 export const modeOf = (pick: Pick | undefined): Mode =>
@@ -27,9 +27,9 @@ export const modeOf = (pick: Pick | undefined): Mode =>
     ? "vanilla"
     : pick === "random"
       ? "random"
-      : "colour";
+      : "color";
 
-/** The colour `palette`'s swatch shows: the picked one, or vanilla's. */
+/** The color `palette`'s swatch shows: the picked one, or vanilla's. */
 export const swatchOf = (palette: PaletteView, pick: Pick | undefined) =>
   typeof pick === "object" ? pick.hex : (palette.vanilla[0] ?? "#000000");
 
@@ -83,7 +83,7 @@ export interface PreviewOf {
   id: string;
   /** Which of its sheets (textures, then material spheres), from 0. */
   sheet: number;
-  /** The colour painted, or null for vanilla. */
+  /** The color painted, or null for vanilla. */
   picked: Picked | null;
   /** Grey what the palette leaves alone. */
   changes?: boolean;
@@ -93,8 +93,8 @@ const digits = (hex: string) => hex.replace(/^#/, "");
 
 const BASE = "zootr-colors://localhost";
 
-/** `query` with `picked`'s colours, for a render painted with them. */
-function withColours(query: URLSearchParams, picked: Picked | null) {
+/** `query` with `picked`'s colors, for a render painted with them. */
+function withColors(query: URLSearchParams, picked: Picked | null) {
   if (picked) {
     query.set("c", digits(picked.hex));
     for (const s of picked.split ?? []) query.append("s", digits(s));
@@ -104,7 +104,7 @@ function withColours(query: URLSearchParams, picked: Picked | null) {
 
 /** The backend's render of `preview`, as the seed would paint it. */
 export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
-  const query = withColours(new URLSearchParams({ t: String(sheet) }), picked);
+  const query = withColors(new URLSearchParams({ t: String(sheet) }), picked);
   if (changes) query.set("v", "changes");
   return `${BASE}/${id}.png?${query}`;
 }
@@ -117,6 +117,6 @@ export const modelUrl = (id: string, view: number) =>
 /** Albedo `name` of palette `id`'s model, painted with `picked` when it's
  * one the palette paints. */
 export function albedoUrl(id: string, name: string, picked: Picked | null) {
-  const query = withColours(new URLSearchParams({ a: name }), picked);
+  const query = withColors(new URLSearchParams({ a: name }), picked);
   return `${BASE}/${id}.png?${query}`;
 }

@@ -124,7 +124,7 @@ pub struct Funcs {
     pub cell_set: u32,
     pub unfocus: u32,
     pub focus: u32,
-    /// Seeks a layout animation to a frame, which colours an Items page
+    /// Seeks a layout animation to a frame, which colors an Items page
     /// cell's icon: usable, or on a button.
     pub anim_frame: u32,
     /// The item kind on a button for an age (the manager, child, 1).

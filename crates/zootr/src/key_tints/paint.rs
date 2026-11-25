@@ -1,12 +1,12 @@
-//! A model copied in a colour: its albedo tinted by each texel's
+//! A model copied in a color: its albedo tinted by each texel's
 //! brightness, and a key ring's iron and gold corner where it has one.
-//! Keys take their dungeon's colour, another game's item its class's.
+//! Keys take their dungeon's color, another game's item its class's.
 
 use anyhow::Result;
 use ounce_formats::{ModBuilder, Romfs, Texture, redraw, rename, top_level};
 
 use super::rings;
-use crate::colors::paint::{self, Colour};
+use crate::colors::paint::{self, Color};
 use crate::known::Name;
 use crate::medallions::model_path;
 
@@ -24,8 +24,8 @@ pub(crate) struct Look {
     pub(crate) others: &'static [&'static str],
     pub(crate) copy: &'static str,
     /// The copy's metal map cleared, so its painted albedo shows as its
-    /// own colour. A metal reflects the room around it, which drowns a
-    /// painted colour (the Magic Meter's sigil stayed gold, live).
+    /// own color. A metal reflects the room around it, which drowns a
+    /// painted color (the Magic Meter's sigil stayed gold, live).
     pub(crate) matte: bool,
 }
 
@@ -81,7 +81,7 @@ impl Host {
     }
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
-    pub(crate) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
+    pub(crate) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Color) -> Result<String> {
         self.paint_with(builder, n, &|rgba| paint::tint(rgba, tint))
     }
 
@@ -106,7 +106,7 @@ impl Host {
         builder: &mut ModBuilder,
         name: &str,
         model: &[u8],
-        tint: Colour,
+        tint: Color,
         ring: bool,
     ) -> Result<()> {
         self.write_with(builder, name, model, &|rgba| paint::tint(rgba, tint), ring)

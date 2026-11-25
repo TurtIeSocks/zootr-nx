@@ -14,7 +14,7 @@ The default zootr-nx shuffle: the overworld's and dungeons' chests, NPC gifts an
 
 ## What does another world's item look like in this game?
 
-A check holding another game's item shows a stand-in model coloured by the item's Archipelago class: plum for progression, slate blue for useful, cyan for filler. Traps look like filler. Its get names the item and the player it goes to. Another Ocarina of Time (znx) player's item shows as that item.
+A check holding another game's item shows a stand-in model colored by the item's Archipelago class: plum for progression, slate blue for useful, cyan for filler. Traps look like filler. Its get names the item and the player it goes to. Another Ocarina of Time (znx) player's item shows as that item.
 
 ## What happens when the player receives an item?
 

@@ -1,6 +1,6 @@
 //! Our own copies of the game's actors: the prefix their names share, the
 //! files a copy is written from, the lines its get reads, and what it sets
-//! as it's found. Key colours, map copies, ammo, bags and the rest build on
+//! as it's found. Key colors, map copies, ammo, bags and the rest build on
 //! these.
 
 use anyhow::Result;

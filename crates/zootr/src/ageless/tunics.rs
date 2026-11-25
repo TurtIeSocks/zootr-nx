@@ -1,7 +1,7 @@
 //! Tunics for a child. The adult's Zora and Goron armor is a whole adult
 //! upper body, so a child wears copies of it instead, each named in the
 //! hook's [`zootr_hook::CHILD_ARMOR`]: his own cloth and vest in the
-//! tunic's colours, the rest of his model hidden, with the adult armor's
+//! tunic's colors, the rest of his model hidden, with the adult armor's
 //! effects. His Kokiri Tunic's copy is the adult's empty armor, which
 //! takes a worn tunic off. The hook puts them on him (`patch/gear.rs`).
 //! See `superpowers/specs/2026-11-23-child-gear-design.md`.
@@ -11,30 +11,30 @@ use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 use zootr_hook::{CHILD_ARMOR, CHILD_GEAR, child_armor};
 
 use super::files::{CLOTH, MODEL, VEST};
-use crate::colors::paint::{self, Band, Colour};
+use crate::colors::paint::{self, Band, Color};
 use crate::colors::{Colors, GREEN, marked, name as texture};
 use crate::copies::pointed_at;
 use crate::known::{Name, actor, field};
 use crate::standins::{Tables, actor_path, raw, write_clone};
 
-/// A tunic's colours on a child: his cloth's, and his vest's a shade
+/// A tunic's colors on a child: his cloth's, and his vest's a shade
 /// apart (the maintainer, 2026-11-24). Colors' tunic palettes write other
-/// values here ([`Colours::of`]).
-pub struct Colours {
-    pub cloth: Colour,
-    pub vest: Colour,
+/// values here ([`TunicColors::of`]).
+pub struct TunicColors {
+    pub cloth: Color,
+    pub vest: Color,
 }
 
 /// The vest's shade of the cloth, as the maintainer's own pair has it.
 const VEST_SHADE: u32 = 77;
 
-impl Colours {
-    /// A tunic's colours on a child: those of `palette` when `colors`
+impl TunicColors {
+    /// A tunic's colors on a child: those of `palette` when `colors`
     /// picks it, the vest a shade darker, else these.
-    fn of(&self, palette: &str, colors: &Colors) -> Result<Colours> {
+    fn of(&self, palette: &str, colors: &Colors) -> Result<TunicColors> {
         Ok(match crate::colors::first(colors, palette)? {
-            None => Colours { ..*self },
-            Some(cloth) => Colours {
+            None => TunicColors { ..*self },
+            Some(cloth) => TunicColors {
                 cloth,
                 vest: cloth.map(|c| (c as u32 * VEST_SHADE / 100) as u8),
             },
@@ -43,13 +43,13 @@ impl Colours {
 }
 
 /// Each tunic a child wears in his own cloth: the adult's armor, the
-/// letter that marks its texture copies, its colours, and the Colors
-/// palette that recolours it.
-pub const TUNICS: [(&Name, u8, Colours, &str); 2] = [
+/// letter that marks its texture copies, its colors, and the Colors
+/// palette that recolors it.
+pub const TUNICS: [(&Name, u8, TunicColors, &str); 2] = [
     (
         actor::ARMOR_ADULT_ZORA,
         b'Z',
-        Colours {
+        TunicColors {
             cloth: [36, 84, 168],
             vest: [28, 62, 132],
         },
@@ -58,7 +58,7 @@ pub const TUNICS: [(&Name, u8, Colours, &str); 2] = [
     (
         actor::ARMOR_ADULT_GORON,
         b'G',
-        Colours {
+        TunicColors {
             cloth: [168, 40, 32],
             vest: [128, 32, 26],
         },
@@ -68,7 +68,7 @@ pub const TUNICS: [(&Name, u8, Colours, &str); 2] = [
 
 /// The groups of his materials a tunic's armor hides on him: his cloth
 /// (his headband's among it) and his vest, which the armor draws in its
-/// colours instead.
+/// colors instead.
 pub const GROUPS: [(&Name, &[&Name]); 2] = [
     (
         field::G_ANGIN,
@@ -83,7 +83,7 @@ pub const GROUPS: [(&Name, &[&Name]); 2] = [
 ];
 
 /// Write the child armor of each of `worn`, the adult tunic armor, with its
-/// model, textures and rows in `tables`, in the colours `colors` picks,
+/// model, textures and rows in `tables`, in the colors `colors` picks,
 /// and his Kokiri Tunic's always: the hook makes it for him whenever the
 /// seed carries `CHILD_GEAR`.
 pub fn write(
@@ -94,14 +94,14 @@ pub fn write(
     colors: &Colors,
 ) -> Result<()> {
     let child = builder.read(MODEL)?;
-    for (adult, mark, colours, palette) in TUNICS.iter().filter(|(a, ..)| worn.contains(a)) {
-        let colours = colours.of(palette, colors)?;
+    for (adult, mark, tunic, palette) in TUNICS.iter().filter(|(a, ..)| worn.contains(a)) {
+        let tunic = tunic.of(palette, colors)?;
         let name = child_name(adult)?;
         let model = format!("Model/{name}.{}.bfres.zs", actor::PLAYER_CHILD);
         builder.add(&model, &cloth_only(&child, *mark)?, MODEL)?;
-        let cloth = CLOTH.iter().map(|path| (path, colours.cloth));
-        for (path, colour) in cloth.chain([(&VEST, colours.vest)]) {
-            let (to, data) = painted(&builder.read(path)?, path, *mark, colour)?;
+        let cloth = CLOTH.iter().map(|path| (path, tunic.cloth));
+        for (path, color) in cloth.chain([(&VEST, tunic.vest)]) {
+            let (to, data) = painted(&builder.read(path)?, path, *mark, color)?;
             builder.add(&to, &data, path)?;
         }
         let template = ActorPack::load(romfs, adult)?;
@@ -157,14 +157,14 @@ fn cloth_only(child: &[u8], mark: u8) -> Result<Vec<u8>> {
     Ok(model)
 }
 
-/// The texture `data`, at `path`, with its green moved to `colour`, as its
+/// The texture `data`, at `path`, with its green moved to `color`, as its
 /// copy marked `mark`: the copy's path and its file.
-fn painted(data: &[u8], path: &str, mark: u8, colour: Colour) -> Result<(String, Vec<u8>)> {
+fn painted(data: &[u8], path: &str, mark: u8, color: Color) -> Result<(String, Vec<u8>)> {
     let name = texture(path);
     let copy = marked(name, mark)?;
     let data = ounce_formats::rename(data, name, &copy)?;
     let mut top = ounce_formats::top_level(&data)?;
-    let to = paint::hsv(colour);
+    let to = paint::hsv(color);
     paint::shift(&mut top.rgba, &[Band { hues: GREEN, to }]);
     let drawn = ounce_formats::redraw(&data, &top.rgba, |_, _| false)?;
     Ok((format!("Tex/{copy}.bntx.zs"), drawn))
@@ -176,7 +176,7 @@ mod tests {
     use zootr_hook::{fnv, kokiri_worn};
 
     #[test]
-    fn a_child_tunic_takes_its_palettes_colour_and_keeps_the_vanilla_pair() {
+    fn a_child_tunic_takes_its_palettes_color_and_keeps_the_vanilla_pair() {
         let (_, _, zora, palette) = &TUNICS[0];
         let vanilla = zora.of(palette, &Colors::new()).unwrap();
         assert_eq!((vanilla.cloth, vanilla.vest), (zora.cloth, zora.vest));
@@ -233,22 +233,22 @@ mod tests {
     }
 
     #[test]
-    fn each_tunic_paints_his_cloth_and_vest_in_its_table_colours() {
+    fn each_tunic_paints_his_cloth_and_vest_in_its_table_colors() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let hue = |rgba: &[u8]| paint::mean(rgba, (0.0, 1.0)).unwrap().0;
-        for (_, mark, colours, _) in &TUNICS {
-            for (path, colour) in [(CLOTH[0], colours.cloth), (VEST, colours.vest)] {
+        for (_, mark, tunic, _) in &TUNICS {
+            for (path, color) in [(CLOTH[0], tunic.cloth), (VEST, tunic.vest)] {
                 let data = romfs.read(path).unwrap();
-                let (to, drawn) = painted(&data, path, *mark, colour).unwrap();
+                let (to, drawn) = painted(&data, path, *mark, color).unwrap();
                 assert!(to.contains(&marked(texture(path), *mark).unwrap()), "{to}");
                 let top = ounce_formats::top_level(&drawn).unwrap();
-                let (want, _, _) = paint::hsv(colour);
+                let (want, _, _) = paint::hsv(color);
                 let got = paint::mean(&top.rgba, (want - 0.05, want + 0.05));
-                assert!(got.is_some(), "{path} carries {colour:?}");
-                // Another colour in the table paints another texture.
-                let other = [colour[2], colour[1], colour[0]];
+                assert!(got.is_some(), "{path} carries {color:?}");
+                // Another color in the table paints another texture.
+                let other = [color[2], color[1], color[0]];
                 let (_, again) = painted(&data, path, *mark, other).unwrap();
                 let again = ounce_formats::top_level(&again).unwrap();
                 assert!((hue(&again.rgba) - hue(&top.rgba)).abs() > 0.05, "{path}");
