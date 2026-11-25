@@ -18,6 +18,7 @@ mod ammo;
 pub mod ap;
 pub mod around;
 mod arrivals;
+pub mod audio;
 mod blue_warps;
 mod bombchu_bags;
 mod bombchus;

@@ -117,6 +117,8 @@ pub struct NewGame {
     pub given_hints: Option<Vec<crate::hints::Hint>>,
     /// The colours the seed paints.
     pub colors: crate::colors::Colors,
+    /// The songs the seed plays.
+    pub audio: crate::audio::Audio,
 }
 
 impl NewGame {
@@ -269,6 +271,7 @@ impl NewGame {
             players: Default::default(),
             given_hints: None,
             colors: Default::default(),
+            audio: Default::default(),
         })
     }
 }
@@ -497,6 +500,7 @@ mod tests {
                 players: Default::default(),
                 given_hints: None,
                 colors: Default::default(),
+                audio: Default::default(),
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

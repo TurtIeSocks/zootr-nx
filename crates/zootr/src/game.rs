@@ -32,7 +32,7 @@ pub const POUCH_TABLE: &str = "UI/Pouch/PouchTable/PouchTable.game__ui__PouchTab
 /// models are made from, the pause menu's table, the effect file the
 /// ice traps' look fits to child Link, the animation archives items for
 /// both ages lends each Link, and the child's model boots for both ages
-/// names, and the textures Colors paints. Each once, though features share
+/// names, the textures Colors paints, and the music table. Each once, though features share
 /// some.
 pub fn files() -> impl Iterator<Item = &'static str> {
     let mut seen = std::collections::HashSet::new();
@@ -48,6 +48,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::ageless::files::FILES)
         .chain(crate::marks::FILES)
         .chain(crate::colors::files())
+        .chain([crate::audio::TABLE])
         .filter(move |f| seen.insert(*f))
 }
 
