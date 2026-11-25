@@ -11,7 +11,7 @@
 
 use core::sync::atomic::Ordering;
 
-use super::dev::{CHILD, POSITION, get_bool, idle, set_bool, single};
+use super::dev::{CHILD, POSITION, get_bool, idle, set_child, single};
 use super::{at, func, shared};
 use crate::traps::COMPONENTS;
 use crate::{Mailbox, Offsets, Outcome, Swap};
@@ -93,7 +93,7 @@ pub unsafe fn start(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> O
     }
     unsafe {
         pause(main, o.request_pause);
-        set_bool(main, o, gd, CHILD, !child);
+        set_child(main, o, gd, !child);
     }
     None
 }
@@ -193,7 +193,7 @@ unsafe fn give_up(main: usize, o: &Offsets, s: &Swap) {
     }
     let back = s.child ^ 1;
     if let Some(gd) = unsafe { single(main, o.gamedata) } {
-        unsafe { set_bool(main, o, gd, CHILD, back == 1) };
+        unsafe { set_child(main, o, gd, back == 1) };
     }
     shared(main).swap.with(|w| {
         (w.stage, w.frames, w.child, w.failed) = (CREATE, 0, back, 1);
