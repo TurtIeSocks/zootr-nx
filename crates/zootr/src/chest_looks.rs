@@ -464,6 +464,7 @@ mod tests {
 
     #[test]
     fn a_copy_names_its_host_back() {
+        needs_names!();
         for (h, _) in HOSTS {
             for look in Look::all() {
                 let copy = copy(h, look).unwrap();
@@ -477,6 +478,7 @@ mod tests {
 
     #[test]
     fn a_copy_reads_its_host_s_size() {
+        needs_names!();
         let big = copy(actor::OBJ_T_BOX_A_02_NO_BAKE, Look::Gold).unwrap();
         assert!(checks::is_big(&big));
         let small = copy(actor::OBJ_T_BOX_A_01, Look::Skull).unwrap();
@@ -498,6 +500,7 @@ mod tests {
 
     #[test]
     fn each_class_of_item_takes_its_look() {
+        needs_names!();
         let seed = seed();
         let look = |item: &str| of(&seed, item, FOREST);
         assert_eq!(look(item::HOOKSHOT), Some(Look::Gold));
@@ -523,6 +526,7 @@ mod tests {
 
     #[test]
     fn a_trap_or_another_player_s_item_looks_like_what_it_passes_for() {
+        needs_names!();
         let seed = seed();
         let look = |item: &str| of(&seed, item, FOREST);
         let hook = format!("FakeTrap_{}", item::HOOKSHOT.get());
@@ -583,6 +587,7 @@ mod tests {
 
     #[test]
     fn every_key_colour_stands_apart_from_gold_and_each_other() {
+        needs_names!();
         // Prelude of Light's yellow, once the Training Ground's, was 24
         // from gold: too near to tell a key chest from a major one.
         const APART: f32 = 30.0;
@@ -643,6 +648,7 @@ mod tests {
 
     #[test]
     fn a_chest_takes_its_look_only_with_looks_on() {
+        needs_names!();
         let chest = |gyaml: &Name| {
             let dynamic = Byml::from_iter([(DROP_ACTOR.get(), item::HOOKSHOT.to_string().into())]);
             Byml::from_iter([(GYAML, gyaml.to_string().into()), (DYNAMIC, dynamic)])
