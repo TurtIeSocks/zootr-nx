@@ -587,10 +587,11 @@ pub const PALETTES: &[Palette] = &[
         vanilla: &[[170, 89, 255], [255, 203, 89]],
         names: &["Purple", "Gold"],
         writes: &[
-            vfx(RUPEE_PURPLE_FX, SPARKLE, [3.0, 0.75, 7.5]),
-            vfx(RUPEE_PURPLE_FX, SPARKLE_SHADE, [0.11, 0.055, 0.165]),
-            // The Gold Rupee's shade is the Purple's, so it stays.
-            vfx(RUPEE_GOLD_FX, SPARKLE, [5.0, 3.0, 0.5]).at(1),
+            vfx(STATIC_FX, SPARKLE, [3.0, 0.75, 7.5]),
+            // The Gold Rupee's sparkle has the Purple's shade too, so it
+            // follows the Purple's.
+            vfx(STATIC_FX, SPARKLE_SHADE, [0.11, 0.055, 0.165]),
+            vfx(STATIC_FX, SPARKLE, [5.0, 3.0, 0.5]).at(1),
         ],
     },
 ];

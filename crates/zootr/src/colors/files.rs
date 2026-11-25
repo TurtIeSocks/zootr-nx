@@ -190,5 +190,9 @@ macro_rules! effect {
     };
 }
 
-pub const RUPEE_PURPLE_FX: &str = effect!("Obj_Rupee_Purple");
-pub const RUPEE_GOLD_FX: &str = effect!("Obj_Rupee_Gold");
+/// The effects the game loads at boot. Its index (`EffectFileInfo`)
+/// lists every bundle it loads by name besides; a bundle it doesn't list
+/// (the Purple and Gold Rupees' own) is a stale copy of esets in here.
+pub const STATIC_FX: &str = effect!("static");
+/// The index of the bundles the game loads.
+pub const EFFECT_INDEX: &str = "Effect/EffectFileInfo.Product.110.Nin_Ounce_NVN2.byml.zs";

@@ -101,6 +101,20 @@ const GREY: f32 = 0.02;
 /// angle, its chroma and lightness scaled by the same ratios. A grey
 /// `from` has no hue or chroma to scale from: `other` takes `to`'s.
 pub fn follow(to: Colour, from: Colour, other: Colour) -> Colour {
+    moved(to, from, other, true)
+}
+
+/// As `follow`, with `other` keeping its lightness, and `from` itself
+/// moving to `to` exactly: for an effect, whose brightness is its own,
+/// where a lighter pick would only wash a follower out to white.
+pub fn follow_hue(to: Colour, from: Colour, other: Colour) -> Colour {
+    match other == from {
+        true => to,
+        false => moved(to, from, other, false),
+    }
+}
+
+fn moved(to: Colour, from: Colour, other: Colour, lightness: bool) -> Colour {
     if to == from {
         return other;
     }
@@ -111,7 +125,10 @@ pub fn follow(to: Colour, from: Colour, other: Colour) -> Colour {
         false => (other.c * ratio(to.c, from.c), other.h + to.h - from.h),
     };
     colour(Lch {
-        l: other.l * ratio(to.l, from.l),
+        l: match lightness {
+            true => other.l * ratio(to.l, from.l),
+            false => other.l,
+        },
         c,
         h: h.rem_euclid(1.0),
     })
@@ -123,6 +140,17 @@ mod tests {
 
     fn near(a: Colour, b: Colour, by: u8) -> bool {
         a.iter().zip(b).all(|(x, y)| x.abs_diff(y) <= by)
+    }
+
+    /// A light pick turns a lighter follower green, not white, when only
+    /// its hue follows.
+    #[test]
+    fn an_effect_follower_keeps_its_lightness() {
+        let (from, other, to) = ([170, 89, 255], [213, 156, 255], [32, 255, 64]);
+        assert_eq!(follow(to, from, other), [255, 255, 255]);
+        let got = follow_hue(to, from, other);
+        assert!(got[1] > got[0] + 60 && got[1] > got[2] + 60, "{got:?}");
+        assert_eq!(follow_hue(to, from, from), to);
     }
 
     #[test]

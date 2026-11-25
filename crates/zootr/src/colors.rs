@@ -39,9 +39,9 @@ pub fn first(colors: &Colors, id: &str) -> Result<Option<Colour>> {
 }
 
 /// The files Colors reads, which the dump's cache extracts besides its
-/// folders.
+/// folders: the effect index too, which its tests check bundles against.
 pub fn files() -> impl Iterator<Item = &'static str> {
-    PALETTES.iter().flat_map(|p| p.writes).flat_map(|w| {
+    let writes = PALETTES.iter().flat_map(|p| p.writes).flat_map(|w| {
         let params: &[&str] = match &w.kind {
             Kind::Param { models, .. } => models,
             Kind::Vfx { bundle, .. } => std::slice::from_ref(bundle),
@@ -56,7 +56,8 @@ pub fn files() -> impl Iterator<Item = &'static str> {
             [t.path].into_iter().chain(t.metal).chain(copies)
         });
         texture.chain(params.iter().copied())
-    })
+    });
+    writes.chain([files::EFFECT_INDEX])
 }
 
 /// The spoiler's section: each palette a seed changed and its colours.
@@ -85,14 +86,20 @@ struct Job<'a> {
 /// The writes `picked` makes in `palette`, each with its goal.
 fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
     let slots = picked.slots(palette)?;
-    let job = |write| Job {
-        palette: palette.id,
-        write,
-        goal: oklch::follow(
-            slots[write.slot],
-            palette.vanilla[write.slot],
-            write.vanilla(),
-        ),
+    let job = |write: &'a Write| {
+        let follow = match write.kind {
+            Kind::Vfx { .. } => oklch::follow_hue,
+            _ => oklch::follow,
+        };
+        Job {
+            palette: palette.id,
+            write,
+            goal: follow(
+                slots[write.slot],
+                palette.vanilla[write.slot],
+                write.vanilla(),
+            ),
+        }
     };
     Ok(palette.writes.iter().map(job).collect())
 }
@@ -635,6 +642,33 @@ mod tests {
             }
         }
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    /// Every effect write paints a bundle the game loads: `static`, or one
+    /// its index lists. A bundle it doesn't list is a stale copy, and a
+    /// write there never shows.
+    #[test]
+    fn every_effect_bundle_is_loaded() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let index = romfs.read(files::EFFECT_INDEX).unwrap();
+        let index = ounce_formats::Byml::from_binary(&index).unwrap();
+        let listed = index.as_map().unwrap()["BinaryDict"].as_map().unwrap();
+        for palette in PALETTES {
+            for w in palette.writes {
+                let Kind::Vfx { bundle, .. } = w.kind else {
+                    continue;
+                };
+                let owner = bundle.strip_prefix("Effect/").unwrap();
+                let owner = owner.split('.').next().unwrap();
+                assert!(
+                    bundle == files::STATIC_FX || listed.contains_key(owner),
+                    "{} paints {bundle}, which the game never loads",
+                    palette.id
+                );
+            }
+        }
     }
 
     /// Every write finds its part in the dump as recorded, and every
