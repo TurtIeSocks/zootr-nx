@@ -9,10 +9,9 @@ use zootr_hook::Spot;
 use super::{BOSS_COPIES, Parts};
 use crate::checks::{self, Drop, Watched};
 use crate::events::Flows;
-use crate::settings::ChestSize;
 use crate::{
-    adult_jabu, carpenters, enemies, entrances, fortress, gifts, goron_pot, jabu_mood, key_tints,
-    picked, pickups, scrubs, shops, twins,
+    adult_jabu, carpenters, chest_size, enemies, entrances, fortress, gifts, goron_pot, jabu_mood,
+    key_tints, picked, pickups, scrubs, shops, twins,
 };
 
 /// The map pass's inputs, worked out once, and what it gathers map by map.
@@ -155,9 +154,10 @@ impl<'p, 'a> Banc<'p, 'a> {
                 .or_insert_with(|| all.shows_off(e))
         };
         changed.extend(checks::set_drops(root, &self.chest_drops, shows_off)?);
-        let shrunk = new_game.chest_size == ChestSize::Small && checks::shrink_chests(root)? > 0;
+        let resize = |size, drop: &str| chest_size::resized(new_game, size, drop);
+        let resized = checks::resize_chests(root, resize)? > 0;
         let tinted = key_tints::swap(&rel, root, BOSS_COPIES)? > 0;
-        // After shrinking: a shrunk chest runs the small chest's flow.
+        // After resizing: a resized chest runs its new size's flow.
         let levels = &parts.reads.levels;
         let levelled = levels.name(romfs, root, &mut self.chest_events)? > 0;
         let bridged = carpenters::banc(&rel, root)?;
@@ -172,7 +172,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             || stepped
             || grouped
             || shelved
-            || shrunk
+            || resized
             || tinted
             || levelled
             || doors

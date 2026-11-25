@@ -10,6 +10,13 @@ pub enum ChestSize {
     Vanilla,
     /// Every big chest becomes a small one
     Small,
+    /// Big for an item the seed needs, the boss key chest for a boss key,
+    /// small otherwise
+    Matches,
+    /// Every small chest becomes a big one: for the sweep that checks each
+    /// spot fits a big chest. Not offered as a setting
+    #[value(hide = true)]
+    Big,
 }
 
 impl ChestSize {
@@ -17,6 +24,8 @@ impl ChestSize {
         match self {
             Self::Vanilla => "Vanilla",
             Self::Small => "All small",
+            Self::Matches => "Matches contents",
+            Self::Big => "All big",
         }
     }
 }

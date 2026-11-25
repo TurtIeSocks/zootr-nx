@@ -71,4 +71,4 @@ guess = true
 hash = 12161709650443144121
 name = "Dodongo's Cavern Upper Bomb Bag Chest"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"

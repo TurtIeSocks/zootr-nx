@@ -32,6 +32,8 @@ pub fn check_room(slot_data: &serde_json::Value, version: &str) -> Result<()> {
 
 /// AP's class for a trap.
 const TRAP: &str = "trap";
+/// AP's class for an item a game needs to finish.
+const PROGRESSION: &str = "progression";
 
 /// Another slot's check as a stone names it: `<location> (<player>)`,
 /// without control characters. A long one runs onto the stone's next page.
@@ -238,7 +240,7 @@ impl ApSeed {
         let theirs = |id| by_id(&ours, id);
 
         let mut fixed = Fixed::new();
-        type Copy = (String, Option<String>, String, String);
+        type Copy = (String, Option<String>, String, String, bool);
         let mut copies: BTreeMap<Copy, String> = BTreeMap::new();
         for (&hash, placed) in &self.placements {
             let item = match placed {
@@ -252,7 +254,14 @@ impl ApSeed {
                             Some(foreign::class_model(&f.class)),
                         ),
                     };
-                    let key = (shows, model, f.item.clone(), f.player_name.clone());
+                    let progression = f.class == PROGRESSION;
+                    let key = (
+                        shows,
+                        model,
+                        f.item.clone(),
+                        f.player_name.clone(),
+                        progression,
+                    );
                     let next = foreign::actor(copies.len() + 1);
                     copies.entry(key).or_insert(next).clone()
                 }
@@ -261,12 +270,18 @@ impl ApSeed {
         }
         let mut foreign: Vec<Foreign> = copies
             .into_iter()
-            .map(|((shows, model, item, player), actor)| Foreign {
-                actor,
-                shows,
-                model,
-                owner: Owner::Player { item, player },
-            })
+            .map(
+                |((shows, model, item, player, progression), actor)| Foreign {
+                    actor,
+                    shows,
+                    model,
+                    owner: Owner::Player {
+                        item,
+                        player,
+                        progression,
+                    },
+                },
+            )
             .collect();
         if dealt.new_game.ice_traps != IceTraps::Off {
             foreign.push(ice_traps::received(romfs)?);

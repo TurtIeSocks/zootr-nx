@@ -104,6 +104,11 @@ pub enum Kind {
     Choice {
         default: String,
         options: Vec<Choice>,
+        /// Ids the command line takes beside `options`, offered nowhere
+        /// else: a test's pick, like every chest big for the sweep.
+        #[serde(skip)]
+        #[cfg_attr(feature = "specta", specta(skip))]
+        hidden: Vec<String>,
     },
     /// What a new game starts holding, the save editor's grid: a
     /// [`starting::Start`].
@@ -141,9 +146,11 @@ fn choice<T: ValueEnum + Copy + Default>(
     description: &'static str,
     labels: fn(T) -> &'static str,
 ) -> SettingDef {
-    let options = T::value_variants()
-        .iter()
-        .map(|&v| Choice {
+    let hidden = |v: &T| v.to_possible_value().is_some_and(|p| p.is_hide_set());
+    let (hidden, offered): (Vec<T>, Vec<T>) = T::value_variants().iter().partition(|v| hidden(v));
+    let options = offered
+        .into_iter()
+        .map(|v| Choice {
             id: choice_id(v),
             label: labels(v),
             forces: Vec::new(),
@@ -155,6 +162,7 @@ fn choice<T: ValueEnum + Copy + Default>(
         kind: Kind::Choice {
             default: choice_id(T::default()),
             options,
+            hidden: hidden.into_iter().map(choice_id).collect(),
         },
         ..toggle(id, place, label, description)
     }
@@ -178,7 +186,9 @@ pub(crate) fn forced(
     settings: &Settings,
 ) -> (Vec<&'static str>, Vec<&'static str>) {
     let picks = schema.iter().filter_map(|d| match &d.kind {
-        Kind::Choice { default, options } => {
+        Kind::Choice {
+            default, options, ..
+        } => {
             let id = settings
                 .get(&d.id)
                 .and_then(Value::as_str)

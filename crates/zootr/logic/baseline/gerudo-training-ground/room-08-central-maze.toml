@@ -42,7 +42,7 @@ why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
 hash = 1941083939696166170
 name = "Gerudo Training Ground Ice Arrows Chest"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"
 
 [[check]]
 hash = 4320448574091221496

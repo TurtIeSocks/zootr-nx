@@ -117,7 +117,7 @@ guess = true
 hash = 14911602953212243797
 name = "Bottom of the Well Compass Chest"
 needs = "lens"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); Well Glass Truth A 09 1671068508445022978 in front: lens"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); Well Glass Truth A 09 1671068508445022978 in front: lens"
 guess = true
 
 [[check]]

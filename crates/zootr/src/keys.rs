@@ -239,6 +239,20 @@ pub fn is_dungeon_key(item: &str) -> bool {
     item == SMALL || item == BOSS
 }
 
+/// Whether `item` is a boss key, a dungeon's copy of one included.
+pub fn is_boss(item: &str) -> bool {
+    item == BOSS || (1..=DUNGEONS.len()).any(|n| key_tints::boss(n) == item)
+}
+
+/// Whether `item` is a small key of any kind: a dungeon's, the Gerudo
+/// Fortress's, or a key ring or key copy.
+pub fn is_small(item: &str) -> bool {
+    item == SMALL
+        || item.starts_with(FORTRESS_KEY)
+        || item == key_tints::fortress()
+        || (1..=DUNGEONS.len()).any(|n| key_tints::ring(n) == item)
+}
+
 /// Whether `item` is any key a new game can start with.
 pub fn is_key(item: &str) -> bool {
     is_dungeon_key(item) || item.starts_with(FORTRESS_KEY)

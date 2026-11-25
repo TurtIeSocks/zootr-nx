@@ -193,8 +193,8 @@ fn graph_bytes(romfs: &Romfs, path: &str) -> Result<Vec<u8>> {
 /// Each spot of the widest sweep mix: hash, area, trigger or skip reason,
 /// name.
 pub(super) fn pool(romfs: &Romfs, seed: u64, untracked: bool) -> Result<()> {
-    use crate::sweep::night::{self, MIXES, mix};
-    let (_, settings) = mix(MIXES.len() - 1);
+    use crate::sweep::night::{self, mix, pinned};
+    let (_, settings) = mix(pinned("everything")?);
     let pool = super::plan::round(romfs, seed, &settings)?;
     if untracked {
         let spots: Vec<_> = pool.iter().map(|p| p.spot.clone()).collect();

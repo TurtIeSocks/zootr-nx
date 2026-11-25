@@ -30,4 +30,4 @@ why = "3.9 m from its room's floor, in each one's range"
 hash = 13542013937093159888
 name = "Ice Cavern Compass Chest"
 needs = "always"
-why = "0.3 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "0.3 m from its room's floor, within a small chest's reach (1.25 m)"

@@ -107,6 +107,10 @@ pub struct NewGame {
     pub progress: Vec<(String, String)>,
     /// Ints the seed adds, at 0 and kept in the save.
     pub ints: Vec<String>,
+    /// The items a chest grows for when its size matches its contents:
+    /// what logic needs, or with no logic what isn't junk. Set once the
+    /// items are placed (`ice_traps::wanted`).
+    pub major: BTreeSet<String>,
     /// The copies standing in for other players' items, in an AP seed.
     pub foreign: Vec<crate::foreign::Foreign>,
     /// Every slot's name by number, in an AP seed, for received items'
@@ -265,6 +269,7 @@ impl NewGame {
             spawn: None,
             fields: presets::fields(&picked)?,
             ints: vec![],
+            major: BTreeSet::new(),
             foreign: vec![],
             players: Default::default(),
             given_hints: None,
@@ -324,7 +329,9 @@ pub(crate) fn toggles_on(settings: &Settings) -> BTreeSet<String> {
     let values = (schema.iter()).filter_map(|d| {
         let value = match &d.kind {
             Kind::Toggle { .. } => [OFF, ON][usize::from(is_on(&schema, settings, &d.id))],
-            Kind::Choice { default, options } => (settings.get(&d.id))
+            Kind::Choice {
+                default, options, ..
+            } => (settings.get(&d.id))
                 .and_then(Value::as_str)
                 .filter(|v| options.iter().any(|o| o.id == *v))
                 .unwrap_or(default),
@@ -493,6 +500,7 @@ mod tests {
                 give: vec![],
                 progress: vec![],
                 ints: vec![],
+                major: BTreeSet::new(),
                 foreign: vec![],
                 players: Default::default(),
                 given_hints: None,
@@ -591,14 +599,18 @@ mod tests {
             NewGame::from_settings(&settings, &[]).unwrap().chest_size
         };
         assert_eq!(size("small"), ChestSize::Small);
+        assert_eq!(size("matches"), ChestSize::Matches);
         assert_eq!(size("huge"), ChestSize::Vanilla);
         let def = schema().into_iter().find(|d| d.id == CHEST_SIZE).unwrap();
-        let Kind::Choice { default, options } = def.kind else {
+        let Kind::Choice {
+            default, options, ..
+        } = def.kind
+        else {
             panic!()
         };
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["vanilla", "small"]);
+        assert_eq!(ids, ["vanilla", "small", "matches"]);
     }
 
     #[test]
@@ -629,7 +641,10 @@ mod tests {
         vanilla.insert(SHUFFLE_ITEMS.into(), false.into());
         assert!(NewGame::from_settings(&vanilla, &[]).is_err());
         let def = schema().into_iter().find(|d| d.id == KEYS).unwrap();
-        let Kind::Choice { default, options } = def.kind else {
+        let Kind::Choice {
+            default, options, ..
+        } = def.kind
+        else {
             panic!()
         };
         assert_eq!(default, "vanilla");
