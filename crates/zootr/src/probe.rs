@@ -113,6 +113,9 @@ pub enum Probe {
         /// Also write each hit here, decompressed, under its romfs path.
         #[arg(long)]
         out: Option<PathBuf>,
+        /// Print each BWAV stream's length in seconds, and `loop` if it loops.
+        #[arg(long)]
+        length: bool,
     },
     /// A shape's Havok mesh by its name, like
     /// `<piece>__Airwall`: vertex and triangle counts and its
@@ -502,7 +505,11 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             settings();
             Ok(())
         }
-        Probe::Files { pattern, out } => files(romfs, game, &pattern, out.as_deref()),
+        Probe::Files {
+            pattern,
+            out,
+            length,
+        } => files(romfs, game, &pattern, out.as_deref(), length),
         Probe::Mesh { name } => {
             let mesh = crate::nav::mesh::mesh(romfs, game, &name)?
                 .with_context(|| format!("the dump has no mesh {name}"))?;

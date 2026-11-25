@@ -73,6 +73,8 @@ test("Shuffle All keeps track overrides; Reset All clears everything", () => {
       event: "shuffle",
       fanfare: "shuffle",
       ocarina: "shuffle",
+      "voice-adult": "shuffle",
+      "voice-child": "shuffle",
     },
     tracks: { market: "vanilla" },
   });

@@ -924,6 +924,10 @@ export type Pool =
 "fanfare" | 
 /**  The songs Link plays and the ones he's taught. */
 "ocarina" | 
+/**  Adult Link's voice: his yells, grunts and breaths, by cue. */
+"voice-adult" | 
+/**  Child Link's voice. */
+"voice-child" | 
 /**  The silences: never shuffled. */
 "fixed";
 

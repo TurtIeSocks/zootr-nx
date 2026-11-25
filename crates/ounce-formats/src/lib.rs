@@ -15,6 +15,7 @@
 
 pub mod ainb;
 pub mod asb;
+pub mod bars;
 mod bfres;
 mod blocks;
 mod bntx;

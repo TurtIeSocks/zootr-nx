@@ -8,7 +8,8 @@ use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{
-    Byml, BymlDoc, ModBuilder, XlinkCall, xlink_call_table, xlink_calls, xlink_copy_call,
+    Byml, BymlDoc, ModBuilder, XlinkCall, xlink_asset_names, xlink_call_table, xlink_calls,
+    xlink_copy_call,
 };
 
 use super::{Audio, HELD, TABLE, Track, Via, track};
@@ -43,7 +44,19 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
             }
             (Via::Call(to), Via::Call(from)) if to == from => {
                 // Read now, written once every song is read, so two can trade.
-                repoints.push((to, slot.graph, asset(&slink, from, donor.graph)?.param));
+                repoints.push((
+                    to,
+                    slot.graph.to_string(),
+                    asset(&slink, from, donor.graph)?.param,
+                ));
+            }
+            (Via::Cue(to), Via::Cue(from)) if to == from => {
+                let params: Vec<_> = (variants(&slink, from, donor.graph)?.into_iter())
+                    .map(|(_, call)| call.param)
+                    .collect();
+                for (i, (name, _)) in variants(&slink, to, slot.graph)?.into_iter().enumerate() {
+                    repoints.push((to, name, params[i % params.len()]));
+                }
             }
             _ => bail!(
                 "{} can't play {}: a call trades only within its user",
@@ -53,7 +66,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
         }
     }
     for (user, name, param) in repoints {
-        let at = asset(&slink, user, name)?.param_at();
+        let at = asset(&slink, user, &name)?.param_at();
         slink[at..at + 4].copy_from_slice(&param.to_le_bytes());
     }
     builder.write(SOUNDS, &slink)?;
@@ -79,6 +92,38 @@ fn give(slink: Vec<u8>, graph: &mut Byml, slot: &Track, from: &str, song: &str) 
         true => Ok(slink),
         false => xlink_copy_call(&slink, from, song, &to, song),
     }
+}
+
+/// The voice calls of `user` in the cue `stem`: `stem` and a number, or
+/// numbers (`_01`, `00`, `_03_02`), maybe an `_alt` take, in their order.
+pub(super) fn variants(slink: &[u8], user: &str, stem: &str) -> Result<Vec<(String, XlinkCall)>> {
+    let names = xlink_calls(slink, user)?;
+    let mut found = vec![];
+    for (name, call) in names.into_iter().zip(xlink_call_table(slink, user)?) {
+        if !call.container
+            && is_variant(name, stem)
+            && xlink_asset_names(slink, call.param)?.contains(&(2, VOICE))
+        {
+            found.push((name.to_string(), call));
+        }
+    }
+    ensure!(!found.is_empty(), "{user} has no voice calls {stem}");
+    Ok(found)
+}
+
+/// The category of Link's voice calls.
+pub(super) const VOICE: &str = "PlayerVoice";
+
+fn is_variant(name: &str, stem: &str) -> bool {
+    let Some(rest) = name.strip_prefix(stem) else {
+        return false;
+    };
+    let rest = rest.strip_suffix("_alt").unwrap_or(rest);
+    let rest = rest.strip_prefix('_').unwrap_or(rest);
+    !rest.is_empty()
+        && rest
+            .split('_')
+            .all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
 }
 
 /// `user`'s call `name`, which must play an asset of its own.
@@ -196,6 +241,36 @@ mod tests {
         }
     }
 
+    /// A cue's variants take the donor's in turn: child Link's five light
+    /// swings get his three deaths, the fourth starting them over.
+    #[test]
+    fn a_cue_takes_its_donors_variants_in_turn() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-voice-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let audio = Audio::from([("child-sword-light".into(), "child-death".into())]);
+        write(&mut builder, &audio).unwrap();
+        builder.finish().unwrap();
+        let built = crate::game::read_built(&romfs, &dir, SOUNDS);
+        std::fs::remove_dir_all(dir).unwrap();
+        let params = |file: &[u8], id: &str| -> Vec<u32> {
+            let t = track(id).unwrap();
+            let Via::Cue(user) = t.via else {
+                unreachable!()
+            };
+            let found = variants(file, user, t.graph).unwrap();
+            found.into_iter().map(|(_, call)| call.param).collect()
+        };
+        let deaths = params(&romfs.read(SOUNDS).unwrap(), "child-death");
+        let swings = params(&built, "child-sword-light");
+        assert_eq!((swings.len(), deaths.len()), (5, 3));
+        for (i, param) in swings.iter().enumerate() {
+            assert_eq!(*param, deaths[i % 3], "variant {i}");
+        }
+    }
+
     /// A call never trades across users, either way.
     #[test]
     fn a_call_stays_in_its_user() {
@@ -210,6 +285,7 @@ mod tests {
         };
         assert!(refused("drugstore", "played-eponas-song"));
         assert!(refused("played-eponas-song", "drugstore"));
+        assert!(refused("child-sword-light", "adult-death"));
         std::fs::remove_dir_all(dir).ok();
     }
 }
