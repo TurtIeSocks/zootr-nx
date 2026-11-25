@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { message } from "@/lib/api";
+import { schemeUrl } from "@/lib/platform";
 
 /** The backend's decode of track `id`'s song. */
-const songUrl = (id: string) => `zootr-audio://localhost/${id}.wav`;
+const songUrl = (id: string) => schemeUrl("zootr-audio", `${id}.wav`);
 
 /** Plays one song at a time: `toggle` starts a track's song, or stops it
  * when it's the one playing. The first play of a song waits on its decode. */

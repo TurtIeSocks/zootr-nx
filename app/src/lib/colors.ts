@@ -1,5 +1,6 @@
 import type { PaletteView, Pick, Picked } from "@/bindings";
 import type { FullConfig } from "@/lib/config";
+import { schemeUrl } from "@/lib/platform";
 import { type Change, without } from "@/lib/saved-sets";
 
 /** The picker's preset swatches: plain colours with names, not a mode. */
@@ -99,5 +100,5 @@ export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
     for (const s of picked.split ?? []) query.append("s", digits(s));
   }
   if (changes) query.set("v", "changes");
-  return `zootr-colors://localhost/${id}.png?${query}`;
+  return schemeUrl("zootr-colors", `${id}.png?${query}`);
 }
