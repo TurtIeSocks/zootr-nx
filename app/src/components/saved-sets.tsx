@@ -70,7 +70,7 @@ export function SavedSets({ kind, id, words }: SavedSetsProps) {
   const names = Object.keys(saved).sort();
   const typed = name.trim();
   const kept = saved[typed];
-  const size = Object.keys(draft).length;
+  const size = sets.size(draft);
   const open = (picked: string) => {
     setAsking(null);
     setName(picked);

@@ -94,10 +94,12 @@ export const commands = {
 	 */
 	colorsFollow: (id: string, hex: string) => typedError<string[], string>(__TAURI_INVOKE("colors_follow", { id, hex })),
 	/**
-	 *  Reinstall the installed seed in the Colors draft's colours: the same
-	 *  shuffle, painted again. Its history entry keeps the new colours.
+	 *  Reinstall the installed seed in the Colors and Audio drafts: the same
+	 *  shuffle, painted and scored again. Its history entry keeps them.
 	 */
-	applyColors: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_colors", { steps })),
+	applyCosmetics: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_cosmetics", { steps })),
+	/**  Every track a seed can change: the fixed pool is left out. */
+	audioCatalog: () => __TAURI_INVOKE<TrackView[]>("audio_catalog"),
 	/**  Every slot holding a save, newest first. */
 	saveSlots: () => typedError<SlotRow[], string>(__TAURI_INVOKE("save_slots")),
 	savePresets: () => __TAURI_INVOKE<SavePreset[]>("save_presets"),
@@ -111,8 +113,11 @@ export const commands = {
 	 *  words each setting in `given` gives shown held and locked.
 	 */
 	startItems: (start: StartInventory, given: string[][], settings: { [key in string]: Value }) => typedError<ItemsView, string>(__TAURI_INVOKE("start_items", { start, given, settings })),
-	/**  `start` holding all of Link's gear too (`--start arsenal`). */
-	startArsenal: (start: StartInventory) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start })),
+	/**
+	 *  `start` holding all of Link's gear too (`--start arsenal`), less what
+	 *  `settings` keep out.
+	 */
+	startArsenal: (start: StartInventory, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_arsenal", { start, settings })),
 	/**  `start` after a click on a grid cell, as a seed with `settings` deals it. */
 	startClick: (start: StartInventory, at: number, intent: Intent, settings: { [key in string]: Value }) => typedError<StartInventory, string>(__TAURI_INVOKE("start_click", { start, at, intent, settings })),
 	/**
@@ -756,6 +761,11 @@ export type ItemsView = {
 	 *  the Save page.
 	 */
 	locked: (number | null)[],
+	/**
+	 *  Why each cell the settings keep out is locked, for the `locked`
+	 *  indexes past the givers. Empty on the Save page.
+	 */
+	bars: string[],
 };
 
 export type Kind = { type: "toggle"; default: boolean } | 
@@ -912,6 +922,8 @@ export type Pool =
 "event" | 
 /**  Gets, the medallion and stone, game over, riddles, sleep. */
 "fanfare" | 
+/**  The songs Link plays and the ones he's taught. */
+"ocarina" | 
 /**  The silences: never shuffled. */
 "fixed";
 
@@ -1354,6 +1366,25 @@ export type TestSetup = {
 	goals?: string[],
 	/**  What a flag can't show, like the item a check should give. */
 	expect?: string,
+};
+
+/**  One track as the pane lists it. */
+export type TrackView = {
+	id: string,
+	label: string,
+	pool: Pool,
+	/**  Its length band in its pool: 0 for a loop or a pool without bands. */
+	band: number,
+	/**  The band in words: `<5s`, `5-12s`, `loop`, or `-` without bands. */
+	band_label: string,
+	/**  The song's length in milliseconds. */
+	ms: number,
+	looping: boolean,
+	/**
+	 *  Whether it gives a song another track can play. Without one, its
+	 *  music is in sections: it only receives.
+	 */
+	song: boolean,
 };
 
 /**  How the grid looks, in the tab and the pop out. */

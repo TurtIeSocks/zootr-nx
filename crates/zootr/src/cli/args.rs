@@ -650,6 +650,9 @@ pub(super) enum AudioCommand {
         #[arg(long)]
         pool: Option<crate::audio::Pool>,
     },
+    /// Write a song as a stereo WAV: a track's id (its song) or a
+    /// stream's name.
+    Play { song: String, out: PathBuf },
 }
 
 #[derive(Subcommand)]

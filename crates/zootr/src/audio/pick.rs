@@ -193,7 +193,13 @@ mod tests {
     use super::*;
 
     fn all(mode: PoolMode) -> Draft {
-        let pools = [Pool::Area, Pool::Battle, Pool::Event, Pool::Fanfare];
+        let pools = [
+            Pool::Area,
+            Pool::Battle,
+            Pool::Event,
+            Pool::Fanfare,
+            Pool::Ocarina,
+        ];
         Draft {
             pools: pools.into_iter().map(|p| (p, mode)).collect(),
             tracks: BTreeMap::new(),

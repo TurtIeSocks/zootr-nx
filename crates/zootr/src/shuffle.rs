@@ -1,6 +1,6 @@
 //! The pool and the random deal. `fill.rs` deals with logic instead.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::{Context, Result, bail};
 
@@ -13,7 +13,7 @@ use crate::rng::Rng;
 use crate::settings::{MET_ZELDA, NewGame};
 use crate::starter_bags;
 use crate::starting;
-use crate::{ammo, cows, gifts, presets};
+use crate::{ammo, bottles, cows, gifts, presets};
 
 /// One shuffled chest, for the spoiler log.
 #[derive(Clone, Copy)]
@@ -68,29 +68,6 @@ impl<'a> Pool<'a> {
         if let Some(at) = at.or(self.items.len().checked_sub(1)) {
             self.items.swap_remove(at);
             self.from.swap_remove(at);
-        }
-    }
-}
-
-/// The most bottles the pouch holds.
-const BOTTLES: usize = 5;
-
-/// Whether `item` is a bottle, empty or filled.
-fn is_bottle(item: &str) -> bool {
-    item.starts_with(&**item::BOTTLE)
-}
-
-/// Keep at most `BOTTLES` less the other bottles of `items` and `placed`
-/// milks in `items`, a plando milk counting as one of the others. Each
-/// cow whose milk goes gives its Red Rupee instead.
-fn cap_bottles<'a>(items: &mut [&'a str], placed: impl Iterator<Item = &'a str>) {
-    let loose = items.iter().copied().filter(|&i| i != cows::VANILLA);
-    let others = placed.chain(loose).filter(|i| is_bottle(i)).count();
-    let mut room = BOTTLES.saturating_sub(others);
-    for item in items.iter_mut().filter(|i| **i == cows::VANILLA) {
-        match room.checked_sub(1) {
-            Some(left) => room = left,
-            None => *item = ammo::WITHOUT,
         }
     }
 }
@@ -252,8 +229,8 @@ impl<'a> Dealer<'a, '_> {
 
     /// Take the starting items out of `pool` and the `kept` checks' own
     /// items, deal the letter as its bottle once King Zora has moved, and
-    /// place the kept checks. Then cap the pool's bottles and deal its key
-    /// copies. Returns each starting item with the check whose slot it
+    /// place the kept checks. Then deal the pool's bottles (`bottles`) and
+    /// its key copies. Returns each starting item with the check whose slot it
     /// left, and the items to deal.
     fn finish(
         &self,
@@ -287,9 +264,19 @@ impl<'a> Dealer<'a, '_> {
             }
         }
         let mut items = all.items.split_off(kept.len());
+        let from = all.from.split_off(kept.len());
         let kept = kept.into_iter().zip(all.items);
         placed.extend(kept.map(|(check, item)| Placement { check, item }));
-        cap_bottles(&mut items, placed.iter().map(|p| p.item));
+        let cows: HashSet<u64> = (self.checks.iter().filter(|c| cows::is_cow(c)))
+            .map(|c| c.hash)
+            .collect();
+        let bottles = bottles::Deal {
+            started: new_game.start.bottles(),
+            letter: !new_game.on.contains(presets::KING_ZORA_MOVED),
+            roll: (!new_game.vanilla).then_some(new_game.seed),
+        };
+        let cow = |i: usize| cows.contains(&from[i]);
+        bottles.apply(&mut items, cow, placed.iter().map(|p| p.item))?;
         let fixed: Vec<_> = placed.iter().map(|p| p.item).collect();
         keys::deal_copies(&mut items, new_game.keys, new_game.fortress_keys, &fixed)?;
         Ok((started, items))
@@ -695,14 +682,19 @@ mod tests {
     fn gifts_hold_an_item_that_asks_only_when_they_give_by_level() {
         needs_names!();
         let (checks, none) = (with_scrubs(), Fixed::new());
+        // A slot bottle's contents are rolled, so any bottle reads as one.
+        let plain = |i: &str| match bottles::is_bottle(i) && i != item::BOTTLE_LETTER.get() {
+            true => item::BOTTLE.to_string(),
+            false => i.to_owned(),
+        };
         let mut pool: Vec<_> = checks
             .iter()
-            .map(|c| progressive::Lines::default().first(&c.item))
+            .map(|c| plain(progressive::Lines::default().first(&c.item)))
             .collect();
         pool.sort();
         for seed in 0..200 {
             let p = shuffle(&checks, seed, &none, &progressive(false, &[])).unwrap();
-            let mut dealt: Vec<_> = p.iter().map(|p| p.item).collect();
+            let mut dealt: Vec<_> = p.iter().map(|p| plain(p.item)).collect();
             dealt.sort();
             assert_eq!(dealt, pool);
             for p in p.iter().filter(|p| gifts::is_gift(p.check)) {
@@ -842,26 +834,76 @@ mod tests {
         assert_eq!(d[&1].item, ammo::WITHOUT);
     }
 
+    /// A full shuffle's slot items (three bottles, the letter, Talon's
+    /// milk), eight cows and some others.
+    fn bottle_checks() -> Vec<ItemCheck> {
+        let mut checks: Vec<_> = (0..3).map(|n| chest(n, item::BOTTLE)).collect();
+        checks.push(chest(3, item::BOTTLE_LETTER));
+        checks.push(chest(4, cows::VANILLA));
+        checks.extend((5..13).map(|n| ItemCheck {
+            holder: cows::HOLDER.into(),
+            ..chest(n, cows::VANILLA)
+        }));
+        checks.extend((13..20).map(|n| chest(n, "Item_A")));
+        checks
+    }
+
+    const STARTING_BOTTLES: [&str; 5] =
+        ["bottle-1", "bottle-2", "bottle-3", "bottle-4", "bottle-5"];
+
     #[test]
-    fn never_more_than_five_bottles_are_dealt() {
+    fn the_pool_deals_five_bottles_less_the_starting_ones() {
         needs_names!();
-        let mut checks: Vec<_> = (0..8).map(|n| chest(n, cows::VANILLA)).collect();
-        checks.extend((8..10).map(|n| chest(n, item::BOTTLE)));
-        checks.push(chest(10, item::BOTTLE_LETTER));
-        checks.extend((11..20).map(|n| chest(n, "Item_A")));
-        let count = |d: &Deal, item: &str| d.items.iter().filter(|&&i| i == item).count();
+        let checks = bottle_checks();
         let none = Fixed::new();
-        let dealt = deal(&checks, &none, &game(false, &[])).unwrap();
-        assert_eq!(dealt.items.len(), 20);
-        assert_eq!(count(&dealt, cows::VANILLA), 2);
-        assert_eq!(count(&dealt, ammo::WITHOUT), 6);
-        let fixed = Fixed::from([(0, cows::VANILLA.to_string())]);
-        let dealt = deal(&checks, &fixed, &game(false, &[])).unwrap();
-        assert_eq!(count(&dealt, cows::VANILLA), 1, "a plando milk counts too");
+        let moved = |start: &[&str]| NewGame {
+            on: [presets::KING_ZORA_MOVED.to_owned()].into(),
+            ..game(false, start)
+        };
+        let slots = |d: &Deal| d.items.iter().filter(|i| bottles::is_bottle(i)).count();
+        let letters = |d: &Deal| {
+            d.items
+                .iter()
+                .filter(|&&i| i == item::BOTTLE_LETTER.get())
+                .count()
+        };
+        let rupees = |d: &Deal| d.items.iter().filter(|&&i| i == bottles::COW.get()).count();
+        for n in 0..=5 {
+            let start = &STARTING_BOTTLES[..n];
+            let dealt = deal(&checks, &none, &moved(start)).unwrap();
+            assert_eq!(dealt.items.len(), 20);
+            assert_eq!(slots(&dealt), 5 - n, "{n} started, King Zora moved");
+            assert_eq!(letters(&dealt), 0);
+            assert_eq!(rupees(&dealt), 8, "each cow brings a rupee");
+            if n < 5 {
+                let dealt = deal(&checks, &none, &game(false, start)).unwrap();
+                assert_eq!(slots(&dealt), 5 - n, "{n} started");
+                assert_eq!(letters(&dealt), 1, "{n} started: the letter stays");
+            }
+        }
     }
 
     #[test]
-    fn king_zora_moved_deals_the_letter_as_an_empty_bottle() {
+    fn plando_bottles_past_the_room_are_refused() {
+        needs_names!();
+        let checks = bottle_checks();
+        let fixed = Fixed::from([
+            (13, item::BOTTLE.to_string()),
+            (14, item::BOTTLE.to_string()),
+        ]);
+        let dealt = deal(&checks, &fixed, &game(false, &STARTING_BOTTLES[..2])).unwrap();
+        assert_eq!(
+            dealt.items.iter().filter(|i| bottles::is_bottle(i)).count(),
+            1
+        );
+        let err = deal(&checks, &fixed, &game(false, &STARTING_BOTTLES[..4]))
+            .err()
+            .unwrap();
+        assert!(err.to_string().contains("room for 1"), "{err}");
+    }
+
+    #[test]
+    fn king_zora_moved_deals_the_letter_as_a_bottle() {
         needs_names!();
         let checks = [chest(1, item::BOTTLE_LETTER), chest(2, "Item_A")];
         let none = Fixed::new();
@@ -874,7 +916,8 @@ mod tests {
         };
         let dealt = deal(&checks, &none, &moved).unwrap();
         assert_eq!(count(&dealt, item::BOTTLE_LETTER), 0);
-        assert_eq!(count(&dealt, item::BOTTLE), 1);
+        let normal = |i: &str| bottles::CONTENTS.iter().any(|c| c.get() == i);
+        assert_eq!(dealt.items.iter().filter(|i| normal(i)).count(), 1);
     }
 
     #[test]

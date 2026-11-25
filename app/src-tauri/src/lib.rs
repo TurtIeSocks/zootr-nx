@@ -11,28 +11,29 @@ use serde::Serialize;
 use specta::Type;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
-use tauri_specta::{Event as _, collect_commands, collect_events};
+use tauri_specta::{collect_commands, collect_events};
 use zootr::build;
 use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, Door, RoundEvent, Spot, Start};
 use zootr::history::{self, History, Label, Summary, View};
-use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
+use zootr::inventory;
 use zootr::platform;
 use zootr::progress::{self, Run};
 use zootr::recorder;
-use zootr::savefile::{self, Change};
 use zootr::settings::favorites::{self, BuiltIn};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
 
 mod app_log;
 mod archipelago;
+mod audio;
 mod checks;
 mod colors;
 mod dev_panel;
 mod generating;
+mod items;
 mod live_tab;
 mod save_editor;
 mod targets;
@@ -206,7 +207,8 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
             ..config
         };
         favorites::check(&config.favorites)?;
-        let notes = config.fix_mods_roots();
+        let mut notes = config.fix_mods_roots();
+        notes.extend(zootr::settings::fit_bottles(&mut config.settings)?);
         if let Some(game) = config
             .game
             .as_ref()
@@ -218,7 +220,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
         config.save()?;
         app_log::set_level(config.dev_tools);
         if game_art(&old) != game_art(&config) || old.game != config.game {
-            app.state::<Items>().emit(&app);
+            app.state::<items::Items>().emit(&app);
         }
         Ok(notes)
     })
@@ -358,7 +360,7 @@ fn record(
     // A stopped install that took the mod off changed it too.
     if install {
         app.state::<archipelago::Ap>().reset(app);
-        app.state::<Items>().emit(app);
+        app.state::<items::Items>().emit(app);
     }
     summary
 }
@@ -382,41 +384,43 @@ async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -
     blocking(move || reinstall(&app, steps, id, false)).await
 }
 
-/// Reinstall the installed seed in the Colors draft's colours: the same
-/// shuffle, painted again. Its history entry keeps the new colours.
+/// Reinstall the installed seed in the Colors and Audio drafts: the same
+/// shuffle, painted and scored again. Its history entry keeps them.
 #[tauri::command]
 #[specta::specta]
-async fn apply_colors(app: AppHandle, steps: Channel<progress::StepEvent>) -> Res<()> {
+async fn apply_cosmetics(app: AppHandle, steps: Channel<progress::StepEvent>) -> Res<()> {
     blocking(move || reinstall(&app, steps, colors::installed()?, true)).await
 }
 
-/// Install history entry `id` again, in the draft's colours when
-/// `recolor`.
+/// Install history entry `id` again, in the drafts' cosmetics when
+/// `restyle`.
 fn reinstall(
     app: &AppHandle,
     steps: Channel<progress::StepEvent>,
     id: u32,
-    recolor: bool,
+    restyle: bool,
 ) -> anyhow::Result<()> {
     let entry = History::load()?.get(id)?.clone();
     let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
-    if recolor {
-        extras.colors = zootr::colors::resolve(&Config::load()?.colors, seed)?;
+    if restyle {
+        let config = Config::load()?;
+        extras.colors = zootr::colors::resolve(&config.colors, seed)?;
+        extras.audio = zootr::audio::resolve(&config.audio, seed)?;
     }
     let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
     // Loaded again: History may have changed during the build.
     let done = built.and_then(|_| {
         let mut history = History::load()?;
         history.get(id)?;
-        if recolor {
-            history.recolor(id, extras.colors)?;
+        if restyle {
+            history.restyle(id, extras.colors, extras.audio)?;
         }
         history.install(Some(id));
         history.save()
     });
     // A stopped install that took the mod off changed it too.
     app.state::<archipelago::Ap>().reset(app);
-    app.state::<Items>().emit(app);
+    app.state::<items::Items>().emit(app);
     done
 }
 
@@ -440,7 +444,7 @@ async fn uninstall(app: AppHandle) -> Res<()> {
         history.save()?;
         log::info!("Took the mod off every target");
         app.state::<archipelago::Ap>().reset(&app);
-        app.state::<Items>().emit(&app);
+        app.state::<items::Items>().emit(&app);
         Ok(())
     })
     .await
@@ -522,85 +526,6 @@ fn play(target: String) -> Res<()> {
     Ok(())
 }
 
-/// What the Items tab and the pop out draw.
-#[derive(Clone, Serialize, Type)]
-struct ItemsState {
-    cells: Vec<Cell>,
-    options: TrackerOptions,
-    /// The icons come from the dump: game assets are on and a dump is set.
-    game_art: bool,
-}
-
-/// The grid changed, or its options did.
-#[derive(Clone, Serialize, Type)]
-struct ItemsEvent(ItemsState);
-
-impl tauri_specta::Event for ItemsEvent {
-    const NAME: &'static str = "items-event";
-}
-
-/// What Link has, from the last save played since the installed seed went
-/// in and then the watcher's rows. Kept with that install time, so a new
-/// install starts it over.
-#[derive(Default)]
-struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
-
-impl Items {
-    fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
-        let config = Config::load()?;
-        let since = History::load()?.installed().at;
-        let mut items = self.0.lock().unwrap();
-        if items.as_ref().is_none_or(|(at, _)| *at != since) {
-            let gd = app.state::<Live>().gamedata(&config)?;
-            let mut inv = Inventory::new(&gd, &romfs(&config)?)?;
-            if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
-                inv.load(inventory::in_save(&savefile::load(&save)?));
-            }
-            *items = Some((since, inv));
-        }
-        Ok(ItemsState {
-            cells: items.as_ref().expect("just built").1.cells(),
-            game_art: game_art(&config),
-            options: config.tracker.tidy(),
-        })
-    }
-
-    fn change(&self, app: &AppHandle, change: &Change) {
-        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|(_, inv)| inv.change(change));
-        if changed {
-            self.emit(app);
-        }
-    }
-
-    /// Tells every window, so the tab and the pop out never disagree.
-    fn emit(&self, app: &AppHandle) {
-        if let Ok(state) = self.state(app) {
-            let _ = ItemsEvent(state).emit(app);
-        }
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn items_state(app: AppHandle) -> Res<ItemsState> {
-    blocking(move || app.state::<Items>().state(&app)).await
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn items_options(app: AppHandle, options: TrackerOptions) -> Res<()> {
-    blocking(move || {
-        let config = Config {
-            tracker: options.tidy(),
-            ..Config::load()?
-        };
-        config.save()?;
-        app.state::<Items>().emit(&app);
-        Ok(())
-    })
-    .await
-}
-
 /// The window OBS captures: the grid alone, from `tauri.conf.json`.
 const TRACKER: &str = "tracker";
 /// The dev panel's window, from `tauri.conf.json`.
@@ -676,15 +601,19 @@ impl Icons {
     }
 }
 
-/// A PNG served to the UI, or a 404 that the log says why of.
-fn png_response(
-    png: anyhow::Result<Vec<u8>>,
+/// A file served to the UI as `mime`, or a 404 that the log says why of.
+fn served(
+    body: anyhow::Result<Vec<u8>>,
+    mime: &str,
     uri: &tauri::http::Uri,
 ) -> tauri::http::Response<Vec<u8>> {
-    let response = match png {
-        Ok(png) => tauri::http::Response::builder()
-            .header(tauri::http::header::CONTENT_TYPE, "image/png")
-            .body(png),
+    let response = match body {
+        // Any origin: the page fetches songs, and a fetch, unlike an <img>,
+        // is held to CORS against the page's own scheme.
+        Ok(body) => tauri::http::Response::builder()
+            .header(tauri::http::header::CONTENT_TYPE, mime)
+            .header(tauri::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            .body(body),
         Err(e) => {
             log::debug!("Nothing for {uri}: {e:#}");
             tauri::http::Response::builder().status(404).body(vec![])
@@ -742,7 +671,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             colors::colors_catalog,
             colors::colors_draw,
             colors::colors_follow,
-            apply_colors,
+            apply_cosmetics,
+            audio::audio_catalog,
             save_editor::save_slots,
             save_editor::save_presets,
             save_editor::save_items,
@@ -763,8 +693,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             checks::checks_state,
             checks::checks_mark,
             checks::checks_pick,
-            items_state,
-            items_options,
+            items::items_state,
+            items::items_options,
             items_icons,
             items_pop_out,
             dev_pop_out,
@@ -796,7 +726,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             app_log::AppLogEvent,
             checks::ChecksEvent,
             checks::DoorsEvent,
-            ItemsEvent,
+            items::ItemsEvent,
             archipelago::ApEvent,
             ui::UiShared
         ])
@@ -841,14 +771,20 @@ pub fn run() -> tauri::Result<()> {
                 let png = app
                     .state::<colors::ColorPreviews>()
                     .serve(uri.path(), uri.query().unwrap_or_default());
-                responder.respond(png_response(png, uri));
+                responder.respond(served(png, "image/png", uri));
             });
         })
         .register_asynchronous_uri_scheme_protocol(ICONS, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             std::thread::spawn(move || {
                 let png = (app.state::<Icons>()).read(request.uri().path().trim_start_matches('/'));
-                responder.respond(png_response(png, request.uri()));
+                responder.respond(served(png, "image/png", request.uri()));
+            });
+        })
+        .register_asynchronous_uri_scheme_protocol(audio::SCHEME, |_, request, responder| {
+            std::thread::spawn(move || {
+                let wav = audio::serve(request.uri().path());
+                responder.respond(served(wav, "audio/wav", request.uri()));
             });
         })
         .setup(move |app| {
@@ -856,7 +792,7 @@ pub fn run() -> tauri::Result<()> {
             app_log::attach(app.handle());
             app.manage(archipelago::Ap::default());
             app.manage(checks::Checks::default());
-            app.manage(Items::default());
+            app.manage(items::Items::default());
             app.manage(Generating::default());
             app.manage(save_editor::Layout::default());
             app.manage(Icons::default());
@@ -979,6 +915,15 @@ mod tests {
         let on = config(true, Some(&dump));
         assert!(game_art(&on));
         assert_eq!(icon_dump(&on).unwrap(), dump);
+    }
+
+    /// The page fetches songs from another scheme, so a response without
+    /// this header fails as "Load failed".
+    #[test]
+    fn a_served_file_allows_any_origin() {
+        let uri = "zootr-audio://localhost/fake-track.wav".parse().unwrap();
+        let ok = served(Ok(vec![1]), "audio/wav", &uri);
+        assert_eq!(ok.headers()["access-control-allow-origin"], "*");
     }
 
     /// Keeps the checked-in bindings in step with the commands.

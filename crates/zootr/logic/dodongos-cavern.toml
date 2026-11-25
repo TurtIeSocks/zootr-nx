@@ -1,0 +1,106 @@
+# Dodongo's Cavern. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# The door's boulder wall wants a blast, the hammer or the Goron's Bracelet,
+# so every check starts there. The stairs room opens once the lobby switch
+# is pressed (an adult steps on it; a child gets there through the Dodongo
+# room with a flame), and the stairs themselves take an explosive, the
+# Bracelet or Din's Fire. The bomb room above is reached without bombs: the
+# Hover Boots or Longshot jump the gap, or the Bow or Slingshot hit the eye
+# switches through the slingshot rooms.
+
+# Room 1, Main Hall: a high chest on the lobby wall. (guess: the chest at the end of the bridge, which needs the bomb room's way up and a blast or the hammer for its mud wall)
+[[check]]
+hash = 7524527082521156886
+name = "Dodongo's Cavern Upper Deku Shield Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot) and (explosives or hammer)"
+
+# Room 1, Main Hall: the large chest in the lobby, behind the boulder wall only.
+[[check]]
+hash = 8291119063305855945
+name = "Dodongo's Cavern Map Chest"
+needs = "(explosives or hammer or goron-bracelet)"
+
+# Room 1, Main Hall: a chest by the left wall of the lobby. (guess: not in Ship, so the way past the lobby switch, to be safe)
+[[check]]
+hash = 8607798771661947511
+name = "Dodongo's Cavern Blue Rupee (5) Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks)))"
+
+# Room 2, Baby Dodongo Room: the Skulltula sits above the scarecrow's spot in the east corridor, reached with Scarecrow's Song and the Hookshot, or the Longshot.
+[[check]]
+hash = 960362013021648957
+name = "Baby Dodongo Room Gold Skulltula"
+needs = "(explosives or hammer or goron-bracelet) and (scarecrow or longshot)"
+setting = "gold-skulltulas"
+
+# Room 3, Keese Corridor: the Skulltula is in the side room past the east corridor's wall, which any attack opens. (guess: the side room Skulltula)
+[[check]]
+hash = 1171854281537584829
+name = "Keese Corridor Gold Skulltula"
+needs = "(explosives or hammer or goron-bracelet) and (melee or hammer or explosives or slingshot or dins-fire or bow or boomerang or hookshot)"
+setting = "gold-skulltulas"
+
+# Room 5, Lower Lizalfos Room: the chest appears once the Lizalfos are dead. (guess: Ship's bomb flower platform chest sits past the stairs, so both the stairs route and the Lizalfos kill)
+[[check]]
+hash = 7764016096998075927
+name = "Dodongo's Cavern Red Rupee (20) Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (melee or hammer or explosives or slingshot or bow)"
+
+# Room 7, Scrub Room: the scrub is in the side room past the Dodongo room's wall, reached from the lobby switch (adult) or through the lizalfos room (child). Logic adds the stun.
+[[check]]
+hash = 7388739057158296701
+name = "Dodongo's Cavern Business Scrub"
+needs = "(explosives or hammer or goron-bracelet) and (adult or (melee or hammer or explosives or slingshot or bow))"
+setting = "scrubs"
+
+# Room 10, Bomb Staircase: the Skulltula is high above the stairs; Ship's alcove one needs the Longshot unless the span over the pit is already lowered. (guess: the alcove Skulltula, so the bomb room's way up or the Longshot)
+[[check]]
+hash = 8470399761714006011
+name = "Bomb Staircase Gold Skulltula"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot)"
+setting = "gold-skulltulas"
+
+# Room 10, Bomb Staircase: the chest is at the top of the stairs. (guess: not in Ship, so the stairs route)
+[[check]]
+hash = 12253889300578348965
+name = "Dodongo's Cavern Upper Business Scrub Seed Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire)"
+
+# Room 11, Compass Room: past the stairs room's door and its wall, which need the lobby switch and a blast, the hammer or the Bracelet.
+[[check]]
+hash = 17531994809974271603
+name = "Dodongo's Cavern Compass Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks)))"
+
+# Room 13, Blade Trap Room: the chest at the end of the bridge, behind a mud wall that wants a blast or the hammer. (guess: the end of bridge chest, past the bomb room's way up)
+[[check]]
+hash = 11582649900854566065
+name = "Dodongo's Cavern Upper Deku Shield Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot) and (explosives or hammer)"
+
+# Room 13, Blade Trap Room: the bomb room, reached without bombs: the stairs route, then the Hover Boots, the Longshot, or the Bow or Slingshot through the slingshot rooms.
+[[check]]
+hash = 12161709650443144121
+name = "Dodongo's Cavern Upper Bomb Bag Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot)"
+
+# Room 16, Upper Lizalfos Room: the chest appears once the Lizalfos are dead, in a room reached through the bomb room's way up. (guess: not in Ship, so the way up and the kill)
+[[check]]
+hash = 850464708089653824
+name = "Dodongo's Cavern Upper Business Scrub Seed Chest"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot) and (melee or hammer or explosives or slingshot or bow)"
+
+# Room 18, Upper Dodongo Room: the Skulltula is high above the stairs. (guess: the alcove or the vines Skulltula, so the stricter alcove route, the bomb room's way up or the Longshot)
+[[check]]
+hash = 4565265801822094851
+name = "Upper Dodongo Room Gold Skulltula"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot)"
+setting = "gold-skulltulas"
+
+# Room 20, Baby Dodongo Alcove: the Skulltula is in the back room behind the boss area's mud wall, which opens once an explosive lights the eyes from the far bridge.
+[[check]]
+hash = 13690401647626643497
+name = "Baby Dodongo Alcove Gold Skulltula"
+needs = "(explosives or hammer or goron-bracelet) and (adult or ((melee or hammer or explosives or slingshot or bow) and (fire or sticks))) and (explosives or goron-bracelet or dins-fire) and (hover-boots or longshot or bow or slingshot) and explosives"
+setting = "gold-skulltulas"

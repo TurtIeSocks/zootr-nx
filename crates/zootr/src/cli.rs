@@ -75,6 +75,11 @@ pub fn run() -> Result<()> {
             audio_list(pool);
             Ok(())
         }
+        Command::Audio(AudioCommand::Play { song, out }) => {
+            std::fs::write(&out, crate::audio::wav(&path()?, &song)?)?;
+            println!("wrote {}", out.display());
+            Ok(())
+        }
         Command::Listen {
             dump,
             songs,

@@ -142,3 +142,107 @@ hash = 8120267919866495114
 name = "Boulder Room Token"
 needs = "silver-gauntlets and song-of-time and (bow or hookshot)"
 setting = "gold-skulltulas"
+
+# The right Iron Knuckle's hall: a heart on a pillar, from the child side's crawl or the adult side's climb.
+# Ship's route does not name it; the stricter of the two sides.
+[[check]]
+hash = 2366370276236625770
+name = "Iron Knuckle Chair A 02"
+needs = "(child and explosives and goron-bracelet) or (silver-gauntlets and goron-bracelet and hookshot and (adult-sword or hammer or explosives))"
+setting = "freestanding"
+
+# The right Iron Knuckle's hall: a heart on a pillar, from the child side's crawl or the adult side's climb.
+# Ship's route does not name it; the stricter of the two sides.
+[[check]]
+hash = 2622698183590059502
+name = "Iron Knuckle Pillar A 01"
+needs = "(child and explosives and goron-bracelet) or (silver-gauntlets and goron-bracelet and hookshot and (adult-sword or hammer or explosives))"
+setting = "freestanding"
+
+# The right Iron Knuckle's hall: a heart on a pillar, from the child side's crawl or the adult side's climb.
+# Ship's route does not name it; the stricter of the two sides.
+[[check]]
+hash = 4456472609863985917
+name = "Iron Knuckle Pillar A 01"
+needs = "(child and explosives and goron-bracelet) or (silver-gauntlets and goron-bracelet and hookshot and (adult-sword or hammer or explosives))"
+setting = "freestanding"
+
+# The left Iron Knuckle's hall, adult side: a heart on a pillar, past the gauntlets' blocks.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 3566787507379974065
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives"
+setting = "freestanding"
+
+# The left Iron Knuckle's hall, adult side: a heart on a pillar, past the gauntlets' blocks.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 5922868160074816160
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives"
+setting = "freestanding"
+
+# The left Iron Knuckle's hall, adult side: a heart on a pillar, past the gauntlets' blocks.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 8198965855062286952
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives"
+setting = "freestanding"
+
+# The left Iron Knuckle's hall, adult side: a heart on a pillar, past the gauntlets' blocks.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 17988176340970888479
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives"
+setting = "freestanding"
+
+# The left Iron Knuckle's hall, adult side: a heart on a pillar, past the gauntlets' blocks.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 6849975515385934623
+name = "Iron Knuckle Chair A 02"
+needs = "silver-gauntlets and goron-bracelet and explosives"
+setting = "freestanding"
+
+# Nabooru's hall, adult side: a heart on a pillar, past the Mirror Shield's door.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 266071935563370357
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives and hookshot and mirror-shield"
+setting = "freestanding"
+
+# Nabooru's hall, adult side: a heart on a pillar, past the Mirror Shield's door.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 1378244670182613468
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives and hookshot and mirror-shield"
+setting = "freestanding"
+
+# Nabooru's hall, adult side: a heart on a pillar, past the Mirror Shield's door.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 9886224756534347279
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives and hookshot and mirror-shield"
+setting = "freestanding"
+
+# Nabooru's hall, adult side: a heart on a pillar, past the Mirror Shield's door.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 14285172824082073479
+name = "Iron Knuckle Pillar A 01"
+needs = "silver-gauntlets and goron-bracelet and explosives and hookshot and mirror-shield"
+setting = "freestanding"
+
+# Nabooru's hall, adult side: a heart on a pillar, past the Mirror Shield's door.
+# Ship's route does not name it; the stricter route.
+[[check]]
+hash = 916921998451178398
+name = "Iron Knuckle Chair A 02"
+needs = "silver-gauntlets and goron-bracelet and explosives and hookshot and mirror-shield"
+setting = "freestanding"

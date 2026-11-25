@@ -222,6 +222,10 @@ pub enum Probe {
         /// Instead, the call each action and property trigger plays.
         #[arg(long, conflicts_with_all = ["tree", "children"])]
         triggers: bool,
+        /// Each call's kind (asset or container) and its param offset:
+        /// calls that share an offset play the same thing.
+        #[arg(long, conflicts_with_all = ["tree", "children", "triggers"])]
+        params: bool,
     },
     /// Each chest a logic graph gates: placement hash, area and rule.
     Gates {
@@ -599,9 +603,21 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             tree,
             children,
             triggers,
+            params,
         } => {
             let file = romfs.read(crate::ageless_items::SOUNDS)?;
             let grep = grep.unwrap_or_default().to_lowercase();
+            if params {
+                let table = ounce_formats::xlink_call_table(&file, &user)?;
+                let names = ounce_formats::xlink_calls(&file, &user)?;
+                for (name, call) in names.iter().zip(&table) {
+                    if name.to_lowercase().contains(&grep) {
+                        let kind = if call.container { "container" } else { "asset" };
+                        println!("{name}\t{kind}\t{:#x}", call.param);
+                    }
+                }
+                return Ok(());
+            }
             let names = match (tree, children) {
                 (Some(key), _) => ounce_formats::xlink_tree(&file, &user, &key)?,
                 (_, Some(key)) => ounce_formats::xlink_children(&file, &user, &key)?,

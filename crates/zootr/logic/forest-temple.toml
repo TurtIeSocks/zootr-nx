@@ -1,0 +1,126 @@
+# Forest Temple. Rules from Ship's routes for the original game, on the
+# playtest list (Ship-first rules, 2026-11-24).
+#
+# Only adult Link is inside, so child-only tools are left out. Past the
+# first room, every route runs the Big Skulltula hall, which takes a
+# weapon that reaches it: the Hammer, a sword, explosives, Din's Fire, the
+# Hookshot or the Bow.
+
+# Room 0, Entrance: the first room's chest, climbed to once inside.
+[[check]]
+hash = 1171460703078800858
+name = "Forest Temple Upper Small Key Chest"
+needs = "always"
+
+# Room 0, Entrance: the Skulltula on the first room's wall, so nothing
+# past the door reaches it.
+[[check]]
+hash = 11081821111317815057
+name = "Entrance Gold Skulltula"
+needs = "always"
+setting = "gold-skulltulas"
+
+# Room 2, Main Hall: the Skulltula on the lobby wall, past the Big
+# Skulltula hall.
+[[check]]
+hash = 17612196129225973969
+name = "Main Hall Gold Skulltula"
+needs = "explosives or hammer or adult-sword or dins-fire or hookshot or bow"
+setting = "gold-skulltulas"
+
+# Room 4, Stalfos Room: the chest opens once both Stalfos fall, so the
+# route is the lobby's and the weapons for two Stalfos.
+[[check]]
+hash = 14776684749746592758
+name = "Forest Temple Small Key Chest"
+needs = "hammer or adult-sword or (bombs and hookshot) or bombchus or bow"
+
+# Room 8, Eye Switch Chest Room: up the block room past the Goron's
+# Bracelet block, then an arrow at the eye switch.
+[[check]]
+hash = 15920957434854338961
+name = "Forest Temple Upper Purple Rupee (50) Chest"
+needs = "goron-bracelet and bow"
+
+# Room 11, Wallmaster Hall: the boss key chest at the top of the block
+# room, once the twisted corridor is straightened with an arrow at the eye.
+[[check]]
+hash = 5306318520835485827
+name = "Forest Temple Upper Boss Key Chest"
+needs = "goron-bracelet and bow"
+
+# Room 12, Vine Courtyard: (guess: the Skulltula on the west courtyard's
+# wall) the Longshot from the lower floor after the Song of Time block, or
+# the upper floor via the block room's Hover Boots drop or the boss key
+# chest's ledge.
+[[check]]
+hash = 10970805784153267902
+name = "Vine Courtyard Gold Skulltula"
+needs = "(explosives or hammer or adult-sword or dins-fire or hookshot or bow) and ((song-of-time and longshot) or hover-boots or (goron-bracelet and bow))"
+setting = "gold-skulltulas"
+
+# Room 14, Map Courtyard: (guess: the Skulltula over the east courtyard's
+# raised island) an arrow wakes the east courtyard's eye, then the Hookshot.
+[[check]]
+hash = 2014780391754316762
+name = "Map Courtyard Gold Skulltula"
+needs = "bow and hookshot"
+setting = "gold-skulltulas"
+
+# Room 14, Map Courtyard: the map sits past a Blue Bubble in the courtyards'
+# side room, reached from the west via the Song of Time block, or from the
+# east via the eye switch and the Longshot.
+[[check]]
+hash = 3174893090599461927
+name = "Forest Temple Map Chest"
+needs = "(explosives or hammer or adult-sword or dins-fire or hookshot or bow) and (explosives or hammer or bow or (melee and hookshot)) and (song-of-time or (bow and longshot))"
+
+# Room 15, Well: the well drains when the east courtyard's switch is hit,
+# which takes the same way into the courtyards as the map's.
+[[check]]
+hash = 6449977980406424425
+name = "Forest Temple Lower Small Key Chest"
+needs = "(explosives or hammer or adult-sword or dins-fire or hookshot or bow) and (explosives or hammer or bow or (melee and hookshot)) and (song-of-time or (bow and longshot))"
+
+# Room 16, Joelle Poe Room: the red Poe room at the top of the block room,
+# and the Poe falls to an arrow.
+[[check]]
+hash = 3433400840978782007
+name = "Forest Temple Upper Small Key Chest"
+needs = "goron-bracelet and bow"
+
+# Room 17, Bow Room: past the red Poe room and a fight with three Stalfos.
+[[check]]
+hash = 11082303891540711688
+name = "Forest Temple Upper Fairy Bow Chest"
+needs = "goron-bracelet and (hammer or adult-sword or bow)"
+
+# Room 18, Beth Poe Room: past the Stalfos, and the blue Poe falls to an arrow.
+[[check]]
+hash = 6948525240950728236
+name = "Forest Temple Upper Compass Chest"
+needs = "goron-bracelet and bow"
+
+# Room 22, Floormaster Room: off the west courtyard's upper floor, reached
+# by the Hover Boots from the block room or up the boss key chest's ledge;
+# the Floormaster takes any weapon.
+[[check]]
+hash = 7535137041266964235
+name = "Forest Temple Small Key Chest"
+needs = "(explosives or hammer or adult-sword or dins-fire or hookshot or bow) and (hover-boots or (goron-bracelet and bow)) and (melee or hammer or explosives or dins-fire or bow or slingshot)"
+
+# Room 27, Rotating Floor Room: the twisted lobby opens once all three
+# Poes fall (Joelle, Beth and Amy, each to an arrow, Amy past the green
+# Poe room's block) and Meg is shot.
+[[check]]
+hash = 3072474196008424241
+name = "Rotating Floor Room Gold Skulltula"
+needs = "goron-bracelet and bow"
+setting = "gold-skulltulas"
+
+# Room 27, Rotating Floor Room: (guess: the basement chest, since the
+# falling ceiling room's chest asks the same) behind the same three Poes.
+[[check]]
+hash = 9038700938965170329
+name = "Forest Temple Lower Arrows (10) Chest"
+needs = "goron-bracelet and bow"

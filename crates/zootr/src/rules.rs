@@ -355,11 +355,20 @@ mod tests {
     }
 
     #[test]
-    fn a_milk_is_a_bottle() {
+    fn every_bottle_the_pool_deals_is_a_bottle() {
         needs_names!();
         let book = Book::load().unwrap();
         let bottle = book.resolve("bottle", &ctx(true, &[])).unwrap();
-        assert!(bottle.met(&have(&[item::BOTTLE_MILK]), Era::Child));
+        for content in crate::bottles::CONTENTS
+            .iter()
+            .chain([&item::BOTTLE_LETTER])
+        {
+            assert!(
+                bottle.met(&have(&[content]), Era::Child),
+                "{}",
+                content.get()
+            );
+        }
         assert!(!bottle.met(&have(&[]), Era::Child));
     }
 

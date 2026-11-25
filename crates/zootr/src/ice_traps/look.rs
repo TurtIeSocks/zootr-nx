@@ -23,8 +23,6 @@ const MAGIC: &[u8] = b"XLNK";
 /// only, for none of a test Link's items.
 const USER: &Name = actor::PLAYER_ADULT;
 const FROZEN: &Name = field::CONDITION_FROZEN;
-/// Where a call keeps its param position.
-const PARAM: usize = 0x20;
 /// How many body shells the full body's switch picks from. The hat
 /// pieces stay as they are.
 const SHELLS: usize = 16;
@@ -74,7 +72,7 @@ fn found(file: &[u8]) -> Result<Found> {
         .position(|&v| f32::from_bits(v) == CHILD_SIZE)
         .with_context(|| format!("no direct value is {CHILD_SIZE}"))?;
     Ok(Found {
-        frozen: calls[frozen].at + PARAM,
+        frozen: calls[frozen].param_at(),
         full_body: calls[full].param,
         records,
         fields: xlink_asset_params(file)?,
@@ -180,7 +178,7 @@ mod tests {
         let found = found(&romfs.read(PATH).unwrap()).unwrap();
         // The adult's calls start at 0xee96c, 0x30 bytes each; the frozen
         // call is the 132nd and its shells 0x38d to 0x39c.
-        assert_eq!(found.frozen, 0xe_e96c + 132 * 0x30 + PARAM);
+        assert_eq!(found.frozen, 0xe_e96c + 132 * 0x30 + 0x20);
         assert_eq!(found.full_body, 0x1c10);
         assert_eq!(found.fields, 0x4640);
         assert_eq!(found.child_scale, 0x6b);

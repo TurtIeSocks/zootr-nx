@@ -23,6 +23,7 @@ mod blue_warps;
 mod bombchu_bags;
 mod bombchus;
 mod bombs;
+mod bottles;
 mod bridge;
 pub mod build;
 mod carpenters;

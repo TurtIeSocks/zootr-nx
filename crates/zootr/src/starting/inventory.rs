@@ -275,6 +275,13 @@ impl Start {
         (self.0.iter()).try_for_each(|(w, &n)| check_count(w, n).and(actor_of(w).map(|_| ())))
     }
 
+    /// How many bottles it holds.
+    pub fn bottles(&self) -> usize {
+        (crate::bottles::FIELDS.iter())
+            .filter(|f| self.count(f) > 0)
+            .count()
+    }
+
     /// Whether `word` is held at all.
     pub fn holds(&self, word: &str) -> bool {
         self.0.get(word).is_some_and(|&n| n > 0)

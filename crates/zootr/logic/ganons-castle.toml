@@ -1,6 +1,66 @@
 # Inside Ganon's Castle. Rules from the original game, on the playtest
 # list.
 
+# Room 2, Forest Trial Torch Room: the first room's chest, once its Wolfos
+# falls to a blade, an arrow, a bombchu or Din's Fire.
+[[check]]
+hash = 16913531450403950487
+name = "Ganon's Castle Arrows (5) Chest"
+needs = "melee or hammer or bow or bombchus or dins-fire or (bombs and hookshot)"
+
+# Room 5, Water Trial Freezard Room: the first room's chest, which asks
+# nothing past the door.
+[[check]]
+hash = 14404733996390762670
+name = "Ganon's Castle Lower Bombchus (5) Chest"
+needs = "always"
+
+# Room 8, Shadow Trial Room: the chest across the pit, with Fire Arrows or
+# the Longshot to the chest platform, then the Lens or Hover Boots to hit
+# the lower switch that raises it.
+[[check]]
+hash = 17657623307936361670
+name = "Ganon's Castle Golden Gauntlets Chest"
+needs = "(magic and bow and item:fire-arrows) or (longshot and (lens or hover-boots))"
+
+# Room 8, Shadow Trial Room: (guess: Ship counts the front chest as in reach
+# from the door, but the room's layout puts it past the first gap) the
+# first gap crossed with Fire Arrows, the Hookshot, the Hover Boots or the
+# Song of Time block.
+[[check]]
+hash = 18277713685010400796
+name = "Ganon's Castle Arrows (5) Chest"
+needs = "(magic and bow and item:fire-arrows) or hookshot or hover-boots or song-of-time"
+
+# Room 12, Light Trial Chest Room: past the pillar only the Golden
+# Gauntlets lift.
+[[check]]
+hash = 1029712040059298120
+name = "Ganon's Castle Lower Blue Rupee (5) Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: past the pillar only the Golden
+# Gauntlets lift.
+[[check]]
+hash = 7461796063704896255
+name = "Ganon's Castle Lower Blue Rupee (5) Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: past the pillar only the Golden
+# Gauntlets lift.
+[[check]]
+hash = 14046623154429024571
+name = "Ganon's Castle Lower Blue Rupee (5) Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: (guess: the chest the room's invisible
+# enemies guard) the Lens to see them, a weapon for the Skulltula and one
+# for three Keese, past the Gauntlets' pillar.
+[[check]]
+hash = 14962432460641118089
+name = "Ganon's Castle Lower Red Rupee (20) Chest"
+needs = "gold-gauntlets and lens and (hammer or adult-sword or explosives or dins-fire or hookshot or bow) and (hammer or melee or explosives or hookshot or bow)"
+
 # The Light Trial's second room, past the pillar the Golden Gauntlets
 # lift and the first room's invisible enemies, whose deaths open its
 # shutter. Zelda's Lullaby on the Triforce mark makes the chest appear.
@@ -8,3 +68,29 @@
 hash = 4733634471038136588
 name = "Lower Green Rupee"
 needs = "gold-gauntlets and lens and zeldas-lullaby"
+
+# Room 13, Light Trial Lullaby Room: (guess: the chest hidden from the Lens,
+# the room's invisible enemies' reward) past the Gauntlets' pillar, the
+# Lens and the Skulltula and Keese.
+[[check]]
+hash = 15320975652699461295
+name = "Ganon's Castle Lower Small Key Chest"
+needs = "gold-gauntlets and lens and (hammer or adult-sword or explosives or dins-fire or hookshot or bow) and (hammer or melee or explosives or hookshot or bow)"
+
+# Room 17, Spirit Trial Mirror Room: the Hookshot for the silver rupee in
+# the air, then a blade, the Hammer or explosives for the crystal switch's
+# chest.
+[[check]]
+hash = 7899179288432849355
+name = "Ganon's Castle Business Scrub Seed Chest"
+needs = "hookshot and (melee or hammer or explosives)"
+
+# Room 24, Tower Iron Knuckle Room: (guess: Ship puts the boss key chest
+# after the Stalfos, but the room's graph waits on a flag here, so the
+# Iron Knuckles count too) the six trials, unless Ganon's Trials is Done
+# (the same coarse list as the climb to Ganondorf, with the Light Arrows
+# for each barrier), then the Dinolfos, Stalfos and Iron Knuckles up the tower.
+[[check]]
+hash = 17092385671602176550
+name = "Ganon's Castle Upper Boss Key Chest"
+needs = "(setting:ganons-trials=done or ((hover-boots or (song-of-time and hookshot)) and magic and bow and (item:dins-fire or item:fire-arrows) and blue-fire and hammer and gold-gauntlets and bow and lens and hover-boots and hookshot and mirror-shield and bombchus and longshot and item:light-arrows)) and (melee or hammer or bow or bombchus) and (hammer or adult-sword or (bombs and hookshot) or bombchus or bow) and (adult-sword or hammer or explosives)"

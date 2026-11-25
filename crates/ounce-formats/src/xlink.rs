@@ -656,6 +656,14 @@ pub struct Call {
     pub container: bool,
 }
 
+impl Call {
+    /// Where its params' offset is kept: written with another asset's
+    /// offset, the call plays that asset.
+    pub fn param_at(&self) -> usize {
+        self.at + PARAM
+    }
+}
+
 /// `user`'s calls, in their order.
 pub fn calls(file: &[u8], user_name: &str) -> Result<Vec<Call>> {
     let (r, u) = (Reader(file), user(file, user_name)?);
