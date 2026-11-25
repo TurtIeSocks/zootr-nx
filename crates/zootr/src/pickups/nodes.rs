@@ -16,6 +16,10 @@
 //! hung its map's load, with its node or without, where the same at the
 //! top of a group loads: the Deku Tree's regrowing shrubs in Gohma's room
 //! against Bottom of the Well's (Mac, 2026-11-22).
+//!
+//! Goron City's Deku Stick pot ([`crate::picked::NO_TWIN`]) is left out
+//! too: its copies' nodes hung the city's load though it's top level
+//! (issue #458). Why it differs from Bottom of the Well's is still open.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -62,7 +66,10 @@ impl Wiring {
         };
         let mut changed = false;
         let mut nth: HashMap<u64, usize> = HashMap::new();
-        for (of, copy) in copies {
+        let wired = copies
+            .iter()
+            .filter(|(of, _)| !crate::picked::NO_TWIN.contains(of));
+        for (of, copy) in wired {
             let k = nth.entry(*of).or_default();
             *k += 1;
             let tail = suffix(*k);
@@ -255,6 +262,30 @@ mod tests {
                 .refer(&mut root, &[(2, 22)], &creators)
                 .unwrap()
         );
+    }
+
+    /// Goron City's Deku Stick pot is top level, yet its copy gets no name
+    /// and no node: they hung the city's load (issue #458).
+    #[test]
+    fn the_goron_city_stick_pot_takes_no_copies() {
+        let pot = crate::picked::NO_TWIN[0];
+        let mut root = group();
+        let refs = root
+            .as_mut_map()
+            .unwrap()
+            .get_mut(field::AI_GROUPS.get())
+            .unwrap();
+        let group = &mut refs.as_mut_array().unwrap()[0];
+        let refs = group.as_mut_map().unwrap().get_mut(REFERENCES).unwrap();
+        let first = &mut refs.as_mut_array().unwrap()[0];
+        first
+            .as_mut_map()
+            .unwrap()
+            .insert(REFERENCE.into(), Byml::U64(pot));
+        let creators = HashMap::from([(pot, vec![("FakeCity".to_owned(), 3)])]);
+        let mut wiring = Wiring::default();
+        assert!(!wiring.refer(&mut root, &[(pot, 11)], &creators).unwrap());
+        assert!(wiring.graphs.is_empty());
     }
 
     /// Every graph a loud holder's node sits in takes two copies of it,

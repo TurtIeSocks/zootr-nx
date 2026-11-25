@@ -10,6 +10,11 @@
 //! It stands until its drop is picked up instead, so a drop left behind
 //! comes back.
 //!
+//! Goron City's Deku Stick pot, which the city's logic module makes,
+//! gets no twin either: its twin hung the map's load (issue #458). It
+//! stands until its drop is picked up and then stays gone, where the
+//! vanilla pot would come back. That's EIE debt, not a choice.
+//!
 //! A Gold Skulltula gets no twin either, as a vanilla one never comes
 //! back. Its key is set only by a token or a heart piece taken from it,
 //! so one dropping anything else would stand again after a reset. It stands
@@ -65,6 +70,10 @@ fn taken(lies: bool, item: &str) -> bool {
     lies && asks(item)
 }
 
+/// Holders whose twin hangs their map's load: Goron City's Deku Stick
+/// pot, made by the city's logic module (issue #458).
+pub const NO_TWIN: [u64; 1] = [16954699510563627060];
+
 /// The kinds whose holders stand until picked.
 const KINDS: [&Kind; 8] = [
     &POTS,
@@ -92,6 +101,8 @@ pub enum After {
     Twin(u64),
     /// Nothing, as the game takes it away once crushed.
     Gone,
+    /// Nothing, as its twin would hang its map's load ([`NO_TWIN`]).
+    Alone,
     /// Nothing, as it's a Gold Skulltula. It keeps its own gate, if any.
     Killed(Option<Presence>),
     /// Nothing, as its logic module deletes it (Ruto's letter).
@@ -149,6 +160,7 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
         _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
         _ if lying(c) => After::Taken(c.presence.clone()),
         _ if c.presence.is_some() => After::Gone,
+        _ if NO_TWIN.contains(&c.hash) => After::Alone,
         _ => After::Twin(crate::known::hash(&flag(c.hash))),
     };
     let found: BTreeMap<u64, (After, crate::marks::Look)> = pieces
@@ -259,12 +271,12 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
             After::Twin(twin) => twin,
             // Its steps' gates take its turns (`pickups::steps`).
             After::Deleted | After::Taken(_) => continue,
-            After::Gone => {
+            After::Gone | After::Alone => {
                 let gone = actor.as_mut_map()?.remove("Presence");
                 let gone = gone.as_ref().and_then(|p| p.as_map().ok());
                 let negated = gone.and_then(|p| p.get(field::IS_NEGATION.get()));
                 ensure!(
-                    negated == Some(&Byml::Bool(true)),
+                    h.after == After::Alone || negated == Some(&Byml::Bool(true)),
                     "holder {hash} stands only once something happens, so it can't take turns"
                 );
                 checks::gate(actor, &flag, true)?;
@@ -447,6 +459,12 @@ mod tests {
             .map(|h| h.hash)
             .collect();
         assert_eq!(gone, [ICE_RED, ICE_BLUE]);
+        let alone: Vec<u64> = holders
+            .iter()
+            .filter(|h| h.after == After::Alone)
+            .map(|h| h.hash)
+            .collect();
+        assert_eq!(alone, NO_TWIN);
         assert!(holders.iter().all(|h| h.after != After::Deleted));
         assert_eq!(
             flag_at(&at(actor::OBJ_LIFT_ROCK_A_01, ROCK)),
@@ -527,6 +545,32 @@ mod tests {
             a.map(|a| presence_of(a).map(|p| (p.flag, p.negated)))
         };
         assert_eq!(find(&doc.root), find(&before));
+    }
+
+    /// Goron City's Deku Stick pot stands until picked with no twin beside
+    /// it: a twin hung the city's load (issue #458).
+    #[test]
+    fn the_goron_city_stick_pot_stands_alone() {
+        let Some(romfs) = dev_dump() else { return };
+        let pieces = pickups::POTS.checks(&romfs).unwrap();
+        let holders = holders(&pieces, &moved(&pieces));
+        let pot = pieces.iter().find(|c| c.hash == NO_TWIN[0]).unwrap();
+        let mut doc = checks::load_banc(&romfs, &pot.file).unwrap();
+        let before = checks::actors(&doc.root).unwrap().len();
+        place(&mut doc.root, &holders).unwrap();
+        let actors = checks::actors(&doc.root).unwrap();
+        let twins = holders.iter().filter(|h| {
+            let file = pieces.iter().find(|c| c.hash == h.hash).map(|c| &c.file);
+            matches!(h.after, After::Twin(_)) && file == Some(&pot.file)
+        });
+        assert_eq!(actors.len(), before + twins.count());
+        let placed = actors
+            .iter()
+            .find(|a| hash_of(a) == Some(pot.hash))
+            .unwrap();
+        let gate = presence_of(placed).unwrap();
+        assert_eq!((gate.flag, gate.negated), (got(pot.hash), true));
+        assert!(pairs(&holders).iter().all(|(h, _)| *h != pot.hash));
     }
 
     #[test]
