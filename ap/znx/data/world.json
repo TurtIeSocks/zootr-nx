@@ -450,7 +450,7 @@
       "forbid": [],
       "hash": "229475726653285413",
       "id": 311,
-      "name": "Graveyard West Gold Skulltula Token",
+      "name": "Graveyard GS Wall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -3099,7 +3099,7 @@
       "forbid": [],
       "hash": "1718356088455579946",
       "id": 1449,
-      "name": "Graveyard East Green Rupee (1) 1",
+      "name": "Graveyard Dampe Race Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3880,7 +3880,7 @@
       "forbid": [],
       "hash": "2157466067026784951",
       "id": 289,
-      "name": "Graveyard Piece of Heart",
+      "name": "Graveyard Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -4712,7 +4712,7 @@
       "forbid": [],
       "hash": "2669035957658688527",
       "id": 1459,
-      "name": "Graveyard Southeast Green Rupee (1) 3",
+      "name": "Graveyard Dampe Race Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -5528,7 +5528,7 @@
       "forbid": [],
       "hash": "3236392495739397075",
       "id": 1461,
-      "name": "Graveyard Northeast Green Rupee (1)",
+      "name": "Graveyard Dampe Race Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7034,7 +7034,7 @@
       "forbid": [],
       "hash": "4184471392680640567",
       "id": 1470,
-      "name": "Graveyard East Green Rupee (1) 3",
+      "name": "Graveyard Dampe Race Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9258,7 +9258,7 @@
       "forbid": [],
       "hash": "5534919361313859554",
       "id": 40,
-      "name": "Graveyard Southwest Piece of Heart Chest",
+      "name": "Graveyard Dampe Race Heart Piece Chest",
       "unprovable": false
     },
     {
@@ -11896,7 +11896,7 @@
       "forbid": [],
       "hash": "7220582405369522243",
       "id": 1151,
-      "name": "Graveyard West Rock 1",
+      "name": "Graveyard Entrance Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13595,7 +13595,7 @@
       "forbid": [],
       "hash": "8404733154085657768",
       "id": 1497,
-      "name": "Graveyard East Green Rupee (1) 2",
+      "name": "Graveyard Dampe Race Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14041,7 +14041,7 @@
       "forbid": [],
       "hash": "8769999659774163216",
       "id": 1163,
-      "name": "Graveyard West Rock 2",
+      "name": "Graveyard Entrance Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14561,7 +14561,7 @@
       "forbid": [],
       "hash": "8987278980043647768",
       "id": 1503,
-      "name": "Graveyard East Green Rupee (1) 4",
+      "name": "Graveyard Dampe Race Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15214,7 +15214,7 @@
       "forbid": [],
       "hash": "9279441469018472147",
       "id": 203,
-      "name": "Graveyard Royal Family's Tomb",
+      "name": "Graveyard Song from Royal Familys Tomb",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -15889,7 +15889,7 @@
       "forbid": [],
       "hash": "9622128545943056087",
       "id": 67,
-      "name": "Graveyard South Piece of Heart Chest",
+      "name": "Graveyard Heart Piece Grave Chest",
       "unprovable": false
     },
     {
@@ -21590,7 +21590,7 @@
       "forbid": [],
       "hash": "12976212884789503099",
       "id": 1542,
-      "name": "Graveyard Southeast Green Rupee (1) 2",
+      "name": "Graveyard Dampe Race Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -26046,7 +26046,7 @@
       "forbid": [],
       "hash": "16041366920820397198",
       "id": 115,
-      "name": "Graveyard Southwest Hookshot Chest",
+      "name": "Graveyard Dampe Race Hookshot Chest",
       "unprovable": false
     },
     {
@@ -27213,7 +27213,7 @@
       "forbid": [],
       "hash": "16798263777516949500",
       "id": 398,
-      "name": "Graveyard Northwest Gold Skulltula Token",
+      "name": "Graveyard GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -27408,7 +27408,7 @@
       "forbid": [],
       "hash": "16912540161937823130",
       "id": 121,
-      "name": "Graveyard East Hylian Shield Chest",
+      "name": "Graveyard Shield Grave Chest",
       "unprovable": false
     },
     {
@@ -27987,7 +27987,7 @@
       "forbid": [],
       "hash": "17177665557365847615",
       "id": 1567,
-      "name": "Graveyard Southeast Green Rupee (1) 1",
+      "name": "Graveyard Dampe Race Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -29308,7 +29308,7 @@
       "forbid": [],
       "hash": "17953588650051017776",
       "id": 193,
-      "name": "Graveyard Dampe's Dig",
+      "name": "Graveyard Dampe Gravedigging Tour",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"

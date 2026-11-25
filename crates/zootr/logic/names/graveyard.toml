@@ -1,0 +1,33 @@
+# Graveyard. OoTR's name wherever the remake keeps the spot.
+# A spot with a copy in each age map names both, the age before the kind
+# ("Child Rock 1", "Adult Rock 1"), as OoTR's Market Guard House pots do.
+
+# Gold Skulltulas: the bean soil, and the wall of Dampe's hut
+16798263777516949500 = "Graveyard GS Bean Patch"
+229475726653285413 = "Graveyard GS Wall"
+
+# Chests under the graves and the heart piece on the ledge
+16912540161937823130 = "Graveyard Shield Grave Chest"
+9622128545943056087 = "Graveyard Heart Piece Grave Chest"
+2157466067026784951 = "Graveyard Freestanding PoH"
+
+# Dampe's race in his grave. The second race's heart piece sits in a
+# chest in the remake, where OoTR's is freestanding.
+16041366920820397198 = "Graveyard Dampe Race Hookshot Chest"
+5534919361313859554 = "Graveyard Dampe Race Heart Piece Chest"
+3236392495739397075 = "Graveyard Dampe Race Rupee 1"
+17177665557365847615 = "Graveyard Dampe Race Rupee 2"
+1718356088455579946 = "Graveyard Dampe Race Rupee 3"
+12976212884789503099 = "Graveyard Dampe Race Rupee 4"
+2669035957658688527 = "Graveyard Dampe Race Rupee 5"
+4184471392680640567 = "Graveyard Dampe Race Rupee 6"
+8404733154085657768 = "Graveyard Dampe Race Rupee 7"
+8987278980043647768 = "Graveyard Dampe Race Rupee 8"
+
+# The rock by the path in from Kakariko. Not in OoTR.
+8769999659774163216 = "Graveyard Entrance Child Rock"
+7220582405369522243 = "Graveyard Entrance Adult Rock"
+
+# Dampe's dig and the royal tomb
+17953588650051017776 = "Graveyard Dampe Gravedigging Tour"
+9279441469018472147 = "Graveyard Song from Royal Familys Tomb"

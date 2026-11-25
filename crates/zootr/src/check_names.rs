@@ -11,6 +11,10 @@ use anyhow::{Context, Result, ensure};
 /// Every names file, by name. A test keeps this in step with `logic/names/`.
 const FILES: &[(&str, &str)] = &[
     (
+        "graveyard.toml",
+        include_str!("../logic/names/graveyard.toml"),
+    ),
+    (
         "hyrule-castle.toml",
         include_str!("../logic/names/hyrule-castle.toml"),
     ),
