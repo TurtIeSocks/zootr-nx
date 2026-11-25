@@ -239,9 +239,10 @@ pub const BRACELET_GLASS: &str = "Mt_Item_Gauntlet_Goron_Glass";
 pub const BOOTS_GLASS: &str = "Mt_Boots_TransParent";
 pub const BOOMERANG_GEM: &str = "Mt_Item_Boomerang_Gem";
 
-// Layers the game draws over Link's eyes through its shader (a glint, a
-// shadow), with no albedo: the Model tab leaves them out.
-pub const EYE_LAYERS: [&str; 2] = ["Mt_Eye_Outer", "Mt_Eyeshadow"];
+// Layers the game blends over Link's eyes through its shader (a glint, a
+// shadow). Drawn plain, they cover the eyes (the child's shadow, with an
+// albedo, in black): the Model tab leaves them out.
+pub const EYE_LAYERS: [&str; 3] = ["Mt_Eye_Outer", "Mt_Eyeshadow", "Mt_EyeShadow_test"];
 pub const BOOMERANG_TILE_1: &str = "Mt_Item_Boomerang_Tile_01";
 pub const BOOMERANG_TILE_2: &str = "Mt_Item_Boomerang_Tile_02";
 pub const BOOMERANG_TILE_3: &str = "Mt_Item_Boomerang_Tile_03";

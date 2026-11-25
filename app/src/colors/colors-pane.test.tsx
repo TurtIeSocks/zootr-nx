@@ -132,7 +132,7 @@ test("Reset All leaves a locked palette and one this dump can't paint", async ()
   );
 });
 
-test("Randomize All sets each unlocked palette to Random, leaving followers following", async () => {
+test("Randomize All sets each unlocked palette to Random, followers too", async () => {
   show(full({ color_locks: ["bow"] }));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }));
@@ -141,6 +141,7 @@ test("Randomize All sets each unlocked palette to Random, leaving followers foll
       "kokiri-tunic": "random",
       leather: "random",
       hair: "random",
+      brows: "random",
       hearts: "random",
     }),
   );

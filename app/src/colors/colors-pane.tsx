@@ -127,14 +127,12 @@ function Actions({ palettes }: { palettes: PaletteView[] }) {
   const blocked = useSeeds((s) => s.blocked);
   const generating = useSeeds((s) => s.generating);
   const ids = paintable(palettes);
-  // A palette that follows another keeps following it: brows with the hair.
-  const leaders = paintable(palettes.filter((p) => !p.follows));
   // One request: a save nested in `run` would be dropped as already running.
   const randomize = (drawNow: boolean) =>
     run(async () => {
-      const drawn = drawNow ? await call(commands.colorsDraw(leaders)) : {};
+      const drawn = drawNow ? await call(commands.colorsDraw(ids)) : {};
       await saveConfig(
-        setAll(leaders, (id) =>
+        setAll(ids, (id) =>
           drawNow ? { hex: drawn[id] ?? "#808080" } : "random",
         ),
       );

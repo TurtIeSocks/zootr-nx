@@ -116,6 +116,14 @@ export interface Ui {
     changes: number;
     flags: FlagQuery;
   };
+  /** The Colors preview: Texture or Model, What changes, and each
+   * palette's texture sheet and model view, by palette id. */
+  colors: {
+    tab: "texture" | "model";
+    changes: boolean;
+    sheets: Record<string, number>;
+    views: Record<string, number>;
+  };
   /** The dev panel's picks and drafts. */
   dev: {
     /** The open tab. */
@@ -181,6 +189,7 @@ const INITIAL: Ui = {
     changes: 0,
     flags: { search: "", kinds: [], changed: true, staged: false, open: {} },
   },
+  colors: { tab: "texture", changes: false, sheets: {}, views: {} },
   dev: {
     tab: "warp",
     teleport: { tab: "places", places: "", actors: "", side: "front" },

@@ -27,8 +27,13 @@ interface Head {
 
 /** A shape drawn, with what its texture needs. */
 export interface Part {
+  /** As the newest model read has it: a shape kept from one palette's
+   * model to the next takes the next one's head. */
   head: Head;
+  mesh: THREE.Mesh;
   material: THREE.MeshLambertMaterial;
+  /** What its texture shows now, once one is drawn. */
+  drawn?: "vanilla" | "painted";
 }
 
 /** A model's view, ready to add to a scene: its shapes in one group. */
@@ -38,8 +43,8 @@ export interface Model {
 }
 
 /** Shapes the game draws through their albedo's alpha: hair ends,
- * lashes, fur, the child's eye shadow. */
-const CUT_OUT = /AlphaMask|Eyelash|Eyebrow|EyeShadow/;
+ * lashes, fur. */
+const CUT_OUT = /AlphaMask|Eyelash|Eyebrow/;
 
 /** Palette `id`'s view `view`, read from the backend: each shape's
  * positions, normals, UVs and triangles, in the bind pose. */
@@ -81,8 +86,9 @@ export async function loadModel(id: string, view: number): Promise<Model> {
       side: THREE.DoubleSide,
       alphaTest: CUT_OUT.test(head.name) ? 0.5 : 0,
     });
-    group.add(new THREE.Mesh(geometry, material));
-    return { head, material };
+    const mesh = new THREE.Mesh(geometry, material);
+    group.add(mesh);
+    return { head, mesh, material };
   });
   return { group, parts };
 }
@@ -215,4 +221,44 @@ export function frame(group: THREE.Object3D, camera: THREE.PerspectiveCamera) {
   camera.far = distance * 10;
   camera.updateProjectionMatrix();
   return sphere.center;
+}
+
+/** Lets go of `part`'s geometry, material and texture. */
+function dispose(part: Part) {
+  setAlbedo(part, null);
+  part.mesh.geometry.dispose();
+  part.material.dispose();
+}
+
+/** Lets go of every part of `model`. */
+export function drop(model: Model) {
+  for (const part of model.parts) dispose(part);
+}
+
+/** A shape's identity across models: two palettes drawing Link read the
+ * same shapes. */
+const key = (h: Head) => `${h.name}/${h.vertices}/${h.indices}`;
+
+/** `next` drawn in `shown`'s group: the shapes both have stay as they
+ * are, textures and all, the rest come and go. Null when they share no
+ * shape, for a model of its own. */
+export function merge(shown: Model, next: Model): Model | null {
+  const had = new Map(shown.parts.map((p) => [key(p.head), p]));
+  if (!next.parts.some((p) => had.has(key(p.head)))) return null;
+  const parts = next.parts.map((p) => {
+    const old = had.get(key(p.head));
+    if (!old) {
+      shown.group.add(p.mesh);
+      return p;
+    }
+    had.delete(key(p.head));
+    dispose(p);
+    old.head = p.head;
+    return old;
+  });
+  for (const gone of had.values()) {
+    shown.group.remove(gone.mesh);
+    dispose(gone);
+  }
+  return { group: shown.group, parts };
 }

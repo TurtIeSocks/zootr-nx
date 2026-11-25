@@ -260,12 +260,14 @@ pub const PALETTES: &[Palette] = &[
         id: "leather",
         label: "Belt, straps, gloves, boots",
         group: Group::Link,
-        vanilla: &[[111, 86, 65]],
-        names: &[],
+        // Child Link and the Goron and Zora straps have one leather texture
+        // each, so they take the belt's slot.
+        vanilla: &[[111, 86, 65], [86, 66, 51], [99, 76, 56]],
+        names: &["Belt and straps", "Gloves", "Boots"],
         writes: &[
             band(&ADULT_LEATHER, BROWN, [111, 86, 65]),
-            band(&ADULT_GLOVE, BROWN, [86, 66, 51]),
-            band(&ADULT_BOOTS, BROWN, [99, 76, 56]),
+            band(&ADULT_GLOVE, BROWN, [86, 66, 51]).at(1),
+            band(&ADULT_BOOTS, BROWN, [99, 76, 56]).at(2),
             band(&CHILD_LEATHER, BROWN, [81, 61, 42]),
             band(&GORON_LEATHER, BROWN, [115, 86, 62]),
             band(&ZORA_LEATHER, BROWN, [117, 94, 77]),

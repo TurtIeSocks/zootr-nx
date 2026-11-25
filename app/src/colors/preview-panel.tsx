@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { PaletteView, Picked } from "@/bindings";
 import { Card } from "@/components/card";
 import { Label } from "@/components/ui/label";
@@ -6,11 +6,13 @@ import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { previewUrl } from "@/lib/colors";
 import { cn } from "@/lib/utils";
+import { type Ui, useUi } from "@/stores/ui";
+import { Loading } from "./loading";
 import { ModelView } from "./model-view";
 import { useLoadedImage } from "./use-loaded-image";
 
 /** What the panel shows: the palette's textures, or its model. */
-type Tab = "texture" | "model";
+type Tab = Ui["colors"]["tab"];
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: "texture", label: "Texture" },
@@ -44,18 +46,20 @@ export function PreviewPanel({
   saved,
   note,
 }: PreviewPanelProps) {
-  const [sheet, setSheet] = useState(0);
-  const [changes, setChanges] = useState(false);
+  const sheet = useUi((s) => s.colors.sheets[palette.id] ?? 0);
+  const setSheet = (i: number) =>
+    useUi.setPath("colors.sheets", (s) => ({ ...s, [palette.id]: i }));
+  const changes = useUi((s) => s.colors.changes);
+  const setChanges = (on: boolean) => useUi.setPath("colors.changes", on);
   /** The divider, as a percent from the left: vanilla shows left of it,
    * the pick right of it. At 0 the pick fills the frame. */
   const [wipe, setWipe] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new palette starts at its first sheet
-  useEffect(() => setSheet(0), [palette.id]);
   const t = Math.min(sheet, palette.sheets - 1);
   const shot = { id: palette.id, sheet: t, changes };
   const after = useLoadedImage(previewUrl({ ...shot, picked }));
   const before = useLoadedImage(previewUrl({ ...shot, picked: null }));
-  const [tab, setTab] = useState<Tab>("texture");
+  const tab = useUi((s) => s.colors.tab);
+  const setTab = (t: Tab) => useUi.setPath("colors.tab", t);
   const onModel = tab === "model" && palette.views.length > 0;
 
   return (
@@ -104,6 +108,9 @@ export function PreviewPanel({
                   <span className={cn(TAG, "right-2")}>Picked</span>
                 )}
               </>
+            )}
+            {!after.src && !after.failed && (
+              <Loading label={`Reading ${palette.label}`} />
             )}
             {(after.failed || before.failed) && !after.src && (
               <p className="absolute inset-0 grid place-items-center p-4 text-center text-ink-muted text-sm">
