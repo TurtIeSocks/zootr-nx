@@ -4,7 +4,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
-use anyhow::{Result, bail};
+use anyhow::{Result, anyhow, bail};
 use ounce_formats::murmur3;
 
 use super::Shape::Inline;
@@ -136,39 +136,60 @@ fn spots(mem: &impl Memory, places: &Places, global: u64, hashes: &[u32]) -> Res
 /// and the bytes `pick` asked for there.
 type Checked = Option<(&'static Row, u64, Option<Vec<u8>>)>;
 
+/// What [`read_checked`] returns: each hash's [`Checked`], then `extra`.
+type Pass = (Vec<Checked>, Vec<Vec<u8>>);
+
 /// For each of `hashes`, the range `pick` names off its row and entry,
 /// read in one pass with the pointers it was found through, and `extra`
-/// beside them. Should a pointer have moved, everything is found again
-/// and read once more: a stale address never answers.
+/// beside them. Should a pointer have moved, or lead somewhere that no
+/// longer reads (kept while the game was still starting), everything is
+/// found again and read once more: a stale address never answers.
 fn read_checked(
     mem: &impl Memory,
     global: u64,
     hashes: &[u32],
     pick: impl Fn(&'static Row, u64) -> Option<(u64, usize)>,
     extra: &[(u64, usize)],
-) -> Result<(Vec<Checked>, Vec<Vec<u8>>)> {
+) -> Result<Pass> {
     let local = Places::default();
     let places = mem.places().unwrap_or(&local);
+    let mut failed = None;
     for _ in 0..2 {
-        let s = spots(mem, places, global, hashes)?;
-        let picks: Vec<_> = (s.at.iter())
-            .map(|at| at.and_then(|(row, entry)| pick(row, entry)))
-            .collect();
-        let mut ranges = s.check.clone();
-        ranges.extend(picks.iter().flatten());
-        ranges.extend(extra);
-        let mut got = mem.read_many(&ranges)?.into_iter();
-        let held = (got.by_ref().take(s.check.len())).map(|b| (b.len() == 8).then(|| quad(&b, 0)));
-        if !held.eq(s.expect.iter().map(|&e| Some(e))) {
-            places.forget();
-            continue;
+        match read_once(mem, places, global, hashes, &pick, extra) {
+            Ok(Some(got)) => return Ok(got),
+            Ok(None) => failed = None,
+            Err(e) => failed = Some(e),
         }
-        let out = (s.at.iter().zip(&picks))
-            .map(|(at, pick)| at.map(|(row, entry)| (row, entry, pick.and_then(|_| got.next()))))
-            .collect();
-        return Ok((out, got.collect()));
+        places.forget();
     }
-    bail!("GameData moved while it was being read")
+    Err(failed.unwrap_or_else(|| anyhow!("GameData moved while it was being read")))
+}
+
+/// One pass of [`read_checked`], or `None` when a kept pointer moved.
+fn read_once(
+    mem: &impl Memory,
+    places: &Places,
+    global: u64,
+    hashes: &[u32],
+    pick: impl Fn(&'static Row, u64) -> Option<(u64, usize)>,
+    extra: &[(u64, usize)],
+) -> Result<Option<Pass>> {
+    let s = spots(mem, places, global, hashes)?;
+    let picks: Vec<_> = (s.at.iter())
+        .map(|at| at.and_then(|(row, entry)| pick(row, entry)))
+        .collect();
+    let mut ranges = s.check.clone();
+    ranges.extend(picks.iter().flatten());
+    ranges.extend(extra);
+    let mut got = mem.read_many(&ranges)?.into_iter();
+    let held = (got.by_ref().take(s.check.len())).map(|b| (b.len() == 8).then(|| quad(&b, 0)));
+    if !held.eq(s.expect.iter().map(|&e| Some(e))) {
+        return Ok(None);
+    }
+    let out = (s.at.iter().zip(&picks))
+        .map(|(at, pick)| at.map(|(row, entry)| (row, entry, pick.and_then(|_| got.next()))))
+        .collect();
+    Ok(Some((out, got.collect())))
 }
 
 /// The bytes of `hash`'s current value, held inline, and `extra` read in
@@ -524,6 +545,19 @@ mod tests {
             .unwrap();
         assert_eq!(value(&mem, 0x1000, hash(2, 1)).unwrap(), 7u32.to_le_bytes());
         assert!(bools(&mem, 0x1000, &[hash(2, 1)]).is_ok());
+    }
+
+    #[test]
+    fn a_table_read_while_the_game_starts_is_found_again_once_filled() {
+        let mem = movable();
+        let row = TYPES.iter().find(|t| t.0 == 2).unwrap();
+        let pointer = 0x3000 + entries_pointer(0, row);
+        let entries = mem.0.read(pointer, 8).unwrap();
+        // Starting, the game hasn't set the table's entries yet.
+        mem.0.write(pointer, &[0; 8]).unwrap();
+        assert!(value(&mem, 0x1000, hash(2, 1)).is_err());
+        mem.0.write(pointer, &entries).unwrap();
+        assert_eq!(value(&mem, 0x1000, hash(2, 1)).unwrap(), 7u32.to_le_bytes());
     }
 
     #[test]
