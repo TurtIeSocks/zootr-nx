@@ -1384,7 +1384,7 @@
       "forbid": [],
       "hash": "862385681502746018",
       "id": 7,
-      "name": "Fire Temple Upper Purple Rupee (50) Chest",
+      "name": "Fire Temple 5F Scarecrow Chest 1",
       "unprovable": false
     },
     {
@@ -1414,7 +1414,7 @@
       "forbid": [],
       "hash": "876976950103637140",
       "id": 1440,
-      "name": "Fire Temple Upper Recovery Heart 1",
+      "name": "Fire Temple 3F Moving Fire Room Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2363,7 +2363,7 @@
       "forbid": [],
       "hash": "1299294558999405209",
       "id": 544,
-      "name": "Fire Temple Upper Pot 14",
+      "name": "Fire Temple 3F Flame Maze Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2939,7 +2939,7 @@
       "forbid": [],
       "hash": "1614774357493893481",
       "id": 558,
-      "name": "Fire Temple Upper Pot 17",
+      "name": "Fire Temple 1F Elevator Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3077,7 +3077,7 @@
       "forbid": [],
       "hash": "1705064956286753527",
       "id": 450,
-      "name": "Fire Temple Small Key Chest 3",
+      "name": "Fire Temple 1F Big Lava Room Blocked Door Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -4984,7 +4984,7 @@
       "forbid": [],
       "hash": "2839526458267949318",
       "id": 591,
-      "name": "Fire Temple Upper Pot 2",
+      "name": "Fire Temple 1F Big Lava Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5191,7 +5191,7 @@
       "forbid": [],
       "hash": "3049694327750200002",
       "id": 599,
-      "name": "Fire Temple Upper Pot 11",
+      "name": "Fire Temple 3F Flame Maze Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6194,7 +6194,7 @@
       "forbid": [],
       "hash": "3688520809244472975",
       "id": 430,
-      "name": "Fire Temple Upper Map Chest",
+      "name": "Fire Temple 3F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -6686,7 +6686,7 @@
       "forbid": [],
       "hash": "3949488292768750868",
       "id": 457,
-      "name": "Fire Temple Small Key Chest 1",
+      "name": "Fire Temple 1F Big Lava Room Lower Open Door Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -8355,7 +8355,7 @@
       "forbid": [],
       "hash": "4888253376140319316",
       "id": 654,
-      "name": "Fire Temple Upper Pot 5",
+      "name": "Fire Temple 1F Near Boss Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9302,7 +9302,7 @@
       "forbid": [],
       "hash": "5556173334779815044",
       "id": 332,
-      "name": "Fire Temple Upper Gold Skulltula Token 2",
+      "name": "Fire Temple 4F GS Scarecrow Climb",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -9517,7 +9517,7 @@
       "forbid": [],
       "hash": "5634724236470386190",
       "id": 464,
-      "name": "Fire Temple Small Key Chest 2",
+      "name": "Fire Temple 1F Near Boss Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -9837,7 +9837,7 @@
       "forbid": [],
       "hash": "5818975214008540983",
       "id": 685,
-      "name": "Fire Temple Upper Pot 6",
+      "name": "Fire Temple 1F Near Boss Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11152,7 +11152,7 @@
       "forbid": [],
       "hash": "6789992996625105554",
       "id": 335,
-      "name": "Fire Temple Upper Gold Skulltula Token 4",
+      "name": "Fire Temple 1F GS Song of Time Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12109,7 +12109,7 @@
       "forbid": [],
       "hash": "7276364588106931231",
       "id": 739,
-      "name": "Fire Temple Upper Pot 18",
+      "name": "Fire Temple 1F Elevator Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14028,7 +14028,7 @@
       "forbid": [],
       "hash": "8757492004108970488",
       "id": 59,
-      "name": "Fire Temple Red Rupee (20) Chest",
+      "name": "Fire Temple 1F Flare Dancer Chest",
       "unprovable": false
     },
     {
@@ -15072,7 +15072,7 @@
       "forbid": [],
       "hash": "9172014785497046138",
       "id": 352,
-      "name": "Fire Temple Upper Gold Skulltula Token 3",
+      "name": "Fire Temple 5F GS Scarecrow Top",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15576,7 +15576,7 @@
       "forbid": [],
       "hash": "9478330070473364248",
       "id": 412,
-      "name": "Fire Temple Heart Container",
+      "name": "Fire Temple 1F Volvagia Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -15955,7 +15955,7 @@
       "forbid": [],
       "hash": "9634924691849556346",
       "id": 471,
-      "name": "Fire Temple Upper Small Key Chest 3",
+      "name": "Fire Temple 3F Boulder Maze Upper Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -17614,7 +17614,7 @@
       "forbid": [],
       "hash": "10521366928524045067",
       "id": 474,
-      "name": "Fire Temple Upper Small Key Chest 5",
+      "name": "Fire Temple 3F Highest Goron Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -18262,7 +18262,7 @@
       "forbid": [],
       "hash": "10973307894322368710",
       "id": 1526,
-      "name": "Fire Temple Upper Recovery Heart 2",
+      "name": "Fire Temple 3F Moving Fire Room Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19913,7 +19913,7 @@
       "forbid": [],
       "hash": "11945600822575070219",
       "id": 866,
-      "name": "Fire Temple Upper Pot 16",
+      "name": "Fire Temple 3F Moving Fire Room Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20161,7 +20161,7 @@
       "forbid": [],
       "hash": "12083259659219538030",
       "id": 87,
-      "name": "Fire Temple Upper Megaton Hammer Chest",
+      "name": "Fire Temple 5F Megaton Hammer Chest",
       "unprovable": false
     },
     {
@@ -20521,7 +20521,7 @@
       "forbid": [],
       "hash": "12275059645282086381",
       "id": 877,
-      "name": "Fire Temple Upper Pot 3",
+      "name": "Fire Temple 1F Big Lava Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21002,7 +21002,7 @@
       "forbid": [],
       "hash": "12567412825200613393",
       "id": 478,
-      "name": "Fire Temple Upper Small Key Chest 2",
+      "name": "Fire Temple 3F Boulder Maze Lower Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -21274,7 +21274,7 @@
       "forbid": [],
       "hash": "12751796212121957464",
       "id": 374,
-      "name": "Fire Temple Upper Gold Skulltula Token 1",
+      "name": "Fire Temple 3F GS Boulder Maze",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -21327,7 +21327,7 @@
       "forbid": [],
       "hash": "12809751476932043688",
       "id": 891,
-      "name": "Fire Temple Upper Pot 15",
+      "name": "Fire Temple 3F Flame Maze Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21509,7 +21509,7 @@
       "forbid": [],
       "hash": "12945617941305968586",
       "id": 479,
-      "name": "Fire Temple Upper Small Key Chest 4",
+      "name": "Fire Temple 3F Boulder Maze Side Room Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -22820,7 +22820,7 @@
       "forbid": [],
       "hash": "13720304619349543095",
       "id": 915,
-      "name": "Fire Temple Upper Pot 1",
+      "name": "Fire Temple 1F Big Lava Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23358,7 +23358,7 @@
       "forbid": [],
       "hash": "14060099092170010696",
       "id": 481,
-      "name": "Fire Temple Boss Key Chest",
+      "name": "Fire Temple 1F Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -23838,7 +23838,7 @@
       "forbid": [],
       "hash": "14488990020963596026",
       "id": 937,
-      "name": "Fire Temple Upper Pot 10",
+      "name": "Fire Temple 3F Narrow Path Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24177,7 +24177,7 @@
       "forbid": [],
       "hash": "14706322686481615109",
       "id": 384,
-      "name": "Fire Temple Gold Skulltula Token",
+      "name": "Fire Temple 1F GS Boss Key Loop",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24734,7 +24734,7 @@
       "forbid": [],
       "hash": "15073195886628236505",
       "id": 109,
-      "name": "Fire Temple Upper Red Rupee (20) Chest 2",
+      "name": "Fire Temple 5F Scarecrow Chest 2",
       "unprovable": false
     },
     {
@@ -24994,7 +24994,7 @@
       "forbid": [],
       "hash": "15267562180962122590",
       "id": 953,
-      "name": "Fire Temple Upper Pot 7",
+      "name": "Fire Temple 1F Near Boss Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25030,7 +25030,7 @@
       "forbid": [],
       "hash": "15304985273997957319",
       "id": 954,
-      "name": "Fire Temple Upper Pot 4",
+      "name": "Fire Temple 1F Near Boss Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25494,7 +25494,7 @@
       "forbid": [],
       "hash": "15655385584089977863",
       "id": 422,
-      "name": "Fire Temple Volvagia",
+      "name": "Fire Temple 1F Volvagia",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -25792,7 +25792,7 @@
       "forbid": [],
       "hash": "15901054600830633268",
       "id": 969,
-      "name": "Fire Temple Upper Pot 8",
+      "name": "Fire Temple 3F Narrow Path Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27095,7 +27095,7 @@
       "forbid": [],
       "hash": "16713240760352215634",
       "id": 445,
-      "name": "Fire Temple Upper Compass Chest",
+      "name": "Fire Temple 3F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -27178,7 +27178,7 @@
       "forbid": [],
       "hash": "16785682308850448108",
       "id": 486,
-      "name": "Fire Temple Upper Small Key Chest 1",
+      "name": "Fire Temple 2F Boulder Maze Shortcut Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -27595,7 +27595,7 @@
       "forbid": [],
       "hash": "17001858340376096722",
       "id": 123,
-      "name": "Fire Temple Upper Red Rupee (20) Chest 1",
+      "name": "Fire Temple 5F Scarecrow Chest 3",
       "unprovable": false
     },
     {
@@ -28325,7 +28325,7 @@
       "forbid": [],
       "hash": "17365727223434160995",
       "id": 1020,
-      "name": "Fire Temple Upper Pot 9",
+      "name": "Fire Temple 3F Narrow Path Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29007,7 +29007,7 @@
       "forbid": [],
       "hash": "17781326666964833523",
       "id": 1030,
-      "name": "Fire Temple Upper Pot 13",
+      "name": "Fire Temple 3F Flame Maze Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29392,7 +29392,7 @@
       "forbid": [],
       "hash": "18015303210027196984",
       "id": 1042,
-      "name": "Fire Temple Upper Pot 12",
+      "name": "Fire Temple 3F Flame Maze Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
