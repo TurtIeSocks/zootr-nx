@@ -554,6 +554,57 @@ mod tests {
         }
     }
 
+    /// `colour` in CIE Lab, where distance tracks how different two colours
+    /// look (D65 white).
+    fn lab(colour: Colour) -> [f32; 3] {
+        let linear = colour.map(|c| {
+            let c = c as f32 / 255.0;
+            if c > 0.04045 {
+                ((c + 0.055) / 1.055).powf(2.4)
+            } else {
+                c / 12.92
+            }
+        });
+        let [r, g, b] = linear;
+        let xyz = [
+            (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047,
+            0.2126 * r + 0.7152 * g + 0.0722 * b,
+            (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883,
+        ];
+        let [x, y, z] = xyz.map(|t| {
+            if t > 0.008856 {
+                t.cbrt()
+            } else {
+                7.787 * t + 16.0 / 116.0
+            }
+        });
+        [116.0 * y - 16.0, 500.0 * (x - y), 200.0 * (y - z)]
+    }
+
+    #[test]
+    fn every_key_colour_stands_apart_from_gold_and_each_other() {
+        // Prelude of Light's yellow, once the Training Ground's, was 24
+        // from gold: too near to tell a key chest from a major one.
+        const APART: f32 = 30.0;
+        let far = |a: Colour, b: Colour| {
+            let (a, b) = (lab(a), lab(b));
+            (0..3).map(|i| (a[i] - b[i]).powi(2)).sum::<f32>().sqrt()
+        };
+        let keys: Vec<_> = (1..=KEY_DUNGEONS)
+            .map(|n| (n, key_tints::key_colour(n).unwrap()))
+            .collect();
+        for (n, colour) in &keys {
+            assert!(far(*colour, GOLD) > APART, "keys {n} {colour:?} near gold");
+            for (m, other) in keys.iter().filter(|(m, _)| m > n) {
+                assert!(far(*colour, *other) > APART, "keys {n} and {m} too near");
+            }
+        }
+        assert!(
+            far([255, 240, 120], GOLD) < APART,
+            "the old clash still fails"
+        );
+    }
+
     #[test]
     fn an_emblem_lands_inside_its_planks_and_on_each_one() {
         let texture = |side: usize, alpha: u8| Texture {

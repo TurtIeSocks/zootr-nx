@@ -82,26 +82,27 @@ pub const FILES: [&str; 14] = [
     "Tex/Mt_Item_Dungeon_BossKey_Rgh.bntx.zs",
 ];
 
-/// A dungeon's colour: a temple's its medallion song's, the Training
-/// Ground the Temple of Time's.
-const SONGS: [(&Name, &Name); 6] = [
+/// A temple's colour: its medallion song's.
+const SONGS: [(&Name, &Name); 5] = [
     (flag::FOREST_TEMPLE, item::MELODY_FOREST_MINUET),
     (flag::FIRE_TEMPLE, item::MELODY_FIRE_BOLERO),
     (flag::WATER_TEMPLE, item::MELODY_WATER_SERENADE),
     (flag::SHADOW_TEMPLE, item::MELODY_SHADOW_NOCTURNE),
     (flag::SPIRIT_TEMPLE, item::MELODY_SPIRIT_REQUIEM),
-    (flag::GERUDO_TRAINING_GROUND, item::MELODY_LIGHT_PRELUDE),
 ];
-/// The rest. Ganon's black is lifted so the key still reads as metal.
-const OWN: [(&Name, Colour); 2] = [
-    (flow::BOTTOM_OF_THE_WELL, [110, 35, 150]),
+/// The rest. Ganon's black is lifted so the key still reads as metal. The
+/// Training Ground's is ivory, not Prelude of Light's yellow, which a chest
+/// would show near the gold look's.
+const OWN: [(&Name, Colour); 3] = [
+    (flow::BOTTOM_OF_THE_WELL, [40, 185, 190]),
+    (flag::GERUDO_TRAINING_GROUND, [240, 235, 220]),
     (flag::INSIDE_GANON_CASTLE, [45, 45, 50]),
 ];
 
 /// The Gerudo Fortress's keys are their own actors already, one for each
 /// thief. They show the small key model after the dungeons'.
 const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
-const FORTRESS_COLOUR: Colour = [90, 55, 30];
+const FORTRESS_COLOUR: Colour = [215, 40, 150];
 
 /// How many dungeons' keys have a colour: [`DUNGEONS`], then the Gerudo
 /// Fortress.
