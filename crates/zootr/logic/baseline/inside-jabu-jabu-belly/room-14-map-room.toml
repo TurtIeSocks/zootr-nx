@@ -19,7 +19,7 @@ guess = true
 hash = 14933854942830098290
 name = "Jabu-Jabu's Belly Lower Map Chest"
 needs = "always"
-why = "no floor of its room within a big chest's reach (1.35 m)"
+why = "no floor of its room within a small chest's reach (1.25 m)"
 guess = true
 
 [[flag]]

@@ -16,7 +16,7 @@ use crate::game::Release;
 use crate::menu_slots;
 
 mod files;
-pub use files::{EXEFS, SeedTable, exefs, install, remove, remove_cheat, split};
+pub use files::{EXEFS, SeedTable, carries_table, exefs, install, remove, remove_cheat, split};
 
 /// The hook as `build.rs` built it for one build of the game.
 pub struct Hook {

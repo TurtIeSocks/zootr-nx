@@ -4,7 +4,7 @@
 //! per family of commands.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 use clap::Parser;
@@ -87,6 +87,13 @@ pub fn run() -> Result<()> {
             colors_list();
             Ok(())
         }
+        Command::Colors(ColorsCommand::Preview {
+            id,
+            color,
+            out,
+            texture,
+            changes,
+        }) => colors_preview(&romfs()?, &id, &color, &out, texture, changes),
         Command::Ap(ApCommand::Open { file, install }) => seed::ap_open(&path()?, &file, install),
         Command::Ap(ApCommand::Room { cmd }) => ap::room_command(&path()?, cmd),
         Command::Ap(ApCommand::Bench(args)) => ap::bench_command(&path()?, args),
@@ -308,6 +315,31 @@ pub fn run() -> Result<()> {
 }
 
 /// `colors list`: one palette a line.
+fn colors_preview(
+    romfs: &Romfs,
+    id: &str,
+    color: &str,
+    out: &Path,
+    texture: usize,
+    changes: bool,
+) -> Result<()> {
+    use crate::colors::{Mode, Pick, parse_arg, preview};
+    let picked = match parse_arg(&format!("{id}={color}"))?.1 {
+        Pick::Colour(picked) => Some(picked),
+        Pick::Mode(Mode::Vanilla) => None,
+        Pick::Mode(Mode::Random) => bail!("a preview takes a colour, not random"),
+    };
+    let view = match changes {
+        true => preview::View::Changes,
+        false => preview::View::Paint,
+    };
+    let png = preview::Previews::default().png(romfs, id, texture, picked.as_ref(), view)?;
+    std::fs::write(out, png)?;
+    let textures = preview::textures(crate::colors::palette(id)?);
+    println!("{} ({} of {})", out.display(), texture + 1, textures.len());
+    Ok(())
+}
+
 fn colors_list() {
     use crate::colors::{PALETTES, hex};
     let width = PALETTES.iter().map(|p| p.id.len()).max().unwrap_or(0);

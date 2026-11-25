@@ -47,6 +47,7 @@ export const full = (c: Config): FullConfig => ({
   color_recents: c.color_recents ?? [],
   audio: c.audio ?? {},
   audio_sets: c.audio_sets ?? {},
+  color_locks: c.color_locks ?? [],
 });
 
 /** Whether a test setup changes anything. */

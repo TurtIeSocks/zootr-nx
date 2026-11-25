@@ -80,6 +80,9 @@ pub struct Config {
     /// Audio drafts kept by name, to load into `audio`.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub audio_sets: BTreeMap<String, crate::audio::Draft>,
+    /// The palettes Randomize all and Reset all leave alone.
+    #[serde(skip_serializing_if = "std::collections::BTreeSet::is_empty")]
+    pub color_locks: std::collections::BTreeSet<String>,
     /// Setting sets kept by name, newest first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub favorites: Vec<crate::settings::favorites::Favorite>,

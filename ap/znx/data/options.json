@@ -304,7 +304,7 @@
   },
   {
     "default": "vanilla",
-    "description": "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
+    "description": "All small makes every big chest a small one, which opens without the big chest's long animation. Matches contents makes a chest big when it holds an item the seed needs, the boss key chest when it holds a boss key, and small otherwise. What a chest holds doesn't change",
     "id": "chest-size",
     "kind": "choice",
     "label": "Chest Size",
@@ -318,6 +318,11 @@
         "forces": [],
         "id": "small",
         "label": "All small"
+      },
+      {
+        "forces": [],
+        "id": "matches",
+        "label": "Matches contents"
       }
     ]
   },

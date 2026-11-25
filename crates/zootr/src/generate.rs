@@ -16,6 +16,8 @@ mod write;
 mod tests;
 
 pub use extras::Extras;
+#[cfg(test)]
+pub(crate) use install::INSTALLS;
 pub use install::{install, running, throwaway, uninstall};
 pub(crate) use report::u64_text;
 pub use report::{Door, Held, Report, RoundEvent, SPOILER, Spot, Start, Written};

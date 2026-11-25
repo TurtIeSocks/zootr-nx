@@ -354,6 +354,12 @@ export async function install(id: number) {
     useSeeds.setPath("installing", null);
   }
 }
+/** Installs the installed seed again in the Colors draft's colours: the
+ * same shuffle, painted again. */
+export const applyColors = () =>
+  run(() =>
+    stepping((steps) => call(commands.applyColors(steps)), { total: 1 }),
+  );
 /** Rebuilds a target's game, its output in the step log, and says whether
  * it finished rather than stopped. Throws why it failed, or why the build
  * still lacks the installed hook patch. */

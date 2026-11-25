@@ -28,6 +28,7 @@ pub mod build;
 mod carpenters;
 mod checks;
 mod chest_levels;
+mod chest_size;
 pub mod colors;
 pub mod config;
 mod copies;

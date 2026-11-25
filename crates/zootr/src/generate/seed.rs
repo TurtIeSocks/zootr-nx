@@ -112,8 +112,11 @@ pub fn shuffle(
     let needed = filled.as_ref().map(|(world, _)| world.items());
     let traps = ice_traps::disguise(romfs, &mut placements, needed.as_ref(), seed)?;
     let foreign = [new_game.foreign.clone(), traps].concat();
+    let placed = placements.iter().map(|p| p.item);
+    let major = ice_traps::wanted(romfs, placed, needed.as_ref())?;
     let new_game = &NewGame {
         foreign,
+        major: major.into_iter().map(str::to_owned).collect(),
         ..new_game
     };
     let drops = shuffle::drops(

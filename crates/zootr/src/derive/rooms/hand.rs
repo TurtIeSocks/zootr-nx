@@ -5,7 +5,7 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
-use crate::checks::{ItemCheck, is_big};
+use crate::checks::ItemCheck;
 use crate::derive::ALWAYS;
 use crate::nav::graph::Graph;
 use crate::nav::limits::{Holder, limits};
@@ -20,9 +20,7 @@ pub(super) fn is_chest(holder: &str) -> bool {
 /// The kind of holder `check` is, for its hand reach: `None` for one no
 /// reach is kept for (a scrub, a person, an item on the floor).
 pub(super) fn holder(check: &ItemCheck) -> Option<Holder> {
-    if is_big(&check.holder) {
-        Some(Holder::BigChest)
-    } else if is_chest(&check.holder) {
+    if is_chest(&check.holder) {
         Some(Holder::SmallChest)
     } else if crate::pickups::POTS.holds(check) {
         Some(Holder::Pot)

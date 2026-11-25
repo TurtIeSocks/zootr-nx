@@ -73,10 +73,12 @@ pub(crate) fn setting(arg: &str) -> Result<(String, serde_json::Value)> {
             value.parse::<bool>().is_ok(),
             "{id} is true or false, not {value}"
         ),
-        settings::Kind::Choice { options, .. } => {
+        settings::Kind::Choice {
+            options, hidden, ..
+        } => {
             let ids: Vec<&str> = options.iter().map(|o| o.id.as_str()).collect();
             anyhow::ensure!(
-                ids.contains(&value),
+                ids.contains(&value) || hidden.iter().any(|h| h == value),
                 "{id} takes {}, not {value}",
                 ids.join(", ")
             );

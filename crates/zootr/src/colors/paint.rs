@@ -20,7 +20,7 @@ const BAND_SATURATION: f32 = 0.25;
 /// A texel's hue, saturation and value, when it's coloured and its hue is
 /// in `hues`. A wrapping band's hues past red come back above 1, so a
 /// band's hues average and subtract without the seam.
-fn in_band(px: &[u8], (lo, hi): Hues) -> Option<(f32, f32, f32)> {
+pub(crate) fn in_band(px: &[u8], (lo, hi): Hues) -> Option<(f32, f32, f32)> {
     let (h, s, v) = hsv([px[0], px[1], px[2]]);
     let h = match lo <= hi {
         true => (lo..=hi).contains(&h).then_some(h),

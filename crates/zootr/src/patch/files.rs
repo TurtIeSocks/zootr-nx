@@ -209,23 +209,42 @@ pub fn split(mod_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The lines of an exefs patch for `h`'s build that write the table's
+/// room, each with its offset.
+fn table_lines<'a>(h: &Hook, pchtxt: &'a str) -> impl Iterator<Item = (u32, &'a str)> {
+    let room = h.build.regions.table..h.build.regions.table_end;
+    (pchtxt.lines().filter_map(|l| l.split_once(' ')))
+        .filter_map(|(at, hex)| Some((u32::from_str_radix(at, 16).ok()?, hex)))
+        .filter(move |(at, _)| room.contains(at))
+}
+
+/// Whether `mod_dir`'s exefs patch writes a seed's table: a patch
+/// [`split`] never reached, which a game that builds it in would rebuild
+/// for every seed. A patch for a build we have no hook for isn't ours to
+/// judge.
+pub fn carries_table(mod_dir: &Path) -> Result<bool> {
+    let text = match std::fs::read_to_string(exefs(mod_dir)) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        read => read.with_context(|| format!("reading {}", exefs(mod_dir).display()))?,
+    };
+    let Ok(h) = Hook::named_in(&text) else {
+        return Ok(false);
+    };
+    Ok(table_lines(h, &text).next().is_some())
+}
+
 /// The table an exefs patch for `h`'s build writes, from its lines in the
 /// table's room.
 fn table_of(h: &Hook, pchtxt: &str) -> Result<Patch> {
-    let (table, table_end) = (h.build.regions.table, h.build.regions.table_end);
+    let table = h.build.regions.table;
     let mut lines = Vec::new();
-    for (at, hex) in pchtxt.lines().filter_map(|l| l.split_once(' ')) {
-        let Ok(at) = u32::from_str_radix(at, 16) else {
-            continue;
-        };
-        if (table..table_end).contains(&at) {
-            let bytes = (0..hex.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
-                .collect::<Option<Vec<u8>>>()
-                .context("a table line that isn't hex")?;
-            lines.push((at, bytes));
-        }
+    for (at, hex) in table_lines(h, pchtxt) {
+        let bytes = (0..hex.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(hex.get(i..i + 2)?, 16).ok())
+            .collect::<Option<Vec<u8>>>()
+            .context("a table line that isn't hex")?;
+        lines.push((at, bytes));
     }
     lines.sort_by_key(|l| l.0);
     let mut bytes = Vec::new();
@@ -277,6 +296,20 @@ mod tests {
     use super::super::run_call;
     use super::super::tests::{ALL, SITES_AT, SPOT, TABLE_AT, v111};
     use super::*;
+
+    #[test]
+    fn a_patch_carries_its_table_until_it_is_split() {
+        let dir = std::env::temp_dir().join(format!("zootr-carries-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(!carries_table(&dir).unwrap(), "no patch at all");
+        install(&dir, Release::V111, &SeedTable::default()).unwrap();
+        assert!(carries_table(&dir).unwrap(), "a seed's whole patch");
+        split(&dir).unwrap();
+        assert!(!carries_table(&dir).unwrap(), "split: the code alone");
+        std::fs::write(exefs(&dir), "@nsobid-fake\n@stop\n").unwrap();
+        assert!(!carries_table(&dir).unwrap(), "another build's patch");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn the_cheat_writes_in_order_under_the_word_limit() {

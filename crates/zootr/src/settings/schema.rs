@@ -369,7 +369,7 @@ fn enhancement_defs() -> Vec<SettingDef> {
             CHEST_SIZE,
             place::COMFORT,
             "Chest Size",
-            "All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change",
+            "All small makes every big chest a small one, which opens without the big chest's long animation. Matches contents makes a chest big when it holds an item the seed needs, the boss key chest when it holds a boss key, and small otherwise. What a chest holds doesn't change",
             ChestSize::label,
         ),
         toggle(

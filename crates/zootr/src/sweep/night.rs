@@ -19,8 +19,9 @@ use super::spot::{Sweeper, slug};
 use super::verdict::Verdict;
 use crate::config::Target;
 use crate::dev::{self, Dev};
+use crate::game::Release;
 use crate::gamedata::GameData;
-use crate::generate::{self, Extras};
+use crate::generate::{self, Extras, Report};
 use crate::known::{Name, actor};
 use crate::live::{self, Game};
 use crate::play::{Input, Start, boot};
@@ -78,7 +79,7 @@ const START: [&str; 5] = [
 ];
 
 /// The settings mixes, one a round in turn, so a failure names its mix.
-pub const MIXES: [(&str, &[&str]); 4] = [
+pub const MIXES: [(&str, &[&str]); 5] = [
     ("chests", &[]),
     (
         "songs and gifts",
@@ -112,6 +113,9 @@ pub const MIXES: [(&str, &[&str]); 4] = [
             "fortress-keys=start",
         ],
     ),
+    // Every chest that comes in sizes as a big one, so a spot too tight
+    // for one shows before chest size matching contents grows it.
+    ("big chests", &["chest-size=big"]),
 ];
 
 /// The settings of mix `i`. An entry is a toggle's id, or `ID=VALUE` for a
@@ -165,23 +169,49 @@ fn played(dir: &Path) -> Result<Option<u32>> {
     Ok(most)
 }
 
-/// Shuffle `seed` with `settings` into `mod_dir` and plan each spot, the
-/// ones in a map without one of `places` skipped.
+/// Shuffle `seed` with `settings`, install it on `target` the way every
+/// seed is installed (so a game that builds the patch in keeps one patch
+/// for every seed), and plan each spot, the ones in a map without one of
+/// `places` skipped.
 pub fn pool(
     romfs: &Romfs,
-    mod_dir: &Path,
+    target: &Target,
     seed: u64,
     settings: &Settings,
     places: &BTreeSet<dev::Place>,
 ) -> Result<Vec<Planned>> {
-    let report = generate::generate(
-        romfs,
-        mod_dir,
-        seed,
-        settings,
-        &Extras::default(),
-        &Run::silent(),
-    )?;
+    let release = Release::of(romfs.root());
+    let one = std::slice::from_ref(target);
+    let report = generate::install(one, release, &Run::silent(), roll(romfs, seed, settings))?;
+    planned(romfs, &report, places)
+}
+
+/// What writes `seed` with `settings` into a folder, for
+/// [`generate::install`] or [`generate::throwaway`].
+pub fn roll<'a>(
+    romfs: &'a Romfs,
+    seed: u64,
+    settings: &'a Settings,
+) -> impl FnOnce(&Path) -> Result<Report> + 'a {
+    move |dir| {
+        generate::generate(
+            romfs,
+            dir,
+            seed,
+            settings,
+            &Extras::default(),
+            &Run::silent(),
+        )
+    }
+}
+
+/// Each of `report`'s spots planned, the ones in a map without one of
+/// `places` skipped.
+pub fn planned(
+    romfs: &Romfs,
+    report: &Report,
+    places: &BTreeSet<dev::Place>,
+) -> Result<Vec<Planned>> {
     let mut planned = plan(romfs, &report.spots)?;
     skip_unreachable(&mut planned, places);
     Ok(planned)
@@ -288,7 +318,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             return Ok(Ended::Yielded);
         }
         self.stop();
-        let mut planned = pool(self.romfs, &self.target.mod_dir, seed, &settings, places)?;
+        let mut planned = pool(self.romfs, self.target, seed, &settings, places)?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
         order(&mut planned, &known, seed);
@@ -647,6 +677,51 @@ pub(crate) fn name(p: &Planned) -> String {
 mod tests {
     use super::*;
     use crate::known::{actor, flag, item, map};
+
+    /// The sweep installs like every seed: a game that builds the patch
+    /// in gets the same code-only exefs patch from two seeds as far apart
+    /// as the mixes go, so no round rebuilds it.
+    #[test]
+    fn every_sweep_seed_leaves_one_exefs_patch() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let _turn = crate::generate::INSTALLS.lock().unwrap();
+        let dir = std::env::temp_dir().join(format!("zootr-sweep-patch-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let target = Target {
+            name: "FakeNative".into(),
+            app: dir.join("nothing runs this"),
+            mod_dir: dir.join("mod"),
+            settings_file: None,
+            save_dir: None,
+            args: vec![],
+            control: None,
+            bridge: None,
+            env: vec![],
+            harness_env: vec![],
+            rebuild: Some(crate::config::Rebuild::default()),
+            game: None,
+            release: None,
+        };
+        let (_, mut wide) = mix(pinned("everything").unwrap());
+        for (id, on) in [("shuffle-items", true), ("chests", true)] {
+            wide.insert(id.into(), on.into());
+        }
+        wide.insert("keys".into(), "singles".into());
+        let places = dev::places(&romfs).unwrap();
+        let h = crate::patch::Hook::of(Release::of(romfs.root()));
+        let code = h.pchtxt(&h.code_patches().unwrap());
+        for (seed, settings) in [(1, Settings::new()), (2, wide)] {
+            pool(&romfs, &target, seed, &settings, &places).unwrap();
+            let exefs = std::fs::read_to_string(crate::patch::exefs(&target.mod_dir)).unwrap();
+            assert!(
+                exefs == code,
+                "seed {seed}'s exefs patch isn't the code alone"
+            );
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn every_mix_entry_is_a_setting_the_cli_takes() {

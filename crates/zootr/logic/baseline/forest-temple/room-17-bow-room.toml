@@ -19,7 +19,7 @@ guess = true
 hash = 11082303891540711688
 name = "Forest Temple Upper Fairy Bow Chest"
 needs = "flag:#de9e2dc2"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m); its graph waits on flag #de9e2dc2"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m); its graph waits on flag #de9e2dc2"
 
 [[flag]]
 hash = 0x936fce7b

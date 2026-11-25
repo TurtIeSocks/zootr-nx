@@ -6,4 +6,4 @@ name = "Compass Room"
 hash = 17531994809974271603
 name = "Dodongo's Cavern Compass Chest"
 needs = "always"
-why = "0.0 m from its room's floor, within a big chest's reach (1.35 m)"
+why = "0.0 m from its room's floor, within a small chest's reach (1.25 m)"

@@ -111,6 +111,25 @@ pub fn swap(
     Ok(())
 }
 
+/// The items among `items` logic names in `needed`, or with no logic
+/// those that aren't junk: what a trap passes for, and what grows a chest
+/// whose size matches its contents (`chest_size`).
+pub fn wanted<'a>(
+    romfs: &Romfs,
+    items: impl Iterator<Item = &'a str>,
+    needed: Option<&BTreeSet<&str>>,
+) -> Result<BTreeSet<&'a str>> {
+    let items: BTreeSet<&str> = items.collect();
+    Ok(match needed {
+        Some(needed) => items.into_iter().filter(|i| needed.contains(i)).collect(),
+        // Junk only matters with no logic to say what's needed.
+        None => {
+            let junk = junk(romfs, items.iter().copied(), &BTreeSet::new())?;
+            items.into_iter().filter(|i| !junk.contains(i)).collect()
+        }
+    })
+}
+
 /// Dress each trap in `placements` as an item logic needs (`needed`), or
 /// with no logic any item that isn't junk, drawn by `seed` from those the
 /// seed places. Each disguise is one copy, returned to write.
@@ -126,16 +145,10 @@ pub fn disguise(
     if traps.is_empty() {
         return Ok(vec![]);
     }
-    let placed = || placements.iter().map(|p| p.item);
-    // Junk only matters with no logic to say what's needed.
-    let junk = match needed {
-        None => junk(romfs, placed(), &BTreeSet::new())?,
-        Some(_) => BTreeSet::new(),
-    };
-    let wanted = |i: &str| needed.map_or(!junk.contains(i), |n| n.contains(i));
-    let shown: Vec<&str> = (placed().filter(|i| !i.starts_with(MADE) && wanted(i)))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
+    let placed = placements.iter().map(|p| p.item);
+    // A trap never passes for an item the seed makes, like a key ring.
+    let shown: Vec<&str> = (wanted(romfs, placed, needed)?.into_iter())
+        .filter(|i| !i.starts_with(MADE))
         .collect();
     ensure!(!shown.is_empty(), "no item for a trap to pass for");
     let mut rng = Rng::new(seed ^ SALT ^ 1);
@@ -185,6 +198,16 @@ mod tests {
     use crate::game::dev_dump;
     use crate::known::{actor, item};
     use crate::narrowing::tests::chest;
+
+    #[test]
+    fn wanted_keeps_an_item_the_seed_makes_and_logic_needs() {
+        let Some(romfs) = dev_dump() else { return };
+        let meter = crate::magic::meter::NAME;
+        let items = [meter, item::HOOKSHOT.get(), actor::T_BOX_RUPEE_RED.get()];
+        let needed = BTreeSet::from([meter, item::HOOKSHOT.get()]);
+        let wanted = wanted(&romfs, items.into_iter(), Some(&needed)).unwrap();
+        assert_eq!(wanted, needed);
+    }
 
     #[test]
     fn each_setting_swaps_its_share_of_the_junk() {

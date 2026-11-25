@@ -178,6 +178,12 @@ fn rebuild_among(
     {
         bail!("Close the game first: {} is running", busy.name);
     }
+    // A seed's table in the exefs patch would rebuild for every seed.
+    anyhow::ensure!(
+        !patch::carries_table(&target.mod_dir)?,
+        "{name}'s exefs patch carries a seed's table, so every seed would rebuild it: \
+         install seeds through install::install (zootr shuffle, the app), which splits it out"
+    );
     let _held = Held::take(name)?;
     run.step(Step::Rebuilding)?;
     let (program, rest) = args.split_first().context("an empty rebuild command")?;
@@ -590,6 +596,23 @@ mod tests {
         );
         std::fs::remove_dir_all(one).unwrap();
         std::fs::remove_dir_all(two).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_patch_carrying_a_seed_s_table_is_never_rebuilt() {
+        let dir = game("rebuild-unsplit");
+        let marker = dir.join("rebuilt");
+        let t = rebuilt_by(&target(&dir), format!("touch '{}'", marker.display()));
+        let table = patch::SeedTable::default();
+        patch::install(&t.mod_dir, crate::game::Release::V111, &table).unwrap();
+        let err = rebuilt(&t, &Run::silent()).unwrap_err().to_string();
+        assert!(err.contains("carries a seed's table"), "{err}");
+        assert!(!marker.exists());
+        patch::split(&t.mod_dir).unwrap();
+        let _ = rebuilt(&t, &Run::silent());
+        assert!(marker.exists(), "a split patch rebuilds");
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[cfg(unix)]
