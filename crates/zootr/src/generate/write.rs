@@ -491,6 +491,7 @@ impl<'a> Parts<'a> {
         let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
         let mut fields = new_game.fields.clone();
         let mut events = rsdb::Events::load(romfs)?;
+        steps::dev_event(&mut events)?;
         if new_game.scrubs {
             fields.extend(scrubs::fields(drops));
             scrubs::events(drops, &mut events)?;

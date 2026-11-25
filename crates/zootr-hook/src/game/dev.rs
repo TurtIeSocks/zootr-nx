@@ -8,8 +8,9 @@ use super::rt::{memcpy, memset};
 use super::{at, func, level_for, name, owned, shared};
 use crate::traps::COMPONENTS;
 use crate::{
-    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP, ARG_STEP_NAME,
-    ARG_SUMMARY, Ask, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv, play_event,
+    ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP_NAME,
+    ARG_SUMMARY, Ask, DEV_EVENT, GUARD, Mailbox, NAME, Notice, Offsets, Outcome, Spot, fnv,
+    play_event,
 };
 
 type Malloc = unsafe extern "C" fn(usize) -> usize;
@@ -295,9 +296,7 @@ unsafe fn request_event(
 }
 
 /// A teleport: the map change an entrance asks for, held back for
-/// [`GUARD`] seconds after the last. It names the dev switches false: a
-/// switch the request leaves out keeps the value the last request gave
-/// it, so after a quest step every teleport ran the step again.
+/// [`GUARD`] seconds after the last.
 unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let (now, rate) = clock();
     let last = mail.last.load(Ordering::Relaxed);
@@ -310,9 +309,6 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
         Arg::Text(b"NextStartPos\0", 1),
         Arg::Text(b"BootEventName\0", 2),
         Arg::Bool(b"IsCheckAir\0", false),
-        Arg::Bool(ARG_NOTICE, false),
-        Arg::Bool(ARG_GIVE, false),
-        Arg::Bool(ARG_STEP, false),
     ];
     let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
     if matches!(outcome, Outcome::Done | Outcome::Unanswered) {
@@ -324,24 +320,23 @@ unsafe fn teleport(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Ou
     outcome
 }
 
-/// A quest step: the same event with `ZootrStep` set, which a dev
-/// seed's flow answers by running the step, `map` the quest and
-/// `spot` its step, and ending. It changes no map, so the teleport
-/// guard doesn't apply. `ZootrNotice` and `ZootrGive` are asked first,
-/// so they're named false.
+/// A quest step: [`DEV_EVENT`] with `ZootrNotice` and `ZootrGive` false,
+/// which a seed's flow answers by running the step, `map` the quest and
+/// `spot` its step, and ending. It changes no map, so the teleport guard
+/// doesn't apply. Each dev request names every switch the flow asks
+/// before its own: one left out keeps the value the last request gave it.
 unsafe fn step(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
     let texts = [&mail.map, &mail.spot];
     let args = [
         Arg::Bool(ARG_NOTICE, false),
         Arg::Bool(ARG_GIVE, false),
-        Arg::Bool(ARG_STEP, true),
         Arg::Text(ARG_CHALLENGE, 0),
         Arg::Text(ARG_STEP_NAME, 1),
     ];
-    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) }
 }
 
-/// An item: the same event with `ZootrGive` set, which a dev seed's
+/// An item: [`DEV_EVENT`] with `ZootrGive` set, which a seed's
 /// flow answers by granting the actor `map` names, equipped when
 /// `ZootrEquip` is, and ending. The game's own grant sets what a
 /// bare write of the item's flags leaves out. With `level`, an item of a
@@ -362,14 +357,14 @@ unsafe fn give(main: usize, o: &Offsets, mail: &Mailbox, actor: usize, level: bo
     ];
     // Copied first: `item` may be `arrive` itself.
     let given = *item;
-    let outcome = unsafe { request_event(main, o, actor, EVENT, &texts, &args) };
+    let outcome = unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) };
     if level {
         unsafe { *mail.arrive.get() = given };
     }
     outcome
 }
 
-/// A received item's notice: the same event with `ZootrNotice` set, which
+/// A received item's notice: [`DEV_EVENT`] with `ZootrNotice` set, which
 /// a seed's flow answers by showing the banner `hour` picks, and for an
 /// item the popup for the actor `map` names. Neither stops Link.
 unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outcome {
@@ -388,7 +383,7 @@ unsafe fn notice(main: usize, o: &Offsets, mail: &Mailbox, actor: usize) -> Outc
         Arg::Bool(ARG_SUMMARY, kind != Notice::Item),
         Arg::Bool(ARG_MIXED, kind == Notice::Mixed),
     ];
-    unsafe { request_event(main, o, actor, EVENT, &texts, &args) }
+    unsafe { request_event(main, o, actor, DEV_EVENT, &texts, &args) }
 }
 
 /// What a [`Ask::GiveLevel`] gives: `arrive` when `spot` names what fires
