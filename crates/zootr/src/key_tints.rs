@@ -91,11 +91,11 @@ const SONGS: [(&Name, &Name); 5] = [
     (flag::SPIRIT_TEMPLE, item::MELODY_SPIRIT_REQUIEM),
 ];
 /// The rest. Ganon's black is lifted so the key still reads as metal. The
-/// Training Ground's is ivory, not Prelude of Light's yellow, which a chest
-/// would show near the gold look's.
+/// Training Ground's is cream, not Prelude of Light's yellow, which a chest
+/// would show near the gold look's. Ivory read as plain silver in game.
 const OWN: [(&Name, Colour); 3] = [
     (flow::BOTTOM_OF_THE_WELL, [40, 185, 190]),
-    (flag::GERUDO_TRAINING_GROUND, [240, 235, 220]),
+    (flag::GERUDO_TRAINING_GROUND, [235, 215, 160]),
     (flag::INSIDE_GANON_CASTLE, [45, 45, 50]),
 ];
 
