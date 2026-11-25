@@ -46,40 +46,40 @@ fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
     Ok(out)
 }
 
-/// Each seed built with its settings set.
-pub fn golden<'a>(
-    cases: impl Iterator<Item = (&'a Settings, &'a Seed)>,
+/// The golden rows of case `n`: `seed`, built with `settings` set.
+pub fn rows(
+    n: usize,
+    settings: &Settings,
+    seed: &Seed,
     names: &Namer,
     ids: &Ids,
-) -> Result<Value> {
+) -> Result<Vec<Value>> {
     let mut out = Vec::new();
-    for (n, (settings, seed)) in cases.enumerate() {
-        for share in SHARES {
-            let mut pool = seed.dealt.pool.clone();
-            Rng::new((n * OF + share) as u64).shuffle(&mut pool);
-            pool.truncate(pool.len() * share / OF);
-            let mut have = seed.start.clone();
-            pool.iter().for_each(|i| have.add(i));
-            let play = seed.play(&have);
-            let goal = seed.world.beaten(&play.have);
-            let reached = play.reached;
-            let mut reachable = Vec::new();
-            for hash in reached.into_iter().filter(|h| seed.dealt.free.contains(h)) {
-                let id = ids.location_id(hash);
-                reachable.push(id.with_context(|| format!("check {hash} has no id"))?);
-            }
-            reachable.sort();
-            let items = pool
-                .iter()
-                .map(|a| names.item_in(a, Some(seed.dealt.new_game.progressive)))
-                .collect::<Result<Vec<_>>>()?;
-            out.push(json!({
-                "settings": exposed(settings)?,
-                "items": items,
-                "reachable": reachable,
-                "goal": goal,
-            }));
+    for share in SHARES {
+        let mut pool = seed.dealt.pool.clone();
+        Rng::new((n * OF + share) as u64).shuffle(&mut pool);
+        pool.truncate(pool.len() * share / OF);
+        let mut have = seed.start.clone();
+        pool.iter().for_each(|i| have.add(i));
+        let play = seed.play(&have);
+        let goal = seed.world.beaten(&play.have);
+        let reached = play.reached;
+        let mut reachable = Vec::new();
+        for hash in reached.into_iter().filter(|h| seed.dealt.free.contains(h)) {
+            let id = ids.location_id(hash);
+            reachable.push(id.with_context(|| format!("check {hash} has no id"))?);
         }
+        reachable.sort();
+        let items = pool
+            .iter()
+            .map(|a| names.item_in(a, Some(seed.dealt.new_game.progressive)))
+            .collect::<Result<Vec<_>>>()?;
+        out.push(json!({
+            "settings": exposed(settings)?,
+            "items": items,
+            "reachable": reachable,
+            "goal": goal,
+        }));
     }
-    Ok(Value::Array(out))
+    Ok(out)
 }

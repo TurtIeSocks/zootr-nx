@@ -53,9 +53,15 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
     let settings: Vec<Settings> = std::iter::once(base.clone())
         .chain(variants.iter().map(Variant::settings))
         .collect();
-    let set: Vec<Seed> = par_map(&settings, |s| Seed::build_in(&dump, s, &Default::default()))
+    // Only what each reaches is kept: a seed is large, so each drops as
+    // soon as it's read. The golden builds them again below.
+    let reach = Everything::union(
+        par_map(&settings, |s| {
+            Ok(Seed::build_in(&dump, s, &Default::default())?.everything())
+        })
         .into_iter()
-        .collect::<Result<_>>()?;
+        .collect::<Result<Vec<_>>>()?,
+    );
     let mut ids: Ids = serde_json::from_str(ids)?;
     let names = Namer::new(romfs, &seeds)?;
     let w = &base_seed.world;
@@ -80,7 +86,6 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
         form: None,
         levels: &levels,
     };
-    let reach = Everything::union(&set);
     let cx = Ctx {
         w,
         reach: &reach,
@@ -150,11 +155,16 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
         .map(&on)
         .filter(|t| !settings.contains(t))
         .collect();
-    let twin_seeds: Vec<Seed> = par_map(&twins, |s| Seed::build_in(&dump, s, &Default::default()))
-        .into_iter()
-        .collect::<Result<_>>()?;
-    let cases = (settings.iter().chain(&twins)).zip(set.iter().chain(&twin_seeds));
-    let golden = super::golden::golden(cases, &names, &ids)?;
+    // Each case's rows as its seed is built, so no more than a core's worth
+    // of seeds is ever held.
+    let cases: Vec<(usize, &Settings)> = settings.iter().chain(&twins).enumerate().collect();
+    let golden = par_map(&cases, |&(n, s)| {
+        let seed = Seed::build_in(&dump, s, &Default::default())?;
+        super::golden::rows(n, s, &seed, &names, &ids)
+    })
+    .into_iter()
+    .collect::<Result<Vec<_>>>()?;
+    let golden = Value::Array(golden.into_iter().flatten().collect());
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);

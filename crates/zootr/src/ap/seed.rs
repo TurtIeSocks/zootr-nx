@@ -40,13 +40,13 @@ pub(super) struct Everything {
 }
 
 impl Everything {
-    /// What Link reaches holding everything in any of `seeds`, each built
-    /// with its settings set: what an option lets Link into, like the dead
-    /// tree under Adult Deku Tree, or Bombchu Bowling's prizes with NPC
-    /// Gifts on and Bombchus free. The rest never happens.
-    pub fn union(seeds: &[Seed]) -> Self {
+    /// What Link reaches holding everything in any of the seeds `each` came
+    /// from, each built with its settings set: what an option lets Link
+    /// into, like the dead tree under Adult Deku Tree, or Bombchu Bowling's
+    /// prizes with NPC Gifts on and Bombchus free. The rest never happens.
+    pub fn union(each: impl IntoIterator<Item = Everything>) -> Self {
         let mut reach = Everything::default();
-        for other in seeds.iter().map(Seed::everything) {
+        for other in each {
             reach.checks.extend(other.checks);
             reach.sources.extend(other.sources);
             reach.places.extend(other.places);
