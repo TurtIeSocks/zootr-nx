@@ -12,12 +12,13 @@ export interface Area {
 /** What a check's text dialog edits. */
 export type Edit = "Note" | "Name";
 
-/** The user's label, else the place, else what it held. History fills the
+/** The user's label, else the check's name (`placeOf`). History fills the
  * names in for every seed; the ids only satisfy types. */
 export const nameOf = (r: Row) => r.label || placeOf(r);
-/** The place, else what it held: the name without the user's label. */
+/** Its hand-written name, else the place, else what it held: the name
+ * without the user's label. */
 export const placeOf = (r: Row) =>
-  r.spot.place || r.spot.chest_name || r.spot.vanilla;
+  r.spot.custom || r.spot.place || r.spot.chest_name || r.spot.vanilla;
 /** The row's area by name. */
 export const areaOf = (r: Row) => r.spot.area_name || r.spot.area;
 

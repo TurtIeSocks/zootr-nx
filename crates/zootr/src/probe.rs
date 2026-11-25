@@ -23,6 +23,7 @@ mod formats;
 mod hurts;
 mod logic;
 mod map;
+mod names;
 mod navmesh;
 mod plan;
 mod poses;
@@ -397,6 +398,14 @@ pub enum Probe {
         /// A map, by its Banc param name.
         map: String,
     },
+    /// A draft names file for one area (`logic/names/`): each check the
+    /// world has a location for, by room and position, its current name on
+    /// the line, and its rule's name and comment, room and vanilla item as
+    /// comments above.
+    Names {
+        /// The area, by its Archipelago name, like "Water Temple".
+        area: String,
+    },
     /// A map's rooms: its navmesh's faces joined without a locked door,
     /// with the chests and locks in each.
     Rooms {
@@ -579,6 +588,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         }
         Probe::Map { map } => map::map(romfs, game, &map),
         Probe::Rooms { map } => rooms::rooms(romfs, game, &map),
+        Probe::Names { area } => names::draft(romfs, &area),
         Probe::Climbs { map } => climbs::climbs(romfs, game, &map),
         Probe::Water {
             map,
