@@ -11,18 +11,17 @@ use serde::Serialize;
 use specta::Type;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
-use tauri_specta::{Event as _, collect_commands, collect_events};
+use tauri_specta::{collect_commands, collect_events};
 use zootr::build;
 use zootr::config::{Config, Target};
 use zootr::gamedata::GameData;
 use zootr::generate::plando::PlandoOptions;
 use zootr::generate::{self, Door, RoundEvent, Spot, Start};
 use zootr::history::{self, History, Label, Summary, View};
-use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
+use zootr::inventory;
 use zootr::platform;
 use zootr::progress::{self, Run};
 use zootr::recorder;
-use zootr::savefile::{self, Change};
 use zootr::settings::favorites::{self, BuiltIn};
 use zootr::settings::{SettingDef, Settings};
 use zootr::share;
@@ -34,6 +33,7 @@ mod checks;
 mod colors;
 mod dev_panel;
 mod generating;
+mod items;
 mod live_tab;
 mod save_editor;
 mod targets;
@@ -219,7 +219,7 @@ async fn set_config(app: AppHandle, config: Config) -> Res<Vec<String>> {
         config.save()?;
         app_log::set_level(config.dev_tools);
         if game_art(&old) != game_art(&config) || old.game != config.game {
-            app.state::<Items>().emit(&app);
+            app.state::<items::Items>().emit(&app);
         }
         Ok(notes)
     })
@@ -359,7 +359,7 @@ fn record(
     // A stopped install that took the mod off changed it too.
     if install {
         app.state::<archipelago::Ap>().reset(app);
-        app.state::<Items>().emit(app);
+        app.state::<items::Items>().emit(app);
     }
     summary
 }
@@ -419,7 +419,7 @@ fn reinstall(
     });
     // A stopped install that took the mod off changed it too.
     app.state::<archipelago::Ap>().reset(app);
-    app.state::<Items>().emit(app);
+    app.state::<items::Items>().emit(app);
     done
 }
 
@@ -443,7 +443,7 @@ async fn uninstall(app: AppHandle) -> Res<()> {
         history.save()?;
         log::info!("Took the mod off every target");
         app.state::<archipelago::Ap>().reset(&app);
-        app.state::<Items>().emit(&app);
+        app.state::<items::Items>().emit(&app);
         Ok(())
     })
     .await
@@ -523,85 +523,6 @@ fn play(target: String) -> Res<()> {
     let t = t.clone();
     zootr::turn::plays(config.turn.clone(), move || t.running());
     Ok(())
-}
-
-/// What the Items tab and the pop out draw.
-#[derive(Clone, Serialize, Type)]
-struct ItemsState {
-    cells: Vec<Cell>,
-    options: TrackerOptions,
-    /// The icons come from the dump: game assets are on and a dump is set.
-    game_art: bool,
-}
-
-/// The grid changed, or its options did.
-#[derive(Clone, Serialize, Type)]
-struct ItemsEvent(ItemsState);
-
-impl tauri_specta::Event for ItemsEvent {
-    const NAME: &'static str = "items-event";
-}
-
-/// What Link has, from the last save played since the installed seed went
-/// in and then the watcher's rows. Kept with that install time, so a new
-/// install starts it over.
-#[derive(Default)]
-struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
-
-impl Items {
-    fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
-        let config = Config::load()?;
-        let since = History::load()?.installed().at;
-        let mut items = self.0.lock().unwrap();
-        if items.as_ref().is_none_or(|(at, _)| *at != since) {
-            let gd = app.state::<Live>().gamedata(&config)?;
-            let mut inv = Inventory::new(&gd, &romfs(&config)?)?;
-            if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
-                inv.load(inventory::in_save(&savefile::load(&save)?));
-            }
-            *items = Some((since, inv));
-        }
-        Ok(ItemsState {
-            cells: items.as_ref().expect("just built").1.cells(),
-            game_art: game_art(&config),
-            options: config.tracker.tidy(),
-        })
-    }
-
-    fn change(&self, app: &AppHandle, change: &Change) {
-        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|(_, inv)| inv.change(change));
-        if changed {
-            self.emit(app);
-        }
-    }
-
-    /// Tells every window, so the tab and the pop out never disagree.
-    fn emit(&self, app: &AppHandle) {
-        if let Ok(state) = self.state(app) {
-            let _ = ItemsEvent(state).emit(app);
-        }
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn items_state(app: AppHandle) -> Res<ItemsState> {
-    blocking(move || app.state::<Items>().state(&app)).await
-}
-
-#[tauri::command]
-#[specta::specta]
-async fn items_options(app: AppHandle, options: TrackerOptions) -> Res<()> {
-    blocking(move || {
-        let config = Config {
-            tracker: options.tidy(),
-            ..Config::load()?
-        };
-        config.save()?;
-        app.state::<Items>().emit(&app);
-        Ok(())
-    })
-    .await
 }
 
 /// The window OBS captures: the grid alone, from `tauri.conf.json`.
@@ -767,8 +688,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             checks::checks_state,
             checks::checks_mark,
             checks::checks_pick,
-            items_state,
-            items_options,
+            items::items_state,
+            items::items_options,
             items_icons,
             items_pop_out,
             dev_pop_out,
@@ -800,7 +721,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             app_log::AppLogEvent,
             checks::ChecksEvent,
             checks::DoorsEvent,
-            ItemsEvent,
+            items::ItemsEvent,
             archipelago::ApEvent,
             ui::UiShared
         ])
@@ -866,7 +787,7 @@ pub fn run() -> tauri::Result<()> {
             app_log::attach(app.handle());
             app.manage(archipelago::Ap::default());
             app.manage(checks::Checks::default());
-            app.manage(Items::default());
+            app.manage(items::Items::default());
             app.manage(Generating::default());
             app.manage(save_editor::Layout::default());
             app.manage(Icons::default());
