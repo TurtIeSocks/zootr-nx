@@ -44,7 +44,7 @@
       "forbid": [],
       "hash": "46774521065789894",
       "id": 497,
-      "name": "Kokiri Forest West Pot 1",
+      "name": "KF Near Know It All House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -145,7 +145,7 @@
       "forbid": [],
       "hash": "129299066248871900",
       "id": 1,
-      "name": "Kokiri Forest Saria",
+      "name": "LW Gift from Saria",
       "unprovable": false
     },
     {
@@ -287,7 +287,7 @@
       "forbid": [],
       "hash": "182031956235860994",
       "id": 2,
-      "name": "Kokiri Forest Business Scrub (Sticks)",
+      "name": "KF Deku Scrub Near Bridge",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -884,7 +884,7 @@
       "forbid": [],
       "hash": "591443488390566560",
       "id": 1094,
-      "name": "Kokiri Forest Southeast Rock 3",
+      "name": "KF Behind Sarias House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1248,7 +1248,7 @@
       "forbid": [],
       "hash": "802407974539353270",
       "id": 1095,
-      "name": "Kokiri Forest West Rock 7",
+      "name": "KF Rock Circle Adult Rock 8",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1752,7 +1752,7 @@
       "forbid": [],
       "hash": "1106450200910772173",
       "id": 1264,
-      "name": "Kokiri Forest Northeast Grass 2",
+      "name": "KF Behind Shop Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1807,7 +1807,7 @@
       "forbid": [],
       "hash": "1135865174486388723",
       "id": 1442,
-      "name": "Kokiri Forest South Recovery Heart 1",
+      "name": "KF Top of Sarias Child Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2114,7 +2114,7 @@
       "forbid": [],
       "hash": "1212183037605930043",
       "id": 223,
-      "name": "Kokiri Forest Shop 2",
+      "name": "KF Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -2130,7 +2130,7 @@
       "forbid": [],
       "hash": "1214219023609128151",
       "id": 1443,
-      "name": "Kokiri Forest South Recovery Heart 2",
+      "name": "KF Top of Sarias Adult Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2800,7 +2800,7 @@
       "forbid": [],
       "hash": "1564209214895161222",
       "id": 1447,
-      "name": "Kokiri Forest South Blue Rupee (5)",
+      "name": "KF End of Bridge Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2989,7 +2989,7 @@
       "forbid": [],
       "hash": "1640513490125741145",
       "id": 1271,
-      "name": "Kokiri Forest Southeast Grass 2",
+      "name": "KF Weeding Yard Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3149,7 +3149,7 @@
       "forbid": [],
       "hash": "1748192465494650957",
       "id": 271,
-      "name": "Kokiri Forest Shop 7",
+      "name": "KF Shop Item 7",
       "unprovable": true,
       "when": {
         "ref": 19
@@ -3730,7 +3730,7 @@
       "forbid": [],
       "hash": "2056926167552020049",
       "id": 1451,
-      "name": "Kokiri Forest East Blue Rupee (5) 2",
+      "name": "KF Stream Blue Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3782,7 +3782,7 @@
       "forbid": [],
       "hash": "2108281022000564101",
       "id": 572,
-      "name": "Kokiri Forest West Pot 2",
+      "name": "KF Near Know It All House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4420,7 +4420,7 @@
       "forbid": [],
       "hash": "2512122383157745514",
       "id": 1458,
-      "name": "Kokiri Forest East Green Rupee (1) 3",
+      "name": "KF Bean Platform Green Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4640,7 +4640,7 @@
       "forbid": [],
       "hash": "2657789777104100407",
       "id": 1107,
-      "name": "Kokiri Forest Northwest Rock 20",
+      "name": "KF Rock Circle Adult Rock 11",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4656,7 +4656,7 @@
       "forbid": [],
       "hash": "2661037609348760452",
       "id": 1108,
-      "name": "Kokiri Forest Northwest Rock 19",
+      "name": "KF Rock Circle Rock 7",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5026,7 +5026,7 @@
       "forbid": [],
       "hash": "2882450735448834595",
       "id": 1287,
-      "name": "Kokiri Forest Southeast Grass 6",
+      "name": "KF Weeding Yard Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5470,7 +5470,7 @@
       "forbid": [],
       "hash": "3211747475593407179",
       "id": 1460,
-      "name": "Kokiri Forest South Recovery Heart 8",
+      "name": "KF Sarias House Child Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -5989,7 +5989,7 @@
       "forbid": [],
       "hash": "3535150139081827459",
       "id": 1293,
-      "name": "Kokiri Forest Northwest Grass 4",
+      "name": "KF Near Midos House Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6176,7 +6176,7 @@
       "forbid": [],
       "hash": "3669266735444406174",
       "id": 1464,
-      "name": "Kokiri Forest East Green Rupee (1) 6",
+      "name": "KF Bean Platform Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6978,7 +6978,7 @@
       "forbid": [],
       "hash": "4164292104786619976",
       "id": 1124,
-      "name": "Kokiri Forest Northwest Rock 8",
+      "name": "KF Rock Circle Child Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7012,7 +7012,7 @@
       "forbid": [],
       "hash": "4182932136190668163",
       "id": 1125,
-      "name": "Kokiri Forest Northwest Rock 10",
+      "name": "KF Rock Circle Child Rock 10",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7282,7 +7282,7 @@
       "forbid": [],
       "hash": "4349272251343787229",
       "id": 30,
-      "name": "Kokiri Forest West Purple Rupee (50) Chest",
+      "name": "KF Ledge Near Bridge Chest",
       "unprovable": false
     },
     {
@@ -7311,7 +7311,7 @@
       "forbid": [],
       "hash": "4350448546553475237",
       "id": 1299,
-      "name": "Kokiri Forest Southeast Grass 1",
+      "name": "KF Weeding Yard Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7503,7 +7503,7 @@
       "forbid": [],
       "hash": "4460159811813955992",
       "id": 1301,
-      "name": "Kokiri Forest Northeast Grass 6",
+      "name": "KF Behind Shop Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7519,7 +7519,7 @@
       "forbid": [],
       "hash": "4462556192312188043",
       "id": 1471,
-      "name": "Kokiri Forest East Green Rupee (1) 8",
+      "name": "KF Bean Platform Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7551,7 +7551,7 @@
       "forbid": [],
       "hash": "4490005694725260163",
       "id": 1472,
-      "name": "Kokiri Forest North Blue Rupee (5)",
+      "name": "KF Stream Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7735,7 +7735,7 @@
       "forbid": [],
       "hash": "4555665598794293658",
       "id": 34,
-      "name": "Kokiri Forest Mido's House Front Left Chest",
+      "name": "KF Midos Top Right Chest",
       "unprovable": false
     },
     {
@@ -7790,7 +7790,7 @@
       "forbid": [],
       "hash": "4576019929976975366",
       "id": 1474,
-      "name": "Kokiri Forest East Green Rupee (1) 2",
+      "name": "KF Bean Platform Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8100,7 +8100,7 @@
       "forbid": [],
       "hash": "4738397009648900238",
       "id": 1128,
-      "name": "Kokiri Forest West Rock 5",
+      "name": "KF Rock Circle Adult Rock 9",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8116,7 +8116,7 @@
       "forbid": [],
       "hash": "4751294038826612236",
       "id": 1477,
-      "name": "Kokiri Forest South Recovery Heart 7",
+      "name": "KF Sarias House Adult Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8202,7 +8202,7 @@
       "forbid": [],
       "hash": "4804777660082210636",
       "id": 256,
-      "name": "Kokiri Forest Shop 5",
+      "name": "KF Shop Item 5",
       "unprovable": true,
       "when": {
         "ref": 51
@@ -8731,7 +8731,7 @@
       "forbid": [],
       "hash": "5133775918408786238",
       "id": 666,
-      "name": "Kokiri Forest Southeast Pot 1",
+      "name": "KF Near House of Twins Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8837,7 +8837,7 @@
       "forbid": [],
       "hash": "5190570933151534141",
       "id": 1312,
-      "name": "Kokiri Forest Northeast Grass 5",
+      "name": "KF Behind Shop Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9011,7 +9011,7 @@
       "forbid": [],
       "hash": "5312950394209176374",
       "id": 1132,
-      "name": "Kokiri Forest Northwest Rock 11",
+      "name": "KF Rock Circle Adult Rock 12",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9318,7 +9318,7 @@
       "forbid": [],
       "hash": "5556420768102851394",
       "id": 1134,
-      "name": "Kokiri Forest Northwest Rock 4",
+      "name": "KF Near Midos House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9549,7 +9549,7 @@
       "forbid": [],
       "hash": "5648900055318470269",
       "id": 1317,
-      "name": "Kokiri Forest Northeast Grass 3",
+      "name": "KF Behind Shop Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9623,7 +9623,7 @@
       "forbid": [],
       "hash": "5675403228854574159",
       "id": 1138,
-      "name": "Kokiri Forest Northwest Rock 17",
+      "name": "KF Rock Circle Adult Rock 13",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9887,7 +9887,7 @@
       "forbid": [],
       "hash": "5853846732169153879",
       "id": 1140,
-      "name": "Kokiri Forest West Rock 3",
+      "name": "KF Rock Circle Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10214,7 +10214,7 @@
       "forbid": [],
       "hash": "6079532033038180376",
       "id": 1486,
-      "name": "Kokiri Forest Northeast Blue Rupee (5)",
+      "name": "KF Stream Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10383,7 +10383,7 @@
       "forbid": [],
       "hash": "6226476025750490375",
       "id": 1146,
-      "name": "Kokiri Forest Northwest Rock 3",
+      "name": "KF Near Midos House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10738,7 +10738,7 @@
       "forbid": [],
       "hash": "6429280567576879719",
       "id": 1147,
-      "name": "Kokiri Forest Northwest Rock 14",
+      "name": "KF Rock Circle Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10754,7 +10754,7 @@
       "forbid": [],
       "hash": "6438251486637186433",
       "id": 1325,
-      "name": "Kokiri Forest Northeast Grass 1",
+      "name": "KF Behind Shop Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10963,7 +10963,7 @@
       "forbid": [],
       "hash": "6618764049130440222",
       "id": 1490,
-      "name": "Kokiri Forest Southwest Blue Rupee (5) 1",
+      "name": "KF Boulder Maze Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10995,7 +10995,7 @@
       "forbid": [],
       "hash": "6674340586234083423",
       "id": 1326,
-      "name": "Kokiri Forest Northwest Grass 3",
+      "name": "KF Near Midos House Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11331,7 +11331,7 @@
       "forbid": [],
       "hash": "6890402875059286502",
       "id": 1330,
-      "name": "Kokiri Forest Southeast Grass 5",
+      "name": "KF Weeding Yard Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11686,7 +11686,7 @@
       "forbid": [],
       "hash": "7116603238806634901",
       "id": 337,
-      "name": "Kokiri Forest Southeast Gold Skulltula Token",
+      "name": "KF GS House of Twins",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -11990,7 +11990,7 @@
       "forbid": [],
       "hash": "7243630621233515413",
       "id": 1152,
-      "name": "Kokiri Forest West Rock 8",
+      "name": "KF Rock Circle Child Rock 8",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12125,7 +12125,7 @@
       "forbid": [],
       "hash": "7313645087345190627",
       "id": 1153,
-      "name": "Kokiri Forest Southeast Rock 4",
+      "name": "KF Behind Sarias House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13313,7 +13313,7 @@
       "forbid": [],
       "hash": "8161552603046357963",
       "id": 284,
-      "name": "Kokiri Forest Shop 8",
+      "name": "KF Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -13380,7 +13380,7 @@
       "forbid": [],
       "hash": "8217415107461137996",
       "id": 1495,
-      "name": "Kokiri Forest South Recovery Heart 10",
+      "name": "KF Sarias House Child Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -13845,7 +13845,7 @@
       "forbid": [],
       "hash": "8686048425858269244",
       "id": 1499,
-      "name": "Kokiri Forest East Green Rupee (1) 7",
+      "name": "KF Bean Platform Green Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14075,7 +14075,7 @@
       "forbid": [],
       "hash": "8795160036094865435",
       "id": 1164,
-      "name": "Kokiri Forest Northwest Rock 21",
+      "name": "KF Rock Circle Child Rock 11",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14355,7 +14355,7 @@
       "forbid": [],
       "hash": "8931631613049749371",
       "id": 1166,
-      "name": "Kokiri Forest Northwest Rock 13",
+      "name": "KF Rock Circle Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15286,7 +15286,7 @@
       "forbid": [],
       "hash": "9296345993092817586",
       "id": 1173,
-      "name": "Kokiri Forest West Rock 12",
+      "name": "KF Near Know It All House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15349,7 +15349,7 @@
       "forbid": [],
       "hash": "9333984718219537434",
       "id": 1508,
-      "name": "Kokiri Forest South Recovery Heart 3",
+      "name": "KF Sarias House Child Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15897,7 +15897,7 @@
       "forbid": [],
       "hash": "9623998892552467148",
       "id": 358,
-      "name": "Kokiri Forest East Gold Skulltula Token",
+      "name": "KF GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -15989,7 +15989,7 @@
       "forbid": [],
       "hash": "9667799371071602538",
       "id": 1512,
-      "name": "Kokiri Forest East Green Rupee (1) 1",
+      "name": "KF Bean Platform Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16087,7 +16087,7 @@
       "forbid": [],
       "hash": "9725242744547055868",
       "id": 68,
-      "name": "Kokiri Forest Mido's House Front Right Chest",
+      "name": "KF Midos Top Left Chest",
       "unprovable": false
     },
     {
@@ -16136,7 +16136,7 @@
       "forbid": [],
       "hash": "9778104484775444655",
       "id": 1513,
-      "name": "Kokiri Forest Southeast Recovery Heart 1",
+      "name": "KF Top of Sarias Child Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16271,7 +16271,7 @@
       "forbid": [],
       "hash": "9810178254940844962",
       "id": 1174,
-      "name": "Kokiri Forest Southeast Rock 2",
+      "name": "KF Behind Sarias House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17281,7 +17281,7 @@
       "forbid": [],
       "hash": "10327775662812412709",
       "id": 1521,
-      "name": "Kokiri Forest East Green Rupee (1) 5",
+      "name": "KF Bean Platform Green Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -17758,7 +17758,7 @@
       "forbid": [],
       "hash": "10656348214587939196",
       "id": 1180,
-      "name": "Kokiri Forest Northwest Rock 15",
+      "name": "KF Rock Circle Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17944,7 +17944,7 @@
       "forbid": [],
       "hash": "10831981390482426294",
       "id": 77,
-      "name": "Kokiri Forest Mido's House Back Right Chest",
+      "name": "KF Midos Bottom Left Chest",
       "unprovable": false
     },
     {
@@ -18178,7 +18178,7 @@
       "forbid": [],
       "hash": "10951624736530275630",
       "id": 1355,
-      "name": "Kokiri Forest Northwest Grass 2",
+      "name": "KF Near Midos House Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18469,7 +18469,7 @@
       "forbid": [],
       "hash": "11131560251710515452",
       "id": 176,
-      "name": "Kokiri Forest Rock Clearing",
+      "name": "KF Rock Circle Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18541,7 +18541,7 @@
       "forbid": [],
       "hash": "11142894434822030727",
       "id": 308,
-      "name": "Kokiri Forest Link's House Cow",
+      "name": "KF Links House Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -18700,7 +18700,7 @@
       "forbid": [],
       "hash": "11219803099333988363",
       "id": 1528,
-      "name": "Kokiri Forest Northeast Green Rupee (1)",
+      "name": "KF Stream Green Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -18734,7 +18734,7 @@
       "forbid": [],
       "hash": "11271184709488608562",
       "id": 1360,
-      "name": "Kokiri Forest Northwest Grass 6",
+      "name": "KF Near Midos House Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18934,7 +18934,7 @@
       "forbid": [],
       "hash": "11400416564850751157",
       "id": 1362,
-      "name": "Kokiri Forest Southeast Grass 4",
+      "name": "KF Weeding Yard Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19174,7 +19174,7 @@
       "forbid": [],
       "hash": "11501932305561522817",
       "id": 1529,
-      "name": "Kokiri Forest South Recovery Heart 9",
+      "name": "KF Sarias House Adult Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19388,7 +19388,7 @@
       "forbid": [],
       "hash": "11595064306709942551",
       "id": 241,
-      "name": "Kokiri Forest Shop 1",
+      "name": "KF Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -19503,7 +19503,7 @@
       "forbid": [],
       "hash": "11634540265512998108",
       "id": 860,
-      "name": "Kokiri Forest Southeast Pot 2",
+      "name": "KF Near House of Twins Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19810,7 +19810,7 @@
       "forbid": [],
       "hash": "11881247981246911148",
       "id": 1189,
-      "name": "Kokiri Forest West Rock 11",
+      "name": "KF Near Know It All House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20063,7 +20063,7 @@
       "forbid": [],
       "hash": "12045642716728132811",
       "id": 1191,
-      "name": "Kokiri Forest West Rock 6",
+      "name": "KF Rock Circle Child Rock 9",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20079,7 +20079,7 @@
       "forbid": [],
       "hash": "12079876816721924835",
       "id": 1535,
-      "name": "Kokiri Forest East Green Rupee (1) 4",
+      "name": "KF Bean Platform Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20375,7 +20375,7 @@
       "forbid": [],
       "hash": "12216364986168177616",
       "id": 1369,
-      "name": "Kokiri Forest Northwest Grass 5",
+      "name": "KF Near Midos House Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20503,7 +20503,7 @@
       "forbid": [],
       "hash": "12274555791381804315",
       "id": 244,
-      "name": "Kokiri Forest Shop 3",
+      "name": "KF Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -20553,7 +20553,7 @@
       "forbid": [],
       "hash": "12317452644253046635",
       "id": 1536,
-      "name": "Kokiri Forest Southeast Recovery Heart 2",
+      "name": "KF Top of Sarias Adult Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20764,7 +20764,7 @@
       "forbid": [],
       "hash": "12416733255464110660",
       "id": 245,
-      "name": "Kokiri Forest Shop 4",
+      "name": "KF Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -21238,7 +21238,7 @@
       "forbid": [],
       "hash": "12744945159394614918",
       "id": 1540,
-      "name": "Kokiri Forest South Recovery Heart 5",
+      "name": "KF Top of Sarias Child Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -21312,7 +21312,7 @@
       "forbid": [],
       "hash": "12786193094758345086",
       "id": 90,
-      "name": "Kokiri Forest Mido's House Back Left Chest",
+      "name": "KF Midos Bottom Right Chest",
       "unprovable": false
     },
     {
@@ -21639,7 +21639,7 @@
       "forbid": [],
       "hash": "13002777795600434992",
       "id": 1201,
-      "name": "Kokiri Forest West Rock 4",
+      "name": "KF Rock Circle Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21655,7 +21655,7 @@
       "forbid": [],
       "hash": "13009491718918701905",
       "id": 1377,
-      "name": "Kokiri Forest Southeast Grass 3",
+      "name": "KF Weeding Yard Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21903,7 +21903,7 @@
       "forbid": [],
       "hash": "13164882936498639212",
       "id": 1202,
-      "name": "Kokiri Forest Northwest Rock 5",
+      "name": "KF Rock Circle Adult Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21941,7 +21941,7 @@
       "forbid": [],
       "hash": "13192127861177212694",
       "id": 269,
-      "name": "Kokiri Forest Shop 6",
+      "name": "KF Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -21973,7 +21973,7 @@
       "forbid": [],
       "hash": "13219695470225186387",
       "id": 1203,
-      "name": "Kokiri Forest Northwest Rock 12",
+      "name": "KF Rock Circle Child Rock 12",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22073,7 +22073,7 @@
       "forbid": [],
       "hash": "13297194429826823773",
       "id": 1381,
-      "name": "Kokiri Forest Northeast Grass 4",
+      "name": "KF Behind Shop Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22125,7 +22125,7 @@
       "forbid": [],
       "hash": "13321954940214063371",
       "id": 1206,
-      "name": "Kokiri Forest Northwest Rock 18",
+      "name": "KF Rock Circle Child Rock 13",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22890,7 +22890,7 @@
       "forbid": [],
       "hash": "13752432406165881016",
       "id": 1545,
-      "name": "Kokiri Forest South Recovery Heart 4",
+      "name": "KF Sarias House Adult Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22906,7 +22906,7 @@
       "forbid": [],
       "hash": "13766700305743331316",
       "id": 1546,
-      "name": "Kokiri Forest Southeast Recovery Heart 4",
+      "name": "KF Sarias House Child Recovery Heart 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22975,7 +22975,7 @@
       "forbid": [],
       "hash": "13817169663978116369",
       "id": 1211,
-      "name": "Kokiri Forest West Rock 1",
+      "name": "KF Rock Circle Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23034,7 +23034,7 @@
       "forbid": [],
       "hash": "13833126295519757344",
       "id": 1212,
-      "name": "Kokiri Forest Southeast Rock 1",
+      "name": "KF Behind Sarias House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23684,7 +23684,7 @@
       "forbid": [],
       "hash": "14381003020707329822",
       "id": 1549,
-      "name": "Kokiri Forest East Blue Rupee (5) 1",
+      "name": "KF Shop Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -24193,7 +24193,7 @@
       "forbid": [],
       "hash": "14765439090025621259",
       "id": 1218,
-      "name": "Kokiri Forest Northwest Rock 2",
+      "name": "KF Near Midos House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24257,7 +24257,7 @@
       "forbid": [],
       "hash": "14818888396401495482",
       "id": 105,
-      "name": "Kokiri Forest Northwest Green Rupee (1) Chest",
+      "name": "KF Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -24338,7 +24338,7 @@
       "forbid": [],
       "hash": "14828228683041039284",
       "id": 944,
-      "name": "Kokiri Forest West Pot 3",
+      "name": "KF Near Know It All House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24765,7 +24765,7 @@
       "forbid": [],
       "hash": "15115104996046978489",
       "id": 1223,
-      "name": "Kokiri Forest West Rock 9",
+      "name": "KF Near Know It All House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24880,7 +24880,7 @@
       "forbid": [],
       "hash": "15188778840589944684",
       "id": 1393,
-      "name": "Kokiri Forest Northwest Grass 1",
+      "name": "KF Near Midos House Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24948,7 +24948,7 @@
       "forbid": [],
       "hash": "15227875255265438204",
       "id": 1554,
-      "name": "Kokiri Forest South Recovery Heart 6",
+      "name": "KF Top of Sarias Adult Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -25153,7 +25153,7 @@
       "forbid": [],
       "hash": "15339892171811522074",
       "id": 1225,
-      "name": "Kokiri Forest West Rock 10",
+      "name": "KF Near Know It All House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25203,7 +25203,7 @@
       "forbid": [],
       "hash": "15388836867476865988",
       "id": 1226,
-      "name": "Kokiri Forest Northwest Rock 9",
+      "name": "KF Rock Circle Adult Rock 10",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25219,7 +25219,7 @@
       "forbid": [],
       "hash": "15406610986108637956",
       "id": 956,
-      "name": "Kokiri Forest Southeast Pot 3",
+      "name": "KF Near House of Twins Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25596,7 +25596,7 @@
       "forbid": [],
       "hash": "15732862253800965646",
       "id": 1228,
-      "name": "Kokiri Forest Northwest Rock 7",
+      "name": "KF Rock Circle Adult Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25612,7 +25612,7 @@
       "forbid": [],
       "hash": "15770142332975255876",
       "id": 1229,
-      "name": "Kokiri Forest Northwest Rock 1",
+      "name": "KF Near Midos House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -26698,7 +26698,7 @@
       "forbid": [],
       "hash": "16386301107460847261",
       "id": 990,
-      "name": "Kokiri Forest West Pot 4",
+      "name": "KF Near Know It All House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26982,7 +26982,7 @@
       "forbid": [],
       "hash": "16647730239269178270",
       "id": 1560,
-      "name": "Kokiri Forest Southwest Blue Rupee (5) 2",
+      "name": "KF Boulder Maze Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27147,7 +27147,7 @@
       "forbid": [],
       "hash": "16757992849254467386",
       "id": 119,
-      "name": "Kokiri Forest Southwest Kokiri Sword Chest",
+      "name": "KF Kokiri Sword Chest",
       "unprovable": false
     },
     {
@@ -27160,7 +27160,7 @@
       "forbid": [],
       "hash": "16780156705177292663",
       "id": 1234,
-      "name": "Kokiri Forest West Rock 2",
+      "name": "KF Rock Circle Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27315,7 +27315,7 @@
       "forbid": [],
       "hash": "16857565298886773615",
       "id": 1236,
-      "name": "Kokiri Forest Northwest Rock 6",
+      "name": "KF Rock Circle Child Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27382,7 +27382,7 @@
       "forbid": [],
       "hash": "16890252572970412506",
       "id": 1563,
-      "name": "Kokiri Forest Southeast Recovery Heart 3",
+      "name": "KF Sarias House Adult Recovery Heart 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27807,7 +27807,7 @@
       "forbid": [],
       "hash": "17067594426901953848",
       "id": 400,
-      "name": "Kokiri Forest West Gold Skulltula Token",
+      "name": "KF GS Know It All House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -28019,7 +28019,7 @@
       "forbid": [],
       "hash": "17186151219195818834",
       "id": 1240,
-      "name": "Kokiri Forest Northwest Rock 16",
+      "name": "KF Rock Circle Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28035,7 +28035,7 @@
       "forbid": [],
       "hash": "17212015369679208115",
       "id": 1568,
-      "name": "Kokiri Forest Purple Rupee (50)",
+      "name": "KF Bean Platform Purple Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -29153,7 +29153,7 @@
       "forbid": [],
       "hash": "17867878524448700795",
       "id": 192,
-      "name": "Kokiri Forest Yard Weeding",
+      "name": "KF Weeding Yard Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -29254,7 +29254,7 @@
       "forbid": [],
       "hash": "17935200704288465987",
       "id": 1038,
-      "name": "Kokiri Forest Southeast Pot 4",
+      "name": "KF Near House of Twins Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"

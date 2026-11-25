@@ -1,0 +1,186 @@
+# Kokiri Forest. OoTR's name wherever the remake keeps the spot: matched
+# by position against the remake's houses, doors, soil and streams, the
+# rule comments and the remake guides for the Gold Skulltulas. The bridge
+# to Hyrule Field is in the west, the Lost Woods in the north, the Deku
+# Tree in the east, Link's house in the southwest.
+#
+# The child and adult maps each hold their own copy of many pots, rocks,
+# grass and hearts, as separate checks. Where both ages have one at the
+# same spot, the name says which, as OoTR's Market Guard House Child Pot
+# does, and the two share a number. Numbers count west to east within one
+# spot.
+#
+# The map takes in the bridge out to Hyrule Field, which OoTR counts as
+# Lost Woods. The scrub and the ledge chest there are placed in the Lost
+# Woods map as well, as separate checks named with LW.
+
+# Gifts and rewards
+129299066248871900 = "LW Gift from Saria" # OoTR's name: on the bridge out of the forest, which the Kokiri Forest map holds
+11131560251710515452 = "KF Rock Circle Reward"
+17867878524448700795 = "KF Weeding Yard Reward"
+11142894434822030727 = "KF Links House Cow"
+
+# Mido's house, four chests by the north wall. Matched to OoTR by what
+# they hold, not by facing: the lone Green Rupee sits back right, where
+# OoTR's Bottom Left holds its Green Rupee, so OoTR's top is the door side.
+9725242744547055868 = "KF Midos Top Left Chest" # guess: front right, Blue Rupee as OoTR's
+4555665598794293658 = "KF Midos Top Right Chest" # guess: front left, Blue Rupee as OoTR's
+10831981390482426294 = "KF Midos Bottom Left Chest" # guess: back right, Green Rupee as OoTR's
+12786193094758345086 = "KF Midos Bottom Right Chest" # guess: back left, a Blue Rupee where OoTR's held a heart
+
+# The Kokiri Sword, past the boulder maze and the crawlspace, with the
+# maze's two Blue Rupees.
+16757992849254467386 = "KF Kokiri Sword Chest"
+16647730239269178270 = "KF Boulder Maze Blue Rupee 1"
+6618764049130440222 = "KF Boulder Maze Blue Rupee 2"
+
+# The Storms Grotto, under the cover by the Lost Woods entrance. The
+# remake adds the three Deku Scrub Brothers, whose puzzle makes the chest
+# appear.
+14818888396401495482 = "KF Storms Grotto Chest"
+
+# Gold Skulltulas, as the remake guides place them: the wall behind the
+# Know-It-All Brothers' house, the soil behind the shop, and high on the
+# back of the Twins' house.
+17067594426901953848 = "KF GS Know It All House"
+9623998892552467148 = "KF GS Bean Patch"
+7116603238806634901 = "KF GS House of Twins"
+
+# The shop. Items keep the game's own shelf numbers.
+11595064306709942551 = "KF Shop Item 1"
+1212183037605930043 = "KF Shop Item 2"
+12274555791381804315 = "KF Shop Item 3"
+12416733255464110660 = "KF Shop Item 4"
+4804777660082210636 = "KF Shop Item 5"
+13192127861177212694 = "KF Shop Item 6"
+1748192465494650957 = "KF Shop Item 7"
+8161552603046357963 = "KF Shop Item 8"
+14381003020707329822 = "KF Shop Blue Rupee"
+
+# Saria's house: three hearts on the roof, four inside.
+12744945159394614918 = "KF Top of Sarias Child Recovery Heart 1"
+15227875255265438204 = "KF Top of Sarias Adult Recovery Heart 1"
+1135865174486388723 = "KF Top of Sarias Child Recovery Heart 2"
+1214219023609128151 = "KF Top of Sarias Adult Recovery Heart 2"
+9778104484775444655 = "KF Top of Sarias Child Recovery Heart 3"
+12317452644253046635 = "KF Top of Sarias Adult Recovery Heart 3"
+3211747475593407179 = "KF Sarias House Child Recovery Heart 1"
+4751294038826612236 = "KF Sarias House Adult Recovery Heart 1"
+8217415107461137996 = "KF Sarias House Child Recovery Heart 2"
+11501932305561522817 = "KF Sarias House Adult Recovery Heart 2"
+9333984718219537434 = "KF Sarias House Child Recovery Heart 3"
+13752432406165881016 = "KF Sarias House Adult Recovery Heart 3"
+13766700305743331316 = "KF Sarias House Child Recovery Heart 4"
+16890252572970412506 = "KF Sarias House Adult Recovery Heart 4"
+
+# Two rocks behind Saria's house, to the southeast.
+7313645087345190627 = "KF Behind Sarias House Child Rock 1"
+591443488390566560 = "KF Behind Sarias House Adult Rock 1"
+9810178254940844962 = "KF Behind Sarias House Child Rock 2"
+13833126295519757344 = "KF Behind Sarias House Adult Rock 2"
+
+# Rupees on and in the stream that winds past the shop toward the Deku
+# Tree. The remake's own: OoTR has none in the water.
+11219803099333988363 = "KF Stream Green Rupee"
+4490005694725260163 = "KF Stream Blue Rupee 1"
+6079532033038180376 = "KF Stream Blue Rupee 2"
+2056926167552020049 = "KF Stream Blue Rupee 3"
+
+# The Blue Rupee on the high ledge at the east end of the log bridge,
+# where Fado stands.
+1564209214895161222 = "KF End of Bridge Blue Rupee" # guess: northwest of Saria's house, as OoTR's is, at the end of a log bridge
+
+# The rupee circle up beside the shop's soil, on the bean ride from it:
+# eight Green Rupees round a Purple, where OoTR's had six round a Red.
+12079876816721924835 = "KF Bean Platform Green Rupee 1" # guess: adult only, 16 m from the soil and 5 m up
+3669266735444406174 = "KF Bean Platform Green Rupee 2" # guess: as above
+4576019929976975366 = "KF Bean Platform Green Rupee 3" # guess: as above
+4462556192312188043 = "KF Bean Platform Green Rupee 4" # guess: as above
+9667799371071602538 = "KF Bean Platform Green Rupee 5" # guess: as above
+8686048425858269244 = "KF Bean Platform Green Rupee 6" # guess: as above
+2512122383157745514 = "KF Bean Platform Green Rupee 7" # guess: as above
+10327775662812412709 = "KF Bean Platform Green Rupee 8" # guess: as above
+17212015369679208115 = "KF Bean Platform Purple Rupee" # guess: as above
+
+# Know-It-All Brothers' house, in the west. OoTR's two pots stood inside;
+# the remake's stand outside, south of the house, and hold the same Green
+# Rupees. Two rocks east of its door.
+2108281022000564101 = "KF Near Know It All House Child Pot 1"
+46774521065789894 = "KF Near Know It All House Adult Pot 1"
+14828228683041039284 = "KF Near Know It All House Child Pot 2"
+16386301107460847261 = "KF Near Know It All House Adult Pot 2"
+9296345993092817586 = "KF Near Know It All House Child Rock 1"
+11881247981246911148 = "KF Near Know It All House Adult Rock 1"
+15339892171811522074 = "KF Near Know It All House Child Rock 2"
+15115104996046978489 = "KF Near Know It All House Adult Rock 2"
+
+# House of Twins, in the southeast. OoTR's two pots stood inside; the
+# remake's stand outside, west of the house, and hold the same Green and
+# Blue Rupee.
+5133775918408786238 = "KF Near House of Twins Child Pot 1"
+11634540265512998108 = "KF Near House of Twins Adult Pot 1"
+15406610986108637956 = "KF Near House of Twins Child Pot 2"
+17935200704288465987 = "KF Near House of Twins Adult Pot 2"
+
+# Mido's house: two rocks west of it, three grass tufts east of it.
+5556420768102851394 = "KF Near Midos House Child Rock 1"
+6226476025750490375 = "KF Near Midos House Adult Rock 1"
+14765439090025621259 = "KF Near Midos House Child Rock 2"
+15770142332975255876 = "KF Near Midos House Adult Rock 2"
+11271184709488608562 = "KF Near Midos House Child Grass 1"
+12216364986168177616 = "KF Near Midos House Adult Grass 1"
+10951624736530275630 = "KF Near Midos House Child Grass 2"
+15188778840589944684 = "KF Near Midos House Adult Grass 2"
+3535150139081827459 = "KF Near Midos House Child Grass 3"
+6674340586234083423 = "KF Near Midos House Adult Grass 3"
+
+# Three grass tufts behind the shop, north of its door.
+1106450200910772173 = "KF Behind Shop Child Grass 1"
+6438251486637186433 = "KF Behind Shop Adult Grass 1"
+13297194429826823773 = "KF Behind Shop Child Grass 2"
+5648900055318470269 = "KF Behind Shop Adult Grass 2"
+4460159811813955992 = "KF Behind Shop Child Grass 3"
+5190570933151534141 = "KF Behind Shop Adult Grass 3"
+
+# The ring of rocks round the Kokiri south of Mido's house, whose reward
+# is above. Rock 7, at the middle, is in the child map only.
+17186151219195818834 = "KF Rock Circle Child Rock 1"
+10656348214587939196 = "KF Rock Circle Adult Rock 1"
+16780156705177292663 = "KF Rock Circle Child Rock 2"
+13817169663978116369 = "KF Rock Circle Adult Rock 2"
+13002777795600434992 = "KF Rock Circle Child Rock 3"
+5853846732169153879 = "KF Rock Circle Adult Rock 3"
+6429280567576879719 = "KF Rock Circle Child Rock 4"
+8931631613049749371 = "KF Rock Circle Adult Rock 4"
+4164292104786619976 = "KF Rock Circle Child Rock 5"
+15732862253800965646 = "KF Rock Circle Adult Rock 5"
+16857565298886773615 = "KF Rock Circle Child Rock 6"
+13164882936498639212 = "KF Rock Circle Adult Rock 6"
+2661037609348760452 = "KF Rock Circle Rock 7"
+7243630621233515413 = "KF Rock Circle Child Rock 8"
+802407974539353270 = "KF Rock Circle Adult Rock 8"
+12045642716728132811 = "KF Rock Circle Child Rock 9"
+4738397009648900238 = "KF Rock Circle Adult Rock 9"
+4182932136190668163 = "KF Rock Circle Child Rock 10"
+15388836867476865988 = "KF Rock Circle Adult Rock 10"
+8795160036094865435 = "KF Rock Circle Child Rock 11"
+2657789777104100407 = "KF Rock Circle Adult Rock 11"
+13219695470225186387 = "KF Rock Circle Child Rock 12"
+5312950394209176374 = "KF Rock Circle Adult Rock 12"
+13321954940214063371 = "KF Rock Circle Child Rock 13"
+5675403228854574159 = "KF Rock Circle Adult Rock 13"
+
+# The yard a Kokiri asks Link to weed, between Saria's house and the
+# middle of the village. Its reward is above.
+2882450735448834595 = "KF Weeding Yard Child Grass 1"
+6890402875059286502 = "KF Weeding Yard Adult Grass 1"
+1640513490125741145 = "KF Weeding Yard Child Grass 2"
+4350448546553475237 = "KF Weeding Yard Adult Grass 2"
+11400416564850751157 = "KF Weeding Yard Child Grass 3"
+13009491718918701905 = "KF Weeding Yard Adult Grass 3"
+
+# By the bridge out to Hyrule Field. The scrub is OoTR's LW Deku Scrub
+# Near Bridge, placed in this map too. The chest sits on the ledge above,
+# reached by the bean ride from the soil north of the bridge.
+182031956235860994 = "KF Deku Scrub Near Bridge" # guess: the same scrub as LW Deku Scrub Near Bridge, as this map places it
+4349272251343787229 = "KF Ledge Near Bridge Chest"
