@@ -638,7 +638,10 @@ pub(super) mod tests {
             let new_game = crate::settings::NewGame::from_settings(&settings, &[]).unwrap();
             let checks = checks::dealt(&romfs, &new_game).unwrap();
             let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
-            let vanilla = checks.iter().map(|c| (c.hash, c.item.as_str())).collect();
+            let vanilla = checks
+                .iter()
+                .map(|c| (c.hash, crate::keys::held(c)))
+                .collect();
             let play = world.play(&crate::fill::start(&new_game), &vanilla);
             (world.places[world.start()].clone(), play.reached)
         };
@@ -666,8 +669,10 @@ pub(super) mod tests {
             };
             let checks = checks::dealt(&romfs, &new_game).unwrap();
             let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
-            let mut placed: HashMap<u64, &str> =
-                checks.iter().map(|c| (c.hash, c.item.as_str())).collect();
+            let mut placed: HashMap<u64, &str> = checks
+                .iter()
+                .map(|c| (c.hash, crate::keys::held(c)))
+                .collect();
             if let Some(item) = swap {
                 assert!(
                     placed.insert(pedestal, item).is_some(),

@@ -115,6 +115,26 @@ pub fn is_shuffled(item: &str) -> bool {
     SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress() || map_copies::is_copy(item)
 }
 
+/// Each dungeon's ring copy and boss key copy, by its number less one.
+static RINGS: LazyLock<Vec<String>> =
+    LazyLock::new(|| (1..=DUNGEONS.len()).map(key_tints::ring).collect());
+static BOSSES: LazyLock<Vec<String>> =
+    LazyLock::new(|| (1..=DUNGEONS.len()).map(key_tints::boss).collect());
+
+/// What `check` gives logic when it keeps its vanilla item: a dungeon key
+/// counts as its dungeon's copy, the item the key needs ask for.
+pub fn held(check: &ItemCheck) -> &str {
+    let copies: &[String] = match check.item.as_str() {
+        i if i == SMALL => &RINGS,
+        i if i == BOSS => &BOSSES,
+        i => return i,
+    };
+    match dungeon_in(&check.area) {
+        Some(n) => &copies[n - 1],
+        None => &check.item,
+    }
+}
+
 /// With Keysanity, every small key copy, one for each key chest, and
 /// every boss key.
 pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
@@ -168,22 +188,28 @@ pub fn deal_copies(
 }
 
 /// `count` of dungeon `n`'s small keys as `keys` deals them: its ring, or
-/// that many copies. Nothing for none.
+/// that many copies. Nothing for none. With keys from the start, Link
+/// starts with every copy ([`crate::fill::start`]), so the need is met.
 fn smalls(n: usize, count: u32, keys: DungeonKeys) -> Option<Need> {
     let count = match keys {
         _ if count == 0 => return None,
         DungeonKeys::Rings => 1,
-        DungeonKeys::Singles => count,
-        DungeonKeys::Vanilla | DungeonKeys::Start => return None,
+        DungeonKeys::Singles | DungeonKeys::Vanilla | DungeonKeys::Start => count,
     };
     let actors = vec![key_tints::ring(n)];
     Some(Need::Items { actors, count })
 }
 
-/// With keys dealt as copies, what logic adds to `check`: the small keys
-/// its room needs in the worst order Link could spend them, or all its
-/// dungeon's where `key_rooms` has no count for it.
+/// With keys dealt as copies or left in their chests, what logic adds to
+/// `check`: the small keys its room needs in the worst order Link could
+/// spend them, or all its dungeon's where `key_rooms` has no count for it.
+/// A chest keeping its vanilla small key there asks for none, or it would
+/// wait on itself: the checks past its doors ask for every key, so for
+/// every key chest's route.
 pub fn dungeon_need(check: &ItemCheck, keys: DungeonKeys) -> Option<Need> {
+    if keys == DungeonKeys::Vanilla && check.item == SMALL && !key_rooms::by_room(check) {
+        return None;
+    }
     let (n, count) = key_rooms::count(check)?;
     smalls(n, count, keys)
 }
@@ -203,8 +229,8 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
     })
 }
 
-/// With keys dealt as copies, what logic adds to the way into `room`, a
-/// boss room: its dungeon's boss key and small keys.
+/// With keys dealt as copies or left in their chests, what logic adds to
+/// the way into `room`, a boss room: its dungeon's boss key and small keys.
 pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
     let i = DUNGEONS
         .iter()
@@ -506,7 +532,9 @@ mod tests {
         let need = dungeon_need(&forest, rings).unwrap().to_string();
         assert_eq!(need, key_tints::ring(n));
         assert!(dungeon_need(&at("Banc/FakeField/Fake.bcett.byml.zs".into()), rings).is_none());
-        assert!(dungeon_need(&forest, DungeonKeys::Start).is_none());
+        // Keys from the start ask what Singles does: Link starts with them.
+        let need = |keys| dungeon_need(&forest, keys).map(|n| n.to_string());
+        assert_eq!(need(DungeonKeys::Start), need(DungeonKeys::Singles));
         let door = boss_door_need(map::PHANTOM_GANON_STAGE, rings)
             .unwrap()
             .to_string();

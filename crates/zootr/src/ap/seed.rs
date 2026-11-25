@@ -146,7 +146,8 @@ impl Dealt {
             .map(|p| (p.check.hash, p.item.to_owned()))
             .collect();
         for c in checks.iter().filter(|c| !free.contains(&c.hash)) {
-            kept.entry(c.hash).or_insert_with(|| c.item.clone());
+            kept.entry(c.hash)
+                .or_insert_with(|| crate::keys::held(c).to_owned());
         }
         Ok(Self {
             new_game,

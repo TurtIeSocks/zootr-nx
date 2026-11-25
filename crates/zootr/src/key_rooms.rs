@@ -28,12 +28,22 @@ struct Dungeon {
     keys: u32,
     #[serde(default)]
     rooms: Vec<Room>,
+    /// Checks whose count isn't their room's, by placement hash.
+    #[serde(default)]
+    checks: Vec<Check>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Room {
     room: u32,
+    keys: u32,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Check {
+    hash: u64,
     keys: u32,
 }
 
@@ -70,6 +80,21 @@ fn load(text: &str) -> Result<Vec<(usize, Dungeon)>> {
                 r.room
             );
         }
+        for (i, c) in d.checks.iter().enumerate() {
+            ensure!(
+                c.keys <= all,
+                "{} check {}: {} of {all} keys",
+                d.name,
+                c.hash,
+                c.keys
+            );
+            ensure!(
+                d.checks[..i].iter().all(|o| o.hash != c.hash),
+                "{} check {} twice",
+                d.name,
+                c.hash
+            );
+        }
         ensure!(d.keys <= all, "{}: {} of {all} keys", d.name, d.keys);
         out.push((n, d));
     }
@@ -80,13 +105,18 @@ fn load(text: &str) -> Result<Vec<(usize, Dungeon)>> {
 /// its small keys the check needs. `None` outside a dungeon with keys.
 pub fn count(check: &ItemCheck) -> Option<(usize, u32)> {
     let n = keys::dungeon_in(&check.area)?;
-    Some((n, need(n, check.room)))
+    Some((n, need(n, check.room, Some(check.hash))))
 }
 
-/// How many of dungeon `n`'s small keys a check in `room` needs: all of
-/// them when the table leaves the dungeon or the room's number out.
-fn need(n: usize, room: Option<u32>) -> u32 {
+/// How many of dungeon `n`'s small keys a check in `room` needs: its own
+/// count if the table lists its `hash`, else its room's, and all of them
+/// when the table leaves the dungeon or the room's number out.
+fn need(n: usize, room: Option<u32>, hash: Option<u64>) -> u32 {
     let room = |d: &Dungeon| {
+        let own = d.checks.iter().find(|c| Some(c.hash) == hash);
+        if let Some(c) = own {
+            return Some(c.keys);
+        }
         let room = room?;
         let listed = d.rooms.iter().find(|r| r.room == room);
         Some(listed.map_or(d.keys, |r| r.keys))
@@ -115,15 +145,22 @@ pub fn rooms_of(area: &str, rooms: impl IntoIterator<Item = u32>) -> Option<Room
     Some(RoomKeys {
         total: keys::copies_of(n),
         by_room: TABLED.iter().any(|(m, _)| *m == n),
-        rooms: rooms.into_iter().map(|r| (r, need(n, Some(r)))).collect(),
+        rooms: rooms
+            .into_iter()
+            .map(|r| (r, need(n, Some(r), None)))
+            .collect(),
     })
 }
 
 /// Whether logic counts `check`'s keys by its room, rather than asking for
 /// all its dungeon's keys.
 pub fn by_room(check: &ItemCheck) -> bool {
-    check.room.is_some()
-        && keys::dungeon_in(&check.area).is_some_and(|n| TABLED.iter().any(|(m, _)| *m == n))
+    let Some(n) = keys::dungeon_in(&check.area) else {
+        return false;
+    };
+    TABLED.iter().any(|(m, d)| {
+        *m == n && (check.room.is_some() || d.checks.iter().any(|c| c.hash == check.hash))
+    })
 }
 
 #[cfg(test)]
