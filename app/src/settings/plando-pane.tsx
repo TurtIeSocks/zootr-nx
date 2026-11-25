@@ -1,47 +1,24 @@
-import { Check, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { commands, type PlandoCheck, type PlandoOptions } from "@/bindings";
 import { ArmedButton } from "@/components/armed-button";
 import { Card } from "@/components/card";
-import { Field } from "@/components/field";
 import { NameField } from "@/components/name-field";
 import { DumpError } from "@/components/needs-dump";
 import { RequestError } from "@/components/request-error";
+import { SavedSets } from "@/components/saved-sets";
 import { Tip } from "@/components/tip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { call, message } from "@/lib/api";
 import { count } from "@/lib/format";
 import {
   checkLabels,
   clear,
   itemLabels,
-  load,
   type Plando,
   place,
-  remove,
-  samePins,
-  saveAs,
-  savedAs,
   unplace,
-  unsaved,
 } from "@/lib/plando";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
@@ -59,7 +36,18 @@ export function PlandoPane() {
         help="plando"
         description="Pin items to checks. The next seed you generate gets the pins on this page and shuffles everything else around them. Each change saves as you make it."
       />
-      <Saved />
+      <SavedSets
+        kind="place"
+        id="plando-saved"
+        words={{
+          label: "Saved Plandos",
+          hint: "Picking one loads its pins below, replacing them. Save keeps the pins below under the name, replacing a saved plando with that name",
+          noun: "plando",
+          unit: "pin",
+          empty: "No pins, so the next seed shuffles every check",
+          unsaved: "Not saved. The next seed still gets these pins",
+        }}
+      />
       <Draft />
       <RequestError />
     </RequestProvider>
@@ -99,155 +87,6 @@ function TurnOn({ setting }: TurnOnProps) {
 
 /** The draft's pins. */
 const usePins = () => useConfig((s) => s.config.place);
-
-/** The saved plandos: pick one to load it, or keep the draft under a name. */
-function Saved() {
-  const [plandos] = useConfig.usePath("config.plandos");
-  const pins = usePins();
-  const shown = useConfig((s) => savedAs(s.config));
-  const replacing = useConfig((s) => unsaved(s.config));
-  const { busy } = useRequest();
-  const store = useSaveConfig();
-  /** The name Save keeps the draft as, and Delete drops. */
-  const [name, setName] = useState(() => shown ?? "");
-  /** The saved plando waiting on the replace dialog. */
-  const [asking, setAsking] = useState<string | null>(null);
-  const names = Object.keys(plandos).sort();
-  const typed = name.trim();
-  const kept = plandos[typed];
-  const empty = Object.keys(pins).length === 0;
-  const open = (picked: string) => {
-    setAsking(null);
-    setName(picked);
-    void store(load(picked));
-  };
-
-  return (
-    <Card>
-      <div className="p-4">
-        <Field
-          id="plando-saved"
-          label="Saved Plandos"
-          hint="Picking one loads its pins below, replacing them. Save keeps the pins below under the name, replacing a saved plando with that name"
-        >
-          <Select
-            value={shown ?? ""}
-            disabled={busy || names.length === 0}
-            onValueChange={(n) => (replacing ? setAsking(n) : open(n))}
-          >
-            <SelectTrigger id="plando-saved" className="w-full">
-              <SelectValue
-                placeholder={
-                  names.length === 0
-                    ? "None saved yet"
-                    : empty
-                      ? "Load a saved plando"
-                      : "Unsaved pins"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent align="start">
-              {names.map((n) => (
-                <SelectItem key={n} value={n}>
-                  {n}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Input
-              aria-label="Plando name"
-              placeholder="Plando name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Button
-              disabled={
-                busy || !typed || empty || (!!kept && samePins(kept, pins))
-              }
-              onClick={() => store(saveAs(typed))}
-            >
-              {busy && <Loader2 className="animate-spin" />}
-              Save
-            </Button>
-            <ArmedButton
-              variant="secondary"
-              verb="delete"
-              disabled={busy || !kept}
-              onAct={() => {
-                setName("");
-                void store(remove(typed));
-              }}
-            >
-              Delete
-            </ArmedButton>
-          </div>
-          <p className="flex items-center gap-1 text-ink-muted text-xs">
-            {empty ? (
-              "No pins, so the next seed shuffles every check"
-            ) : shown ? (
-              <>
-                <Check className="size-3.5" />
-                Saved as {shown}
-              </>
-            ) : (
-              "Not saved. The next seed still gets these pins"
-            )}
-          </p>
-        </Field>
-      </div>
-      <ReplaceDialog
-        picked={asking}
-        pins={Object.keys(pins).length}
-        onCancel={() => setAsking(null)}
-        onReplace={open}
-      />
-    </Card>
-  );
-}
-
-/** Props for {@link ReplaceDialog}. */
-interface ReplaceDialogProps {
-  /** The saved plando to load, or none while closed. */
-  picked: string | null;
-  /** How many unsaved pins loading drops. */
-  pins: number;
-  onCancel: () => void;
-  onReplace: (picked: string) => void;
-}
-
-/** Asks before a saved plando replaces pins no saved plando keeps. */
-function ReplaceDialog({
-  picked,
-  pins,
-  onCancel,
-  onReplace,
-}: ReplaceDialogProps) {
-  return (
-    <Dialog open={picked !== null} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Replace the Unsaved Pins?</DialogTitle>
-          <DialogDescription>
-            Loading {picked} replaces the {count(pins, "pin")} below. Save them
-            first to keep them.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="pt-1">
-          <DialogClose asChild>
-            <Button variant="ghost">Cancel</Button>
-          </DialogClose>
-          <Button
-            variant="destructive"
-            onClick={() => picked && onReplace(picked)}
-          >
-            Replace
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 /** What the draft can pick from with the current settings, kept while a
  * newer read is on its way so the table doesn't blink on each edit. */

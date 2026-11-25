@@ -73,6 +73,9 @@ pub struct Config {
     /// The colour picker's recent colours, as `#rrggbb`, newest first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub color_recents: Vec<String>,
+    /// The palettes Randomize all and Reset all leave alone.
+    #[serde(skip_serializing_if = "std::collections::BTreeSet::is_empty")]
+    pub color_locks: std::collections::BTreeSet<String>,
     /// Setting sets kept by name, newest first.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub favorites: Vec<crate::settings::favorites::Favorite>,

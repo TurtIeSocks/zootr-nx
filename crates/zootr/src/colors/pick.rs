@@ -115,6 +115,12 @@ fn draw(palette: &Palette, seed: u64) -> Colour {
     })
 }
 
+/// A Random colour for palette `id` from `seed`, as `#rrggbb`: the pane's
+/// draw-now, which the player can still tweak.
+pub fn drawn(id: &str, seed: u64) -> Result<String> {
+    Ok(hex(draw(palette(id)?, seed)))
+}
+
 /// `draft` as a seed keeps it: Vanilla left out, Random drawn for `seed`,
 /// every colour and palette checked.
 pub fn resolve(draft: &Draft, seed: u64) -> Result<Colors> {

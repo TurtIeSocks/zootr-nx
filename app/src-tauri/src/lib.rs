@@ -30,6 +30,7 @@ use zootr::share;
 mod app_log;
 mod archipelago;
 mod checks;
+mod colors;
 mod dev_panel;
 mod generating;
 mod live_tab;
@@ -374,23 +375,45 @@ async fn plando_options() -> Res<PlandoOptions> {
 #[tauri::command]
 #[specta::specta]
 async fn install(app: AppHandle, id: u32, steps: Channel<progress::StepEvent>) -> Res<()> {
-    blocking(move || {
-        let entry = History::load()?.get(id)?.clone();
-        let (seed, settings, extras) = (entry.report.seed, entry.settings, entry.extras);
-        let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
-        // Loaded again: History may have changed during the build.
-        let done = built.and_then(|_| {
-            let mut history = History::load()?;
-            history.get(id)?;
-            history.install(Some(id));
-            history.save()
-        });
-        // A stopped install that took the mod off changed it too.
-        app.state::<archipelago::Ap>().reset(&app);
-        app.state::<Items>().emit(&app);
-        done
-    })
-    .await
+    blocking(move || reinstall(&app, steps, id, false)).await
+}
+
+/// Reinstall the installed seed in the Colors draft's colours: the same
+/// shuffle, painted again. Its history entry keeps the new colours.
+#[tauri::command]
+#[specta::specta]
+async fn apply_colors(app: AppHandle, steps: Channel<progress::StepEvent>) -> Res<()> {
+    blocking(move || reinstall(&app, steps, colors::installed()?, true)).await
+}
+
+/// Install history entry `id` again, in the draft's colours when
+/// `recolor`.
+fn reinstall(
+    app: &AppHandle,
+    steps: Channel<progress::StepEvent>,
+    id: u32,
+    recolor: bool,
+) -> anyhow::Result<()> {
+    let entry = History::load()?.get(id)?.clone();
+    let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
+    if recolor {
+        extras.colors = zootr::colors::resolve(&Config::load()?.colors, seed)?;
+    }
+    let built = (app.state::<Generating>()).build(steps, seed, &settings, &extras, true);
+    // Loaded again: History may have changed during the build.
+    let done = built.and_then(|_| {
+        let mut history = History::load()?;
+        history.get(id)?;
+        if recolor {
+            history.recolor(id, extras.colors)?;
+        }
+        history.install(Some(id));
+        history.save()
+    });
+    // A stopped install that took the mod off changed it too.
+    app.state::<archipelago::Ap>().reset(app);
+    app.state::<Items>().emit(app);
+    done
 }
 
 /// Rebuild a target's game, its output each a detail of the rebuilding
@@ -649,6 +672,23 @@ impl Icons {
     }
 }
 
+/// A PNG served to the UI, or a 404 that the log says why of.
+fn png_response(
+    png: anyhow::Result<Vec<u8>>,
+    uri: &tauri::http::Uri,
+) -> tauri::http::Response<Vec<u8>> {
+    let response = match png {
+        Ok(png) => tauri::http::Response::builder()
+            .header(tauri::http::header::CONTENT_TYPE, "image/png")
+            .body(png),
+        Err(e) => {
+            log::debug!("Nothing for {uri}: {e:#}");
+            tauri::http::Response::builder().status(404).body(vec![])
+        }
+    };
+    response.expect("a plain response")
+}
+
 /// Resolves once the icons are built, so the grid can say it's waiting.
 #[tauri::command]
 #[specta::specta]
@@ -695,6 +735,9 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             targets::read_target_file,
             shuffle_command,
             plando_options,
+            colors::colors_catalog,
+            colors::colors_draw,
+            apply_colors,
             save_editor::save_slots,
             save_editor::save_presets,
             save_editor::save_items,
@@ -786,22 +829,21 @@ pub fn run() -> tauri::Result<()> {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(builder.invoke_handler())
+        .register_asynchronous_uri_scheme_protocol(colors::SCHEME, |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            std::thread::spawn(move || {
+                let uri = request.uri();
+                let png = app
+                    .state::<colors::ColorPreviews>()
+                    .serve(uri.path(), uri.query().unwrap_or_default());
+                responder.respond(png_response(png, uri));
+            });
+        })
         .register_asynchronous_uri_scheme_protocol(ICONS, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             std::thread::spawn(move || {
-                let response = match app
-                    .state::<Icons>()
-                    .read(request.uri().path().trim_start_matches('/'))
-                {
-                    Ok(png) => tauri::http::Response::builder()
-                        .header(tauri::http::header::CONTENT_TYPE, "image/png")
-                        .body(png),
-                    Err(e) => {
-                        log::debug!("No icon for {}: {e:#}", request.uri().path());
-                        tauri::http::Response::builder().status(404).body(vec![])
-                    }
-                };
-                responder.respond(response.expect("a plain response"));
+                let png = (app.state::<Icons>()).read(request.uri().path().trim_start_matches('/'));
+                responder.respond(png_response(png, request.uri()));
             });
         })
         .setup(move |app| {
@@ -813,6 +855,7 @@ pub fn run() -> tauri::Result<()> {
             app.manage(Generating::default());
             app.manage(save_editor::Layout::default());
             app.manage(Icons::default());
+            app.manage(colors::ColorPreviews::default());
             app.manage(dev_panel::Places::default());
             app.manage(ui::UiFile::default());
             // Built now, so the Items tab rarely waits on a new dump.

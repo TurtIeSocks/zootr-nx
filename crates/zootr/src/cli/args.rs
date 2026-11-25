@@ -611,6 +611,20 @@ pub(super) struct Shuffle {
 pub(super) enum ColorsCommand {
     /// Every palette: its id, group, name and vanilla colours.
     List,
+    /// Write the preview the app shows: one of a palette's textures,
+    /// painted as a seed paints it, as a PNG.
+    Preview {
+        id: String,
+        /// `#rrggbb` (`#a,#b` for a colour per slot), or `vanilla`.
+        color: String,
+        out: PathBuf,
+        /// Which of the palette's textures, from 0.
+        #[arg(long, default_value_t = 0)]
+        texture: usize,
+        /// Grey every texel the palette leaves alone.
+        #[arg(long)]
+        changes: bool,
+    },
 }
 
 /// Where a seed's mod goes, and how the history shows it.
