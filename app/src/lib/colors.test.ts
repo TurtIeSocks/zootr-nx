@@ -17,7 +17,7 @@ const TUNIC: PaletteView = {
   group: "link",
   vanilla: ["#40522b"],
   names: [],
-  follows: null,
+  views: [],
   sheets: 7,
   problem: null,
 };
@@ -25,7 +25,7 @@ const TUNIC: PaletteView = {
 test("a pick reads as its mode and its swatch", () => {
   expect(modeOf(undefined)).toBe("vanilla");
   expect(modeOf("random")).toBe("random");
-  expect(modeOf({ hex: "#112233" })).toBe("colour");
+  expect(modeOf({ hex: "#112233" })).toBe("color");
   expect(swatchOf(TUNIC, "random")).toBe("#40522b");
   expect(swatchOf(TUNIC, { hex: "#112233" })).toBe("#112233");
 });
@@ -50,7 +50,7 @@ test("vanilla leaves the draft, and a lock keeps a palette from the all buttons"
   expect(c.color_locks).toEqual([]);
 });
 
-test("a preview url carries the sheet, the colours and the view", () => {
+test("a preview url carries the sheet, the colors and the view", () => {
   const url = previewUrl({
     id: "bow",
     sheet: 0,
@@ -65,7 +65,7 @@ test("a preview url carries the sheet, the colours and the view", () => {
   );
 });
 
-test("colour sets save, match and load like plandos, whatever the key order", () => {
+test("color sets save, match and load like plandos, whatever the key order", () => {
   const sets = savedSets("colors");
   let c = full({ colors: { bow: { hex: "#20b060" }, hammer: "random" } });
   c = { ...c, ...sets.saveAs("Loud")(c) };

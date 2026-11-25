@@ -2,7 +2,7 @@
 //! is a copy of the chest actor, its class part `A` made the look's letter
 //! ([`crate::marks::lettered`]), showing a copy of the chest's model whose
 //! albedo is painted from the dump each seed: the metal (where the model's
-//! metal map says) gold or a key's dungeon colour, or the wood stained.
+//! metal map says) gold or a key's dungeon color, or the wood stained.
 //! Every seed writes the same copies, and only chests whose contents have
 //! a look name one.
 
@@ -25,7 +25,7 @@ use crate::keys;
 use crate::known::{Name, actor, field, item, texture};
 use crate::marks::paint::{Canvas, GOLD, sample};
 use crate::marks::{lettered, texture_file};
-use crate::medallions::{Colour, model_file};
+use crate::medallions::{Color, model_file};
 use crate::rsdb::Tags;
 use crate::settings::NewGame;
 use crate::standins::{Tables, write_clone};
@@ -36,7 +36,7 @@ pub enum Look {
     /// An item the seed needs: the metal gold.
     Gold,
     /// A key of key dungeon `n`, counting from 1 as
-    /// [`key_tints::KEY_DUNGEONS`] does: the metal its colour.
+    /// [`key_tints::KEY_DUNGEONS`] does: the metal its color.
     Key(usize),
     /// A Gold Skulltula token: the wood stained near black, the token on
     /// the lid.
@@ -51,8 +51,8 @@ const KEY_LETTERS: [char; KEY_DUNGEONS] = ['B', 'C', 'D', 'E', 'F', 'J', 'K', 'L
 
 /// The skull look's stain and the heart look's tint, lifted by each
 /// texel's brightness so the grain stays.
-const SKULL_STAIN: Colour = [48, 40, 36];
-const HEART_TINT: Colour = [235, 120, 150];
+const SKULL_STAIN: Color = [48, 40, 36];
+const HEART_TINT: Color = [235, 120, 150];
 
 /// What the heart look holds.
 const HEARTS: [&Name; 2] = [actor::OBJ_HEART_PIECE, actor::OBJ_HEART_CONTAINER];
@@ -81,15 +81,15 @@ impl Look {
             .chain(keys)
     }
 
-    /// What it paints, and in what colour.
-    fn paint(self) -> Result<(Part, Colour)> {
+    /// What it paints, and in what color.
+    fn paint(self) -> Result<(Part, Color)> {
         Ok(match self {
             Look::Gold => (Part::Metal, GOLD),
             Look::Key(n) => {
-                let colour = key_tints::key_colour(n);
+                let color = key_tints::key_color(n);
                 (
                     Part::Metal,
-                    colour.with_context(|| format!("no colour for keys {n}"))?,
+                    color.with_context(|| format!("no color for keys {n}"))?,
                 )
             }
             Look::Skull => (Part::Wood, SKULL_STAIN),
@@ -175,7 +175,7 @@ impl Emblems {
 /// Both chest models' project.
 const PROJECT: &Name = actor::OBJ_T_BOX_A;
 
-/// The small chest's model and the big chest's. The big chest's colour
+/// The small chest's model and the big chest's. The big chest's color
 /// animation swaps in a second albedo (`.01`) at frame 1, which only the
 /// Treasure Chest Game's chests play, so a look paints the first.
 const MODELS: [Model; 2] = [
@@ -320,7 +320,7 @@ pub fn write(
     Ok(())
 }
 
-/// ModelInfo `info` without its colour animation, which would swap the
+/// ModelInfo `info` without its color animation, which would swap the
 /// host's albedo back in by name.
 fn still(mut info: BymlDoc) -> Result<BymlDoc> {
     let root = info.root.as_mut_map()?;
@@ -360,9 +360,9 @@ fn paint(
     emblems: &Emblems,
     look: Look,
 ) -> Result<()> {
-    let (part, colour) = look.paint()?;
+    let (part, color) = look.paint()?;
     let full = metal_peak(metal);
-    canvas.wash(colour, |u, v| {
+    canvas.wash(color, |u, v| {
         let share = sample(metal, u, v)[0] / full;
         match part {
             Part::Metal => share,
@@ -558,10 +558,10 @@ mod tests {
         }
     }
 
-    /// `colour` in CIE Lab, where distance tracks how different two colours
+    /// `color` in CIE Lab, where distance tracks how different two colors
     /// look (D65 white).
-    fn lab(colour: Colour) -> [f32; 3] {
-        let linear = colour.map(|c| {
+    fn lab(color: Color) -> [f32; 3] {
+        let linear = color.map(|c| {
             let c = c as f32 / 255.0;
             if c > 0.04045 {
                 ((c + 0.055) / 1.055).powf(2.4)
@@ -586,22 +586,22 @@ mod tests {
     }
 
     #[test]
-    fn every_key_colour_stands_apart_from_gold_and_each_other() {
+    fn every_key_color_stands_apart_from_gold_and_each_other() {
         needs_names!();
         // Prelude of Light's yellow, once the Training Ground's, was 24
         // from gold: too near to tell a key chest from a major one.
         const APART: f32 = 30.0;
-        let far = |a: Colour, b: Colour| {
+        let far = |a: Color, b: Color| {
             let (a, b) = (lab(a), lab(b));
             (0..3).map(|i| (a[i] - b[i]).powi(2)).sum::<f32>().sqrt()
         };
         let keys: Vec<_> = (1..=KEY_DUNGEONS)
-            .map(|n| (n, key_tints::key_colour(n).unwrap()))
+            .map(|n| (n, key_tints::key_color(n).unwrap()))
             .collect();
-        for (n, colour) in &keys {
-            assert!(far(*colour, GOLD) > APART, "keys {n} {colour:?} near gold");
+        for (n, color) in &keys {
+            assert!(far(*color, GOLD) > APART, "keys {n} {color:?} near gold");
             for (m, other) in keys.iter().filter(|(m, _)| m > n) {
-                assert!(far(*colour, *other) > APART, "keys {n} and {m} too near");
+                assert!(far(*color, *other) > APART, "keys {n} and {m} too near");
             }
         }
         assert!(

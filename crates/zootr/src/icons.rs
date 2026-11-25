@@ -1,6 +1,6 @@
 //! A seed's icons: five pictures standing in for its number. They cover the
 //! seed, settings and extras together, so the same icons mean the same mod.
-//! Colours aside: the same icons mean the same shuffle.
+//! Colors aside: the same icons mean the same shuffle.
 
 use ounce_formats::murmur3;
 
@@ -46,7 +46,7 @@ pub const ICONS: [&str; 32] = [
 const COUNT: usize = 5;
 
 pub fn icons(seed: u64, settings: &Settings, extras: &Extras) -> Vec<String> {
-    // Both maps serialize in key order, so the bytes are stable. Colours
+    // Both maps serialize in key order, so the bytes are stable. Colors
     // change no placement, so they leave the icons be.
     let extras = extras.cosmetic_free();
     let bytes = serde_json::to_vec(&(seed, settings, extras)).expect("plain data serializes");

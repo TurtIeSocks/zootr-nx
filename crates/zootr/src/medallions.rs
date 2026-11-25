@@ -14,7 +14,7 @@ use ounce_formats::{
 use crate::known::{Name, field, item};
 use crate::sprites;
 use crate::standins::{self, ANIMATION, COMPONENTS, MODEL, Tables};
-pub(crate) use paint::Colour;
+pub(crate) use paint::Color;
 
 /// The medallion every song's is copied from. Its name and a song's,
 /// a song medal's, are as long, so no offset in a copy moves.
@@ -58,8 +58,8 @@ const SPINS: [&Name; 2] = [field::AS_REF, field::AS_INFO_REF];
 const MENU_HOST: &Name = item::MEDAL_FOREST_IMPORTANT_MENU;
 /// The songbook icons' names, before each song's number.
 const ICON: &str = "OcarinaMelodyIcon_";
-/// Each song's colour: a warp song its medallion's.
-const COLOURS: [(&Name, Colour); 12] = [
+/// Each song's color: a warp song its medallion's.
+const COLORS: [(&Name, Color); 12] = [
     (item::MELODY_ZELDA_LULLABY, [170, 120, 255]),
     (item::MELODY_EPONA_SONG, [255, 150, 60]),
     (item::MELODY_SARIA_SONG, [90, 230, 90]),
@@ -175,10 +175,10 @@ pub fn write<'a>(
             .iter()
             .find(|t| t.name == icon_name)
             .with_context(|| format!("no icon {icon_name}"))?;
-        let colour = colour(song).with_context(|| format!("no colour for {song}"))?;
+        let color = color(song).with_context(|| format!("no color for {song}"))?;
         for (kind, data) in &textures {
             let like = texture_path(HOST, kind.suffix());
-            let drawn = draw(*kind, &rename(data, HOST, &name)?, icon, colour)?;
+            let drawn = draw(*kind, &rename(data, HOST, &name)?, icon, color)?;
             builder.add(&texture_path(&name, kind.suffix()), &drawn, &like)?;
         }
         let pack = ActorPack::load(romfs, song)?;
@@ -265,20 +265,20 @@ fn rewrite_pack(
     builder.write(&ounce_formats::pack_file(&pack.name), &writer.to_binary())
 }
 
-pub(crate) fn colour(song: &str) -> Option<Colour> {
-    COLOURS.iter().find(|(s, _)| *s == song).map(|(_, c)| *c)
+pub(crate) fn color(song: &str) -> Option<Color> {
+    COLORS.iter().find(|(s, _)| *s == song).map(|(_, c)| *c)
 }
 
 /// A host texture of `kind` as a song's medallion wears it: the albedo and
-/// glow in its colour, the icon on the face, raised in the normal map and
+/// glow in its color, the icon on the face, raised in the normal map and
 /// unshaded in the occlusion map. The rest are the host's.
-fn draw(kind: Kind, data: &[u8], icon: &Texture, colour: Colour) -> Result<Vec<u8>> {
+fn draw(kind: Kind, data: &[u8], icon: &Texture, color: Color) -> Result<Vec<u8>> {
     match kind {
         Kind::Alb | Kind::Emc => {
             let mut t = top_level(data)?;
-            paint::recolour(&mut t, colour);
+            paint::recolor(&mut t, color);
             if matches!(kind, Kind::Alb) {
-                paint::paint_icon(&mut t, icon, colour);
+                paint::paint_icon(&mut t, icon, color);
             }
             redraw(data, &t.rgba, |_, _| false)
         }
@@ -350,7 +350,7 @@ mod tests {
             assert!(redraw(&data, &own.rgba, |_, _| true).unwrap() == data);
             let drawn = levels(&redraw(&data, &own.rgba, |_, _| false).unwrap()).unwrap();
             let mut meant = own.rgba.clone();
-            // Deeper levels pack more detail into each two-colour block.
+            // Deeper levels pack more detail into each two-color block.
             for (i, level) in drawn.iter().enumerate().take(3) {
                 if i > 0 {
                     let above = &drawn[i - 1];
@@ -429,9 +429,9 @@ mod tests {
     }
 
     #[test]
-    fn every_song_has_a_colour() {
+    fn every_song_has_a_color() {
         for (_, song) in sprites::songs() {
-            assert!(colour(song).is_some(), "{song}");
+            assert!(color(song).is_some(), "{song}");
         }
     }
 

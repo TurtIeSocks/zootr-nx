@@ -84,12 +84,12 @@ export const commands = {
 	 */
 	colorsCatalog: () => typedError<PaletteView[], string>(__TAURI_INVOKE("colors_catalog")),
 	/**
-	 *  A Random colour for each of `ids` now, so the player can see and tweak
+	 *  A Random color for each of `ids` now, so the player can see and tweak
 	 *  it before generating.
 	 */
 	colorsDraw: (ids: string[]) => typedError<{ [key in string]: string }, string>(__TAURI_INVOKE("colors_draw", { ids })),
 	/**
-	 *  Each slot's colour, `#rrggbb`, when palette `id`'s first is `hex` and
+	 *  Each slot's color, `#rrggbb`, when palette `id`'s first is `hex` and
 	 *  the rest follow it: where Split starts.
 	 */
 	colorsFollow: (id: string, hex: string) => typedError<string[], string>(__TAURI_INVOKE("colors_follow", { id, hex })),
@@ -416,13 +416,13 @@ export type Config = {
 	/**  Plandos kept by name, to load into `place`. */
 	plandos?: { [key in string]: { [key in string]: string } },
 	/**
-	 *  The Colors pane's draft: palette id to Vanilla, Random or a colour.
+	 *  The Colors pane's draft: palette id to Vanilla, Random or a color.
 	 *  Random is drawn when a seed is built.
 	 */
 	colors?: { [key in string]: Pick },
-	/**  Colour drafts kept by name, to load into `colors`. */
+	/**  Color drafts kept by name, to load into `colors`. */
 	color_sets?: { [key in string]: { [key in string]: Pick } },
-	/**  The colour picker's recent colours, as `#rrggbb`, newest first. */
+	/**  The color picker's recent colors, as `#rrggbb`, newest first. */
 	color_recents?: string[],
 	/**
 	 *  The Audio pane's draft: each pool's mode and each track's override.
@@ -674,7 +674,7 @@ export type Goal = {
 	error: string | null,
 };
 
-export type Group = "link" | "gear";
+export type Group = "link" | "gear" | "effects" | "hud";
 
 /**  An item Link starts with. */
 export type Held = {
@@ -831,17 +831,17 @@ export type PaletteView = {
 	id: string,
 	label: string,
 	group: Group,
-	/**  Each slot's vanilla colour, `#rrggbb`. */
+	/**  Each slot's vanilla color, `#rrggbb`. */
 	vanilla: string[],
 	/**  Each slot's name, when it has more than one: what Split shows. */
 	names: string[],
-	/**  The palette it moves with while left vanilla, by label. */
-	follows: string | null,
 	/**
 	 *  How many pictures it previews on: its textures, then a lit sphere
-	 *  for each material whose colours it writes.
+	 *  for each material whose colors it writes.
 	 */
 	sheets: number,
+	/**  The views its Model tab shows it on, by label: none without one. */
+	views: string[],
 	/**  Why this dump can't paint it, when it can't. */
 	problem: string | null,
 };
@@ -859,7 +859,7 @@ export type Pending = {
 export type Pick = Mode | Picked;
 
 /**
- *  A colour picked for a palette's first slot, as `#rrggbb`, and with
+ *  A color picked for a palette's first slot, as `#rrggbb`, and with
  *  Split on, one for each slot after it. Without, the other slots follow
  *  the first.
  */
@@ -1393,7 +1393,7 @@ export type TrackView = {
 /**  How the grid looks, in the tab and the pop out. */
 export type TrackerOptions = {
 	size?: IconSize,
-	/**  A CSS colour. */
+	/**  A CSS color. */
 	background?: string,
 	/**  Every section once. The order within a column is the draw order. */
 	sections?: Placement[],

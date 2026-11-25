@@ -19,7 +19,7 @@ pub const BOOTS_SLOT: u32 = 9;
 /// The armor a child wears for each tunic, each as the [`fnv`] of the name
 /// the tunic's slot holds and the actor the seed makes for him. The Zora
 /// and Goron Tunics' slots name the adult's armor, a whole adult upper
-/// body: his copies show his own cloth in the tunic's colour. His Kokiri
+/// body: his copies show his own cloth in the tunic's color. His Kokiri
 /// Tunic's slot names its pickup model, no armor at all, so it never took
 /// a tunic off: his copy of the adult's empty armor does.
 pub static CHILD_ARMOR: [Armor; 3] = [

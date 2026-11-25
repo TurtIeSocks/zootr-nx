@@ -3,7 +3,7 @@ import type { FullConfig } from "@/lib/config";
 import { schemeUrl } from "@/lib/platform";
 import { type Change, without } from "@/lib/saved-sets";
 
-/** The picker's preset swatches: plain colours with names, not a mode. */
+/** The picker's preset swatches: plain colors with names, not a mode. */
 export const PRESETS: readonly [name: string, hex: string][] = [
   ["Kokiri Green", "#2f8f3a"],
   ["Goron Red", "#b0201e"],
@@ -20,7 +20,7 @@ export const PRESETS: readonly [name: string, hex: string][] = [
 ];
 
 /** What a palette's row sets it to. */
-export type Mode = "vanilla" | "random" | "colour";
+export type Mode = "vanilla" | "random" | "color";
 
 /** What `pick` is, as the row's three-way switch shows it. */
 export const modeOf = (pick: Pick | undefined): Mode =>
@@ -28,9 +28,9 @@ export const modeOf = (pick: Pick | undefined): Mode =>
     ? "vanilla"
     : pick === "random"
       ? "random"
-      : "colour";
+      : "color";
 
-/** The colour `palette`'s swatch shows: the picked one, or vanilla's. */
+/** The color `palette`'s swatch shows: the picked one, or vanilla's. */
 export const swatchOf = (palette: PaletteView, pick: Pick | undefined) =>
   typeof pick === "object" ? pick.hex : (palette.vanilla[0] ?? "#000000");
 
@@ -42,11 +42,6 @@ export const withSlot = (picked: Picked, slot: number, hex: string): Picked =>
         ...picked,
         split: (picked.split ?? []).map((s, i) => (i === slot - 1 ? hex : s)),
       };
-
-/** The first option of a palette's switch: vanilla, or the palette it
- * moves with while left alone. */
-export const vanillaLabel = (palette: PaletteView) =>
-  palette.follows ? `With ${palette.follows}` : "Vanilla";
 
 /** Sets palette `id` to `pick`. Vanilla leaves the draft, as it's what an
  * unnamed palette is. */
@@ -84,7 +79,7 @@ export interface PreviewOf {
   id: string;
   /** Which of its sheets (textures, then material spheres), from 0. */
   sheet: number;
-  /** The colour painted, or null for vanilla. */
+  /** The color painted, or null for vanilla. */
   picked: Picked | null;
   /** Grey what the palette leaves alone. */
   changes?: boolean;
@@ -92,13 +87,33 @@ export interface PreviewOf {
 
 const digits = (hex: string) => hex.replace(/^#/, "");
 
-/** The backend's render of `preview`, as the seed would paint it. */
-export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
-  const query = new URLSearchParams({ t: String(sheet) });
+/** A path on the backend's colors scheme, as this platform reaches it. */
+const colorsUrl = (path: string) => schemeUrl("zootr-colors", path);
+
+/** `query` with `picked`'s colors, for a render painted with them. */
+function withColors(query: URLSearchParams, picked: Picked | null) {
   if (picked) {
     query.set("c", digits(picked.hex));
     for (const s of picked.split ?? []) query.append("s", digits(s));
   }
+  return query;
+}
+
+/** The backend's render of `preview`, as the seed would paint it. */
+export function previewUrl({ id, sheet, picked, changes }: PreviewOf) {
+  const query = withColors(new URLSearchParams({ t: String(sheet) }), picked);
   if (changes) query.set("v", "changes");
-  return schemeUrl("zootr-colors", `${id}.png?${query}`);
+  return colorsUrl(`${id}.png?${query}`);
+}
+
+/** Palette `id`'s model in view number `view`: the binary
+ * `colors::model::mesh` writes. */
+export const modelUrl = (id: string, view: number) =>
+  colorsUrl(`${id}.model?v=${view}`);
+
+/** Albedo `name` of palette `id`'s model, painted with `picked` when it's
+ * one the palette paints. */
+export function albedoUrl(id: string, name: string, picked: Picked | null) {
+  const query = withColors(new URLSearchParams({ a: name }), picked);
+  return colorsUrl(`${id}.png?${query}`);
 }

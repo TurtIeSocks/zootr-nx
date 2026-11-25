@@ -330,9 +330,9 @@ fn colors_preview(
 ) -> Result<()> {
     use crate::colors::{Mode, Pick, parse_arg, preview};
     let picked = match parse_arg(&format!("{id}={color}"))?.1 {
-        Pick::Colour(picked) => Some(picked),
+        Pick::Color(picked) => Some(picked),
         Pick::Mode(Mode::Vanilla) => None,
-        Pick::Mode(Mode::Random) => bail!("a preview takes a colour, not random"),
+        Pick::Mode(Mode::Random) => bail!("a preview takes a color, not random"),
     };
     let view = match changes {
         true => preview::View::Changes,

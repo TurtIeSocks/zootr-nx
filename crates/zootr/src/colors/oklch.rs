@@ -1,8 +1,8 @@
-//! OKLCH: lightness, chroma and hue as the eye sees them. A Random colour
-//! is drawn here, and one colour follows another by its offset here, so a
+//! OKLCH: lightness, chroma and hue as the eye sees them. A Random color
+//! is drawn here, and one color follows another by its offset here, so a
 //! red pick keeps a two-tone part two-tone.
 
-use super::paint::Colour;
+use super::paint::Color;
 
 /// Lightness 0 to 1, chroma from 0 (about 0.37 at most in sRGB), hue in
 /// turns.
@@ -28,17 +28,17 @@ fn gamma(c: f32) -> f32 {
     }
 }
 
-/// A colour in linear light, each channel 0 to 1, as shaders read one.
-pub fn to_linear(c: Colour) -> [f32; 3] {
+/// A color in linear light, each channel 0 to 1, as shaders read one.
+pub fn to_linear(c: Color) -> [f32; 3] {
     c.map(linear)
 }
 
-/// A linear colour as sRGB, each channel clamped to 0 to 1 first.
-pub fn from_linear(c: [f32; 3]) -> Colour {
+/// A linear color as sRGB, each channel clamped to 0 to 1 first.
+pub fn from_linear(c: [f32; 3]) -> Color {
     c.map(|v| (gamma(v.clamp(0.0, 1.0)) * 255.0).round() as u8)
 }
 
-pub fn lch(c: Colour) -> Lch {
+pub fn lch(c: Color) -> Lch {
     let [r, g, b] = to_linear(c);
     let l = (0.412_221_46 * r + 0.536_332_55 * g + 0.051_445_995 * b).cbrt();
     let m = (0.211_903_5 * r + 0.680_699_5 * g + 0.107_396_96 * b).cbrt();
@@ -73,9 +73,9 @@ fn in_gamut(rgb: [f32; 3]) -> bool {
     rgb.iter().all(|c| (-1e-4..=1.0 + 1e-4).contains(c))
 }
 
-/// `lch` as a colour, its chroma eased down until it fits in sRGB, so the
+/// `lch` as a color, its chroma eased down until it fits in sRGB, so the
 /// hue and lightness hold.
-pub fn colour(lch: Lch) -> Colour {
+pub fn color(lch: Lch) -> Color {
     let lch = Lch {
         l: lch.l.clamp(0.0, 1.0),
         ..lch
@@ -94,13 +94,32 @@ pub fn colour(lch: Lch) -> Colour {
     from_linear(unclamped(Lch { c: hi, ..lch }))
 }
 
-/// Below this chroma a colour is grey and its hue means nothing.
+/// Below this chroma a color is grey and its hue means nothing.
 const GREY: f32 = 0.02;
+
+/// Whether `c` is too grey to have a hue.
+pub fn grey(c: Color) -> bool {
+    lch(c).c < GREY
+}
 
 /// `other` moved as `from` moved to `to`: its hue turned by the same
 /// angle, its chroma and lightness scaled by the same ratios. A grey
 /// `from` has no hue or chroma to scale from: `other` takes `to`'s.
-pub fn follow(to: Colour, from: Colour, other: Colour) -> Colour {
+pub fn follow(to: Color, from: Color, other: Color) -> Color {
+    moved(to, from, other, true)
+}
+
+/// As `follow`, with `other` keeping its lightness, and `from` itself
+/// moving to `to` exactly: for an effect, whose brightness is its own,
+/// where a lighter pick would only wash a follower out to white.
+pub fn follow_hue(to: Color, from: Color, other: Color) -> Color {
+    match other == from {
+        true => to,
+        false => moved(to, from, other, false),
+    }
+}
+
+fn moved(to: Color, from: Color, other: Color, lightness: bool) -> Color {
     if to == from {
         return other;
     }
@@ -110,8 +129,11 @@ pub fn follow(to: Colour, from: Colour, other: Colour) -> Colour {
         true => (to.c, to.h),
         false => (other.c * ratio(to.c, from.c), other.h + to.h - from.h),
     };
-    colour(Lch {
-        l: other.l * ratio(to.l, from.l),
+    color(Lch {
+        l: match lightness {
+            true => other.l * ratio(to.l, from.l),
+            false => other.l,
+        },
         c,
         h: h.rem_euclid(1.0),
     })
@@ -121,12 +143,23 @@ pub fn follow(to: Colour, from: Colour, other: Colour) -> Colour {
 mod tests {
     use super::*;
 
-    fn near(a: Colour, b: Colour, by: u8) -> bool {
+    fn near(a: Color, b: Color, by: u8) -> bool {
         a.iter().zip(b).all(|(x, y)| x.abs_diff(y) <= by)
     }
 
+    /// A light pick turns a lighter follower green, not white, when only
+    /// its hue follows.
     #[test]
-    fn a_colour_comes_back_from_oklch() {
+    fn an_effect_follower_keeps_its_lightness() {
+        let (from, other, to) = ([170, 89, 255], [213, 156, 255], [32, 255, 64]);
+        assert_eq!(follow(to, from, other), [255, 255, 255]);
+        let got = follow_hue(to, from, other);
+        assert!(got[1] > got[0] + 60 && got[1] > got[2] + 60, "{got:?}");
+        assert_eq!(follow_hue(to, from, from), to);
+    }
+
+    #[test]
+    fn a_color_comes_back_from_oklch() {
         for c in [
             [47, 143, 58],
             [200, 30, 40],
@@ -134,7 +167,7 @@ mod tests {
             [128, 128, 128],
             [255, 255, 255],
         ] {
-            assert!(near(colour(lch(c)), c, 1), "{c:?} -> {:?}", colour(lch(c)));
+            assert!(near(color(lch(c)), c, 1), "{c:?} -> {:?}", color(lch(c)));
         }
     }
 
@@ -145,8 +178,8 @@ mod tests {
     }
 
     #[test]
-    fn a_colour_past_srgb_keeps_its_hue_and_loses_chroma() {
-        let wild = colour(Lch {
+    fn a_color_past_srgb_keeps_its_hue_and_loses_chroma() {
+        let wild = color(Lch {
             l: 0.6,
             c: 0.5,
             h: 0.4,

@@ -7,7 +7,7 @@
 //! Link gets the check's flag and the get. Another player's names the item
 //! and its player, and the app's client sends the item on. Another game's
 //! item shows a model by its Archipelago class, one no item of ours uses,
-//! tinted the way keys take their dungeon's colour. A trap's get says
+//! tinted the way keys take their dungeon's color. A trap's get says
 //! "FOOL!", and the hook freezes Link (`crate::ice_traps`).
 
 use anyhow::{Result, ensure};
@@ -18,7 +18,7 @@ use crate::ice_traps;
 use crate::key_tints::paint::{Host, Look};
 use crate::keys::SMALL;
 use crate::known::{actor, field};
-use crate::medallions::Colour;
+use crate::medallions::Color;
 use crate::settings::DungeonKeys;
 use crate::standins::{
     POUCH, POUCH_ACTOR, Tables, actor_path, doc, made_pack, path_of, pouch_actor, raw, renamed,
@@ -55,7 +55,7 @@ pub enum Owner {
 }
 
 /// The model another game's item shows: a Poe's spirit, a flame Link
-/// never gets loose, its body tinted and its glow coloured by the item's
+/// never gets loose, its body tinted and its glow colored by the item's
 /// class.
 pub(crate) const CLASS_LOOK: Look = Look {
     host: actor::OBJ_SPIRIT_POE,
@@ -65,8 +65,8 @@ pub(crate) const CLASS_LOOK: Look = Look {
     copy: "Obj_RandoAp_",
     matte: false,
 };
-/// The spirit's glow colours, by their names' hashes: the flame's own, and
-/// the lighter one round it. The flame's is purple until a Poe's colour
+/// The spirit's glow colors, by their names' hashes: the flame's own, and
+/// the lighter one round it. The flame's is purple until a Poe's color
 /// animation sets it; a copy's is its class's.
 const GLOW: u64 = 0x68e1_31e7_2bcd_91ad;
 const GLOW_LIGHT: u64 = 0xe647_277d_46e8_c1d8;
@@ -84,9 +84,9 @@ pub const FILES: [&str; 8] = [
     "Tex/Obj_Spirit_Poe_Body_Gn0.bntx.zs",
 ];
 
-/// Each class's colour, as Archipelago's text client shows it: plum,
+/// Each class's color, as Archipelago's text client shows it: plum,
 /// slate blue and cyan.
-const CLASSES: [(&str, Colour); 3] = [
+const CLASSES: [(&str, Color); 3] = [
     ("progression", [221, 160, 221]),
     ("useful", [106, 90, 205]),
     ("filler", [0, 255, 255]),
@@ -100,10 +100,10 @@ pub fn class_model(class: &str) -> String {
     CLASS_LOOK.name(n.unwrap_or(filler) + 1)
 }
 
-/// The spirit's model glowing `colour`: the flame in it, and the light
-/// round it halfway to white, as a Poe's own colours are.
-fn glowing(model: &[u8], colour: Colour) -> Result<Vec<u8>> {
-    let linear = colour.map(|c| (c as f32 / 255.0).powf(2.2));
+/// The spirit's model glowing `color`: the flame in it, and the light
+/// round it halfway to white, as a Poe's own colors are.
+fn glowing(model: &[u8], color: Color) -> Result<Vec<u8>> {
+    let linear = color.map(|c| (c as f32 / 255.0).powf(2.2));
     let light = linear.map(|c| (c + 1.0) / 2.0);
     let model = set_param(model, GLOW, [linear[0], linear[1], linear[2], 1.0])?;
     set_param(&model, GLOW_LIGHT, [light[0], light[1], light[2], 1.0])
@@ -363,9 +363,9 @@ pub fn write(
     }
     if foreign.iter().any(|f| f.model.is_some()) {
         let host = Host::read(romfs, &CLASS_LOOK)?;
-        for (n, (_, colour)) in CLASSES.iter().enumerate() {
-            let model = glowing(&host.model, *colour)?;
-            host.write_as(builder, &CLASS_LOOK.name(n + 1), &model, *colour, false)?;
+        for (n, (_, color)) in CLASSES.iter().enumerate() {
+            let model = glowing(&host.model, *color)?;
+            host.write_as(builder, &CLASS_LOOK.name(n + 1), &model, *color, false)?;
         }
     }
     let key = ActorPack::load(romfs, SMALL)?;

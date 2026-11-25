@@ -15,11 +15,12 @@ import { useSeeds } from "@/stores/seeds";
 const setConfig = vi.fn((_c: FullConfig) =>
   Promise.resolve({ status: "ok", data: [] }),
 );
+const readCatalog = vi.fn(async () => ({ status: "ok", data: CATALOG }));
 
 const palette = (
   id: string,
   label: string,
-  group: "link" | "gear",
+  group: "link" | "gear" | "effects" | "hud",
   problem: string | null = null,
 ): PaletteView => ({
   id,
@@ -27,27 +28,34 @@ const palette = (
   group,
   vanilla: ["#40522b"],
   names: [],
-  follows: null,
   sheets: 2,
+  views: [],
   problem,
 });
 
 const CATALOG = [
-  palette("kokiri-tunic", "Kokiri Tunic", "link"),
+  {
+    ...palette("kokiri-tunic", "Kokiri Tunic", "link"),
+    views: ["Adult", "Child"],
+  },
   palette("leather", "Leather", "link"),
   {
     ...palette("hair", "Hair", "link"),
     vanilla: ["#bc7224", "#aa6e2e"],
     names: ["Hair", "Shade"],
   },
-  { ...palette("brows", "Eyebrows", "link"), follows: "Hair" },
-  palette("goron-tunic", "Goron Tunic", "link", "the dump's colour differs"),
+  palette("goron-tunic", "Goron Tunic", "link", "the dump's color differs"),
   palette("bow", "Fairy Bow", "gear"),
+  {
+    ...palette("hearts", "Hearts", "hud"),
+    vanilla: ["#e6673d", "#ff3617"],
+    names: ["Fill", "Low health"],
+  },
 ];
 
 vi.mock("@/bindings", () => ({
   commands: {
-    colorsCatalog: async () => ({ status: "ok", data: CATALOG }),
+    colorsCatalog: () => readCatalog(),
     colorsDraw: async (ids: string[]) => ({
       status: "ok",
       data: Object.fromEntries(ids.map((id) => [id, "#123456"])),
@@ -58,6 +66,13 @@ vi.mock("@/bindings", () => ({
     }),
     setConfig: (c: FullConfig) => setConfig(c),
   },
+}));
+
+// jsdom has no WebGL: the model stands in as its palette's name.
+vi.mock("./model-view", () => ({
+  ModelView: ({ palette }: { palette: PaletteView }) => (
+    <p>model of {palette.id}</p>
+  ),
 }));
 
 Element.prototype.hasPointerCapture = () => false;
@@ -116,7 +131,7 @@ test("Reset All leaves a locked palette and one this dump can't paint", async ()
   );
 });
 
-test("Randomize All sets each unlocked palette to Random, leaving followers following", async () => {
+test("Randomize All sets each unlocked palette to Random", async () => {
   show(full({ color_locks: ["bow"] }));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }));
@@ -125,11 +140,12 @@ test("Randomize All sets each unlocked palette to Random, leaving followers foll
       "kokiri-tunic": "random",
       leather: "random",
       hair: "random",
+      hearts: "random",
     }),
   );
 });
 
-test("shift-click Randomize All draws colours now", async () => {
+test("shift-click Randomize All draws colors now", async () => {
   show(full({}));
   await screen.findByText("Kokiri Tunic");
   fireEvent.click(screen.getByRole("button", { name: "Randomize All" }), {
@@ -144,10 +160,32 @@ test("previews need game assets", async () => {
   expect(await screen.findByText(/Turn on game assets/)).toBeTruthy();
 });
 
+test("the HUD tab previews every HUD palette on one mock HUD", async () => {
+  show(full({ game: "/fake/game", game_assets: true }));
+  await screen.findAllByText("Kokiri Tunic");
+  const tab = screen.getByRole("tab", { name: "HUD" });
+  fireEvent.mouseDown(tab);
+  fireEvent.click(tab);
+  expect(await screen.findByText("Hearts")).toBeTruthy();
+  expect(
+    screen.getByRole("img", { name: "The HUD in the picked colors" }),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Low health")).toBeTruthy();
+  expect(screen.getByLabelText("Using magic")).toBeTruthy();
+});
+
+test("a palette with a model gets a Model tab, one without keeps its texture", async () => {
+  show(full({ game: "/fake/game", game_assets: true }));
+  await screen.findAllByText("Kokiri Tunic");
+  fireEvent.click(screen.getByRole("button", { name: "Model" }));
+  expect(screen.getByText("model of kokiri-tunic")).toBeTruthy();
+  fireEvent.mouseEnter(within("Leather"));
+  expect(screen.queryByRole("button", { name: "Model" })).toBeNull();
+});
+
 test("Split gives each slot a picker, starting where the slots followed", async () => {
   show(full({ colors: { hair: { hex: "#3050d0" } } }));
   await screen.findByText("Kokiri Tunic");
-  expect(within("Eyebrows").textContent).toContain("With Hair");
   press("Hair", "Split");
   await waitFor(() =>
     expect(saved()?.colors).toEqual({
@@ -156,7 +194,7 @@ test("Split gives each slot a picker, starting where the slots followed", async 
   );
 });
 
-test("Split off goes back to one colour", async () => {
+test("Split off goes back to one color", async () => {
   show(full({ colors: { hair: { hex: "#3050d0", split: ["#223344"] } } }));
   await screen.findByText("Kokiri Tunic");
   expect(within("Hair").textContent).toContain("Shade");
@@ -164,4 +202,18 @@ test("Split off goes back to one colour", async () => {
   await waitFor(() =>
     expect(saved()?.colors).toEqual({ hair: { hex: "#3050d0", split: [] } }),
   );
+});
+
+test("the palettes read once, with a spinner, and open at once after", async () => {
+  const config = full({ game: "/fake/once" });
+  readCatalog.mockClear();
+  show(config);
+  expect(
+    screen.getByRole("status", { name: "Reading the palettes from the game" }),
+  ).toBeTruthy();
+  await screen.findByText("Kokiri Tunic");
+  cleanup();
+  show(config);
+  expect(screen.getByText("Kokiri Tunic")).toBeTruthy();
+  expect(readCatalog).toHaveBeenCalledTimes(1);
 });

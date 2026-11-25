@@ -8,10 +8,10 @@ use ounce_formats::{Romfs, Texture, top_level};
 
 use crate::colors::paint::luma;
 use crate::known::texture;
-use crate::medallions::Colour;
+use crate::medallions::Color;
 
-/// The mark's colour.
-pub(crate) const GOLD: Colour = [255, 200, 60];
+/// The mark's color.
+pub(crate) const GOLD: Color = [255, 200, 60];
 
 /// A texel's brightness lifted and squeezed before it takes the gold, so a
 /// dark texel still reads gold and the grain stays.
@@ -42,14 +42,14 @@ impl Canvas {
         self.painted[self.at(x, y)]
     }
 
-    /// Texel (`x`, `y`) a `share` of the way (0 to 1) toward `colour`.
-    fn blend(&mut self, x: usize, y: usize, colour: [f32; 3], share: f32) {
+    /// Texel (`x`, `y`) a `share` of the way (0 to 1) toward `color`.
+    fn blend(&mut self, x: usize, y: usize, color: [f32; 3], share: f32) {
         if share <= 0.0 {
             return;
         }
         let at = self.at(x, y);
         let px = &mut self.texture.rgba[4 * at..4 * at + 3];
-        for (c, to) in px.iter_mut().zip(colour) {
+        for (c, to) in px.iter_mut().zip(color) {
             *c = (*c as f32 + (to - *c as f32) * share.min(1.0)).round() as u8;
         }
         self.painted[at] = true;
@@ -90,15 +90,15 @@ impl Canvas {
         });
     }
 
-    /// Each texel lifted toward `colour` by the share `cover` gives at its
+    /// Each texel lifted toward `color` by the share `cover` gives at its
     /// centre (u, v, fractions of the texture), keeping its grain.
-    pub(crate) fn wash(&mut self, colour: Colour, cover: impl Fn(f32, f32) -> f32) {
+    pub(crate) fn wash(&mut self, color: Color, cover: impl Fn(f32, f32) -> f32) {
         let (width, height) = (self.texture.width as f32, self.texture.height as f32);
         for y in 0..self.texture.height {
             let v = (y as f32 + 0.5) / height;
             for x in 0..self.texture.width {
                 let share = cover((x as f32 + 0.5) / width, v).clamp(0.0, 1.0);
-                self.blend(x, y, lifted(colour, self.luma(x, y)), share);
+                self.blend(x, y, lifted(color, self.luma(x, y)), share);
             }
         }
     }
@@ -123,7 +123,7 @@ impl Canvas {
         });
     }
 
-    /// `icon` laid on in its own colours, by its alpha, placed as
+    /// `icon` laid on in its own colors, by its alpha, placed as
     /// [`Canvas::stamp`] places a mark, painting only the texels whose v
     /// falls in `rows`.
     pub(crate) fn decal(
@@ -146,7 +146,7 @@ impl Canvas {
         });
     }
 
-    /// Each texel inside `place` blended toward the colour `paint` gives
+    /// Each texel inside `place` blended toward the color `paint` gives
     /// it, by the share it gives, from where the texel falls across and
     /// down the placed box (0 to 1, top down as the model shows it).
     fn ink(
@@ -172,8 +172,8 @@ impl Canvas {
                     Upright::AsIs => down,
                     Upright::Flipped => 1.0 - down,
                 };
-                let (colour, share) = paint(self, x, y, (x as f32 + 0.5 - left) / wide, down);
-                self.blend(x, y, colour, share);
+                let (color, share) = paint(self, x, y, (x as f32 + 0.5 - left) / wide, down);
+                self.blend(x, y, color, share);
             }
         }
     }
@@ -238,9 +238,9 @@ fn lit(luma: u32) -> f32 {
     (LIFT.0 + LIFT.1 * luma as f32 / 255.0).min(1.0)
 }
 
-/// The `colour` a texel of brightness `luma` (0 to 255) becomes.
-fn lifted(colour: Colour, luma: u32) -> [f32; 3] {
-    colour.map(|c| c as f32 * lit(luma))
+/// The `color` a texel of brightness `luma` (0 to 255) becomes.
+fn lifted(color: Color, luma: u32) -> [f32; 3] {
+    color.map(|c| c as f32 * lit(luma))
 }
 
 /// A shape to stamp: how much of each texel it covers, 0 to 1, apex up.

@@ -376,7 +376,7 @@ fn enhancement_defs() -> Vec<SettingDef> {
             CHEST_LOOKS,
             place::COMFORT,
             "Chest Looks Match Contents",
-            "A chest's metal turns gold when it holds an item the seed needs, or its dungeon's colour when it holds a key. A chest holding a Gold Skulltula token is stained dark with a skull, and one holding a heart is tinted rose with a heart. Anything else looks as it always does. Works with every Chest Size",
+            "A chest's metal turns gold when it holds an item the seed needs, or its dungeon's color when it holds a key. A chest holding a Gold Skulltula token is stained dark with a skull, and one holding a heart is tinted rose with a heart. Anything else looks as it always does. Works with every Chest Size",
         ),
         toggle(
             QUIET_NAVI,

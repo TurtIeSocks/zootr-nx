@@ -1,5 +1,5 @@
 //! A model's material parameters (BFRES v10): the default values its shader
-//! reads, like a glow's colour, found by their names' hashes.
+//! reads, like a glow's color, found by their names' hashes.
 
 use anyhow::{Context, Result, ensure};
 

@@ -1,10 +1,10 @@
-//! Every palette a seed can recolour, and what each one paints. See
+//! Every palette a seed can recolor, and what each one paints. See
 //! `superpowers/specs/2026-11-24-colors-design.md`, The catalog.
 
 use serde::Serialize;
 
 use super::files::*;
-use super::paint::{Colour, Hues};
+use super::paint::{Color, Hues};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -12,18 +12,32 @@ use super::paint::{Colour, Hues};
 pub enum Group {
     Link,
     Gear,
+    Effects,
+    Hud,
 }
 
-/// One thing a player recolours: its colour in the vanilla game for each
+/// One thing a player recolors: its color in the vanilla game for each
 /// slot, and the writes that paint it.
 pub struct Palette {
     pub id: &'static str,
     pub label: &'static str,
     pub group: Group,
-    pub vanilla: &'static [Colour],
+    pub vanilla: &'static [Color],
     /// Each slot's name, when there's more than one: what Split shows.
     pub names: &'static [&'static str],
     pub writes: &'static [Write],
+}
+
+impl Palette {
+    /// `other` moved as `from` moved to `to`, the way this palette's parts
+    /// follow its slots. An effect's parts follow by hue alone: their
+    /// brightness is their own, and a lighter pick would wash them white.
+    pub fn follow(&self, to: Color, from: Color, other: Color) -> Color {
+        match self.group {
+            Group::Effects => super::oklch::follow_hue(to, from, other),
+            Group::Link | Group::Gear | Group::Hud => super::oklch::follow(to, from, other),
+        }
+    }
 }
 
 /// One change a palette makes, following one of its slots.
@@ -35,44 +49,73 @@ pub struct Write {
 /// What a write changes. Each holds what the dump has there, so a newer
 /// dump fails the build instead of being painted wrong.
 pub enum Kind {
-    /// The texels in a band of hues moved to the colour, keeping their
-    /// grain. `vanilla` is the band's average colour.
+    /// The texels in a band of hues moved to the color, keeping their
+    /// grain. `vanilla` is the band's average color.
     Band {
         texture: &'static Tex,
         hues: Hues,
-        vanilla: Colour,
+        vanilla: Color,
     },
-    /// Every texel the colour, by its brightness. `vanilla` is the
-    /// texture's average colour.
+    /// Every texel the color, by its brightness. `vanilla` is the
+    /// texture's average color.
     Tint {
         texture: &'static Tex,
-        vanilla: Colour,
+        vanilla: Color,
     },
-    /// A four-float colour in every material named `material` in each of
+    /// A four-float color in every material named `material` in each of
     /// `models`, in linear light: its brightest channel kept, so a gem
-    /// keeps its depth. `vanilla` is its colour, linear.
+    /// keeps its depth. `vanilla` is its color, linear.
     Param {
         models: &'static [&'static str],
         material: &'static str,
         hash: u64,
         vanilla: [f32; 3],
     },
+    /// An effect's light. The game reads an effect's constants at run
+    /// time only for its light: a particle's color is compiled into its
+    /// shader, and these constants change nothing there. Every colored
+    /// constant in `bundle`'s esets whose names start with one of
+    /// `esets`: each turned as the slot turned from vanilla, by its own
+    /// hue, its brightest channel kept as a param's is. Greys stay grey. `sum` is the crc32 of those esets' constants in the dump
+    /// (`probe vfx BUNDLE --sum PREFIX`), so a newer dump fails the build.
+    Vfx {
+        bundle: &'static str,
+        esets: &'static [&'static str],
+        sum: u32,
+    },
+    /// Every palette entry holding `vanilla` in the layouts of `archive`
+    /// whose names start with `prefix`, in every copy the archive stores.
+    /// A UI material tints its one-channel texture with an entry, so the
+    /// entry is the part's whole color. Stored as it shows, not in linear
+    /// light, and its alpha kept. `count` is how many there are in one
+    /// copy of each layout (`probe layout PREFIX`), so a newer dump fails
+    /// the build.
+    Layout {
+        archive: &'static str,
+        prefix: &'static str,
+        vanilla: Color,
+        count: usize,
+    },
 }
 
 impl Write {
-    /// The albedo it paints, or none for a param.
+    /// The albedo it paints, or none for a param, an effect or a layout.
     pub fn texture(&self) -> Option<&'static Tex> {
         match self.kind {
             Kind::Band { texture, .. } | Kind::Tint { texture, .. } => Some(texture),
-            Kind::Param { .. } => None,
+            Kind::Param { .. } | Kind::Vfx { .. } | Kind::Layout { .. } => None,
         }
     }
 
-    /// Its part's colour in the vanilla game, as sRGB.
-    pub fn vanilla(&self) -> Colour {
+    /// Its part's color in the vanilla game, as sRGB. None for an
+    /// effect: each of its constants has its own.
+    pub fn vanilla(&self) -> Option<Color> {
         match self.kind {
-            Kind::Band { vanilla, .. } | Kind::Tint { vanilla, .. } => vanilla,
-            Kind::Param { vanilla, .. } => super::oklch::from_linear(vanilla),
+            Kind::Band { vanilla, .. }
+            | Kind::Tint { vanilla, .. }
+            | Kind::Layout { vanilla, .. } => Some(vanilla),
+            Kind::Param { vanilla, .. } => Some(super::oklch::from_linear(vanilla)),
+            Kind::Vfx { .. } => None,
         }
     }
 
@@ -82,14 +125,14 @@ impl Write {
     }
 }
 
-// The four colour params Link's and the gear's materials share, by name
+// The four color params Link's and the gear's materials share, by name
 // hash. What each means is the shader's: base, shade, rim or shine, tip.
 const C0: u64 = 0x68e1_31e7_2bcd_91ad;
 const C1: u64 = 0xe647_277d_46e8_c1d8;
 const C2: u64 = 0x0187_464e_c654_1f6e;
 const C3: u64 = 0x9613_83b7_9667_f911;
 
-const fn tint(texture: &'static Tex, vanilla: Colour) -> Write {
+const fn tint(texture: &'static Tex, vanilla: Color) -> Write {
     Write {
         slot: 0,
         kind: Kind::Tint { texture, vanilla },
@@ -113,7 +156,31 @@ const fn param(
     }
 }
 
-const fn band(texture: &'static Tex, hues: Hues, vanilla: Colour) -> Write {
+const fn vfx(bundle: &'static str, esets: &'static [&'static str], sum: u32) -> Write {
+    Write {
+        slot: 0,
+        kind: Kind::Vfx { bundle, esets, sum },
+    }
+}
+
+const fn layout(
+    archive: &'static str,
+    prefix: &'static str,
+    vanilla: Color,
+    count: usize,
+) -> Write {
+    Write {
+        slot: 0,
+        kind: Kind::Layout {
+            archive,
+            prefix,
+            vanilla,
+            count,
+        },
+    }
+}
+
+const fn band(texture: &'static Tex, hues: Hues, vanilla: Color) -> Write {
     Write {
         slot: 0,
         kind: Kind::Band {
@@ -125,15 +192,22 @@ const fn band(texture: &'static Tex, hues: Hues, vanilla: Colour) -> Write {
 }
 
 /// Link's green, his vest's yellower stripes among it. His vest's brown
-/// patch keeps its colour.
+/// patch keeps its color.
 pub const GREEN: Hues = (0.15, 0.5);
 /// The Goron Tunic's red, either side of 0. Its tan trim stays.
 const RED: Hues = (0.9, 0.06);
 const BLUE: Hues = (0.5, 0.75);
 /// Leather and wood, short of red and of green.
 const BROWN: Hues = (0.02, 0.14);
+/// The HUD heart's red and the orange swirl on it.
+const HEART: Hues = (0.95, 0.12);
 /// A part wholly wood or clay, its reds and yellows with it.
 const WOOD: Hues = (0.95, 0.2);
+
+/// The UI's text color, cream.
+const CREAM: Color = [255, 252, 198];
+/// Navi's blue in the UI.
+const NAVI_BLUE: Color = [83, 112, 255];
 
 /// Palettes that move with another while not picked themselves:
 /// (follower, leader).
@@ -184,7 +258,8 @@ pub const PALETTES: &[Palette] = &[
     },
     Palette {
         id: "leather",
-        label: "Belt, straps, gloves, boots",
+        // His belt, straps, gloves and boots.
+        label: "Tunic Accents",
         group: Group::Link,
         vanilla: &[[111, 86, 65]],
         names: &[],
@@ -548,6 +623,88 @@ pub const PALETTES: &[Palette] = &[
             .at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C2, [0.22, 0.19, 0.2]).at(3),
             param(&[BOOMERANG_MODEL], BOOMERANG_TILE_3, C3, [0.06, 0.54, 0.28]).at(3),
+        ],
+    },
+    Palette {
+        id: "navi-idle",
+        label: "Navi, idle",
+        group: Group::Effects,
+        vanilla: &[[222, 215, 203], [225, 249, 255]],
+        names: &["Inner", "Outer"],
+        writes: &[
+            param(&[NAVI], NAVI_BODY, C1, [0.7312, 0.6775, 0.5954]),
+            param(&[NAVI], NAVI_BODY_MASK, C1, [0.7312, 0.6775, 0.5954]),
+            vfx(STATIC_FX, &["Npc_Navi_Wait_"], 0xf96a_bf84).at(1),
+            vfx(NAVI_FX, &["Npc_Navi_Wait_"], 0xf96a_bf84).at(1),
+        ],
+    },
+    Palette {
+        id: "hearts",
+        label: "Hearts",
+        group: Group::Hud,
+        vanilla: &[[230, 103, 61], [255, 54, 23]],
+        names: &["Fill", "Low health"],
+        writes: &[
+            band(&HEART_FILL, HEART, [230, 103, 61]),
+            layout(COMMON_UI, HEARTS, [255, 54, 23], 2).at(1),
+        ],
+    },
+    Palette {
+        id: "magic-meter",
+        label: "Magic meter",
+        group: Group::Hud,
+        vanilla: &[[13, 144, 74], [74, 241, 135]],
+        names: &["Fill", "In use"],
+        // The bar's red entry (not enough magic, most likely) stays red:
+        // it never showed while the Lens drained the bar. The glow did.
+        writes: &[
+            band(&MAGIC_FILL, GREEN, [43, 153, 84]),
+            layout(COMMON_UI, MAGIC, [13, 144, 74], 1),
+            band(&MAGIC_GLOW[0], GREEN, [74, 241, 135]).at(1),
+            band(&MAGIC_GLOW[1], GREEN, [77, 242, 144]).at(1),
+            band(&MAGIC_GLOW[2], GREEN, [58, 215, 100]).at(1),
+            band(&MAGIC_GLOW[3], GREEN, [72, 223, 92]).at(1),
+        ],
+    },
+    Palette {
+        id: "rupee-icon",
+        label: "Rupee icon",
+        group: Group::Hud,
+        vanilla: &[[73, 160, 48]],
+        names: &[],
+        writes: &[band(&RUPEE_ICON, GREEN, [73, 160, 48])],
+    },
+    Palette {
+        id: "pause-backdrop",
+        label: "Pause menu header",
+        group: Group::Hud,
+        vanilla: &[[157, 141, 116]],
+        names: &[],
+        writes: &[tint(&MENU_HEADER, [157, 141, 116])],
+    },
+    Palette {
+        id: "ui-text",
+        label: "Menu text",
+        group: Group::Hud,
+        vanilla: &[CREAM],
+        names: &[],
+        writes: &[
+            layout(COMMON_UI, "", CREAM, 102),
+            layout(TITLE_UI, "", CREAM, 1),
+            layout(NOTES_UI, "", CREAM, 1),
+        ],
+    },
+    Palette {
+        id: "navi-prompt",
+        label: "Navi's prompts",
+        group: Group::Hud,
+        vanilla: &[NAVI_BLUE],
+        names: &[],
+        // Her blue and its pink-white highlight, wherever they're paired:
+        // her C prompt, her balloon, a message she speaks.
+        writes: &[
+            layout(COMMON_UI, "", NAVI_BLUE, 7),
+            layout(COMMON_UI, "", [255, 240, 250], 3),
         ],
     },
 ];

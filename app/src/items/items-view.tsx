@@ -150,7 +150,7 @@ function Size() {
   );
 }
 
-/** The grid's background colour, for OBS to key out. The tracker can't be
+/** The grid's background color, for OBS to key out. The tracker can't be
  * transparent, so the hint says to key it instead. */
 function Background() {
   const [background] = useItems.usePath("options.background");
@@ -166,7 +166,7 @@ function Background() {
         />
       </Label>
       <p className="text-[13px] text-ink-muted leading-[18px]">
-        The tracker can't be transparent. For a stream, pick a colour your
+        The tracker can't be transparent. For a stream, pick a color your
         streaming software keys out
       </p>
     </div>

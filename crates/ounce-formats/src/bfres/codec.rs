@@ -38,6 +38,11 @@ pub(super) fn unorm_at(r: &Reader, at: usize) -> Result<f32> {
     Ok(r.u16(at)? as f32 / 65535.0)
 }
 
+/// A 16-bit snorm's value, -1 to 1.
+pub(super) fn snorm_at(r: &Reader, at: usize) -> Result<f32> {
+    Ok((r.u16(at)? as i16 as f32 / 32767.0).max(-1.0))
+}
+
 /// A half float's value.
 fn from_half(h: u16) -> f32 {
     let sign = if h & 0x8000 != 0 { -1.0 } else { 1.0 };

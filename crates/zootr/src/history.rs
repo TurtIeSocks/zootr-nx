@@ -361,8 +361,8 @@ impl History {
             .with_context(|| format!("no history entry {id}"))
     }
 
-    /// The colours seed `id` installs with from now on.
-    /// Entry `id` in other cosmetics: its colours and music.
+    /// The colors seed `id` installs with from now on.
+    /// Entry `id` in other cosmetics: its colors and music.
     pub fn restyle(
         &mut self,
         id: u32,

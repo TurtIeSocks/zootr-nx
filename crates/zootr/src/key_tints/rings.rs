@@ -4,7 +4,7 @@
 //! that level, so many times over, and a hoop as fine. The hoop and its
 //! Triforces are drawn from a corner of the key's textures no key uses,
 //! painted the key's own iron and gold, so they stay untinted while the keys take the
-//! dungeon's colour.
+//! dungeon's color.
 
 use std::f32::consts::{PI, TAU};
 
@@ -51,7 +51,7 @@ struct Finish {
 }
 
 enum Surface {
-    /// One colour, metalness and roughness.
+    /// One color, metalness and roughness.
     Flat {
         albedo: [u8; 3],
         metal: u8,
@@ -511,7 +511,7 @@ mod tests {
         let alb = paint_as("Alb").unwrap();
         let nrm = paint_as("Nrm").unwrap();
         let at = |rgba: &[u8], uv| rgba[index(texel(uv))..index(texel(uv)) + 4].to_vec();
-        // Iron: the key's white takes the iron's colour, its other maps copy.
+        // Iron: the key's white takes the iron's color, its other maps copy.
         let beside = [u + 1.0 / size as f32, v];
         assert_eq!(at(&alb, beside), [albedo[0], albedo[1], albedo[2], 255]);
         assert_eq!(at(&nrm, IRON.middle()), [10, 20, 30, 40]);

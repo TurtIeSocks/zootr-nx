@@ -280,7 +280,7 @@ pub(super) enum Command {
     },
     /// Shuffle the items and write the seed as a mod.
     Shuffle(Shuffle),
-    /// The palettes a seed can recolour with `shuffle --color`.
+    /// The palettes a seed can recolor with `shuffle --color`.
     #[command(subcommand)]
     Colors(ColorsCommand),
     /// The music tracks a seed can shuffle with `shuffle --audio`.
@@ -616,11 +616,11 @@ pub(super) struct Shuffle {
     #[arg(long, value_name = "BUILD")]
     release: Option<crate::game::Release>,
     /// Paint a palette (`colors list` names them) as `ID=#rrggbb`, or
-    /// `ID=random` for a colour drawn from the seed. `ID=#rrggbb,#rrggbb`
+    /// `ID=random` for a color drawn from the seed. `ID=#rrggbb,#rrggbb`
     /// gives each slot its own. Repeatable.
-    #[arg(long, value_name = "ID=COLOUR", value_parser = crate::colors::parse_arg)]
+    #[arg(long, value_name = "ID=COLOR", value_parser = crate::colors::parse_arg)]
     color: Vec<(String, crate::colors::Pick)>,
-    /// A set of colours, as JSON: palette id to `"random"` or
+    /// A set of colors, as JSON: palette id to `"random"` or
     /// `{"hex": "#rrggbb"}`, as the app keeps one. `--color` wins over it.
     #[arg(long, value_name = "FILE")]
     colors: Option<PathBuf>,
@@ -657,13 +657,13 @@ pub(super) enum AudioCommand {
 
 #[derive(Subcommand)]
 pub(super) enum ColorsCommand {
-    /// Every palette: its id, group, name and vanilla colours.
+    /// Every palette: its id, group, name and vanilla colors.
     List,
     /// Write the preview the app shows: one of a palette's textures or materials,
     /// painted as a seed paints it, as a PNG.
     Preview {
         id: String,
-        /// `#rrggbb` (`#a,#b` for a colour per slot), or `vanilla`.
+        /// `#rrggbb` (`#a,#b` for a color per slot), or `vanilla`.
         color: String,
         out: PathBuf,
         /// Which of the palette's textures, then materials, from 0.
@@ -850,7 +850,7 @@ impl Shuffle {
         settings
     }
 
-    /// The colours asked for, Random not drawn yet: the file's, then each
+    /// The colors asked for, Random not drawn yet: the file's, then each
     /// `--color`.
     /// The music asked for, not dealt yet: the file's, then each `--audio`
     /// and `--track`.

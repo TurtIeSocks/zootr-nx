@@ -8,6 +8,9 @@ use crate::ageless::files::{CLOTH, VEST};
 /// shine taken off to show.
 pub struct Tex {
     pub path: &'static str,
+    /// Its name in a file of many (the UI's atlas), or none for a file
+    /// of one.
+    pub name: Option<&'static str>,
     pub metal: Option<&'static str>,
     /// Set when another character or item uses the texture too: the paint
     /// goes on a copy, named with this letter, in these models only.
@@ -23,9 +26,60 @@ pub struct Copy {
     pub aliases: &'static [(&'static str, &'static [&'static str])],
 }
 
+/// Which texture a `Tex` is: its file, and its name in a file of many.
+pub type TexKey = (&'static str, Option<&'static str>);
+
+impl Tex {
+    pub fn key(&self) -> TexKey {
+        (self.path, self.name)
+    }
+
+    /// The name a model's material gives it, for a file of one:
+    /// `Tex/<name>.bntx.zs`.
+    pub fn stem(&self) -> Option<&'static str> {
+        match self.name {
+            None => stem(self.path),
+            Some(_) => None,
+        }
+    }
+
+    /// Its first level, from its file's `data`.
+    pub fn texels(&self, data: &[u8]) -> anyhow::Result<ounce_formats::Texture> {
+        match self.name {
+            None => ounce_formats::top_level(data),
+            Some(name) => ounce_formats::texture_named(data, name),
+        }
+    }
+
+    /// Its file's `data` with its texels redrawn from `rgba`.
+    pub fn redrawn(&self, data: &[u8], rgba: &[u8]) -> anyhow::Result<Vec<u8>> {
+        match self.name {
+            None => ounce_formats::redraw(data, rgba, |_, _| false),
+            Some(name) => ounce_formats::redraw_named(data, name, rgba, |_, _| false),
+        }
+    }
+}
+
+/// The texture name a `Tex/<name>.bntx.zs` file holds. A name may end
+/// in a variant's number (`_Alb.00`), as a material names it.
+pub fn stem(path: &str) -> Option<&str> {
+    path.strip_prefix("Tex/")?.strip_suffix(".bntx.zs")
+}
+
+/// A texture in the UI's atlas, by name.
+const fn atlas(name: &'static str) -> Tex {
+    Tex {
+        path: UI_ATLAS,
+        name: Some(name),
+        metal: None,
+        copy: None,
+    }
+}
+
 const fn tex(path: &'static str) -> Tex {
     Tex {
         path,
+        name: None,
         metal: None,
         copy: None,
     }
@@ -34,6 +88,7 @@ const fn tex(path: &'static str) -> Tex {
 const fn metal(path: &'static str, metal: &'static str) -> Tex {
     Tex {
         path,
+        name: None,
         metal: Some(metal),
         copy: None,
     }
@@ -58,6 +113,7 @@ const LINK: [&str; 6] = [
 // painted as a copy.
 pub const CLOTH_TILE: Tex = Tex {
     path: CLOTH[0],
+    name: None,
     metal: None,
     copy: Some(Copy {
         mark: b'K',
@@ -111,11 +167,12 @@ pub const FAIRY_OCARINA: [Tex; 2] = [
 ];
 pub const OCARINA_OF_TIME: Tex = tex("Tex/Mt_Item_Ocarina_Time_Alb.bntx.zs");
 
-// Hair: its colour is its albedo, and its gradient (a LUT) colours the
+// Hair: its color is its albedo, and its gradient (a LUT) colors the
 // highlight (seen live). The albedo is Dark Link's too and the child's
 // through the texture table, so Link's is a copy, and the child's another.
 pub const HAIR: Tex = Tex {
     path: "Tex/Mt_Hairs_Player_Adult_Alb.bntx.zs",
+    name: None,
     metal: None,
     copy: Some(Copy {
         mark: b'L',
@@ -126,6 +183,7 @@ pub const HAIR: Tex = Tex {
 // The grown one's gradient is every character's, so it's a copy too.
 pub const ADULT_HAIR: Tex = Tex {
     path: "Tex/CmnTex_Chara_Hair_LUT_A_Gn0.bntx.zs",
+    name: None,
     metal: None,
     copy: Some(Copy {
         mark: b'L',
@@ -150,6 +208,7 @@ pub const MASTER_SWORD: Tex = tex("Tex/Mt_Weapon_Sword_Master_Alb.bntx.zs");
 // shared one left the Golden Gauntlets' plates flat white (seen live).
 pub const SILVER_GAUNTLETS: Tex = Tex {
     path: "Tex/Mt_Silver_Armor_Adult_Gauntlet_Silver_Alb.bntx.zs",
+    name: None,
     metal: Some("Tex/Mt_Silver_Armor_Adult_Gauntlet_Silver_Mtl.bntx.zs"),
     copy: Some(Copy {
         mark: b'S',
@@ -179,6 +238,237 @@ pub const JEWELRY: &str = "Mt_Jewelry";
 pub const BRACELET_GLASS: &str = "Mt_Item_Gauntlet_Goron_Glass";
 pub const BOOTS_GLASS: &str = "Mt_Boots_TransParent";
 pub const BOOMERANG_GEM: &str = "Mt_Item_Boomerang_Gem";
+
+// Layers the game blends over Link's eyes through its shader (a glint, a
+// shadow). Drawn plain, they cover the eyes (the child's shadow, with an
+// albedo, in black): the Model tab leaves them out.
+pub const EYE_LAYERS: [&str; 3] = ["Mt_Eye_Outer", "Mt_Eyeshadow", "Mt_EyeShadow_test"];
 pub const BOOMERANG_TILE_1: &str = "Mt_Item_Boomerang_Tile_01";
 pub const BOOMERANG_TILE_2: &str = "Mt_Item_Boomerang_Tile_02";
 pub const BOOMERANG_TILE_3: &str = "Mt_Item_Boomerang_Tile_03";
+
+/// An effect bundle, by its owner's name.
+macro_rules! effect {
+    ($owner:literal) => {
+        concat!("Effect/", $owner, ".Nin_Ounce_NVN2.vsetb.byml.zs")
+    };
+}
+
+/// The effects the game loads at boot. Its index (`EffectFileInfo`)
+/// lists every bundle it loads by name besides; a bundle it doesn't list
+/// (the Purple and Gold Rupees' own) is a stale copy of esets in here.
+pub const STATIC_FX: &str = effect!("static");
+/// The index of the bundles the game loads.
+pub const EFFECT_INDEX: &str = "Effect/EffectFileInfo.Product.110.Nin_Ounce_NVN2.byml.zs";
+
+// Navi: her model, its two body materials, and her cutscene double's
+// effects.
+pub const NAVI: &str = "Model/Npc_Navi.Npc_Navi.bfres.zs";
+pub const NAVI_BODY: &str = "Mt_Body";
+pub const NAVI_BODY_MASK: &str = "Mt_Body_AlphaMask";
+pub const NAVI_FX: &str = effect!("Dm_Npc_Navi");
+
+/// A UI layout archive, by its name.
+macro_rules! layouts {
+    ($name:literal) => {
+        concat!(
+            "UI/Layout2Archive/",
+            $name,
+            ".Product.100.Nin_Ounce_NVN2.blarc.zs"
+        )
+    };
+}
+
+/// The HUD's and menus' layouts.
+pub const COMMON_UI: &str = layouts!("Common");
+/// The title screen's layouts.
+pub const TITLE_UI: &str = layouts!("Title");
+/// The notes' layouts.
+pub const NOTES_UI: &str = layouts!("ZeldaNotes");
+/// Every UI layout archive.
+pub const LAYOUT_ARCHIVES: [&str; 4] = [COMMON_UI, TITLE_UI, NOTES_UI, layouts!("Boot")];
+
+/// A heart on the HUD, full or part full or empty: the low health pulse
+/// is a palette entry in each one's layout.
+pub const HEARTS: &str = "PaHeartGaugeChild";
+/// The magic meter's layout.
+pub const MAGIC: &str = "PaMpGauge_00";
+
+/// The UI's texture atlas: every HUD and menu texture.
+pub const UI_ATLAS: &str = crate::sprites::LAYOUT;
+pub const HEART_FILL: Tex = atlas("HeartW_00_ASTC4x4");
+pub const MAGIC_FILL: Tex = atlas("MpGaugeCenter_00");
+/// The glow around the magic meter while a spell or the Lens drains it.
+pub const MAGIC_GLOW: [Tex; 4] = [
+    atlas("MpGaugeGlow_00"),
+    atlas("MpGaugeGlow_01"),
+    atlas("MpGaugeFlash_00"),
+    atlas("MpGaugeFlash_01"),
+];
+pub const RUPEE_ICON: Tex = atlas("Nt_RupeeIconNew_00");
+pub const MENU_HEADER: Tex = atlas("MenuHeader_00");
+
+/// One way the Model tab shows a palette: models drawn together.
+pub struct View {
+    pub label: &'static str,
+    pub models: &'static [&'static str],
+    /// The pack of an armor worn over the first model (Link), whose
+    /// ArmorParam names the material groups of his that it hides.
+    pub worn: Option<&'static str>,
+}
+
+const fn view(label: &'static str, models: &'static [&'static str]) -> View {
+    View {
+        label,
+        models,
+        worn: None,
+    }
+}
+
+/// Link (`models`, his first) in an armor from pack `pack`, as the game
+/// dresses him.
+const fn worn(label: &'static str, models: &'static [&'static str], pack: &'static str) -> View {
+    View {
+        label,
+        models,
+        worn: Some(pack),
+    }
+}
+
+/// Armor `model` from pack `pack` worn by adult Link, then alone.
+macro_rules! on_link {
+    ($model:expr, $pack:expr) => {
+        &[
+            worn("On Link", &[ADULT, $model], $pack),
+            view("Alone", &[$model]),
+        ]
+    };
+}
+
+const HEAVY: &str = "Model/Armor_Adult_HeavyBoot.Armor_Adult_HeavyBoot.bfres.zs";
+
+/// The pack holding Link's own params: each material group armor hides.
+pub const PLAYER_BASE: &str = "Pack/Actor/Player_Base.pack.zs";
+
+const ADULT_VIEW: View = view("Adult", &[ADULT]);
+const CHILD_VIEW: View = view("Child", &[CHILD]);
+
+const LINK_VIEWS: &[View] = &[ADULT_VIEW, CHILD_VIEW];
+
+/// Each palette with a model, and the views it shows on.
+const VIEWS: &[(&str, &[View])] = &[
+    ("kokiri-tunic", LINK_VIEWS),
+    ("leather", LINK_VIEWS),
+    ("hair", LINK_VIEWS),
+    ("brows", LINK_VIEWS),
+    (
+        "goron-tunic",
+        &[worn(
+            "Adult",
+            &[ADULT, "Model/Armor_Adult_Goron.Armor_Adult_Goron.bfres.zs"],
+            "Pack/Actor/Armor_Adult_Goron.pack.zs",
+        )],
+    ),
+    (
+        "zora-tunic",
+        &[worn(
+            "Adult",
+            &[ADULT, "Model/Armor_Adult_Zora.Armor_Adult_Zora.bfres.zs"],
+            "Pack/Actor/Armor_Adult_Zora.pack.zs",
+        )],
+    ),
+    (
+        "kokiri-sword",
+        &[view(
+            "Sword",
+            &["Model/Weapon_Sword_Kokiri.Weapon_Sword_Kokiri.bfres.zs"],
+        )],
+    ),
+    (
+        "biggoron-sword",
+        &[view(
+            "Sword",
+            &["Model/Weapon_Sword_Biggoron.Weapon_Sword_Biggoron.bfres.zs"],
+        )],
+    ),
+    ("master-sword", &[view("Sword", &[MASTER])]),
+    (
+        "deku-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Deku.Weapon_Shield_Deku.bfres.zs"],
+        )],
+    ),
+    (
+        "hylian-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Hylian.Weapon_Shield_Hylian.bfres.zs"],
+        )],
+    ),
+    (
+        "mirror-shield",
+        &[view(
+            "Shield",
+            &["Model/Weapon_Shield_Mirror.Weapon_Shield_Mirror.bfres.zs"],
+        )],
+    ),
+    (
+        "iron-boots",
+        on_link!(HEAVY, "Pack/Actor/Armor_Adult_HeavyBoot.pack.zs"),
+    ),
+    (
+        "hover-boots",
+        on_link!(HOVER, "Pack/Actor/Armor_Adult_HoverBoot.pack.zs"),
+    ),
+    (
+        "hammer",
+        &[view("Hammer", &["Model/Item_Hammer.Item_Hammer.bfres.zs"])],
+    ),
+    (
+        "bow",
+        &[view(
+            "Bow",
+            &["Model/Weapon_Range_Bow.Weapon_Range_Bow.bfres.zs"],
+        )],
+    ),
+    (
+        "slingshot",
+        &[view(
+            "Slingshot",
+            &["Model/Weapon_Range_SlingShot.Weapon_Range_SlingShot.bfres.zs"],
+        )],
+    ),
+    (
+        "hookshot",
+        &[view(
+            "Hookshot",
+            &["Model/Item_Hookshot.Item_Hookshot_Body.bfres.zs"],
+        )],
+    ),
+    (
+        "fairy-ocarina",
+        &[view(
+            "Ocarina",
+            &["Model/Item_Ocarina_Fairy.Item_Ocarina_Fairy.bfres.zs"],
+        )],
+    ),
+    (
+        "ocarina-of-time",
+        &[view(
+            "Ocarina",
+            &["Model/Item_Ocarina_Time.Item_Ocarina_Time.bfres.zs"],
+        )],
+    ),
+    // Alone: the gauntlets bind in a T pose and Link in an A pose, so worn
+    // they float until they are skinned to his bones by name.
+    ("silver-gauntlets", &[view("Gauntlets", &[SILVER])]),
+    ("gold-gauntlets", &[view("Gauntlets", &[GOLD])]),
+    ("goron-bracelet", &[view("Bracelet", &[BRACELET])]),
+    ("boomerang", &[view("Boomerang", &[BOOMERANG_MODEL])]),
+];
+
+/// The views palette `id` shows on, none for one with no model.
+pub fn views(id: &str) -> &'static [View] {
+    VIEWS.iter().find(|(p, _)| *p == id).map_or(&[], |(_, v)| v)
+}

@@ -54,7 +54,7 @@ pub const FILES: [&str; 31] = [
 ];
 
 /// Each bag's look: its bomb bag's model and textures, the albedo in the
-/// Bombchu's colours ([`colours`]). A copy's name is as long as its host's (`paint::Look`), so the
+/// Bombchu's colors ([`colors`]). A copy's name is as long as its host's (`paint::Look`), so the
 /// Medium's prefix is a letter longer.
 static LOOKS: [Look; 3] = [
     look(BOMB_BAGS[0], "Item_RandoChuBag"),
@@ -63,7 +63,7 @@ static LOOKS: [Look; 3] = [
 ];
 
 /// The bag's leather and its blue patch, as hues, each worn in a part of
-/// the Bombchu's colours: the leather in its body's navy, the patch in its
+/// the Bombchu's colors: the leather in its body's navy, the patch in its
 /// belly's gold. The red stripes, the chain and the trim keep theirs, as a
 /// Bombchu has red and metal too (the maintainer's call, 2026-11-21:
 /// "whichever looks most like a bombchu", over all-over blue).
@@ -80,9 +80,9 @@ const GOLD: Hues = (35.0 / 360.0, 70.0 / 360.0);
 const RED: [Hues; 2] = [(0.0, 11.9 / 360.0), (345.0 / 360.0, 1.0)];
 
 /// Bag `at`'s albedo paint: on the Small, the Medium's red stripes, then
-/// on every bag the Bombchu's colours.
+/// on every bag the Bombchu's colors.
 fn albedo(romfs: &Romfs, at: usize) -> Result<impl Fn(&mut [u8])> {
-    let bands = colours(romfs)?;
+    let bands = colors(romfs)?;
     let stripes = match at {
         0 => {
             let alb = |at: usize| format!("Tex/Mt_{}_Alb.bntx.zs", LOOKS[at].host);
@@ -99,11 +99,11 @@ fn albedo(romfs: &Romfs, at: usize) -> Result<impl Fn(&mut [u8])> {
     })
 }
 
-/// Each bag band and the colour it moves to, read from the Bombchu's
+/// Each bag band and the color it moves to, read from the Bombchu's
 /// albedo.
-fn colours(romfs: &Romfs) -> Result<[Band; 2]> {
+fn colors(romfs: &Romfs) -> Result<[Band; 2]> {
     let chu = top_level(&romfs.read(&textures(CHU_TEXTURES, "Alb"))?)?;
-    let like = |hues| paint::mean(&chu.rgba, hues).context("the Bombchu lacks a colour");
+    let like = |hues| paint::mean(&chu.rgba, hues).context("the Bombchu lacks a color");
     Ok([
         Band {
             hues: LEATHER,
@@ -363,7 +363,7 @@ mod tests {
     /// Each bag's leather wears the Bombchu's navy, none of it left tan,
     /// and each has the red stripes.
     #[test]
-    fn each_bag_wears_the_bombchus_colours() {
+    fn each_bag_wears_the_bombchus_colors() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };

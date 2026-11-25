@@ -36,7 +36,7 @@ const FILTERS = [
   { id: "room", label: "Room" },
 ] as const satisfies readonly { id: LogFilter; label: string }[];
 
-/** Each kind's icon and colour. */
+/** Each kind's icon and color. */
 const LOOK: Record<LineKind, { icon: LucideIcon; tone: string }> = {
   sent: { icon: ArrowUpRight, tone: "" },
   received: { icon: ArrowDownLeft, tone: "[&_svg]:text-primary-ink" },

@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn a_filled_square_colours_its_pixels() {
+    fn a_filled_square_colors_its_pixels() {
         let mut p = Picture::new([0.0, 0.0], [4.0, 4.0], 1.0, [0; 3]);
         p.fill(&[[1.0, 1.0], [3.0, 1.0], [3.0, 3.0], [1.0, 3.0]], [9; 3]);
         assert_eq!(p.pixels.iter().filter(|c| **c == [9; 3]).count(), 4);

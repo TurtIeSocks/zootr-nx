@@ -1,6 +1,6 @@
 //! Shrubs, which the foliage system draws from leaf types, not models. A
 //! marked shrub is a copy of its actor whose FoliageParam names a copy of
-//! its leaf type with the leaves' colour set gold. The game reads leaf
+//! its leaf type with the leaves' color set gold. The game reads leaf
 //! types from the foliage pack, not an actor's own, so the copy's leaf
 //! type and the files named for it go there, and its geometry beside the
 //! host's.
@@ -18,7 +18,7 @@ use crate::standins::{Tables, actor_path, doc, path_of, raw, renamed, with_ref, 
 /// The pack every leaf type and the files named for it are in.
 const FOLIAGE: &str = "Pack/Foliage.pack.zs";
 
-/// How strongly the gold colours a marked shrub's leaves, 0 to 1.
+/// How strongly the gold colors a marked shrub's leaves, 0 to 1.
 const STRENGTH: f32 = 0.9;
 
 /// Writes `host`'s marked copy and its gold leaf type, with its host's
@@ -146,20 +146,20 @@ fn write_leaf(romfs: &Romfs, builder: &mut ModBuilder, leaf: &str, marked: &str)
     builder.add(&geometry(marked), &romfs.read(&like)?, &like)
 }
 
-/// Leaf type `leaf` as the marked one `name`: its leaves coloured gold, and
+/// Leaf type `leaf` as the marked one `name`: its leaves colored gold, and
 /// its hash its own name's.
 fn gold(leaf: &BymlMap, name: &str) -> Result<BymlMap> {
     let mut leaf = leaf.clone();
     let key = field::LEAF_MOD_COLOR.get();
-    let mut modded = leaf.get(key).context("no leaf colour")?.as_map()?.clone();
+    let mut modded = leaf.get(key).context("no leaf color")?.as_map()?.clone();
     let [r, g, b] = GOLD.map(|c| Byml::Float(c as f32 / 255.0));
-    let colour = BymlMap::from_iter([
+    let color = BymlMap::from_iter([
         ("R".into(), r),
         ("G".into(), g),
         ("B".into(), b),
         ("A".into(), Byml::Float(STRENGTH)),
     ]);
-    modded.insert(field::COLOR.get().into(), Byml::Map(colour));
+    modded.insert(field::COLOR.get().into(), Byml::Map(color));
     leaf.insert(key.into(), Byml::Map(modded));
     leaf.insert(field::LEAF_MOD_COLOR_ENABLE.get().into(), Byml::Bool(true));
     let hash = murmur3(name.as_bytes());
@@ -218,11 +218,11 @@ mod tests {
         let host = host.root.as_map().unwrap();
         assert!(host.get(field::LEAF_MOD_COLOR.get()).is_some());
         let leaf = gold(host, "Land_FakePlant_Z_01").unwrap();
-        let colour = leaf[field::LEAF_MOD_COLOR.get()].as_map().unwrap()[field::COLOR.get()]
+        let color = leaf[field::LEAF_MOD_COLOR.get()].as_map().unwrap()[field::COLOR.get()]
             .as_map()
             .unwrap()
             .clone();
-        assert_eq!(colour["R"], Byml::Float(1.0));
+        assert_eq!(color["R"], Byml::Float(1.0));
         assert_eq!(leaf[field::LEAF_MOD_COLOR_ENABLE.get()], Byml::Bool(true));
         let hash = murmur3(b"Land_FakePlant_Z_01");
         assert!(

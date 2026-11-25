@@ -77,7 +77,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 - An item from another world shows at the top of the screen with its
   sender once Link is in play: "Hookshot from Saria". A big release shows
   3, then a count of the rest.
-- A check holding another game's item shows a model coloured by its
+- A check holding another game's item shows a model colored by its
   Archipelago class, and its get names the player it goes to.
 - DeathLink works when your options turn it on.
 
@@ -97,7 +97,7 @@ The builds aren't signed yet, so macOS and Windows warn the first time:
 - Draws zootr-nx's own icons. zootr-nx ships none of the game's art, so the
   game's icons are an opt-in that builds them from your own dump.
 - Each section can move, hide and change width, and the tracker takes any
-  background colour.
+  background color.
 - Pop it out into its own window, sized to the grid, for OBS to capture.
 
 ### Save Editor

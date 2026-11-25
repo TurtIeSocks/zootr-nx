@@ -102,8 +102,8 @@ export const TOPICS = {
     title: "Colors",
     at: { section: "colors" },
     body: [
-      "Recolour Link and his gear. Colours don't change the shuffle, and a share code leaves them out.",
-      "Random draws a colour when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
+      "Recolor Link and his gear. Colors don't change the shuffle, and a share code leaves them out.",
+      "Random draws a color when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
     ],
   },
   audio: {

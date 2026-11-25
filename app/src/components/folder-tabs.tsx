@@ -25,7 +25,7 @@ interface FolderTabsProps<T extends string> {
 /** Tabs drawn like the labels on files in a cabinet drawer: the open one
  * runs into the folder body (above it), the rest tuck behind its top edge
  * (below it). The list sets no z-index of its own, so each tab stacks
- * against the body. Only colours animate: a switch doesn't move anything. Arrow keys move and
+ * against the body. Only colors animate: a switch doesn't move anything. Arrow keys move and
  * open, Home and End jump. */
 export function FolderTabs<T extends string>({
   tabs,

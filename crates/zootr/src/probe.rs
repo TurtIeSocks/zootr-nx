@@ -6,20 +6,17 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, ensure};
 use clap::Subcommand;
-use ounce_formats::{
-    ActorPack, Msbt, Part, Romfs, files_with_suffix, messages, murmur3, pack_file,
-};
-use roead::sarc::Sarc;
+use ounce_formats::{ActorPack, Romfs, files_with_suffix, murmur3, pack_file};
 
 use crate::gamedata::GameData;
 use crate::items::{scalar, show};
 use crate::known::flag;
-use crate::names::TEXT;
 
 mod actors;
 mod arsenal;
 mod climbs;
 mod collision;
+mod colors;
 mod exefs;
 mod filter;
 mod formats;
@@ -31,6 +28,7 @@ mod plan;
 mod poses;
 mod rooms;
 mod shapes;
+mod text;
 mod uvs;
 mod water;
 
@@ -163,20 +161,75 @@ pub enum Probe {
     /// including those inside SARC archives.
     Icons { pattern: String, out: PathBuf },
     /// Paints each shape of the models whose path contains this to `out`,
-    /// as PNG: its triangles in UV space, coloured by the axis they face
+    /// as PNG: its triangles in UV space, colored by the axis they face
     /// (X red, Y green, Z blue, dark for the negative way), with each
     /// shape's UV bounds. Shows where a face lands on its textures.
     Uvs { pattern: String, out: PathBuf },
     /// Each material of a model, by a piece of its path (`Model/` and its
     /// actor name and a dot, the dot keeping its variants out):
     /// its textures and its four-float parameters by name hash, the
-    /// colours Colors can write. Linear light, as the shader reads them.
+    /// colors Colors can write. Linear light, as the shader reads them.
     /// A path to a file on disk (a built mod's) reads that file instead.
     Materials { model: String },
-    /// A texture's average colour, and the average of its texels in each
+    /// Each shape of a model, by a piece of its path as for `materials`:
+    /// its material and that material's textures, the bone it hangs from,
+    /// its skin count (0 or 1: its vertices sit in that bone's space) and
+    /// its vertex count. What the colors model viewer draws.
+    Model {
+        model: String,
+        /// Also write the decompressed model here.
+        #[arg(long)]
+        raw: Option<PathBuf>,
+    },
+    /// A texture's average color, and the average of its texels in each
     /// hue band given (`LO-HI`, 0 to 1, wrapping past 1): the vanilla
-    /// colours a Colors palette records.
-    Band { texture: String, bands: Vec<String> },
+    /// colors a Colors palette records. `--png` also writes it out.
+    Band {
+        texture: String,
+        bands: Vec<String>,
+        #[arg(long)]
+        png: Option<PathBuf>,
+    },
+    /// An effect bundle's color constants (`Effect/` and its owner's
+    /// name, or a built file's path), under the eset each one falls in:
+    /// where its value is in the decompressed file, its descriptor's name
+    /// hash, and its floats, linear and often above 1. With `--sum`, the
+    /// sum a Colors effect write records for the esets starting with each
+    /// prefix given.
+    Vfx {
+        bundle: String,
+        #[arg(long)]
+        sum: Vec<String>,
+        /// Also write the bundle, decompressed, to this file.
+        #[arg(long)]
+        raw: Option<PathBuf>,
+    },
+    /// A UI layout's color palette (every layout whose name contains
+    /// `name`, in every layout archive): each entry's index, color, floats
+    /// and where they are in the layout, and how many copies the archive
+    /// stores. Then each material's white index.
+    Layout {
+        name: String,
+        /// Also every material, picture and text record holding this
+        /// palette index at any word: where else an entry may be named.
+        #[arg(long)]
+        uses: Option<u32>,
+        /// Also every record named this, in hex, by kind.
+        #[arg(long)]
+        record: Option<String>,
+    },
+    /// The UI atlas's textures whose names contain `name`: each one's
+    /// size and average color, over every texel and over the ones that
+    /// show. With `--out`, each as a PNG there too.
+    Atlas {
+        name: String,
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// Also count each texture's shown, colored texels by hue, in
+        /// steps of 10 degrees: what a color band has to cover.
+        #[arg(long)]
+        hues: bool,
+    },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -500,7 +553,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             pattern,
             mod_dir,
             tags,
-        } => text(romfs, &pattern, mod_dir.as_deref(), tags),
+        } => text::text(romfs, &pattern, mod_dir.as_deref(), tags),
         Probe::Settings => {
             settings();
             Ok(())
@@ -579,8 +632,18 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
         Probe::Chests { out } => crate::chest_looks::preview(romfs, &out),
-        Probe::Materials { model } => materials(romfs, game, &model),
-        Probe::Band { texture, bands } => band(romfs, game, &texture, &bands),
+        Probe::Materials { model } => colors::materials(romfs, game, &model),
+        Probe::Model { model, raw } => colors::model(romfs, game, &model, raw.as_deref()),
+        Probe::Band {
+            texture,
+            bands,
+            png,
+        } => colors::band(romfs, game, &texture, &bands, png.as_deref()),
+        Probe::Layout { name, uses, record } => {
+            colors::layout(romfs, &name, uses, record.as_deref())
+        }
+        Probe::Atlas { name, out, hues } => colors::atlas(romfs, &name, out.as_deref(), hues),
+        Probe::Vfx { bundle, sum, raw } => colors::vfx(romfs, game, &bundle, &sum, raw.as_deref()),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -782,51 +845,6 @@ fn pack(romfs: &Romfs, actor: &str, file: Option<&str>, mod_dir: Option<&Path>) 
     Ok(())
 }
 
-fn text(romfs: &Romfs, pattern: &str, mod_dir: Option<&Path>, tags: bool) -> Result<()> {
-    let data = match mod_dir {
-        Some(dir) => {
-            let path = dir.join("romfs").join(TEXT);
-            let raw =
-                std::fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
-            romfs.dicts().decompress(TEXT, &raw)?
-        }
-        None => romfs.read(TEXT)?,
-    };
-    let sarc = Sarc::new(&data).with_context(|| format!("reading {TEXT}"))?;
-    let want = pattern.to_lowercase();
-    for f in sarc.files() {
-        let Some(name) = f.name().filter(|n| n.ends_with(".msbt")) else {
-            continue;
-        };
-        let mut found: Vec<_> = messages(f.data())
-            .with_context(|| name.to_owned())?
-            .into_iter()
-            .filter(|(id, t)| [id, t].iter().any(|s| s.to_lowercase().contains(&want)))
-            .collect();
-        found.sort();
-        let msbt = tags.then(|| Msbt::parse(f.data())).transpose()?;
-        for (id, t) in found {
-            let t = match &msbt {
-                Some(m) => tagged(&m.get(&id)?.unwrap_or_default()),
-                None => t,
-            };
-            println!("{name}:{id} {}", t.replace('\n', " / "));
-        }
-    }
-    Ok(())
-}
-
-/// `parts` as text with each tag's bytes in place.
-fn tagged(parts: &[Part]) -> String {
-    let hex = |raw: &[u8]| raw.iter().map(|b| format!("{b:02x}")).collect::<Vec<_>>();
-    (parts.iter())
-        .map(|p| match p {
-            Part::Text(t) => t.clone(),
-            Part::Tag(raw) => format!("<{}>", hex(raw).join(" ")),
-        })
-        .collect()
-}
-
 fn names(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
     unpacked(romfs, game, path, |path, data, _| {
         println!("{path}");
@@ -912,52 +930,6 @@ fn point(arg: &str) -> Result<[f32; 3]> {
         .map(|n| n.trim().parse())
         .collect::<Result<_, _>>()?;
     v.try_into().map_err(|_| anyhow::anyhow!("want X,Y,Z"))
-}
-
-/// `probe materials`.
-fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
-    // A built file (a mod's) by its path, or the dump's by a piece of one.
-    let data = match Path::new(model).is_file() {
-        true => romfs.dicts().decompress(model, &std::fs::read(model)?)?,
-        false => crate::nav::dump_file(romfs, game, model)?
-            .with_context(|| format!("no model {model}"))?,
-    };
-    for m in ounce_formats::materials(&data)? {
-        println!("{}", m.name);
-        println!("  textures {}", m.textures.join(" "));
-        for (hash, [r, g, b, a]) in &m.params {
-            println!("  {hash:016x}  {r:.4} {g:.4} {b:.4} {a:.4}");
-        }
-    }
-    Ok(())
-}
-
-fn band(romfs: &Romfs, game: &Path, texture: &str, bands: &[String]) -> Result<()> {
-    use crate::colors::paint;
-    let data = crate::nav::dump_file(romfs, game, texture)?
-        .with_context(|| format!("no texture {texture}"))?;
-    let rgba = ounce_formats::top_level(&data)?.rgba;
-    let n = (rgba.len() / 4).max(1) as u64;
-    let mean: [u64; 3] =
-        std::array::from_fn(|c| rgba.chunks(4).map(|px| px[c] as u64).sum::<u64>() / n);
-    println!("all        {mean:?}");
-    for b in bands {
-        let (lo, hi) = b.split_once('-').context("a band is LO-HI")?;
-        let hues = (lo.parse()?, hi.parse()?);
-        let share = rgba
-            .chunks(4)
-            .filter(|px| paint::in_band(px, hues).is_some())
-            .count();
-        match paint::mean(&rgba, hues) {
-            Some((h, s, v)) => println!(
-                "{b:<10} {:?}  {:.1}% of texels",
-                paint::rgb(h, s, v),
-                100.0 * share as f64 / n as f64
-            ),
-            None => println!("{b:<10} no texel"),
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

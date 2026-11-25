@@ -1,8 +1,8 @@
 //! Texture block encoders, the few shapes a redrawn texture needs: an ASTC
-//! block of one colour or of two, a BC1 block of four colours, and a BC4
+//! block of one color or of two, a BC1 block of four colors, and a BC4
 //! block of up to eight values.
 //!
-//! A two-colour ASTC block is the simplest real one: one partition, a
+//! A two-color ASTC block is the simplest real one: one partition, a
 //! weight per texel at the block's own size, and endpoints at full 8-bit
 //! precision, so every field is plain binary.
 
@@ -20,7 +20,7 @@ pub fn texels(rgba: &[u8]) -> Vec<Rgba> {
     rgba.as_chunks::<4>().0.to_vec()
 }
 
-/// An ASTC block of one colour (the void-extent block): its mode bits and
+/// An ASTC block of one color (the void-extent block): its mode bits and
 /// an extent of "none", then RGBA as 16-bit values.
 pub fn astc_solid(c: Rgba) -> [u8; 16] {
     let mut out = [0; 16];
@@ -31,7 +31,7 @@ pub fn astc_solid(c: Rgba) -> [u8; 16] {
     out
 }
 
-/// Endpoint modes: grey with alpha, colour, and a colour with a darker
+/// Endpoint modes: grey with alpha, color, and a color with a darker
 /// copy of itself, each with an alpha of its own.
 const LUMINANCE_ALPHA: u32 = 4;
 const RGB: u32 = 8;
@@ -45,11 +45,11 @@ const ENDPOINT_MODE: usize = 13;
 const ENDPOINT_MODE_BITS: usize = 4;
 const HEADER: usize = ENDPOINT_MODE + ENDPOINT_MODE_BITS;
 
-/// The ASTC block closest to `texels` (row-major, `w` by `h`): one colour,
+/// The ASTC block closest to `texels` (row-major, `w` by `h`): one color,
 /// or two on whichever weight grid that fits decodes nearest.
 pub fn astc(texels: &[Rgba], w: usize, h: usize) -> [u8; 16] {
     let solid = astc_solid(average(texels));
-    two_colour(texels, w, h)
+    two_color(texels, w, h)
         .chain([solid])
         .min_by_key(|b| error(b, texels, w, h))
         .unwrap_or(solid)
@@ -74,11 +74,11 @@ fn error(block: &[u8; 16], texels: &[Rgba], w: usize, h: usize) -> u64 {
         .sum()
 }
 
-/// `w` by `h` texels between two colours, on each weight grid with room.
-fn two_colour(texels: &[Rgba], w: usize, h: usize) -> impl Iterator<Item = [u8; 16]> + '_ {
+/// `w` by `h` texels between two colors, on each weight grid with room.
+fn two_color(texels: &[Rgba], w: usize, h: usize) -> impl Iterator<Item = [u8; 16]> + '_ {
     let grey = texels.iter().all(|t| t[0] == t[1] && t[1] == t[2]);
     let opaque = texels.iter().all(|t| t[3] == 255);
-    // The endpoint values in the order the mode stores them, the colours
+    // The endpoint values in the order the mode stores them, the colors
     // they decode to, and the channels that place a texel between them.
     let (mode, values, e0, e1, channels): (u32, Vec<u8>, Rgba, Rgba, &[usize]) =
         match (grey, opaque) {
@@ -260,8 +260,8 @@ impl Bits {
 }
 
 /// A BC1 block of 16 texels: the darkest and brightest as endpoints, and
-/// each texel's nearest of the four colours they make. With any texel
-/// mostly transparent, the three-colour mode, those texels transparent.
+/// each texel's nearest of the four colors they make. With any texel
+/// mostly transparent, the three-color mode, those texels transparent.
 pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
     let luma = |c: &Rgba| c[0] as u32 * 54 + c[1] as u32 * 183 + c[2] as u32 * 19;
     let seen = || texels.iter().filter(|c| c[3] >= 128);
@@ -274,7 +274,7 @@ pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
     };
     let clear = texels.iter().any(|c| c[3] < 128);
     let (mut c0, mut c1) = (rgb565(hi), rgb565(lo));
-    // Four colours when the first endpoint is the greater, else three and
+    // Four colors when the first endpoint is the greater, else three and
     // transparent.
     if (c0 < c1) != clear {
         std::mem::swap(&mut c0, &mut c1);
@@ -283,7 +283,7 @@ pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
     let mix = |wa: u32, wb: u32| -> [u32; 3] {
         std::array::from_fn(|i| (wa * a[i] + wb * b[i]) / (wa + wb))
     };
-    let (palette, colours) = match c0 > c1 {
+    let (palette, colors) = match c0 > c1 {
         true => ([a, b, mix(2, 1), mix(1, 2)], 4),
         false => ([a, b, mix(1, 1), [0; 3]], 3),
     };
@@ -291,7 +291,7 @@ pub fn bc1(texels: &[Rgba]) -> [u8; 8] {
     for (i, c) in texels.iter().enumerate() {
         let index = match c[3] < 128 {
             true => 3,
-            false => (0..colours)
+            false => (0..colors)
                 .min_by_key(|&p| {
                     (0..3)
                         .map(|k| (palette[p][k] as i32 - c[k] as i32).pow(2))
@@ -319,7 +319,7 @@ fn rgb888(c: u16) -> [u32; 3] {
 }
 
 /// A BC3 block of 16 texels: their alpha as a BC4 block, then their
-/// colour as a BC1 block in its four-colour mode, the only one BC3 reads.
+/// color as a BC1 block in its four-color mode, the only one BC3 reads.
 pub fn bc3(texels: &[Rgba]) -> [u8; 16] {
     let alpha: [u8; 16] = std::array::from_fn(|t| texels[t][3]);
     let opaque: Vec<Rgba> = texels.iter().map(|c| [c[0], c[1], c[2], 255]).collect();
@@ -364,8 +364,8 @@ mod tests {
     use super::*;
     use texture2ddecoder as tex;
 
-    /// One BC1 block decoded to RGBA8, its three-colour mode's last
-    /// colour transparent.
+    /// One BC1 block decoded to RGBA8, its three-color mode's last
+    /// color transparent.
     fn decode_bc1(block: &[u8; 8]) -> Vec<Rgba> {
         let mut px = vec![0u32; 16];
         tex::decode_bc1a(block, 4, 4, &mut px).unwrap();
@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn a_bc1_block_of_two_colours_and_a_third_between_decodes_within_565() {
+    fn a_bc1_block_of_two_colors_and_a_third_between_decodes_within_565() {
         let (dark, light) = ([40, 20, 200, 255], [220, 180, 30, 255]);
         let third = average(&[dark, dark, light]);
         let texels: Vec<Rgba> = (0..16).map(|i| [dark, light, third][i % 3]).collect();
@@ -399,13 +399,13 @@ mod tests {
     }
 
     #[test]
-    fn a_bc1_block_of_one_colour_decodes_to_it() {
+    fn a_bc1_block_of_one_color_decodes_to_it() {
         let texels = [[128, 64, 32, 255]; 16];
         assert!(worst(&decode_bc1(&bc1(&texels)), &texels) <= 4);
     }
 
     #[test]
-    fn a_bc3_block_keeps_its_colour_and_its_alpha() {
+    fn a_bc3_block_keeps_its_color_and_its_alpha() {
         let (dark, light) = ([40, 20, 200, 30], [220, 180, 30, 250]);
         let texels: Vec<Rgba> = (0..16).map(|i| [dark, light][i % 2]).collect();
         let mut px = vec![0u32; 16];
@@ -430,13 +430,13 @@ mod tests {
     }
 
     #[test]
-    fn a_solid_block_decodes_to_its_colour() {
+    fn a_solid_block_decodes_to_its_color() {
         let c = [200, 30, 90, 255];
         assert_eq!(decode(&astc_solid(c), 12, 12), vec![c; 144]);
     }
 
     #[test]
-    fn a_two_colour_block_keeps_a_glyph_edge() {
+    fn a_two_color_block_keeps_a_glyph_edge() {
         // Half a block bright, half dark, as an icon's edge is.
         let (dark, bright) = ([40, 20, 90, 255], [230, 210, 255, 255]);
         let texels: Vec<Rgba> = (0..48)
@@ -448,7 +448,7 @@ mod tests {
 
     #[test]
     fn a_grey_block_keeps_its_ramp_and_alpha() {
-        // A normal map's: X in the colour, Y in alpha.
+        // A normal map's: X in the color, Y in alpha.
         let texels: Vec<Rgba> = (0..25u8)
             .map(|i| [100 + 4 * i, 100 + 4 * i, 100 + 4 * i, 200 - 4 * i])
             .collect();
@@ -457,7 +457,7 @@ mod tests {
     }
 
     #[test]
-    fn a_colour_with_alpha_scales_toward_black() {
+    fn a_color_with_alpha_scales_toward_black() {
         let (dim, bright) = ([30, 60, 15, 90], [120, 240, 60, 250]);
         let texels: Vec<Rgba> = (0..48)
             .map(|i| if i % 2 == 0 { dim } else { bright })

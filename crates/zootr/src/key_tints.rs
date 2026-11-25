@@ -1,4 +1,4 @@
-//! Keys in their dungeon's colour. Each dungeon with keys gets a copy of
+//! Keys in their dungeon's color. Each dungeon with keys gets a copy of
 //! the key model, its albedo tinted, and copies of the key actors showing
 //! it: the small key's chest content and floor key, and the boss key where
 //! the dungeon has one. The dungeon's key chests and floor keys name the
@@ -28,7 +28,7 @@ use crate::keys::{
     has_boss, small_flag,
 };
 use crate::known::{Name, actor, flag, flow, item};
-use crate::medallions::{self, Colour};
+use crate::medallions::{self, Color};
 use crate::settings::DungeonKeys;
 use crate::standins::{Tables, raw};
 use crate::text::{Copies, CopyLine, Named, Says};
@@ -82,7 +82,7 @@ pub const FILES: [&str; 14] = [
     "Tex/Mt_Item_Dungeon_BossKey_Rgh.bntx.zs",
 ];
 
-/// A temple's colour: its medallion song's.
+/// A temple's color: its medallion song's.
 const SONGS: [(&Name, &Name); 5] = [
     (flag::FOREST_TEMPLE, item::MELODY_FOREST_MINUET),
     (flag::FIRE_TEMPLE, item::MELODY_FIRE_BOLERO),
@@ -93,7 +93,7 @@ const SONGS: [(&Name, &Name); 5] = [
 /// The rest. Ganon's black is lifted so the key still reads as metal. The
 /// Training Ground's is cream, not Prelude of Light's yellow, which a chest
 /// would show near the gold look's. Ivory read as plain silver in game.
-const OWN: [(&Name, Colour); 3] = [
+const OWN: [(&Name, Color); 3] = [
     (flow::BOTTOM_OF_THE_WELL, [40, 185, 190]),
     (flag::GERUDO_TRAINING_GROUND, [235, 215, 160]),
     (flag::INSIDE_GANON_CASTLE, [45, 45, 50]),
@@ -102,17 +102,17 @@ const OWN: [(&Name, Colour); 3] = [
 /// The Gerudo Fortress's keys are their own actors already, one for each
 /// thief. They show the small key model after the dungeons'.
 const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
-const FORTRESS_COLOUR: Colour = [215, 40, 150];
+const FORTRESS_COLOR: Color = [215, 40, 150];
 
-/// How many dungeons' keys have a colour: [`DUNGEONS`], then the Gerudo
+/// How many dungeons' keys have a color: [`DUNGEONS`], then the Gerudo
 /// Fortress.
 pub(crate) const KEY_DUNGEONS: usize = FORTRESS_MODEL;
 
-/// Key dungeon `n`'s colour, counting from 1 as [`KEY_DUNGEONS`] does.
-pub(crate) fn key_colour(n: usize) -> Option<Colour> {
+/// Key dungeon `n`'s color, counting from 1 as [`KEY_DUNGEONS`] does.
+pub(crate) fn key_color(n: usize) -> Option<Color> {
     match n {
-        FORTRESS_MODEL => Some(FORTRESS_COLOUR),
-        n if (1..=DUNGEONS.len()).contains(&n) => colour(dungeon(n).name),
+        FORTRESS_MODEL => Some(FORTRESS_COLOR),
+        n if (1..=DUNGEONS.len()).contains(&n) => color(dungeon(n).name),
         _ => None,
     }
 }
@@ -128,9 +128,9 @@ pub(crate) fn key_dungeon(item: &str) -> Option<usize> {
     tinted.or_else(|| copied_as(item).map(|(_, n)| n))
 }
 
-fn colour(dungeon: &Name) -> Option<Colour> {
+fn color(dungeon: &Name) -> Option<Color> {
     let song = SONGS.iter().find(|(d, _)| *d == dungeon);
-    song.and_then(|(_, s)| medallions::colour(s))
+    song.and_then(|(_, s)| medallions::color(s))
         .or_else(|| OWN.iter().find(|(d, _)| *d == dungeon).map(|(_, c)| *c))
 }
 
@@ -366,7 +366,7 @@ pub fn write(
     let boss_chest = ActorPack::load(romfs, BOSS)?;
     for (i, d) in DUNGEONS.iter().enumerate() {
         let n = i + 1;
-        let tint = colour(d.name).with_context(|| format!("no colour for {}", d.name))?;
+        let tint = color(d.name).with_context(|| format!("no color for {}", d.name))?;
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name, false)?;
         copy(builder, tables, &floor, &name, &name, false)?;
@@ -389,7 +389,7 @@ pub fn write(
             copy(builder, tables, &boss_chest, &name, &name, true)?;
         }
     }
-    let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOUR)?;
+    let name = small.paint(builder, FORTRESS_MODEL, FORTRESS_COLOR)?;
     for k in 1..=FORTRESS.keys {
         let pack = ActorPack::load(romfs, &format!("{FORTRESS_KEY}{k:02}"))?;
         repoint(builder, &pack, &name)?;
@@ -677,13 +677,13 @@ mod tests {
     }
 
     #[test]
-    fn every_dungeon_with_keys_has_a_colour() {
-        // A song's colour comes from its name.
+    fn every_dungeon_with_keys_has_a_color() {
+        // A song's color comes from its name.
         if crate::game::no_names() {
             return;
         }
         for d in DUNGEONS {
-            assert!(colour(d.name).is_some(), "{}", d.name);
+            assert!(color(d.name).is_some(), "{}", d.name);
         }
     }
 

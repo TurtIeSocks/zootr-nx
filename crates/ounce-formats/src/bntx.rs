@@ -248,36 +248,82 @@ const ASTC_4X4: u32 = 0x2d;
 /// level row-major at its size, in every mip level, each level the one
 /// above box-filtered. A block whose texels `keep` (by first-level x and y)
 /// all takes keeps its bytes. The layout stays byte for byte: only blocks
-/// change. Each ASTC block is the closest of one colour or two, each BC1
+/// change. Each ASTC block is the closest of one color or two, each BC1
 /// block of four. BC4 takes the red channel. BC7, which isn't encoded,
 /// comes back as ASTC 4x4, every block encoded and `keep` ignored.
 ///
 /// Each redraw is kept for the process, by its inputs: a seed redraws the
-/// same textures in the same colours (a key's dungeon, a mark's kind), and
+/// same textures in the same colors (a key's dungeon, a mark's kind), and
 /// a process makes many seeds (the app, the tests), so each encodes once.
 pub fn redraw(
     data: &[u8],
     rgba: &[u8],
     keep: impl Fn(usize, usize) -> bool + Sync,
 ) -> Result<Vec<u8>> {
-    let info = Info::read(data, first(data)?)?;
+    let brti = first(data)?;
+    let (info, kept) = prepared(data, brti, rgba, keep)?;
+    let key = redraw_key(data, rgba, &kept);
+    if let Some(out) = redrawn().lock().unwrap().get(&key) {
+        return Ok(out.clone());
+    }
+    let out = encode(data, brti, &info, rgba, &kept)?;
+    redrawn().lock().unwrap().insert(key, out.clone());
+    Ok(out)
+}
+
+/// [`redraw`] for the texture named `name` in a file of many (the UI's
+/// atlas): the rest of the file stays byte for byte. Not kept for the
+/// process: a copy of a file that big for each color would pile up.
+pub fn redraw_named(
+    data: &[u8],
+    name: &str,
+    rgba: &[u8],
+    keep: impl Fn(usize, usize) -> bool + Sync,
+) -> Result<Vec<u8>> {
+    let brti = brti_named(data, name)?;
+    let (info, kept) = prepared(data, brti, rgba, keep)?;
+    encode(data, brti, &info, rgba, &kept)
+}
+
+/// The texture named `name` in a file of many.
+pub fn texture_named(data: &[u8], name: &str) -> Result<Texture> {
+    texture(data, brti_named(data, name)?)
+}
+
+/// Where the BRTI of the texture named `name` is.
+fn brti_named(data: &[u8], name: &str) -> Result<usize> {
+    ensure!(data.get(..4) == Some(b"BNTX"), "not a BNTX file");
+    let r = Reader(data);
+    let infos = r.ptr(0x28)?;
+    for i in 0..r.offset(0x24)? {
+        let brti = r.ptr(infos + i * 8)?;
+        if string(data, r.ptr(brti + 0x60)?)? == name {
+            return Ok(brti);
+        }
+    }
+    anyhow::bail!("no texture {name}")
+}
+
+/// The BRTI at `brti` read, checked against `rgba`'s size, and `keep`
+/// asked of each first-level texel, row-major.
+fn prepared(
+    data: &[u8],
+    brti: usize,
+    rgba: &[u8],
+    keep: impl Fn(usize, usize) -> bool + Sync,
+) -> Result<(Info, Vec<bool>)> {
+    let info = Info::read(data, brti)?;
     let (width, height) = (info.width, info.height);
     ensure!(
         rgba.len() == width * height * 4,
         "{}: wrong image size",
         info.name
     );
-    let kept: Vec<bool> = (0..height)
+    let kept = (0..height)
         .flat_map(|y| (0..width).map(move |x| (x, y)))
         .map(|(x, y)| keep(x, y))
         .collect();
-    let key = redraw_key(data, rgba, &kept);
-    if let Some(out) = redrawn().lock().unwrap().get(&key) {
-        return Ok(out.clone());
-    }
-    let out = encode(data, &info, rgba, &kept)?;
-    redrawn().lock().unwrap().insert(key, out.clone());
-    Ok(out)
+    Ok((info, kept))
 }
 
 /// The files [`redraw`] made, by [`redraw_key`].
@@ -296,9 +342,9 @@ fn redraw_key(data: &[u8], rgba: &[u8], kept: &[bool]) -> [u64; 2] {
     })
 }
 
-/// [`redraw`]'s work: `kept` is `keep` for each first-level texel,
-/// row-major.
-fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8>> {
+/// [`redraw`]'s work on the texture whose BRTI is at `brti`: `kept` is
+/// `keep` for each first-level texel, row-major.
+fn encode(data: &[u8], brti: usize, info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8>> {
     let (width, height) = (info.width, info.height);
     ensure!(
         redraws(info.format),
@@ -319,7 +365,7 @@ fn encode(data: &[u8], info: &Info, rgba: &[u8], kept: &[bool]) -> Result<Vec<u8
     );
     let mut out = data.to_vec();
     if from_bc7 {
-        let at = first(data)? + 0x1c;
+        let at = brti + 0x1c;
         let format = ASTC_4X4 << 8 | info.format & 0xff;
         out[at..at + 4].copy_from_slice(&format.to_le_bytes());
     }
