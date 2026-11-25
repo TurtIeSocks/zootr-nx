@@ -607,8 +607,11 @@ fn served(
     uri: &tauri::http::Uri,
 ) -> tauri::http::Response<Vec<u8>> {
     let response = match body {
+        // Any origin: the page fetches songs, and a fetch, unlike an <img>,
+        // is held to CORS against the page's own scheme.
         Ok(body) => tauri::http::Response::builder()
             .header(tauri::http::header::CONTENT_TYPE, mime)
+            .header(tauri::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
             .body(body),
         Err(e) => {
             log::debug!("Nothing for {uri}: {e:#}");
@@ -910,6 +913,15 @@ mod tests {
         let on = config(true, Some(&dump));
         assert!(game_art(&on));
         assert_eq!(icon_dump(&on).unwrap(), dump);
+    }
+
+    /// The page fetches songs from another scheme, so a response without
+    /// this header fails as "Load failed".
+    #[test]
+    fn a_served_file_allows_any_origin() {
+        let uri = "zootr-audio://localhost/fake-track.wav".parse().unwrap();
+        let ok = served(Ok(vec![1]), "audio/wav", &uri);
+        assert_eq!(ok.headers()["access-control-allow-origin"], "*");
     }
 
     /// Keeps the checked-in bindings in step with the commands.
