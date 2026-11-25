@@ -98,6 +98,14 @@ export const TOPICS = {
       "A check is any place that can hold an item.",
     ],
   },
+  colors: {
+    title: "Colors",
+    at: { section: "colors" },
+    body: [
+      "Recolour Link and his gear. Colours don't change the shuffle, and a share code leaves them out.",
+      "Random draws a colour when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
+    ],
+  },
   target: {
     title: "Targets",
     at: { section: "targets" },

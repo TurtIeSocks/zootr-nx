@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ColorsPane } from "@/colors/colors-pane";
 import { InlineError } from "@/components/callout";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
@@ -32,6 +33,7 @@ const PANES: Partial<Record<string, ReactNode>> = {
   targets: <TargetsPane />,
   test: <Test />,
   plando: <PlandoPane />,
+  colors: <ColorsPane />,
 };
 
 /** The test setup's form, reset whenever the saved setup changes. */

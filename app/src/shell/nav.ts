@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   MonitorPlay,
   Package,
+  Palette,
   Pin,
   Route,
   Save,
@@ -77,6 +78,7 @@ export const APP_PANES: [Section, string, LucideIcon][] = [
 /** The randomizer's own panes, after the schema's groups. */
 export const RANDOMIZER_PANES: [Section, string, LucideIcon][] = [
   ["plando", "Plando", Pin],
+  ["colors", "Colors", Palette],
 ];
 
 /** Panes that fill the window and scroll their own rows. */

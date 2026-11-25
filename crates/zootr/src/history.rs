@@ -361,6 +361,12 @@ impl History {
             .with_context(|| format!("no history entry {id}"))
     }
 
+    /// The colours seed `id` installs with from now on.
+    pub fn recolor(&mut self, id: u32, colors: crate::colors::Colors) -> Result<()> {
+        self.get_mut(id)?.extras.colors = colors;
+        Ok(())
+    }
+
     pub fn relabel(&mut self, id: u32, label: Label) -> Result<()> {
         self.get_mut(id)?.label = label;
         Ok(())

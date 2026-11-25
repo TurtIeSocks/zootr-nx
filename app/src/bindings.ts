@@ -78,6 +78,21 @@ export const commands = {
 	 *  the deal refuses it, if it does.
 	 */
 	plandoOptions: () => typedError<PlandoOptions, string>(__TAURI_INVOKE("plando_options")),
+	/**
+	 *  Every palette, and why this dump can't paint one, read with game
+	 *  assets on (without them, none is checked).
+	 */
+	colorsCatalog: () => typedError<PaletteView[], string>(__TAURI_INVOKE("colors_catalog")),
+	/**
+	 *  A Random colour for each of `ids` now, so the player can see and tweak
+	 *  it before generating.
+	 */
+	colorsDraw: (ids: string[]) => typedError<{ [key in string]: string }, string>(__TAURI_INVOKE("colors_draw", { ids })),
+	/**
+	 *  Reinstall the installed seed in the Colors draft's colours: the same
+	 *  shuffle, painted again. Its history entry keeps the new colours.
+	 */
+	applyColors: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_colors", { steps })),
 	/**  Every slot holding a save, newest first. */
 	saveSlots: () => typedError<SlotRow[], string>(__TAURI_INVOKE("save_slots")),
 	savePresets: () => __TAURI_INVOKE<SavePreset[]>("save_presets"),
@@ -389,6 +404,8 @@ export type Config = {
 	color_sets?: { [key in string]: { [key in string]: Pick } },
 	/**  The colour picker's recent colours, as `#rrggbb`, newest first. */
 	color_recents?: string[],
+	/**  The palettes Randomize all and Reset all leave alone. */
+	color_locks?: string[],
 	/**  Setting sets kept by name, newest first. */
 	favorites?: Favorite[],
 	/**
@@ -630,6 +647,8 @@ export type Goal = {
 	error: string | null,
 };
 
+export type Group = "link" | "gear";
+
 /**  An item Link starts with. */
 export type Held = {
 	item: string,
@@ -773,6 +792,19 @@ export type Mode = "vanilla" | "random";
 export type Numbered = {
 	seq: number,
 	event: Event,
+};
+
+/**  One palette as the pane lists it. */
+export type PaletteView = {
+	id: string,
+	label: string,
+	group: Group,
+	/**  Each slot's vanilla colour, `#rrggbb`. */
+	vanilla: string[],
+	/**  How many textures it paints, each a preview. */
+	textures: number,
+	/**  Why this dump can't paint it, when it can't. */
+	problem: string | null,
 };
 
 /**

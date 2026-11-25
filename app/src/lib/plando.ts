@@ -1,12 +1,9 @@
 import type { PlandoCheck, PlandoItem } from "@/bindings";
 import { sameEntries } from "@/lib/api";
-import type { FullConfig } from "@/lib/config";
+import { type Change, savedSets, without } from "@/lib/saved-sets";
 
 /** One plando: chest hash to the item actor it must hold. */
 export type Plando = Record<string, string>;
-
-/** A change to the config, worked out from the config it lands on. */
-type Change = (c: FullConfig) => Partial<FullConfig>;
 
 /** `rows` by their `label`, made unique: a repeat gets `(2)`, `(3)` and
  * so on. */
@@ -33,38 +30,9 @@ export const itemLabels = (items: PlandoItem[]) => unique(items, (i) => i.name);
  * in. */
 export const samePins = (a: Plando, b: Plando) => sameEntries(a, b);
 
-/** The saved plando the draft matches, if any. An empty draft matches
- * none. */
-export const savedAs = (c: FullConfig) =>
-  Object.keys(c.place).length === 0
-    ? null
-    : (Object.keys(c.plandos)
-        .sort()
-        .find((n) => samePins(c.plandos[n] ?? {}, c.place)) ?? null);
-
-/** Whether the draft holds pins no saved plando keeps, so replacing it
- * loses them. */
-export const unsaved = (c: FullConfig) =>
-  Object.keys(c.place).length > 0 && savedAs(c) === null;
-
-/** Each entry of `rec` but `key`. */
-const without = <T>(rec: Record<string, T>, key: string): Record<string, T> =>
-  Object.fromEntries(Object.entries(rec).filter(([k]) => k !== key));
-
-/** The saved plando `name` as the draft. */
-export const load =
-  (name: string): Change =>
-  (c) => ({ place: { ...c.plandos[name] } });
-
-/** The draft kept as `name`, replacing a saved plando by that name. */
-export const saveAs =
-  (name: string): Change =>
-  (c) => ({ plandos: { ...c.plandos, [name]: { ...c.place } } });
-
-/** Drops the saved plando `name`. The draft stays. */
-export const remove =
-  (name: string): Change =>
-  (c) => ({ plandos: without(c.plandos, name) });
+/** The saved plando the draft matches, whether it holds unsaved pins, and
+ * the changes that load, keep and drop saved plandos. */
+export const { savedAs, unsaved, load, saveAs, remove } = savedSets("place");
 
 /** Pins `item` to the check `hash` in the draft, replacing what it held. */
 export const place =

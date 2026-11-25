@@ -45,6 +45,7 @@ export const full = (c: Config): FullConfig => ({
   colors: c.colors ?? {},
   color_sets: c.color_sets ?? {},
   color_recents: c.color_recents ?? [],
+  color_locks: c.color_locks ?? [],
 });
 
 /** Whether a test setup changes anything. */

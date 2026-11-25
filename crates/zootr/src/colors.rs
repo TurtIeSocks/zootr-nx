@@ -7,6 +7,7 @@ mod files;
 mod oklch;
 pub mod paint;
 mod pick;
+pub mod preview;
 
 use std::collections::BTreeMap;
 
@@ -17,7 +18,7 @@ pub use catalog::{GREEN, Group, PALETTES, Palette, Write};
 use files::Tex;
 use paint::{Band, Colour};
 pub use pick::{
-    Colors, Draft, Mode, Pick, Picked, args, draft, hex, parse_arg, parse_hex, resolve,
+    Colors, Draft, Mode, Pick, Picked, args, draft, drawn, hex, parse_arg, parse_hex, resolve,
 };
 
 pub fn palette(id: &str) -> Result<&'static Palette> {
@@ -67,24 +68,28 @@ struct Job<'a> {
     goal: Colour,
 }
 
+/// The writes `picked` makes in `palette`, each with its goal.
+fn jobs<'a>(palette: &'a Palette, picked: &Picked) -> Result<Vec<Job<'a>>> {
+    let slots = picked.slots(palette)?;
+    let job = |write| Job {
+        palette: palette.id,
+        write,
+        goal: oklch::follow(slots[0], palette.vanilla[0], write.vanilla()),
+    };
+    Ok(palette.writes.iter().map(job).collect())
+}
+
 /// Paint every palette `colors` changes. Last of a seed's writes, so a
 /// texture another feature copies (the child's tunics) is copied green.
 pub fn write(builder: &mut ModBuilder, colors: &Colors) -> Result<()> {
     let mut by_texture: BTreeMap<&str, (&Tex, Vec<Job>)> = BTreeMap::new();
     for (id, picked) in colors {
-        let palette = palette(id)?;
-        let slots = picked.slots(palette)?;
-        for write in palette.writes {
-            let goal = oklch::follow(slots[0], palette.vanilla[0], write.vanilla());
-            let texture = write.texture();
+        for job in jobs(palette(id)?, picked)? {
+            let texture = job.write.texture();
             let (_, jobs) = by_texture
                 .entry(texture.path)
                 .or_insert((texture, Vec::new()));
-            jobs.push(Job {
-                palette: palette.id,
-                write,
-                goal,
-            });
+            jobs.push(job);
         }
     }
     for (texture, jobs) in by_texture.values() {
@@ -102,43 +107,7 @@ const RGB_SLACK: u8 = 6;
 fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Result<()> {
     let data = builder.read(texture.path)?;
     let mut rgba = top_level(&data)?.rgba;
-    let measured: Vec<Colour> = jobs
-        .iter()
-        .map(|j| measure(&rgba, j.write))
-        .collect::<Result<_>>()?;
-    for (job, &got) in jobs.iter().zip(&measured) {
-        let want = job.write.vanilla();
-        ensure!(
-            matches(job.write, got, want),
-            "{}: the dump's colour here is {} where {} was recorded",
-            job.palette,
-            hex(got),
-            hex(want)
-        );
-    }
-    let bands: Vec<Band> = jobs
-        .iter()
-        .filter_map(|j| match j.write {
-            Write::Band { hues, .. } => Some(Band {
-                hues: *hues,
-                to: paint::hsv(j.goal),
-            }),
-            Write::Tint { .. } => None,
-        })
-        .collect();
-    let tints: Vec<_> = jobs
-        .iter()
-        .filter(|j| matches!(j.write, Write::Tint { .. }))
-        .collect();
-    ensure!(
-        tints.is_empty() || (bands.is_empty() && tints.len() == 1),
-        "a tint shares its texture"
-    );
-    paint::shift(&mut rgba, &bands);
-    if let [tint] = tints[..] {
-        let colour = brightened(tint.goal, mean_luma(&rgba));
-        paint::tint(&mut rgba, colour);
-    }
+    paint_jobs(&mut rgba, jobs)?;
     let drawn = redraw(&data, &rgba, |_, _| false)?;
     match &texture.copy {
         None => builder.write(texture.path, &drawn)?,
@@ -158,6 +127,51 @@ fn paint_texture(builder: &mut ModBuilder, texture: &Tex, jobs: &[Job]) -> Resul
         paint::matte(&mut rgba);
         builder.write(metal, &redraw(&data, &rgba, |_, _| false)?)?;
     }
+    Ok(())
+}
+
+/// Each of one texture's jobs checked against what `rgba` holds, then
+/// painted into it. The seed and the app's preview both paint here.
+fn paint_jobs(rgba: &mut [u8], jobs: &[Job]) -> Result<()> {
+    for job in jobs {
+        check(rgba, job.write).with_context(|| job.palette.to_owned())?;
+    }
+    let bands: Vec<Band> = jobs
+        .iter()
+        .filter_map(|j| match j.write {
+            Write::Band { hues, .. } => Some(Band {
+                hues: *hues,
+                to: paint::hsv(j.goal),
+            }),
+            Write::Tint { .. } => None,
+        })
+        .collect();
+    let tints: Vec<_> = jobs
+        .iter()
+        .filter(|j| matches!(j.write, Write::Tint { .. }))
+        .collect();
+    ensure!(
+        tints.is_empty() || (bands.is_empty() && tints.len() == 1),
+        "a tint shares its texture"
+    );
+    paint::shift(rgba, &bands);
+    if let [tint] = tints[..] {
+        let colour = brightened(tint.goal, mean_luma(rgba));
+        paint::tint(rgba, colour);
+    }
+    Ok(())
+}
+
+/// Fails unless `write`'s part in `rgba` is the colour the catalog
+/// recorded: a newer dump is refused, not painted wrong.
+fn check(rgba: &[u8], write: &Write) -> Result<()> {
+    let (got, want) = (measure(rgba, write)?, write.vanilla());
+    ensure!(
+        matches(write, got, want),
+        "the dump's colour here is {} where {} was recorded",
+        hex(got),
+        hex(want)
+    );
     Ok(())
 }
 
