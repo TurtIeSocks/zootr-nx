@@ -741,6 +741,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             plando_options,
             colors::colors_catalog,
             colors::colors_draw,
+            colors::colors_follow,
             apply_colors,
             save_editor::save_slots,
             save_editor::save_presets,

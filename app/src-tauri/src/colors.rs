@@ -11,14 +11,14 @@ use ounce_formats::Romfs;
 use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Manager};
-use zootr::colors::preview::{Previews, View, textures};
+use zootr::colors::preview::{Previews, View, sheets};
 use zootr::colors::{self, Group, PALETTES, Picked};
 use zootr::config::Config;
 use zootr::history::History;
 
 use crate::{Res, blocking, icon_dump, romfs};
 
-/// Serves a palette's preview: `<id>.png`, with `t` the texture's number
+/// Serves a palette's preview: `<id>.png`, with `t` the sheet's number
 /// (0 when left out), `c` the first slot's colour and an `s` for each
 /// split slot (both hex, no `#`; vanilla without `c`), and `v=changes` to
 /// grey what the palette leaves alone.
@@ -32,8 +32,13 @@ pub struct PaletteView {
     group: Group,
     /// Each slot's vanilla colour, `#rrggbb`.
     vanilla: Vec<String>,
-    /// How many textures it paints, each a preview.
-    textures: u32,
+    /// Each slot's name, when it has more than one: what Split shows.
+    names: Vec<String>,
+    /// The palette it moves with while left vanilla, by label.
+    follows: Option<String>,
+    /// How many pictures it previews on: its textures, then a lit sphere
+    /// for each material whose colours it writes.
+    sheets: u32,
     /// Why this dump can't paint it, when it can't.
     problem: Option<String>,
 }
@@ -131,7 +136,9 @@ pub async fn colors_catalog(app: AppHandle) -> Res<Vec<PaletteView>> {
             label: p.label.to_owned(),
             group: p.group,
             vanilla: p.vanilla.iter().map(|&c| colors::hex(c)).collect(),
-            textures: textures(p).len() as u32,
+            names: p.names.iter().map(|&n| n.to_owned()).collect(),
+            follows: colors::leader(p.id).map(|l| l.label.to_owned()),
+            sheets: sheets(p).len() as u32,
             problem: dump.as_ref().and_then(|d| {
                 let checked = d.previews.check(&d.romfs, p);
                 checked.err().map(|e| format!("{e:#}"))
@@ -152,6 +159,17 @@ pub fn colors_draw(ids: Vec<String>) -> Res<BTreeMap<String, String>> {
         .map(|id| colors::drawn(&id, seed).map(|hex| (id, hex)))
         .collect::<anyhow::Result<_>>()
         .map_err(crate::text)
+}
+
+/// Each slot's colour, `#rrggbb`, when palette `id`'s first is `hex` and
+/// the rest follow it: where Split starts.
+#[tauri::command]
+#[specta::specta]
+pub fn colors_follow(id: String, hex: String) -> Res<Vec<String>> {
+    let first = colors::parse_hex(&hex).map_err(crate::text)?;
+    let palette = colors::palette(&id).map_err(crate::text)?;
+    let slots = Picked::of(first).slots(palette).map_err(crate::text)?;
+    Ok(slots.into_iter().map(colors::hex).collect())
 }
 
 /// The installed seed's history number, refused when none is.
