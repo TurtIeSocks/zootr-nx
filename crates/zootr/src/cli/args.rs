@@ -280,6 +280,9 @@ pub(super) enum Command {
     },
     /// Shuffle the items and write the seed as a mod.
     Shuffle(Shuffle),
+    /// The palettes a seed can recolour with `shuffle --color`.
+    #[command(subcommand)]
+    Colors(ColorsCommand),
     /// Give Link an item in the running game, by its actor name, with
     /// the game's own grant, run by our hook on Link's next update. The
     /// menu shows it the next time it opens. Needs macOS or a target with a bridge.
@@ -589,10 +592,25 @@ pub(super) struct Shuffle {
     /// experimental and not verified in game.
     #[arg(long, value_name = "BUILD")]
     release: Option<crate::game::Release>,
+    /// Paint a palette (`colors list` names them) as `ID=#rrggbb`, or
+    /// `ID=random` for a colour drawn from the seed. `ID=#rrggbb,#rrggbb`
+    /// gives each slot its own. Repeatable.
+    #[arg(long, value_name = "ID=COLOUR", value_parser = crate::colors::parse_arg)]
+    color: Vec<(String, crate::colors::Pick)>,
+    /// A set of colours, as JSON: palette id to `"random"` or
+    /// `{"hex": "#rrggbb"}`, as the app keeps one. `--color` wins over it.
+    #[arg(long, value_name = "FILE")]
+    colors: Option<PathBuf>,
     #[command(flatten)]
     new_game: NewGame,
     #[command(flatten)]
     pub(super) install: Install,
+}
+
+#[derive(Subcommand)]
+pub(super) enum ColorsCommand {
+    /// Every palette: its id, group, name and vanilla colours.
+    List,
 }
 
 /// Where a seed's mod goes, and how the history shows it.
@@ -760,6 +778,21 @@ impl Shuffle {
             settings.insert(settings::SHUFFLE_ITEMS.into(), false.into());
         }
         settings
+    }
+
+    /// The colours asked for, Random not drawn yet: the file's, then each
+    /// `--color`.
+    pub(super) fn draft(&self) -> anyhow::Result<crate::colors::Draft> {
+        let mut draft = match &self.colors {
+            None => crate::colors::Draft::new(),
+            Some(file) => {
+                let text = std::fs::read_to_string(file)?;
+                serde_json::from_str(&text)
+                    .map_err(|e| anyhow::anyhow!("{}: {e}", file.display()))?
+            }
+        };
+        draft.extend(self.color.iter().cloned());
+        Ok(draft)
     }
 
     pub(super) fn extras(&self) -> generate::Extras {

@@ -127,7 +127,7 @@ impl Finish {
                 let px: [u8; 4] = key[at..at + 4].try_into()?;
                 match kind {
                     "Alb" => {
-                        let l = super::paint::luma(&px);
+                        let l = crate::colors::paint::luma(&px);
                         let c = |a: u8| ((l * a as u32 + 127) / 255) as u8;
                         [c(albedo[0]), c(albedo[1]), c(albedo[2]), 255]
                     }

@@ -6,8 +6,9 @@ use anyhow::Result;
 use ounce_formats::{ModBuilder, Romfs, Texture, redraw, rename, top_level};
 
 use super::rings;
+use crate::colors::paint::{self, Colour};
 use crate::known::Name;
-use crate::medallions::{Colour, model_path};
+use crate::medallions::model_path;
 
 /// One model to copy: the actor it's named like, its textures by suffix,
 /// and the prefix of a copy, which with a two-digit number is as long as
@@ -81,7 +82,7 @@ impl Host {
 
     /// Model `n`, its albedo tinted `tint`. Returns its name.
     pub(crate) fn paint(&self, builder: &mut ModBuilder, n: usize, tint: Colour) -> Result<String> {
-        self.paint_with(builder, n, &|rgba| self::tint(rgba, tint))
+        self.paint_with(builder, n, &|rgba| paint::tint(rgba, tint))
     }
 
     /// Model `n`, its albedo's first level painted by `albedo`. Returns its
@@ -108,7 +109,7 @@ impl Host {
         tint: Colour,
         ring: bool,
     ) -> Result<()> {
-        self.write_with(builder, name, model, &|rgba| self::tint(rgba, tint), ring)
+        self.write_with(builder, name, model, &|rgba| paint::tint(rgba, tint), ring)
     }
 
     /// [`Self::write_as`] with the albedo painted by `albedo`.
@@ -164,46 +165,11 @@ fn texture(
         albedo_paint(&mut t.rgba);
     }
     if matte {
-        t.rgba.chunks_mut(4).for_each(|px| px[0] = 0);
+        paint::matte(&mut t.rgba);
     }
     if ring {
         rings::paint(&mut t, &top.rgba, kind)?;
     }
     let (w, h) = (t.width, t.height);
     redraw(data, &t.rgba, |x, y| !whole && !rings::painted(w, h, x, y))
-}
-
-/// Each texel in `colour`, scaled by its brightness, so a coloured
-/// albedo (the boss key's gold) takes the colour as cleanly as a grey one.
-fn tint(rgba: &mut [u8], colour: Colour) {
-    for px in rgba.chunks_mut(4) {
-        let luma = luma(px);
-        for (c, tint) in px.iter_mut().zip(colour) {
-            *c = ((luma * tint as u32 + 127) / 255) as u8;
-        }
-    }
-}
-
-/// A texel's brightness: Rec. 709 luma, weights out of 256.
-pub(crate) fn luma(px: &[u8]) -> u32 {
-    (px[0] as u32 * 54 + px[1] as u32 * 183 + px[2] as u32 * 19 + 128) / 256
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_grey_texel_takes_the_colour_scaled_by_its_grey() {
-        let mut rgba = [255, 255, 255, 255, 128, 128, 128, 200];
-        tint(&mut rgba, [60, 220, 60]);
-        assert_eq!(rgba, [60, 220, 60, 255, 30, 110, 30, 200]);
-    }
-
-    #[test]
-    fn a_gold_texel_takes_the_colour_by_its_brightness_not_its_hue() {
-        let mut rgba = [255, 200, 100, 255];
-        tint(&mut rgba, [60, 220, 60]);
-        assert_eq!(rgba, [48, 176, 48, 255]);
-    }
 }

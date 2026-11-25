@@ -12,10 +12,10 @@ use ounce_formats::{
 };
 
 use super::BOMB_BAGS;
+use crate::colors::paint::{self, Band, Hues};
 use crate::key_tints::paint::{Host, Look};
 use crate::known::Name;
 use crate::medallions::model_path;
-use crate::medallions::paint::{self, Band, Hues};
 
 /// The files [`LOOKS`] are made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.

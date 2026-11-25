@@ -264,6 +264,8 @@ pub fn write_mod(
     builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
+    // Last: a feature copying a texture copies it as the dump has it.
+    crate::colors::write(&mut builder, &new_game.colors)?;
     run.check()?;
     let files = builder.finish()?.len();
     run.mark_replaced();
@@ -566,7 +568,7 @@ impl<'a> Parts<'a> {
         starter_bags::write(romfs, new_game, builder, tables)?;
         // Before the stand-ins, so one copying a magic item copies it apart.
         crate::magic::write(romfs, builder, tables, !new_game.magic_with_first_item)?;
-        Enabled::of(&new_game.on).write(romfs, builder, tables)?;
+        Enabled::of(&new_game.on).write(romfs, builder, tables, &new_game.colors)?;
         // Before the stand-ins, which copy a song's model as it's shown.
         let shown = new_game.foreign.iter().map(|f| f.shows.as_str());
         let items = drops.values().map(|d| d.item.as_str()).chain(shown);

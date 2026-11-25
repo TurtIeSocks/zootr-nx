@@ -10,6 +10,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_file};
 
 use super::tunics;
+use crate::colors::Colors;
 use crate::known::{Name, actor, field};
 use crate::standins;
 
@@ -97,12 +98,13 @@ pub fn shortcut(tables: &mut standins::Tables, boots: &[&Name]) -> Result<usize>
 
 /// Write what a child's boots and tunics need: his packs with the groups
 /// their armor hides, and the armor of his Kokiri Tunic and of each of
-/// `tunics`, with its rows in `tables`.
+/// `tunics`, with its rows in `tables`, in the colours `colors` picks.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut standins::Tables,
     tunics: &[&Name],
+    colors: &Colors,
 ) -> Result<()> {
     let path = user_path();
     let mut sizes = None;
@@ -119,7 +121,7 @@ pub fn write(
     // the Mac build crashed loading it at New Game.
     let (old, new) = sizes.context("no child pack")?;
     builder.scale(&path, old, new)?;
-    tunics::write(romfs, builder, tables, tunics)
+    tunics::write(romfs, builder, tables, tunics, colors)
 }
 
 #[cfg(test)]

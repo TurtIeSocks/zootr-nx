@@ -52,7 +52,9 @@ pub use byml_doc::BymlDoc;
 pub use crc32::crc32;
 pub use evfl::{Actor, EntryPoint, Event, EventKind, Flowchart, Link, Params, Value, relink};
 pub use fska::{Base, bases, names as animation_names};
-pub use material::{param, set_param};
+pub use material::{
+    ModelMaterial, material_param, materials, param, set_material_param, set_param,
+};
 pub use msbt::{Msbt, Part, messages};
 pub use murmur3::murmur3;
 pub use navmesh::{Border, Edge, Face, Footing, NavMesh, closest};

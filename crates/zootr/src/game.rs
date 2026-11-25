@@ -32,8 +32,10 @@ pub const POUCH_TABLE: &str = "UI/Pouch/PouchTable/PouchTable.game__ui__PouchTab
 /// models are made from, the pause menu's table, the effect file the
 /// ice traps' look fits to child Link, the animation archives items for
 /// both ages lends each Link, and the child's model boots for both ages
-/// names.
+/// names, and the textures Colors paints. Each once, though features share
+/// some.
 pub fn files() -> impl Iterator<Item = &'static str> {
+    let mut seen = std::collections::HashSet::new();
     crate::medallions::FILES
         .into_iter()
         .chain(crate::key_tints::FILES)
@@ -45,6 +47,8 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::ageless_items::FILES)
         .chain(crate::ageless::files::FILES)
         .chain(crate::marks::FILES)
+        .chain(crate::colors::files())
+        .filter(move |f| seen.insert(*f))
 }
 
 /// What zootr reads, under the romfs root, besides [`files`].

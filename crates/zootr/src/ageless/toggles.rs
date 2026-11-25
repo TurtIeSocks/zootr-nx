@@ -9,6 +9,7 @@ use anyhow::{Result, bail, ensure};
 use ounce_formats::{BymlDoc, ModBuilder, Romfs};
 
 use crate::ageless_items;
+use crate::colors::Colors;
 use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, item};
 use crate::standins::Tables;
@@ -251,12 +252,13 @@ impl Enabled {
         romfs: &Romfs,
         builder: &mut ModBuilder,
         tables: &mut Tables,
+        colors: &Colors,
     ) -> Result<()> {
         if let Some(table) = self.opened(&builder.read(POUCH_TABLE)?)? {
             builder.write(POUCH_TABLE, &table)?;
         }
         if self.gear() {
-            super::gear::write(romfs, builder, tables, &self.tunics())?;
+            super::gear::write(romfs, builder, tables, &self.tunics(), colors)?;
         }
         if !self.boots().is_empty() {
             // The boots' clips and effects are the adult's, which the items

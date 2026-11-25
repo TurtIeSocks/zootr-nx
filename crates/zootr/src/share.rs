@@ -31,14 +31,15 @@ pub fn is_code(text: &str) -> bool {
 }
 
 /// The code for a seed. It leaves the build out: placements are the same
-/// on both, and the receiver's own target picks theirs.
+/// on both, and the receiver's own target picks theirs. It leaves the
+/// colours out too: the receiver paints with their own.
 pub fn encode(seed: u64, settings: &Settings, extras: &Extras) -> String {
     let shared = Shared {
         seed,
         settings: settings.clone(),
         extras: Extras {
             release: None,
-            ..extras.clone()
+            ..extras.cosmetic_free()
         },
     };
     let json = serde_json::to_vec(&shared).expect("plain data serializes");
