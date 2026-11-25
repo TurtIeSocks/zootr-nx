@@ -1,4 +1,5 @@
 import { Channel } from "@tauri-apps/api/core";
+import { useMemo } from "react";
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
 import {
@@ -77,9 +78,6 @@ interface Seeds {
   /** The palettes, pools, tracks and pins that differ from the same seed's,
    * or from none set with none installed. */
   paneDrift: PaneChange[];
-  /** How many settings and pane entries differ from each entry's, by entry
-   * id. */
-  diffs: Record<number, number>;
   /** The running or last generate run's steps, or null before the first. */
   steps: Steps | null;
   /** A seed is being generated, so it can be stopped. */
@@ -105,7 +103,6 @@ export const useSeeds = create<Seeds>()(
       running: false,
       drift: [],
       paneDrift: [],
-      diffs: {},
       steps: null,
       generating: false,
       stopping: false,
@@ -145,6 +142,21 @@ export const useDrifted = (id: string) =>
 export const useGroupDrifted = (name: string) =>
   useSeeds((s) => s.drift.some((c) => c.def.group === name));
 
+/** How many settings and pane entries differ from history entry `e`'s:
+ * what its History row shows. Worked out in the row, only while History
+ * shows, never on each settings change: across a long history that took
+ * tens of milliseconds a keystroke. */
+export function useDiffCount(e: Summary) {
+  const schema = useConfig((s) => s.schema);
+  const config = useConfig((s) => s.config);
+  return useMemo(
+    () =>
+      settingsChanges(schema, e.settings, config.settings).length +
+      paneChanges(e, config).length,
+    [schema, config, e],
+  );
+}
+
 /** What `drift` is measured from, as `useDriftFrom` words it. */
 export const DEFAULTS_FROM = "the default settings";
 
@@ -167,14 +179,11 @@ export const useDriftWords = () => driftWords(useDriftCount(), useDriftFrom());
 export const useDriftFrom = () =>
   useSeeds((s) => (driftBase(s.history) ? "the last seed" : DEFAULTS_FROM));
 
-/** Works out `blocked`, `running`, `drift` and `diffs` from status,
+/** Works out `blocked`, `running`, `drift` and `paneDrift` from status,
  * history and the config. */
 function derive() {
   const { schema, config } = useConfig.getState();
   const { status, history } = useSeeds.getState();
-  const diff = (e: Summary) =>
-    settingsChanges(schema, e.settings, config.settings);
-  const panes = (e: Summary) => paneChanges(e, config);
   useSeeds.setPath("blocked", blocked(status, config));
   useSeeds.setPath("unbuildable", unbuildable(status, config));
   useSeeds.setPath(
@@ -184,17 +193,9 @@ function derive() {
   const base = driftBase(history);
   useSeeds.setPath(
     "drift",
-    keep(base ? diff(base) : settingsChanges(schema, {}, config.settings)),
+    keep(settingsChanges(schema, base?.settings ?? {}, config.settings)),
   );
   useSeeds.setPath("paneDrift", keep(paneChanges(base ?? NO_PANES, config)));
-  useSeeds.setPath(
-    "diffs",
-    keep(
-      Object.fromEntries(
-        history.entries.map((e) => [e.id, diff(e).length + panes(e).length]),
-      ),
-    ),
-  );
 }
 useSeeds.subscribePath("status", derive);
 useSeeds.subscribePath("history", derive);
