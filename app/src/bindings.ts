@@ -94,10 +94,12 @@ export const commands = {
 	 */
 	colorsFollow: (id: string, hex: string) => typedError<string[], string>(__TAURI_INVOKE("colors_follow", { id, hex })),
 	/**
-	 *  Reinstall the installed seed in the Colors draft's colours: the same
-	 *  shuffle, painted again. Its history entry keeps the new colours.
+	 *  Reinstall the installed seed in the Colors and Audio drafts: the same
+	 *  shuffle, painted and scored again. Its history entry keeps them.
 	 */
-	applyColors: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_colors", { steps })),
+	applyCosmetics: (steps: Channel<StepEvent>) => typedError<null, string>(__TAURI_INVOKE("apply_cosmetics", { steps })),
+	/**  Every track a seed can change: the fixed pool is left out. */
+	audioCatalog: () => __TAURI_INVOKE<TrackView[]>("audio_catalog"),
 	/**  Every slot holding a save, newest first. */
 	saveSlots: () => typedError<SlotRow[], string>(__TAURI_INVOKE("save_slots")),
 	savePresets: () => __TAURI_INVOKE<SavePreset[]>("save_presets"),
@@ -1354,6 +1356,25 @@ export type TestSetup = {
 	goals?: string[],
 	/**  What a flag can't show, like the item a check should give. */
 	expect?: string,
+};
+
+/**  One track as the pane lists it. */
+export type TrackView = {
+	id: string,
+	label: string,
+	pool: Pool,
+	/**  Its length band in its pool: 0 for a loop or a pool without bands. */
+	band: number,
+	/**  The band in words: `<5s`, `5-12s`, `loop`, or `-` without bands. */
+	band_label: string,
+	/**  The song's length in milliseconds. */
+	ms: number,
+	looping: boolean,
+	/**
+	 *  Whether it gives a song another track can play. Without one, its
+	 *  music is in sections: it only receives.
+	 */
+	song: boolean,
 };
 
 /**  How the grid looks, in the tab and the pop out. */

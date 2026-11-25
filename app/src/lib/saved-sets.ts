@@ -1,17 +1,25 @@
+import type { AudioDraft } from "@/bindings";
 import { same } from "@/lib/api";
+import { sizeOf } from "@/lib/audio";
 import type { FullConfig } from "@/lib/config";
 
 /** A change to the config, worked out from the config it lands on. */
 export type Change = (c: FullConfig) => Partial<FullConfig>;
 
 /** Each draft the config keeps, and where the drafts kept by name beside
- * it go: the plando's pins, the Colors pane's picks. */
+ * it go: the plando's pins, the Colors pane's picks, the Audio pane's
+ * modes. */
 export interface SetKinds {
   place: "plandos";
   colors: "color_sets";
+  audio: "audio_sets";
 }
 
-export const SET_KINDS: SetKinds = { place: "plandos", colors: "color_sets" };
+export const SET_KINDS: SetKinds = {
+  place: "plandos",
+  colors: "color_sets",
+  audio: "audio_sets",
+};
 
 /** A draft: a key to what it's set to. */
 export type Draft = Record<string, unknown>;
@@ -38,10 +46,14 @@ export function savedSets(draft: keyof SetKinds) {
   const sets = SET_KINDS[draft];
   const draftOf = (c: FullConfig) => c[draft] as Draft;
   const setsOf = (c: FullConfig) => c[sets] as Record<string, Draft>;
+  /** How many things a draft holds: an audio draft nests its pools and
+   * tracks, the others hold one a key. */
+  const size = (d: Draft) =>
+    draft === "audio" ? sizeOf(d as AudioDraft) : Object.keys(d).length;
   /** The saved set the draft matches, if any. An empty draft matches
    * none. */
   const savedAs = (c: FullConfig) =>
-    Object.keys(draftOf(c)).length === 0
+    size(draftOf(c)) === 0
       ? null
       : (Object.keys(setsOf(c))
           .sort()
@@ -49,11 +61,11 @@ export function savedSets(draft: keyof SetKinds) {
   return {
     draftOf,
     setsOf,
+    size,
     savedAs,
     /** Whether the draft holds what no saved set keeps, so replacing it
      * loses it. */
-    unsaved: (c: FullConfig) =>
-      Object.keys(draftOf(c)).length > 0 && savedAs(c) === null,
+    unsaved: (c: FullConfig) => size(draftOf(c)) > 0 && savedAs(c) === null,
     /** The saved set `name` as the draft. */
     load:
       (name: string): Change =>

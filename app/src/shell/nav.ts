@@ -11,6 +11,7 @@ import {
   ListChecks,
   type LucideIcon,
   MonitorPlay,
+  Music,
   Package,
   Palette,
   Pin,
@@ -79,6 +80,7 @@ export const APP_PANES: [Section, string, LucideIcon][] = [
 export const RANDOMIZER_PANES: [Section, string, LucideIcon][] = [
   ["plando", "Plando", Pin],
   ["colors", "Colors", Palette],
+  ["audio", "Audio", Music],
 ];
 
 /** Panes that fill the window and scroll their own rows. */

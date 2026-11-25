@@ -106,6 +106,14 @@ export const TOPICS = {
       "Random draws a colour when the seed is built. Shift-click Randomize All to draw them now and tweak them.",
     ],
   },
+  audio: {
+    title: "Audio",
+    at: { section: "audio" },
+    body: [
+      "Shuffle the game's music within its kind. Music doesn't change the shuffle, and a share code leaves it out.",
+      "Shuffle trades songs so each plays somewhere once; Random lets one song play in many places. Fanfares and cutscene songs trade only with ones of a similar length.",
+    ],
+  },
   target: {
     title: "Targets",
     at: { section: "targets" },
