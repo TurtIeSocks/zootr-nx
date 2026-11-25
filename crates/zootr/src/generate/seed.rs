@@ -314,6 +314,7 @@ fn new_game(settings: &Settings, extras: &Extras, seed: u64) -> Result<NewGame> 
         spawn: extras.spawn.clone(),
         door_pins: extras.doors.clone(),
         random_age,
+        colors: extras.colors.clone(),
         ..NewGame::from_settings(&settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());
@@ -369,10 +370,8 @@ pub fn generate(
     let report = shuffle(romfs, mod_dir, seed, place, &new_game, run)?;
     run.step(Step::Spoiler)?;
     let icons = icons::icons(seed, settings, extras);
-    std::fs::write(
-        mod_dir.join(crate::generate::SPOILER),
-        report.spoiler(&icons),
-    )?;
+    let spoiler = report.spoiler(&icons) + crate::colors::spoiler(&extras.colors).as_str();
+    std::fs::write(mod_dir.join(crate::generate::SPOILER), spoiler)?;
     Ok(report)
 }
 

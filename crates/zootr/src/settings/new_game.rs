@@ -115,6 +115,8 @@ pub struct NewGame {
     /// The stones' hints AP picked, in an AP seed that has them: the seed
     /// picks none of its own.
     pub given_hints: Option<Vec<crate::hints::Hint>>,
+    /// The colours the seed paints.
+    pub colors: crate::colors::Colors,
 }
 
 impl NewGame {
@@ -266,6 +268,7 @@ impl NewGame {
             foreign: vec![],
             players: Default::default(),
             given_hints: None,
+            colors: Default::default(),
         })
     }
 }
@@ -493,6 +496,7 @@ mod tests {
                 foreign: vec![],
                 players: Default::default(),
                 given_hints: None,
+                colors: Default::default(),
                 logic: Logic::Glitchless,
                 on: toggles_on(&Settings::new()),
             }

@@ -5,11 +5,11 @@
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, ModBuilder, Romfs, murmur3, redraw, top_level};
 
+use crate::colors::paint::{self, Band, Hues};
 use crate::copies::{self, copied};
 use crate::gamedata;
 use crate::key_tints::paint::{Host, Look};
 use crate::known::{Name, field, hash, item};
-use crate::medallions::paint::{self, Band, Hues};
 use crate::standins::{PLAIN_DEAL, Tables, clone_pack, write_clone};
 
 pub use super::look::FILES;

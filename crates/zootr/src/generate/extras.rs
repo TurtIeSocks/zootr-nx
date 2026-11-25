@@ -39,6 +39,10 @@ pub struct Extras {
     /// seed's hook is the same.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<Release>,
+    /// The colours the seed paints, Random already drawn. Cosmetic: left
+    /// out of the share code and the seed's icons ([`Self::cosmetic_free`]).
+    #[serde(skip_serializing_if = "crate::colors::Colors::is_empty")]
+    pub colors: crate::colors::Colors,
     /// From before Shuffle items was a setting. History moves it there on
     /// load, and it's never written.
     #[serde(skip_serializing)]
@@ -48,6 +52,15 @@ pub struct Extras {
 impl Extras {
     pub fn is_empty(&self) -> bool {
         *self == Self::default()
+    }
+
+    /// These extras without what only changes how the seed looks: what a
+    /// share code carries and the seed's icons hash.
+    pub fn cosmetic_free(&self) -> Self {
+        Self {
+            colors: Default::default(),
+            ..self.clone()
+        }
     }
 
     /// An Archipelago seed's, with nothing else.

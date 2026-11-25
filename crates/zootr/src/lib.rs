@@ -27,6 +27,7 @@ pub mod build;
 mod carpenters;
 mod checks;
 mod chest_levels;
+pub mod colors;
 pub mod config;
 mod copies;
 mod cows;

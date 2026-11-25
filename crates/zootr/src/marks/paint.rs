@@ -4,7 +4,7 @@
 use anyhow::{Result, ensure};
 use ounce_formats::{Romfs, Texture, top_level};
 
-use crate::key_tints::paint::luma;
+use crate::colors::paint::luma;
 use crate::known::texture;
 use crate::medallions::Colour;
 

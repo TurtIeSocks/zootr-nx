@@ -6,27 +6,46 @@
 //! takes a worn tunic off. The hook puts them on him (`patch/gear.rs`).
 //! See `superpowers/specs/2026-11-23-child-gear-design.md`.
 
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
 use zootr_hook::{CHILD_ARMOR, CHILD_GEAR, child_armor};
 
 use super::files::{CLOTH, MODEL, VEST};
+use crate::colors::paint::{self, Band, Colour};
+use crate::colors::{Colors, GREEN, marked, name as texture};
 use crate::copies::pointed_at;
 use crate::known::{Name, actor, field};
-use crate::medallions::paint::{self, Band, Colour, Hues};
 use crate::standins::{Tables, actor_path, raw, write_clone};
 
 /// A tunic's colours on a child: his cloth's, and his vest's a shade
-/// apart (the maintainer, 2026-11-24). A cosmetics randomizer writes
-/// other values here.
+/// apart (the maintainer, 2026-11-24). Colors' tunic palettes write other
+/// values here ([`Colours::of`]).
 pub struct Colours {
     pub cloth: Colour,
     pub vest: Colour,
 }
 
+/// The vest's shade of the cloth, as the maintainer's own pair has it.
+const VEST_SHADE: u32 = 77;
+
+impl Colours {
+    /// A tunic's colours on a child: those of `palette` when `colors`
+    /// picks it, the vest a shade darker, else these.
+    fn of(&self, palette: &str, colors: &Colors) -> Result<Colours> {
+        Ok(match crate::colors::first(colors, palette)? {
+            None => Colours { ..*self },
+            Some(cloth) => Colours {
+                cloth,
+                vest: cloth.map(|c| (c as u32 * VEST_SHADE / 100) as u8),
+            },
+        })
+    }
+}
+
 /// Each tunic a child wears in his own cloth: the adult's armor, the
-/// letter that marks its texture copies, and its colours.
-pub const TUNICS: [(&Name, u8, Colours); 2] = [
+/// letter that marks its texture copies, its colours, and the Colors
+/// palette that recolours it.
+pub const TUNICS: [(&Name, u8, Colours, &str); 2] = [
     (
         actor::ARMOR_ADULT_ZORA,
         b'Z',
@@ -34,6 +53,7 @@ pub const TUNICS: [(&Name, u8, Colours); 2] = [
             cloth: [36, 84, 168],
             vest: [28, 62, 132],
         },
+        "zora-tunic",
     ),
     (
         actor::ARMOR_ADULT_GORON,
@@ -42,6 +62,7 @@ pub const TUNICS: [(&Name, u8, Colours); 2] = [
             cloth: [168, 40, 32],
             vest: [128, 32, 26],
         },
+        "goron-tunic",
     ),
 ];
 
@@ -61,21 +82,20 @@ pub const GROUPS: [(&Name, &[&Name]); 2] = [
     (field::G_VEST, &[field::MT_VEST]),
 ];
 
-/// The hues of his green, his vest's yellower stripes among them. His
-/// vest's brown patch keeps its colour.
-const GREEN: Hues = (0.15, 0.5);
-
 /// Write the child armor of each of `worn`, the adult tunic armor, with its
-/// model, textures and rows in `tables`, and his Kokiri Tunic's always: the
-/// hook makes it for him whenever the seed carries `CHILD_GEAR`.
+/// model, textures and rows in `tables`, in the colours `colors` picks,
+/// and his Kokiri Tunic's always: the hook makes it for him whenever the
+/// seed carries `CHILD_GEAR`.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     worn: &[&Name],
+    colors: &Colors,
 ) -> Result<()> {
     let child = builder.read(MODEL)?;
-    for (adult, mark, colours) in TUNICS.iter().filter(|(a, ..)| worn.contains(a)) {
+    for (adult, mark, colours, palette) in TUNICS.iter().filter(|(a, ..)| worn.contains(a)) {
+        let colours = colours.of(palette, colors)?;
         let name = child_name(adult)?;
         let model = format!("Model/{name}.{}.bfres.zs", actor::PLAYER_CHILD);
         builder.add(&model, &cloth_only(&child, *mark)?, MODEL)?;
@@ -116,25 +136,6 @@ fn child_name(worn: &Name) -> Result<String> {
     Ok(armor.to_str()?.to_owned())
 }
 
-/// The texture at `path`, as its name.
-fn texture(path: &str) -> &str {
-    let name = path.strip_prefix("Tex/").unwrap_or(path);
-    name.strip_suffix(".bntx.zs").unwrap_or(name)
-}
-
-/// `name` with the letter before its `_Alb` made `mark`: a copy's name,
-/// as long as the texture's, as a rename needs.
-fn marked(name: &str, mark: u8) -> Result<String> {
-    let at = name.len().checked_sub(5).context("too short")?;
-    ensure!(name[at + 1..] == *"_Alb", "{name} isn't an albedo");
-    Ok(format!(
-        "{}{}{}",
-        &name[..at],
-        mark as char,
-        &name[at + 1..]
-    ))
-}
-
 /// The child's model with only his cloth and vest drawn ([`GROUPS`]'
 /// materials), and his textures for them the copies marked `mark`.
 fn cloth_only(child: &[u8], mark: u8) -> Result<Vec<u8>> {
@@ -173,6 +174,19 @@ fn painted(data: &[u8], path: &str, mark: u8, colour: Colour) -> Result<(String,
 mod tests {
     use super::*;
     use zootr_hook::{fnv, kokiri_worn};
+
+    #[test]
+    fn a_child_tunic_takes_its_palettes_colour_and_keeps_the_vanilla_pair() {
+        let (_, _, zora, palette) = &TUNICS[0];
+        let vanilla = zora.of(palette, &Colors::new()).unwrap();
+        assert_eq!((vanilla.cloth, vanilla.vest), (zora.cloth, zora.vest));
+        let red = Colors::from([(
+            palette.to_string(),
+            crate::colors::Picked::of([200, 40, 40]),
+        )]);
+        let picked = zora.of(palette, &red).unwrap();
+        assert_eq!((picked.cloth, picked.vest), ([200, 40, 40], [154, 30, 30]));
+    }
 
     #[test]
     fn the_hook_dresses_a_child_in_each_tunics_copy() {
@@ -224,7 +238,7 @@ mod tests {
             return;
         };
         let hue = |rgba: &[u8]| paint::mean(rgba, (0.0, 1.0)).unwrap().0;
-        for (_, mark, colours) in &TUNICS {
+        for (_, mark, colours, _) in &TUNICS {
             for (path, colour) in [(CLOTH[0], colours.cloth), (VEST, colours.vest)] {
                 let data = romfs.read(path).unwrap();
                 let (to, drawn) = painted(&data, path, *mark, colour).unwrap();
@@ -267,7 +281,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-tunics-{tag}-{}", std::process::id()));
         let mut builder = ModBuilder::new(romfs, &dir).unwrap();
         let mut tables = Tables::load(romfs).unwrap();
-        write(romfs, &mut builder, &mut tables, worn).unwrap();
+        write(romfs, &mut builder, &mut tables, worn, &Colors::new()).unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
         (tables, dir)
@@ -297,7 +311,7 @@ mod tests {
             let name = armor.name().to_str().unwrap();
             assert!(has_pack(&dir, name), "{name}");
         }
-        for (_, mark, _) in &TUNICS {
+        for (_, mark, ..) in &TUNICS {
             for path in CLOTH.iter().chain([&VEST]) {
                 let copy = marked(texture(path), *mark).unwrap();
                 assert!(

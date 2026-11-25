@@ -164,6 +164,11 @@ pub enum Probe {
     /// (X red, Y green, Z blue, dark for the negative way), with each
     /// shape's UV bounds. Shows where a face lands on its textures.
     Uvs { pattern: String, out: PathBuf },
+    /// Each material of a model, by a piece of its path (`Model/` and its
+    /// actor name and a dot, the dot keeping its variants out):
+    /// its textures and its four-float parameters by name hash, the
+    /// colours Colors can write. Linear light, as the shader reads them.
+    Materials { model: String },
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
@@ -553,6 +558,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
+        Probe::Materials { model } => materials(romfs, game, &model),
         Probe::Pouch { slot, all } => pouch(romfs, &slot, all),
         Probe::Places { filter } => {
             let filter = filter.unwrap_or_default().to_lowercase();
@@ -865,6 +871,20 @@ fn point(arg: &str) -> Result<[f32; 3]> {
         .map(|n| n.trim().parse())
         .collect::<Result<_, _>>()?;
     v.try_into().map_err(|_| anyhow::anyhow!("want X,Y,Z"))
+}
+
+/// `probe materials`.
+fn materials(romfs: &Romfs, game: &Path, model: &str) -> Result<()> {
+    let data =
+        crate::nav::dump_file(romfs, game, model)?.with_context(|| format!("no model {model}"))?;
+    for m in ounce_formats::materials(&data)? {
+        println!("{}", m.name);
+        println!("  textures {}", m.textures.join(" "));
+        for (hash, [r, g, b, a]) in &m.params {
+            println!("  {hash:016x}  {r:.4} {g:.4} {b:.4} {a:.4}");
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]

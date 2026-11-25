@@ -88,6 +88,7 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         progress,
         fields,
         release,
+        colors,
         ..
     } = extras;
     spawn.iter().for_each(|s| flag("spawn", Some(s.clone())));
@@ -102,6 +103,8 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         .iter()
         .for_each(|(h, i)| flag("place", Some(format!("{h}={i}"))));
     fields.iter().for_each(|f| flag("field", Some(f.clone())));
+    let colors = crate::colors::args(&crate::colors::draft(colors));
+    colors.into_iter().for_each(|c| flag("color", Some(c)));
     release
         .iter()
         .for_each(|r| flag("release", Some(r.name().into())));
@@ -110,7 +113,11 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
 
 pub(super) fn shuffle(game: &Path, args: Shuffle) -> Result<()> {
     let seed = args.seed.unwrap_or_else(generate::time_seed);
-    install(game, seed, args.settings(), args.extras(), args.install)
+    let extras = generate::Extras {
+        colors: crate::colors::resolve(&args.draft()?, seed)?,
+        ..args.extras()
+    };
+    install(game, seed, args.settings(), extras, args.install)
 }
 
 /// The mod for one slot of an Archipelago multiworld.

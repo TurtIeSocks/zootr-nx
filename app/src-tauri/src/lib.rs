@@ -251,10 +251,9 @@ fn cached<T>(
 #[specta::specta]
 fn shuffle_command() -> Res<String> {
     let config = Config::load().map_err(text)?;
-    Ok(zootr::cli::shuffle_command(
-        &config.settings,
-        &config.extras(),
-    ))
+    let line = zootr::cli::shuffle_command(&config.settings, &config.extras());
+    let colors = zootr::colors::args(&config.colors).into_iter();
+    Ok(colors.fold(line, |line, c| format!("{line} --color {c}")))
 }
 
 /// Run `f` off the UI thread.
@@ -293,6 +292,9 @@ async fn generate(
                 extras,
             ),
         };
+        // A share code leaves colours out: the seed takes this draft's.
+        let mut extras = extras;
+        extras.colors = zootr::colors::resolve(&config.colors, seed)?;
         record(&app, steps, seed, settings, extras, install)
     })
     .await

@@ -13,7 +13,7 @@ use ounce_formats::Romfs;
 use crate::config::Config;
 use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{ApCommand, Cli, Command, DrillReport, SweepReport};
+use args::{ApCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
 use play::{
     Shoot, Sweep, boot_command, drill, drill_report, look, photo, play, sweep, sweep_report,
 };
@@ -71,6 +71,10 @@ pub fn run() -> Result<()> {
         }
         // Its run reads the dump as its first step.
         Command::Shuffle(args) => shuffle(&path()?, args),
+        Command::Colors(ColorsCommand::List) => {
+            colors_list();
+            Ok(())
+        }
         Command::Ap(ApCommand::Open { file, install }) => seed::ap_open(&path()?, &file, install),
         Command::Ap(ApCommand::Room { cmd }) => ap::room_command(&path()?, cmd),
         Command::Ap(ApCommand::Bench(args)) => ap::bench_command(&path()?, args),
@@ -288,5 +292,21 @@ pub fn run() -> Result<()> {
             drill(&romfs, &path, judge, out, skill, name.as_deref(), repeat)
         }
         Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
+    }
+}
+
+/// `colors list`: one palette a line.
+fn colors_list() {
+    use crate::colors::{PALETTES, hex};
+    let width = PALETTES.iter().map(|p| p.id.len()).max().unwrap_or(0);
+    for p in PALETTES {
+        let vanilla: Vec<_> = p.vanilla.iter().map(|&c| hex(c)).collect();
+        let group = format!("{:?}", p.group).to_lowercase();
+        println!(
+            "{:<width$}  {group:<5}  {}  {}",
+            p.id,
+            vanilla.join(" "),
+            p.label
+        );
     }
 }

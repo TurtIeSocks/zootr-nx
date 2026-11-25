@@ -42,6 +42,9 @@ export const full = (c: Config): FullConfig => ({
   place: c.place ?? {},
   plandos: c.plandos ?? {},
   favorites: c.favorites ?? [],
+  colors: c.colors ?? {},
+  color_sets: c.color_sets ?? {},
+  color_recents: c.color_recents ?? [],
 });
 
 /** Whether a test setup changes anything. */
