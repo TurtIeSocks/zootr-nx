@@ -458,7 +458,7 @@ era = "child"
 needs = "courtyard"
 quest-gate-ok = "her courtyard scene moves the castle quest to Step04 before she hands it over"
 
-# Malon at the castle wall, who hands over the egg.
+# Malon at the castle wall, who hands over the cucco with the gifts on.
 [[check]]
 hash = 10551859442360452256
 name = "Weird Egg"

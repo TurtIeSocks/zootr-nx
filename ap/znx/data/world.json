@@ -5735,7 +5735,7 @@
         {
           "place": "sacred-forest-meadow-child",
           "rule": {
-            "ref": 5
+            "ref": 6
           }
         }
       ],
@@ -7767,7 +7767,7 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -15587,7 +15587,7 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -23245,7 +23245,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -30245,6 +30245,18 @@
     {
       "at": [
         {
+          "place": "hyrule-castle-child",
+          "rule": true
+        }
+      ],
+      "name": "Cucco",
+      "when": {
+        "setting": "npc-gifts=off"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -30468,7 +30480,7 @@
       "when": {
         "any": [
           {
-            "ref": 4
+            "ref": 5
           },
           {
             "all": [
@@ -30645,7 +30657,7 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -30670,7 +30682,7 @@
           "rule": {
             "all": [
               {
-                "ref": 5
+                "ref": 6
               },
               {
                 "count": 1,
@@ -30926,20 +30938,8 @@
       "at": [
         {
           "place": "hyrule-castle-child",
-          "rule": true
-        }
-      ],
-      "name": "Weird Egg",
-      "when": {
-        "setting": "npc-gifts=off"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "hyrule-castle-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -30953,7 +30953,7 @@
         {
           "place": "hyrule-castle-child",
           "rule": {
-            "ref": 6
+            "ref": 3
           }
         }
       ],
@@ -31020,7 +31020,7 @@
             ]
           },
           {
-            "ref": 4
+            "ref": 5
           }
         ]
       }
@@ -34805,6 +34805,19 @@
     {
       "any": [
         {
+          "setting": "met-zelda"
+        },
+        {
+          "count": 1,
+          "items": [
+            "Cucco"
+          ]
+        }
+      ]
+    },
+    {
+      "any": [
+        {
           "setting": "shop-slots=7"
         },
         {
@@ -34831,19 +34844,6 @@
           "count": 1,
           "items": [
             "Met Zelda"
-          ]
-        }
-      ]
-    },
-    {
-      "any": [
-        {
-          "setting": "met-zelda"
-        },
-        {
-          "count": 1,
-          "items": [
-            "Weird Egg"
           ]
         }
       ]
@@ -35027,7 +35027,7 @@
           "setting": "shopsanity"
         },
         {
-          "ref": 3
+          "ref": 4
         }
       ]
     },

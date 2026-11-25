@@ -184,6 +184,7 @@ impl NewGame {
                 start.add(word, 1)?;
             }
         }
+        crate::gifts::egg::start_hatched(&mut start, on(super::NPC_GIFTS))?;
         crate::bottles::check_start(start.bottles(), on(presets::KING_ZORA_MOVED))?;
         let defaults = [
             choice_edits(

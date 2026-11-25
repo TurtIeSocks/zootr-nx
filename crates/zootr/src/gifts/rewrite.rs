@@ -280,14 +280,27 @@ pub(super) fn bool_switch(
     })
 }
 
+/// A set of Bool `name` to true, then `next`, modelled on the flow's first
+/// Bool set.
+pub(super) fn set_true(flow: &mut Flowchart, name: &str, next: Option<u16>) -> Result<u16> {
+    let sets = (running(flow, SET_BOOL).first().copied())
+        .with_context(|| format!("{} sets no Bool", flow.name))?;
+    let sets = flows::model(flow, SET_BOOL, sets)?;
+    let mut params = sets.params;
+    flows::set(&mut params, GAME_DATA, string(name))?;
+    flows::set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
+    let (actor, action) = flow.action(&sets.actor, sets.name);
+    Ok(flow.push(EventKind::Action {
+        next,
+        actor,
+        action,
+        params,
+    }))
+}
+
 /// Set the gift's own Bool `name` right after each call to `call`, at
 /// least one, so the gift is given once. A dressed call becomes `PLAIN`.
 pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> Result<()> {
-    let sets = flows::running(flow, SET_BOOL);
-    let sets = sets
-        .first()
-        .with_context(|| format!("{} sets no Bool", flow.name))?;
-    let sets = flows::model(flow, SET_BOOL, *sets)?;
     let calls = calls_to(flow, call);
     ensure!(
         !calls.is_empty(),
@@ -304,16 +317,7 @@ pub(super) fn set_own_bool(flow: &mut Flowchart, call: &[Call], name: &str) -> R
         };
         undress(entry_point);
         let next = *next;
-        let mut params = sets.params.clone();
-        flows::set(&mut params, GAME_DATA, string(name))?;
-        flows::set(&mut params, field::VALUE, Value::Bool(vec![true]))?;
-        let (actor, action) = flow.action(&sets.actor, sets.name);
-        let mark = flow.push(EventKind::Action {
-            next,
-            actor,
-            action,
-            params,
-        });
+        let mark = set_true(flow, name, next)?;
         flow.link(Link::Next(i), Some(mark))?;
     }
     Ok(())

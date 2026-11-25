@@ -2,6 +2,7 @@
 
 mod cucco;
 mod cutscene;
+pub(crate) mod egg;
 mod found;
 mod later;
 pub(crate) mod levels;
@@ -364,7 +365,8 @@ const FORETOLD: [(&Name, &Name, &[Call]); 1] = [(
 const TAUGHT: [(&Name, &Name); 1] = [(scene::MELODY_GET_SUN_03, scene::MELODY_GET_SUN)];
 
 /// Flows a dealt gift would leave stuck, each with the edit that frees it.
-const UNSTUCK: [(&Name, Edit); 2] = [
+const UNSTUCK: [(&Name, Edit); 3] = [
+    (egg::FLOW, egg::unhatched),
     (potion::FLOW, potion::cleared_with_the_gift),
     (
         actor::NPC_HYLIA_048_BOTTLE_SHOP,
@@ -439,7 +441,8 @@ pub fn give_all(
         if leveled && !pocket && !shop {
             // The grant moved to the caller when its scene can't play.
             let at = given.then(|| gift.moved_to(placement)).flatten();
-            let only = (at.is_none() && !took.is_empty()).then_some(took);
+            // Talon's wake grants Weird Egg ✅ too, outside what Malon took.
+            let only = (at.is_none() && !took.is_empty() && !egg::is(gift)).then_some(took);
             by_level.insert((at.unwrap_or(gift.flow), item, only));
             if let How::Added { also } = gift.how {
                 by_level.extend(also.iter().map(|flow| (flow.get(), item, None)));
@@ -450,6 +453,9 @@ pub fn give_all(
         }
         if gift.flow == zora::FLOW {
             zora::deal(romfs, rewrites, item)?;
+        }
+        if egg::is(gift) && !pocket {
+            egg::from_talon(romfs, flows, rewrites, item)?;
         }
         for (_, flow, call) in FORETOLD.iter().filter(|f| f.0 == gift.flow) {
             flows::edit(romfs, rewrites, flow, |f| {

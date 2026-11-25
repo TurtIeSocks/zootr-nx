@@ -61,9 +61,8 @@ goron-tunic = "adult and (item:goron-tunic or item:goron-tunic-pickup)"
 crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and item:bolero-of-fire))"
 
 # Hyrule Castle's courtyard, past Talon asleep by the crates. Only the cucco
-# that hatches from the Weird Egg wakes him, and an egg from anywhere hatches.
-# Met Zelda starts with him woken and gone.
-courtyard = "setting:met-zelda or item:weird-egg"
+# wakes him. Met Zelda starts with him woken and gone.
+courtyard = "setting:met-zelda or item:cucco"
 
 ocarina = "item:fairy-ocarina"
 zeldas-lullaby = "ocarina and item:zeldas-lullaby"

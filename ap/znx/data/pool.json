@@ -5464,6 +5464,20 @@
     },
     {
       "count": 1,
+      "item": "Cucco",
+      "when": {
+        "all": [
+          {
+            "setting": "met-zelda=off"
+          },
+          {
+            "setting": "npc-gifts"
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
       "item": "Deku Nut",
       "when": {
         "setting": "loose-items"
@@ -35784,20 +35798,6 @@
       "item": "Water Temple Map",
       "when": {
         "setting": "maps-compasses"
-      }
-    },
-    {
-      "count": 1,
-      "item": "Weird Egg",
-      "when": {
-        "all": [
-          {
-            "setting": "met-zelda=off"
-          },
-          {
-            "setting": "npc-gifts"
-          }
-        ]
       }
     },
     {
