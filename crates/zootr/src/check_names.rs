@@ -67,6 +67,10 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../logic/names/hyrule-field.toml"),
     ),
     (
+        "ice-cavern.toml",
+        include_str!("../logic/names/ice-cavern.toml"),
+    ),
+    (
         "jabu-jabus-belly.toml",
         include_str!("../logic/names/jabu-jabus-belly.toml"),
     ),

@@ -1,0 +1,47 @@
+# Ice Cavern. OoTR's name wherever the remake keeps the spot: chests and
+# Gold Skulltulas matched by room and rule, and the remake guides for
+# the Skulltulas. The heart piece left the Ice Cavern (the guides put it
+# on a Crater scrub), but its room keeps OoTR's Heart Piece Room name for
+# the Skulltula. Pots go by room, numbered west to east.
+
+# The way in.
+13545259034644162992 = "Ice Cavern Entrance Pot"
+15712947819189423505 = "Ice Cavern Freezard Corridor Pot 2"
+6330430963809465220 = "Ice Cavern Freezard Corridor Pot 1"
+
+# The hall of icicles.
+1432738477026131973 = "Ice Cavern Hall Pot 1"
+1222751158157747144 = "Ice Cavern Hall Pot 2"
+
+# The spinning blade room.
+7165255787572043804 = "Ice Cavern GS Spinning Scythe Room"
+2531238234557984984 = "Ice Cavern Spinning Blade Flying Pot 1"
+16857043952557702868 = "Ice Cavern Spinning Blade Flying Pot 2"
+
+# The map room: the chest in red ice, two pots by it, two on the way in.
+11498802739257120175 = "Ice Cavern Map Chest"
+15995328541699816119 = "Ice Cavern Map Room Pot 1"
+9643663083142689369 = "Ice Cavern Map Room Pot 2"
+7618173156337128046 = "Ice Cavern Map Room Pot 3"
+3105481948394149361 = "Ice Cavern Map Room Pot 4"
+
+# The compass room, where OoTR's heart piece was.
+13542013937093159888 = "Ice Cavern Compass Chest"
+1612219105489330028 = "Ice Cavern GS Heart Piece Room"
+17314383705983097019 = "Ice Cavern Compass Room Pot 1"
+15011057361189787608 = "Ice Cavern Compass Room Pot 2"
+
+# The push block room: the Skulltula above the door, and a chest the
+# remake set on a Song of Time block.
+14822647495538506998 = "Ice Cavern GS Push Block Room"
+4128092231168513176 = "Ice Cavern Push Block Room Chest" # guess: new chest, on the Song of Time block
+
+# Before the Iron Boots, and the Iron Boots room with Sheik.
+7652943025384915608 = "Ice Cavern Near End Pot 1" # guess: the hall before the Iron Boots room
+363703302462445921 = "Ice Cavern Near End Pot 2" # guess: the hall before the Iron Boots room
+6859289214373847284 = "Ice Cavern Iron Boots Chest"
+1221457217093522685 = "Ice Cavern Sheik in Ice Cavern"
+
+# The back way out to Zoras Fountain, new in the remake.
+3530383460685013192 = "Ice Cavern Back Exit Pot 1"
+2926506116712030829 = "Ice Cavern Back Exit Pot 2"
