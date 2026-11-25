@@ -257,8 +257,8 @@ function TrackRow({ track, catalog, draft, player }: TrackRowProps) {
           <span className="font-medium text-sm">{track.label}</span>
           <span className="text-ink-muted text-xs">
             <code>{length(shown)}</code>
-            {!track.song && (
-              <Tip tip="Its music is in sections, so it plays others' songs but gives none">
+            {track.gives_none && (
+              <Tip tip={track.gives_none}>
                 <span className="ml-2 text-ink-faint">receives only</span>
               </Tip>
             )}
@@ -335,7 +335,7 @@ function PlayButton({
     <Tip
       tip={
         id === null
-          ? "Its music is in sections: pick a song to listen"
+          ? "It gives no song of its own: pick one to listen"
           : on
             ? "Stop"
             : "Listen"

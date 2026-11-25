@@ -29,6 +29,7 @@ const track = (
   ms,
   looping: true,
   song: true,
+  gives_none: null,
   ...more,
 });
 

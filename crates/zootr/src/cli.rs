@@ -366,10 +366,9 @@ fn audio_list(pool: Option<crate::audio::Pool>) {
     let shown = TRACKS.iter().filter(|t| pool.is_none_or(|p| t.pool == p));
     let width = TRACKS.iter().map(|t| t.id.len()).max().unwrap_or(0);
     for t in shown {
-        let song = if t.song.is_some() {
-            ""
-        } else {
-            "  (sections: receives only)"
+        let song = match t.song {
+            Some(_) => "",
+            None => "  (sections: receives only)",
         };
         let lasts = if t.looping {
             "loop".to_owned()
