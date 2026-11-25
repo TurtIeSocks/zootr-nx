@@ -84,6 +84,7 @@ const saveItems = vi.fn(
       caps: [null, 20, null, null],
       staged: [edits.some((e) => e.hash === HOOK), false, false, false],
       locked: [],
+      bars: [],
       status: [
         {
           group: "Meters",

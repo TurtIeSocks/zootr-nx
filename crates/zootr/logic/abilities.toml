@@ -29,7 +29,9 @@ magic = "item:magic-meter or item:double-magic or (setting:magic-with-first-item
 mirror-shield = "adult and item:mirror-shield"
 dins-fire = "magic and item:dins-fire"
 fire = "dins-fire or (magic and bow and item:fire-arrows)"
-bottle = "item:bottle or item:rutos-letter or item:milk"
+# Any bottle the pool deals: Ship's normal bottles (`bottles::CONTENTS`) and
+# the letter.
+bottle = "item:bottle or item:rutos-letter or item:milk or item:bottle-red-potion or item:bottle-green-potion or item:bottle-blue-potion or item:bottle-fairy or item:bottle-fish or item:bottle-bug or item:bottle-poe or item:bottle-big-poe or item:bottle-blue-fire"
 blue-fire = "adult and bottle"
 light = "mirror-shield or (magic and bow and item:light-arrows)"
 lens = "magic and item:lens-of-truth"
