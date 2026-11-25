@@ -1,0 +1,53 @@
+# Gerudo Training Ground. OoTR's name wherever the remake keeps the spot:
+# chests matched by room, by what opens them (an eye switch, a fight, the
+# Lens of Truth) and by vanilla item. The remake changed several items,
+# so the room and the way in decide, not the item.
+
+# Lobby: the right of its two chests, opened by the eye switch over the
+# door (Link enters facing north).
+2436665354602612279 = "Gerudo Training Ground Lobby Right Chest"
+
+# The Stalfos sand room.
+13501407288943710656 = "Gerudo Training Ground Stalfos Chest"
+
+# The Wolfos room before the heavy block.
+4519534997122863169 = "Gerudo Training Ground Before Heavy Block Chest"
+
+# The eye statue room.
+11563468890171962383 = "Gerudo Training Ground Eye Statue Chest"
+
+# The hammer room.
+4372363658229299619 = "Gerudo Training Ground Hammer Room Switch Chest"
+
+# The Beamos and Dinolfos room.
+4709724720801091788 = "Gerudo Training Ground Beamos Chest"
+1226235239914902322 = "Gerudo Training Ground Beamos Pot 1"
+16145161792185629501 = "Gerudo Training Ground Beamos Pot 2"
+
+# The central maze path, behind the locked doors, out to the Ice Arrows.
+10696620323243142689 = "Gerudo Training Ground Maze Path First Chest"
+8186301369655588602 = "Gerudo Training Ground Maze Path Second Chest"
+10743352138513225188 = "Gerudo Training Ground Maze Path Third Chest"
+1941083939696166170 = "Gerudo Training Ground Maze Path Final Chest"
+
+# High above the maze: one chest by a Lens of Truth platform, one over the
+# Ice Arrows chest.
+4320448574091221496 = "Gerudo Training Ground Hidden Ceiling Chest" # guess: the one by the lens platform
+9911316961118170383 = "Gerudo Training Ground Near Scarecrow Chest" # guess: the other high chest, over the Ice Arrows chest
+
+# The maze's right side, reached from the lava room. OoTR's Freestanding
+# Key lay where the remake has a key chest.
+196331300747102419 = "Gerudo Training Ground Maze Right Central Chest"
+11683433230229591151 = "Gerudo Training Ground Maze Right Side Chest"
+1883068192328530224 = "Gerudo Training Ground Maze Right Key Chest" # guess: in place of OoTR's Freestanding Key
+
+# Under the lava room's water.
+3717705376223508790 = "Gerudo Training Ground Underwater Silver Rupee Chest"
+
+# Past the heavy block, the Like Like's room with four chests. The small
+# key chest, shown by the Lens of Truth, takes OoTR's key chest's name;
+# the rest go west to east.
+11754783663699171680 = "Gerudo Training Ground Heavy Block First Chest" # guess: OoTR's order unknown here, taken west to east
+6897789835137994741 = "Gerudo Training Ground Heavy Block Second Chest" # guess: OoTR's order unknown here, taken west to east
+5329807728555596183 = "Gerudo Training Ground Heavy Block Third Chest" # guess: a small key, as OoTR's Third Chest holds
+3750231902048775592 = "Gerudo Training Ground Heavy Block Fourth Chest" # guess: OoTR's order unknown here, taken west to east

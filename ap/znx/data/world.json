@@ -359,7 +359,7 @@
       "forbid": [],
       "hash": "196331300747102419",
       "id": 3,
-      "name": "Gerudo Training Ground Bombchus (5) Chest",
+      "name": "Gerudo Training Ground Maze Right Central Chest",
       "unprovable": false
     },
     {
@@ -2219,7 +2219,7 @@
       "forbid": [],
       "hash": "1226235239914902322",
       "id": 537,
-      "name": "Gerudo Training Ground Pot 1",
+      "name": "Gerudo Training Ground Beamos Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3366,7 +3366,7 @@
       "forbid": [],
       "hash": "1883068192328530224",
       "id": 451,
-      "name": "Gerudo Training Ground Small Key Chest 6",
+      "name": "Gerudo Training Ground Maze Right Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -3508,7 +3508,7 @@
       "forbid": [],
       "hash": "1941083939696166170",
       "id": 14,
-      "name": "Gerudo Training Ground Ice Arrows Chest",
+      "name": "Gerudo Training Ground Maze Path Final Chest",
       "unprovable": false
     },
     {
@@ -4261,7 +4261,7 @@
       "forbid": [],
       "hash": "2436665354602612279",
       "id": 16,
-      "name": "Gerudo Training Ground Blue Rupee (5) Chest 1",
+      "name": "Gerudo Training Ground Lobby Right Chest",
       "unprovable": false
     },
     {
@@ -6287,7 +6287,7 @@
       "forbid": [],
       "hash": "3717705376223508790",
       "id": 456,
-      "name": "Gerudo Training Ground Small Key Chest 8",
+      "name": "Gerudo Training Ground Underwater Silver Rupee Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -6356,7 +6356,7 @@
       "forbid": [],
       "hash": "3750231902048775592",
       "id": 26,
-      "name": "Gerudo Training Ground Bombs (5) Chest",
+      "name": "Gerudo Training Ground Heavy Block Fourth Chest",
       "unprovable": false
     },
     {
@@ -7218,7 +7218,7 @@
       "forbid": [],
       "hash": "4320448574091221496",
       "id": 459,
-      "name": "Gerudo Training Ground Small Key Chest 7",
+      "name": "Gerudo Training Ground Hidden Ceiling Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -7375,7 +7375,7 @@
       "forbid": [],
       "hash": "4372363658229299619",
       "id": 460,
-      "name": "Gerudo Training Ground Small Key Chest 3",
+      "name": "Gerudo Training Ground Hammer Room Switch Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -7630,7 +7630,7 @@
       "forbid": [],
       "hash": "4519534997122863169",
       "id": 32,
-      "name": "Gerudo Training Ground Blue Rupee (5) Chest 2",
+      "name": "Gerudo Training Ground Before Heavy Block Chest",
       "unprovable": false
     },
     {
@@ -8022,7 +8022,7 @@
       "forbid": [],
       "hash": "4709724720801091788",
       "id": 461,
-      "name": "Gerudo Training Ground Small Key Chest 4",
+      "name": "Gerudo Training Ground Beamos Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -9047,7 +9047,7 @@
       "forbid": [],
       "hash": "5329807728555596183",
       "id": 463,
-      "name": "Gerudo Training Ground Small Key Chest 9",
+      "name": "Gerudo Training Ground Heavy Block Third Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -11367,7 +11367,7 @@
       "forbid": [],
       "hash": "6897789835137994741",
       "id": 45,
-      "name": "Gerudo Training Ground Red Rupee (20) Chest 2",
+      "name": "Gerudo Training Ground Heavy Block Second Chest",
       "unprovable": false
     },
     {
@@ -13367,7 +13367,7 @@
       "forbid": [],
       "hash": "8186301369655588602",
       "id": 56,
-      "name": "Gerudo Training Ground Red Rupee (20) Chest 1",
+      "name": "Gerudo Training Ground Maze Path Second Chest",
       "unprovable": false
     },
     {
@@ -16426,7 +16426,7 @@
       "forbid": [],
       "hash": "9911316961118170383",
       "id": 472,
-      "name": "Gerudo Training Ground Small Key Chest 5",
+      "name": "Gerudo Training Ground Near Scarecrow Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -17836,7 +17836,7 @@
       "forbid": [],
       "hash": "10696620323243142689",
       "id": 75,
-      "name": "Gerudo Training Ground Purple Rupee (50) Chest",
+      "name": "Gerudo Training Ground Maze Path First Chest",
       "unprovable": false
     },
     {
@@ -17880,7 +17880,7 @@
       "forbid": [],
       "hash": "10743352138513225188",
       "id": 76,
-      "name": "Gerudo Training Ground Arrows (3) Chest 1",
+      "name": "Gerudo Training Ground Maze Path Third Chest",
       "unprovable": false
     },
     {
@@ -19244,7 +19244,7 @@
       "forbid": [],
       "hash": "11563468890171962383",
       "id": 475,
-      "name": "Gerudo Training Ground Small Key Chest 2",
+      "name": "Gerudo Training Ground Eye Statue Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -19613,7 +19613,7 @@
       "forbid": [],
       "hash": "11683433230229591151",
       "id": 84,
-      "name": "Gerudo Training Ground Arrows (3) Chest 2",
+      "name": "Gerudo Training Ground Maze Right Side Chest",
       "unprovable": false
     },
     {
@@ -19725,7 +19725,7 @@
       "forbid": [],
       "hash": "11754783663699171680",
       "id": 142,
-      "name": "Gerudo Training Ground Business Scrub Seed Chest",
+      "name": "Gerudo Training Ground Heavy Block First Chest",
       "unprovable": false
     },
     {
@@ -22337,7 +22337,7 @@
       "forbid": [],
       "hash": "13501407288943710656",
       "id": 480,
-      "name": "Gerudo Training Ground Small Key Chest 1",
+      "name": "Gerudo Training Ground Stalfos Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -26217,7 +26217,7 @@
       "forbid": [],
       "hash": "16145161792185629501",
       "id": 978,
-      "name": "Gerudo Training Ground Pot 2",
+      "name": "Gerudo Training Ground Beamos Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
