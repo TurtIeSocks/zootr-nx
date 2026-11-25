@@ -832,7 +832,7 @@
       "forbid": [],
       "hash": "569390966671955163",
       "id": 315,
-      "name": "Goron City West Gold Skulltula Token",
+      "name": "GC GS Boulder Maze",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -2028,7 +2028,7 @@
       "forbid": [],
       "hash": "1176975953041865014",
       "id": 11,
-      "name": "Goron City West Blue Rupee (5) Chest 2",
+      "name": "GC Maze Chest 3",
       "unprovable": false
     },
     {
@@ -2973,7 +2973,7 @@
       "forbid": [],
       "hash": "1632991845137831542",
       "id": 1097,
-      "name": "Goron City West Rock 2",
+      "name": "GC Boulder Maze Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4072,7 +4072,7 @@
       "forbid": [],
       "hash": "2241127569139982769",
       "id": 150,
-      "name": "Goron City Rolling Goron",
+      "name": "GC Rolling Goron as Child",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -4534,7 +4534,7 @@
       "forbid": [],
       "hash": "2540830164358535343",
       "id": 255,
-      "name": "Goron City Shop 5",
+      "name": "GC Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -5913,7 +5913,7 @@
       "forbid": [],
       "hash": "3512162152062029293",
       "id": 272,
-      "name": "Goron City Shop 7",
+      "name": "GC Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -6499,7 +6499,7 @@
       "forbid": [],
       "hash": "3870071239709713434",
       "id": 27,
-      "name": "Goron City West Purple Rupee (50) Chest",
+      "name": "GC Maze Chest 4",
       "unprovable": false
     },
     {
@@ -7435,7 +7435,7 @@
       "forbid": [],
       "hash": "4402942101476009858",
       "id": 31,
-      "name": "Goron City West Red Rupee (20) Chest",
+      "name": "GC Maze Chest 1",
       "unprovable": false
     },
     {
@@ -8539,7 +8539,7 @@
       "forbid": [],
       "hash": "5019133693822726830",
       "id": 658,
-      "name": "Goron City East Pot 2",
+      "name": "GC Medigoron Child Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9029,7 +9029,7 @@
       "forbid": [],
       "hash": "5321285816867041493",
       "id": 673,
-      "name": "Goron City North Pot 1",
+      "name": "GC Darunia Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9193,7 +9193,7 @@
       "forbid": [],
       "hash": "5465750003560413462",
       "id": 282,
-      "name": "Goron City Shop 8",
+      "name": "GC Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -10475,7 +10475,7 @@
       "forbid": [],
       "hash": "6278492438802004667",
       "id": 701,
-      "name": "Goron City Southwest Pot 2",
+      "name": "GC Upper Staircase Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11930,7 +11930,7 @@
       "forbid": [],
       "hash": "7233425345132106189",
       "id": 734,
-      "name": "Goron City South Pot 4",
+      "name": "GC Lower Staircase Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13863,7 +13863,7 @@
       "forbid": [],
       "hash": "8694345348366441423",
       "id": 1069,
-      "name": "Goron City Crate",
+      "name": "GC Boulder Maze Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -14821,7 +14821,7 @@
       "forbid": [],
       "hash": "9081723785715040392",
       "id": 233,
-      "name": "Goron City Shop 4",
+      "name": "GC Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -15020,7 +15020,7 @@
       "forbid": [],
       "hash": "9159710900681116662",
       "id": 65,
-      "name": "Goron City Southwest Green Rupee (1) Chest",
+      "name": "GC Grotto Green Rupee Chest",
       "unprovable": false
     },
     {
@@ -15401,7 +15401,7 @@
       "forbid": [],
       "hash": "9364468317723295924",
       "id": 793,
-      "name": "Goron City Southwest Pot 4",
+      "name": "GC Upper Staircase Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15733,7 +15733,7 @@
       "forbid": [],
       "hash": "9587346236695312499",
       "id": 236,
-      "name": "Goron City Shop 2",
+      "name": "GC Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -17265,7 +17265,7 @@
       "forbid": [],
       "hash": "10324626920382966851",
       "id": 831,
-      "name": "Goron City North Pot 2",
+      "name": "GC Darunia Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18147,7 +18147,7 @@
       "forbid": [],
       "hash": "10944569637726152230",
       "id": 79,
-      "name": "Goron City Southwest Purple Rupee (50) Chest",
+      "name": "GC Grotto Purple Rupee Chest",
       "unprovable": false
     },
     {
@@ -18286,7 +18286,7 @@
       "forbid": [],
       "hash": "10981256749588857721",
       "id": 267,
-      "name": "Goron City Shop 6",
+      "name": "GC Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -21038,7 +21038,7 @@
       "forbid": [],
       "hash": "12582170880756375404",
       "id": 1197,
-      "name": "Goron City West Rock 1",
+      "name": "GC Boulder Maze Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21130,7 +21130,7 @@
       "forbid": [],
       "hash": "12642822393763357575",
       "id": 888,
-      "name": "Goron City Southwest Pot 1",
+      "name": "GC Upper Staircase Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21623,7 +21623,7 @@
       "forbid": [],
       "hash": "13001102097072792655",
       "id": 183,
-      "name": "Goron City Link the Goron",
+      "name": "GC Rolling Goron as Adult",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22744,7 +22744,7 @@
       "forbid": [],
       "hash": "13689358890044195995",
       "id": 914,
-      "name": "Goron City East Pot 1",
+      "name": "GC Medigoron Adult Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23978,7 +23978,7 @@
       "forbid": [],
       "hash": "14612795868360326117",
       "id": 248,
-      "name": "Goron City Shop 1",
+      "name": "GC Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -24078,7 +24078,7 @@
       "forbid": [],
       "hash": "14647422914070455120",
       "id": 104,
-      "name": "Goron City West Blue Rupee (5) Chest 1",
+      "name": "GC Maze Chest 2",
       "unprovable": false
     },
     {
@@ -24111,7 +24111,7 @@
       "forbid": [],
       "hash": "14670334697383013841",
       "id": 942,
-      "name": "Goron City South Pot 3",
+      "name": "GC Lower Staircase Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24145,7 +24145,7 @@
       "forbid": [],
       "hash": "14691060592470890818",
       "id": 299,
-      "name": "Goron City Spinning Pot Piece of Heart",
+      "name": "GC Pot Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -25698,7 +25698,7 @@
       "forbid": [],
       "hash": "15844472277169991248",
       "id": 966,
-      "name": "Goron City North Pot 3",
+      "name": "GC Darunia Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26345,7 +26345,7 @@
       "forbid": [],
       "hash": "16213152929515968146",
       "id": 981,
-      "name": "Goron City Southwest Pot 3",
+      "name": "GC Upper Staircase Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26917,7 +26917,7 @@
       "forbid": [],
       "hash": "16601055785856579612",
       "id": 995,
-      "name": "Goron City South Pot 2",
+      "name": "GC Lower Staircase Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27131,7 +27131,7 @@
       "forbid": [],
       "hash": "16722769607033707959",
       "id": 220,
-      "name": "Goron City Medigoron",
+      "name": "GC Medigoron",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -27517,7 +27517,7 @@
       "forbid": [],
       "hash": "16954699510563627060",
       "id": 1002,
-      "name": "Goron City South Pot 1",
+      "name": "GC Lower Staircase Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27577,7 +27577,7 @@
       "forbid": [],
       "hash": "16994919311159696078",
       "id": 252,
-      "name": "Goron City Shop 3",
+      "name": "GC Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -28194,7 +28194,7 @@
       "forbid": [],
       "hash": "17308229828817913695",
       "id": 190,
-      "name": "Goron City Darunia",
+      "name": "GC Darunias Joy",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -29684,7 +29684,7 @@
       "forbid": [],
       "hash": "18139423190738716302",
       "id": 408,
-      "name": "Goron City Northeast Gold Skulltula Token",
+      "name": "GC GS Center Platform",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
