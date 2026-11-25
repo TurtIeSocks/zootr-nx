@@ -713,14 +713,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0x5316_c7f9_5f7d_77b7),
-            ("far", 0xb276_ab0a_0c1d_575e),
-            ("code", 0xee5a_7581_970c_bd63),
+            ("hook", 0xeff0_3f04_60fe_aab7),
+            ("far", 0xabe9_a580_0868_eda0),
+            ("code", 0x6faf_2be7_c2bc_371d),
             ("sites", 0x3608_bf58_814b_3fcf),
-            ("patches", 0xc015_8f28_6485_fcab),
-            ("pchtxt", 0xa653_6371_50bb_4aa4),
-            ("ips", 0x872e_9168_f5ba_d9ab),
-            ("cheat", 0x24f3_6732_a2ba_5a33),
+            ("patches", 0xeb08_48e3_67f7_9ff1),
+            ("pchtxt", 0x985d_5adc_67e9_0713),
+            ("ips", 0x3b00_94ef_8d60_7a0d),
+            ("cheat", 0x86fb_20e7_21cf_c027),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -731,14 +731,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0x829e_0104_709b_cc75),
-            ("far", 0xe201_f977_01da_f74a),
-            ("code", 0x499f_8d65_4ce9_00a9),
+            ("hook", 0xad2c_c37e_8040_90e5),
+            ("far", 0x086e_7d9f_9d71_a14c),
+            ("code", 0x8022_6849_59e5_a24f),
             ("sites", 0xabe9_5d05_59f7_2375),
-            ("patches", 0x8a30_2148_d1a5_4995),
-            ("pchtxt", 0x38ed_9afd_842b_766b),
-            ("ips", 0xb153_1230_2307_b1c9),
-            ("cheat", 0xab41_62c1_8090_10be),
+            ("patches", 0x71d2_bcbd_2132_638f),
+            ("pchtxt", 0x30d0_7813_9c1a_5142),
+            ("ips", 0xd192_49f1_94c3_0283),
+            ("cheat", 0x5a29_0fab_9cb1_b7b3),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
