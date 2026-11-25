@@ -1,0 +1,257 @@
+# Hyrule Field, with Lake Hylia (LH) and Lon Lon Ranch (LLR), which the
+# remake's field map also holds. OoTR's name wherever the remake keeps the
+# spot and its holder, matched by place and the remake guides for the Gold
+# Skulltulas and heart pieces. Numbers count west to east within one spot.
+# Where the child and adult field each have their own copy of a pot, rock,
+# crate or tuft of grass, the name says which, as OoTR's Market Guard
+# House Child Pot and Adult Pot do.
+
+# ---- Hyrule Field ----
+
+# Zelda at the moat, and her song straight after.
+16028206441208456211 = "HF Ocarina of Time Item"
+3701241424386675305 = "HF Song from Ocarina of Time"
+
+# West, by Gerudo Valley: the cow grotto, behind a web. Four rocks ring
+# its entrance on the surface.
+12830501860874391361 = "HF Cow Grotto Entrance Adult Rock 1"
+321976280272956796 = "HF Cow Grotto Entrance Adult Rock 2"
+10495799149339563142 = "HF Cow Grotto Entrance Adult Rock 3"
+5615843072514010626 = "HF Cow Grotto Entrance Adult Rock 4"
+3817329614376327303 = "HF Cow Grotto Entrance Child Rock 1"
+11775162899811054217 = "HF Cow Grotto Entrance Child Rock 2"
+6105291056585907279 = "HF Cow Grotto Entrance Child Rock 3"
+16645699538870768077 = "HF Cow Grotto Entrance Child Rock 4"
+4825657261695689152 = "HF Cow Grotto Cow"
+9816312395494594323 = "HF Cow Grotto Adult Grass 1"
+1415353695595294309 = "HF Cow Grotto Adult Grass 2"
+2570611913323957485 = "HF Cow Grotto Child Grass 1"
+15386075207884711919 = "HF Cow Grotto Child Grass 2"
+12433346503492556092 = "HF Cow Grotto Adult Pot 1"
+17838365680427384562 = "HF Cow Grotto Adult Pot 2"
+1439274781043171114 = "HF Cow Grotto Child Pot 1"
+8132480728943356272 = "HF Cow Grotto Child Pot 2"
+
+# West, by Gerudo Valley: the remake's Fairy Note chest among the rocks.
+2967378296224661060 = "HF Fairy Note Chest"
+
+# West edge, between Gerudo Valley and the lake.
+17622124669395045653 = "HF West Adult Rock 1"
+9075422221887327651 = "HF West Adult Rock 2"
+9149464054892125753 = "HF West Adult Rock 3"
+8033380555144713456 = "HF West Child Rock 1"
+14633400672259963744 = "HF West Child Rock 2"
+220530141870229252 = "HF West Child Rock 3"
+2344173684202144129 = "HF West Grass"
+
+# North-west, along the cliffs west of the drawbridge.
+12081469056021144650 = "HF Northwest Crate"
+12340005938488096890 = "HF Northwest Grass"
+
+# By the waterfall west of the drawbridge.
+4115284299259285529 = "HF Near Market Crate"
+
+# The grotto left of the drawbridge, under a rock: its crates lie at the
+# bottom of the pond, as OoTR's Tektite Grotto heart piece does.
+13942975907881711341 = "HF Tektite Grotto Adult Crate 1" # guess: pond grotto by the drawbridge read as OoTR's Tektite Grotto
+4706627579492125828 = "HF Tektite Grotto Adult Crate 2"
+1921578605840057080 = "HF Tektite Grotto Adult Crate 3"
+13505816572168486267 = "HF Tektite Grotto Child Crate 1"
+4293238463102171135 = "HF Tektite Grotto Child Crate 2"
+7249046631724680605 = "HF Tektite Grotto Child Crate 3"
+
+# The grotto right of the drawbridge: the heart piece scrub of the
+# remake's password puzzle.
+10364468093017215295 = "HF Drawbridge Grotto Deku Scrub" # guess: may be OoTR's HF Deku Scrub Grotto moved, so named as ours
+
+# By the river under the stone bridge east of the drawbridge.
+9891111455604007674 = "HF Stone Bridge Chest" # guess: 26 m from the bridge
+
+# North-east, near Kakariko: the grotto under storm grass, two ReDeads.
+1472455071461140792 = "HF Storms Grotto Entrance Adult Grass 1"
+1702878762460339592 = "HF Storms Grotto Entrance Adult Grass 2"
+493105369468884447 = "HF Storms Grotto Entrance Adult Grass 3"
+13290504378426406086 = "HF Storms Grotto Entrance Adult Grass 4"
+17130900495045735954 = "HF Storms Grotto Entrance Adult Grass 5"
+14630606235340334840 = "HF Storms Grotto Entrance Adult Grass 6"
+13037178969835996014 = "HF Storms Grotto Entrance Adult Grass 7"
+14621798303840927376 = "HF Storms Grotto Entrance Adult Grass 8"
+6794980312912759563 = "HF Storms Grotto Entrance Adult Grass 9"
+16106513735391908889 = "HF Storms Grotto Entrance Adult Grass 10"
+12111374068099501077 = "HF Storms Grotto Entrance Adult Grass 11"
+1758714094280233423 = "HF Storms Grotto Entrance Adult Grass 12"
+13030954850772711586 = "HF Storms Grotto Entrance Adult Grass 13"
+8827339149651327899 = "HF Storms Grotto Entrance Child Grass 1"
+8258690081080809149 = "HF Storms Grotto Entrance Child Grass 2"
+9014488669281029221 = "HF Storms Grotto Entrance Child Grass 3"
+14012747169982643998 = "HF Storms Grotto Entrance Child Grass 4"
+9778224113645681398 = "HF Storms Grotto Entrance Child Grass 5"
+11310912260140613389 = "HF Storms Grotto Entrance Child Grass 6"
+16059709934581007857 = "HF Storms Grotto Entrance Child Grass 7"
+10950878580448147055 = "HF Storms Grotto Entrance Child Grass 8"
+2907799653264284118 = "HF Storms Grotto Entrance Child Grass 9"
+12870146517126532303 = "HF Storms Grotto Entrance Child Grass 10"
+14040579338952279240 = "HF Storms Grotto Entrance Child Grass 11"
+8023741251559567641 = "HF Storms Grotto Entrance Child Grass 12"
+16053425221492455201 = "HF Storms Grotto Entrance Child Grass 13"
+5755485285664292988 = "HF Storms Grotto Chest"
+
+# By the Kakariko entrance, child only.
+8040993757853149095 = "HF Near Kak Rock 1"
+16403770190582583828 = "HF Near Kak Rock 2"
+18118085020877564799 = "HF Near Kak Rock 3"
+
+# By the Zora's River entrance: the pool under the little waterfall (child),
+# a crate, and the open grotto beside it (adult rupees).
+5355103373173124554 = "HF Near Zora River Green Rupee 1"
+629760094542173614 = "HF Near Zora River Green Rupee 2"
+18080167579417541655 = "HF Near Zora River Green Rupee 3"
+8955407423151725378 = "HF Near Zora River Green Rupee 4"
+2067586981487636357 = "HF Near Zora River Green Rupee 5"
+11917730692592781756 = "HF Near Zora River Green Rupee 6"
+3689958676603857333 = "HF Near Zora River Green Rupee 7"
+8235277831792843095 = "HF Near Zora River Green Rupee 8"
+693126994387192480 = "HF Near Zora River Blue Rupee"
+4947448008209653397 = "HF Near Zora River Crate"
+7268667473541116466 = "HF Near Zora River Grotto Green Rupee 1"
+15135356131305809944 = "HF Near Zora River Grotto Green Rupee 2"
+14398093248612909712 = "HF Near Zora River Grotto Green Rupee 3"
+5620885265123329978 = "HF Near Zora River Grotto Blue Rupee 1"
+13785854691967032815 = "HF Near Zora River Grotto Blue Rupee 2"
+16437715071442568790 = "HF Near Zora River Grotto Blue Rupee 3"
+2314514470754031061 = "HF Near Zora River Grotto Blue Rupee 4"
+
+# Mid-field, by a tree east of the ranch, child only.
+3749373667484950216 = "HF Central Grass 1" # guess: no landmark nearer than the ranch
+15154370679873778361 = "HF Central Grass 2" # guess: no landmark nearer than the ranch
+
+# A lone tree east of the field, rolled into. New in the remake.
+2177746409373494991 = "HF GS Lone Tree"
+
+# The bombable grotto in the trees south-west of the ranch, toward the
+# lake. The guides put a Gold Skulltula here; OoTR has none in such a spot.
+11631894770326169336 = "HF Near Lake Grotto Entrance Grass"
+12007978132755687032 = "HF GS Near Lake Grotto" # guess: may be OoTR's Near Kak grotto GS moved
+
+# South: the marsh and its grotto (the guides' two-visit grotto: the adult
+# breaks the crate).
+9279676533195108628 = "HF Marsh Grass"
+1140483042709047538 = "HF Marsh Grotto Entrance Adult Grass 1"
+7406907156349628304 = "HF Marsh Grotto Entrance Adult Grass 2"
+10444788187435815162 = "HF Marsh Grotto Entrance Adult Grass 3"
+2746689496522958019 = "HF Marsh Grotto Entrance Adult Grass 4"
+13369906429285452607 = "HF Marsh Grotto Entrance Adult Grass 5"
+1388174912867327163 = "HF Marsh Grotto Entrance Grass 6"
+5968908134751131760 = "HF Marsh Grotto Entrance Child Grass 1"
+15914819269763159469 = "HF Marsh Grotto Entrance Child Grass 2"
+11261275733557963781 = "HF Marsh Grotto Entrance Child Grass 3"
+1361616512535825301 = "HF Marsh Grotto Entrance Child Grass 4"
+5269723470233996461 = "HF Marsh Grotto Entrance Child Grass 5"
+9047381233010434881 = "HF GS Marsh Grotto"
+14654205574115276454 = "HF Marsh Grotto Crate"
+
+# South, among the trees past the marsh.
+1163740567397714729 = "HF South Chest" # guess: no landmark nearer
+
+# ---- Lon Lon Ranch ----
+
+5955961334009237089 = "LLR Song from Malon"
+14014730143884270499 = "LLR Talons Chickens"
+
+# The stable's two cows. They face east, so seen from the aisle the
+# northern one is on the right.
+2139721051512122393 = "LLR Stables Left Cow" # guess: left and right read from the cows' facing
+5665703420335364217 = "LLR Stables Right Cow" # guess: left and right read from the cows' facing
+
+# The tree behind the house, and Talon's house wall below the window.
+341792603838029977 = "LLR GS Tree"
+15889002414176907668 = "LLR GS House Window"
+
+# The ruined tower by the racetrack: the heart piece in the hidden room
+# through the crawlspace, as OoTR's, and the remake's chest above it.
+9814903750835309225 = "LLR Freestanding PoH"
+17445672702269453589 = "LLR Tower Chest"
+2730878115209290675 = "LLR GS Tower" # guess: the guides split on this GS; may be OoTR's Rain Shed or Back Wall
+
+# The grotto south of the ranch, child only: OoTR's three scrubs, nuts on
+# the left and bombs on the right as Link enters, and four pots.
+17418042722045679657 = "LLR Deku Scrub Grotto Left"
+12901354557574090016 = "LLR Deku Scrub Grotto Center"
+16672855544778411393 = "LLR Deku Scrub Grotto Right"
+7629603093975129142 = "LLR Grotto Pot 1"
+3747825875636115828 = "LLR Grotto Pot 2"
+5236682125833187881 = "LLR Grotto Pot 3"
+1003681645323701836 = "LLR Grotto Pot 4"
+
+# ---- Lake Hylia ----
+
+# The laboratory: the roof heart piece, the dive, the wall and soil
+# Gold Skulltulas outside, and the tank's crate and rupees inside.
+13469300937852836203 = "LH Freestanding PoH"
+10888561858771484232 = "LH Lab Dive"
+18434302011375146275 = "LH Lab Trade Eyeball Frog"
+13944703896577680014 = "LH GS Lab Wall"
+7014193622407727514 = "LH GS Bean Patch"
+7388645484070660331 = "LH GS Lab Crate"
+16274291912323313727 = "LH Lab Adult Crate"
+3139014475176937354 = "LH Lab Child Crate"
+18417667443552316769 = "LH Lab Dive Red Rupee"
+9924885918140405518 = "LH Lab Dive Blue Rupee"
+
+# The grotto on the islet by the lab.
+6900843020594897860 = "LH Grotto Chest"
+
+# The child lake's bed by the Zora ruins: Ruto's letter and what lies
+# around it.
+474136620438465634 = "LH Underwater Item"
+8980892284071798868 = "LH Underwater Deku Stick"
+9807262312429560898 = "LH Underwater Deku Nut"
+9602474208541439570 = "LH Underwater Deku Seeds"
+10016653679204206712 = "LH Underwater Green Rupee 1" # guess: OoTR's two lake bed rupees, if the same pair
+8976284932613239030 = "LH Underwater Green Rupee 2" # guess: OoTR's two lake bed rupees, if the same pair
+
+# The adult lake bed at the Water Temple's door.
+578077075299673958 = "LH Water Temple Entrance Green Rupee 1"
+1586568880795558629 = "LH Water Temple Entrance Green Rupee 2"
+9989181491842997674 = "LH Water Temple Entrance Green Rupee 3"
+10848757081092766316 = "LH Water Temple Entrance Green Rupee 4"
+4525337806931267688 = "LH Water Temple Entrance Blue Rupee"
+
+# The main island, with its tree and the warp pad.
+789492162651991711 = "LH GS Tree"
+11068226974023171918 = "LH Island Adult Grass 1"
+11168192012016841724 = "LH Island Adult Grass 2"
+4849451237618976647 = "LH Island Child Grass 1"
+3210871505869713729 = "LH Island Child Grass 2"
+
+# The islet just west of the main island: a ring of grass round a red
+# rupee, adult only.
+4948971738939676499 = "LH West Islet Grass 1" # guess: may be part of the main island
+1031860467156401446 = "LH West Islet Grass 2"
+18423958765558734622 = "LH West Islet Grass 3"
+13907362561290610779 = "LH West Islet Grass 4"
+14062454289055492415 = "LH West Islet Red Rupee"
+
+# The islet south-west of the main island, by a gossip stone.
+2768742205155026921 = "LH South Islet Adult Grass 1"
+2276876878264572073 = "LH South Islet Adult Grass 2"
+12554124099881313894 = "LH South Islet Adult Grass 3"
+10016740363687289194 = "LH South Islet Child Grass 1"
+4947234326749173851 = "LH South Islet Child Grass 2"
+1804603571840151022 = "LH South Islet Child Grass 3"
+
+# The sun shot from the main island drops the Fire Arrows.
+4598657944866228526 = "LH Sun"
+
+# The far south-west shore under the cliffs: child pots, an adult chest in
+# their place, and the crawlspace Gold Skulltula the guides say moved here
+# from OoTR's small island.
+1388311011907432964 = "LH Southwest Shore Pot 1"
+16400245230574378269 = "LH Southwest Shore Pot 2"
+8977808724731648233 = "LH Southwest Shore Pot 3"
+17023457248274633121 = "LH Southwest Shore Chest"
+8655370827943125875 = "LH GS Crawlspace"
+
+# The fishing pond.
+12611601700011014094 = "LH Child Fishing"
+11485802066891699092 = "LH Adult Fishing"
