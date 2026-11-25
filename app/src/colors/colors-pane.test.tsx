@@ -19,7 +19,7 @@ const setConfig = vi.fn((_c: FullConfig) =>
 const palette = (
   id: string,
   label: string,
-  group: "link" | "gear",
+  group: "link" | "gear" | "effects",
   problem: string | null = null,
 ): PaletteView => ({
   id,

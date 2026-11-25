@@ -612,17 +612,22 @@ mod tests {
                         "{} {bundle} is painted",
                         palette.id
                     );
-                    // Some constant of the first slot's has its hue and
-                    // takes pink.
+                    // Some constant has its slot's hue and takes the
+                    // slot's colour: pink, or what follows pink.
                     let Kind::Vfx { esets, .. } = w.kind else {
                         unreachable!()
                     };
                     let (_, got) = in_esets(&data, esets).unwrap();
+                    let slot = colors[palette.id].slots(palette).unwrap()[w.slot];
+                    // A pale follower (Navi's light) is painted pale,
+                    // which `hue` would call grey: read the hue as is.
                     let near = |c: &vfx::Constant| {
-                        hue(c.value)
-                            .is_some_and(|h| (paint::hsv(h).0 - paint::hsv(pink).0).abs() < 0.03)
+                        let rgb = [c.value[0], c.value[1], c.value[2]];
+                        let top = rgb.iter().copied().fold(0.0, f32::max);
+                        let h = oklch::from_linear(rgb.map(|c| c / top));
+                        top > 0.0 && (paint::hsv(h).0 - paint::hsv(slot).0).abs() < 0.03
                     };
-                    if w.slot == 0 && got.iter().any(near) {
+                    if got.iter().any(near) {
                         pinked.insert(palette.id);
                     }
                     continue;
@@ -682,7 +687,7 @@ mod tests {
             }
         }
         for palette in PALETTES.iter().filter(|p| p.group == Group::Effects) {
-            let vfx = |w: &Write| w.slot == 0 && matches!(w.kind, Kind::Vfx { .. });
+            let vfx = |w: &Write| matches!(w.kind, Kind::Vfx { .. });
             let vfx = palette.writes.iter().any(vfx);
             assert!(
                 !vfx || pinked.contains(palette.id),

@@ -3,6 +3,7 @@ import {
   LockOpen,
   RotateCcw,
   Shirt,
+  Sparkles,
   SplitSquareHorizontal,
   Sword,
 } from "lucide-react";
@@ -45,6 +46,7 @@ import { PreviewPanel } from "./preview-panel";
 const GROUPS: { id: Group; label: string; icon: typeof Shirt }[] = [
   { id: "link", label: "Link", icon: Shirt },
   { id: "gear", label: "Gear", icon: Sword },
+  { id: "effects", label: "Effects", icon: Sparkles },
 ];
 
 /** A palette's three-way switch, its first option named for it. */
