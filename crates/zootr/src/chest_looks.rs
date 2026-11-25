@@ -11,10 +11,11 @@ mod files;
 pub use files::FILES;
 
 use std::borrow::Cow;
+use std::ops::Range;
 
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs, Texture};
-use ounce_formats::{materials, redraw, rename, top_level};
+use ounce_formats::{materials, redraw, rename, textures_named, top_level};
 
 use crate::checks::{self, DROP_ACTOR, DYNAMIC, GYAML};
 use crate::copies::pointed_at;
@@ -22,7 +23,7 @@ use crate::foreign::Owner;
 use crate::key_tints::{self, KEY_DUNGEONS};
 use crate::keys;
 use crate::known::{Name, actor, field, item, texture};
-use crate::marks::paint::{Canvas, GOLD};
+use crate::marks::paint::{Canvas, GOLD, sample};
 use crate::marks::{lettered, texture_file};
 use crate::medallions::{Colour, model_file};
 use crate::rsdb::Tags;
@@ -37,9 +38,11 @@ pub enum Look {
     /// A key of key dungeon `n`, counting from 1 as
     /// [`key_tints::KEY_DUNGEONS`] does: the metal its colour.
     Key(usize),
-    /// A Gold Skulltula token: the wood stained near black.
+    /// A Gold Skulltula token: the wood stained near black, the token on
+    /// the lid.
     Skull,
-    /// A Piece of Heart or Heart Container: the wood tinted rose.
+    /// A Piece of Heart or Heart Container: the wood tinted rose, a heart
+    /// on the lid.
     Heart,
 }
 
@@ -95,12 +98,78 @@ impl Look {
     }
 }
 
-/// A chest model a look copies: its mesh, its albedo, and the metal map
-/// that says which of the albedo is metal.
+/// A chest model a look copies: its mesh, its albedo, the metal map that
+/// says which of the albedo is metal, and where an emblem goes on its lid.
 struct Model {
     fmdb: &'static Name,
     albedo: &'static Name,
     metal: &'static Name,
+    lid: Lid,
+}
+
+/// Where a look's emblem goes on a chest's albedo, found by rendering the
+/// lid from `probe uvs`'s corners. Each emblem sits on the lid's front,
+/// across `planks` (each one's rows, v from to, top down as the lid shows
+/// them, each its own strip of the albedo), centred down them and at each
+/// u of `across`, `height` tall (fractions of the albedo, the planks'
+/// rows end to end). `stretch` is the lid's metres per v over metres per u.
+struct Lid {
+    planks: &'static [(f32, f32)],
+    across: &'static [f32],
+    height: f32,
+    stretch: f32,
+}
+
+impl Lid {
+    /// Each emblem's pieces: where to centre it on each plank, and that
+    /// plank's rows, the only ones its piece paints.
+    fn pieces(&self) -> impl Iterator<Item = ((f32, f32), Range<f32>)> + '_ {
+        let tall: f32 = self.planks.iter().map(|(top, bottom)| bottom - top).sum();
+        let mut above = 0.0;
+        let rows = self.planks.iter().map(move |&(top, bottom)| {
+            let centre = top + tall / 2.0 - above;
+            above += bottom - top;
+            (centre, top..bottom)
+        });
+        let rows: Vec<_> = rows.collect();
+        (self.across.iter()).flat_map(move |&u| {
+            rows.clone()
+                .into_iter()
+                .map(move |(v, rows)| ((u, v), rows))
+        })
+    }
+}
+
+/// The emblems the skull and heart looks lay on a lid: the Gold Skulltula
+/// token's pouch icon, and the crystal heart the heart piece screen shows.
+struct Emblems {
+    token: Texture,
+    heart: Texture,
+}
+
+impl Emblems {
+    fn load(romfs: &Romfs) -> Result<Self> {
+        let token = format!(
+            "{}{}.bntx.zs",
+            crate::sprites::ICONS,
+            item::TOKEN_GOLD.get()
+        );
+        let heart = texture::COLLECT_HEART_BASE_00;
+        let layout = romfs.read(crate::sprites::LAYOUT)?;
+        Ok(Self {
+            token: top_level(&romfs.read(&token)?)?,
+            heart: (textures_named(&layout, |n| n == heart.get())?.pop())
+                .with_context(|| format!("no {heart} in the layout"))?,
+        })
+    }
+
+    fn of(&self, look: Look) -> Option<&Texture> {
+        match look {
+            Look::Skull => Some(&self.token),
+            Look::Heart => Some(&self.heart),
+            _ => None,
+        }
+    }
 }
 
 /// Both chest models' project.
@@ -114,11 +183,26 @@ const MODELS: [Model; 2] = [
         fmdb: actor::OBJ_T_BOX_A_01,
         albedo: texture::MT_OBJ_T_BOX_A_01_ALB,
         metal: texture::MT_OBJ_T_BOX_A_01_MTL,
+        // The lid's front plank, each side of the lock.
+        lid: Lid {
+            planks: &[(0.9425, 0.9907)],
+            across: &[0.8448, 0.9354],
+            height: 0.036,
+            stretch: 3.401 / 3.427,
+        },
     },
     Model {
         fmdb: actor::OBJ_T_BOX_A_02,
         albedo: texture::MT_OBJ_T_BOX_A_02_ALB_00,
         metal: texture::MT_OBJ_T_BOX_A_02_MTL,
+        // The crest fills the lid's front plank, so the three above it,
+        // each side of the lock. One plank is too few texels for an emblem.
+        lid: Lid {
+            planks: &[(0.6328, 0.6651), (0.6832, 0.7041), (0.7213, 0.7424)],
+            across: &[0.8524, 0.9389],
+            height: 0.045,
+            stretch: 6.389 / 6.531,
+        },
     },
 ];
 
@@ -208,13 +292,14 @@ pub fn write(
     tables: &mut Tables,
     tags: &mut Tags,
 ) -> Result<()> {
+    let emblems = Emblems::load(romfs)?;
     for model in &MODELS {
         let like = model_file(PROJECT, model.fmdb);
         let data = romfs.read(&like)?;
         let albedo = romfs.read(&texture_file(model.albedo))?;
         let metal = top_level(&romfs.read(&texture_file(model.metal))?)?;
         for look in Look::all() {
-            write_albedo(builder, &albedo, model.albedo, &metal, look)?;
+            write_albedo(builder, &albedo, model, &metal, &emblems, look)?;
             let file = model_file(&copy(PROJECT, look)?, &copy(model.fmdb, look)?);
             builder.add(&file, &copy_model(&data, model, look)?, &like)?;
         }
@@ -248,13 +333,15 @@ fn still(mut info: BymlDoc) -> Result<BymlDoc> {
 fn write_albedo(
     builder: &mut ModBuilder,
     data: &[u8],
-    albedo: &Name,
+    model: &Model,
     metal: &Texture,
+    emblems: &Emblems,
     look: Look,
 ) -> Result<()> {
+    let albedo = model.albedo;
     let name = copy(albedo, look)?;
     let mut canvas = Canvas::new(top_level(data)?);
-    paint(&mut canvas, metal, look)?;
+    paint(&mut canvas, model, metal, emblems, look)?;
     let painted = redraw(
         &rename(data, albedo, &name)?,
         &canvas.texture.rgba,
@@ -263,18 +350,31 @@ fn write_albedo(
     builder.add(&texture_file(&name), &painted, &texture_file(albedo))
 }
 
-/// `canvas`, a chest's albedo, painted for `look`: its metal or its wood,
-/// as `metal`, the chest's metal map, divides them.
-fn paint(canvas: &mut Canvas, metal: &Texture, look: Look) -> Result<()> {
+/// `canvas`, `model`'s albedo, painted for `look`: its metal or its wood,
+/// as `metal`, the chest's metal map, divides them, then its emblem on the
+/// lid.
+fn paint(
+    canvas: &mut Canvas,
+    model: &Model,
+    metal: &Texture,
+    emblems: &Emblems,
+    look: Look,
+) -> Result<()> {
     let (part, colour) = look.paint()?;
     let full = metal_peak(metal);
     canvas.wash(colour, |u, v| {
-        let share = sample_red(metal, u, v) / full;
+        let share = sample(metal, u, v)[0] / full;
         match part {
             Part::Metal => share,
             Part::Wood => 1.0 - share,
         }
     });
+    if let Some(icon) = emblems.of(look) {
+        let lid = &model.lid;
+        for (at, rows) in lid.pieces() {
+            canvas.decal(icon, at, lid.height, lid.stretch, rows);
+        }
+    }
     Ok(())
 }
 
@@ -282,22 +382,6 @@ fn paint(canvas: &mut Canvas, metal: &Texture, look: Look) -> Result<()> {
 fn metal_peak(metal: &Texture) -> f32 {
     let peak = metal.rgba.chunks(4).map(|px| px[0]).max().unwrap_or(0);
     f32::from(peak.max(1))
-}
-
-/// `texture`'s red at (`u`, `v`), fractions of it, bilinear between texels.
-fn sample_red(texture: &Texture, u: f32, v: f32) -> f32 {
-    let (w, h) = (texture.width, texture.height);
-    let (fx, fy) = (u * w as f32 - 0.5, v * h as f32 - 0.5);
-    let at = |x: f32, y: f32| {
-        let x = (x.max(0.0) as usize).min(w - 1);
-        let y = (y.max(0.0) as usize).min(h - 1);
-        f32::from(texture.rgba[4 * (y * w + x)])
-    };
-    let (x0, y0) = (fx.floor(), fy.floor());
-    let (tx, ty) = (fx - x0, fy - y0);
-    let top = at(x0, y0) * (1.0 - tx) + at(x0 + 1.0, y0) * tx;
-    let bottom = at(x0, y0 + 1.0) * (1.0 - tx) + at(x0 + 1.0, y0 + 1.0) * tx;
-    top * (1.0 - ty) + bottom * ty
 }
 
 /// `data`, `model`'s file, renamed as its copy for `look`: its name
@@ -315,21 +399,21 @@ fn copy_model(data: &[u8], model: &Model, look: Look) -> Result<Vec<u8>> {
     let copied = rename(&copied, model.fmdb, &fmdb)?;
     let textures = materials(data)?.into_iter().flat_map(|m| m.textures);
     let kept = textures.filter(|t| t != model.albedo.get());
-    kept.fold(Ok(copied), |copied, t| {
-        rename(&copied?, &copy(&t, look)?, &t)
-    })
+    kept.into_iter()
+        .try_fold(copied, |copied, t| rename(&copied, &copy(&t, look)?, &t))
 }
 
 /// Each painted albedo written to `out` as PNG under its copy's name, for a
 /// look before a seed: `probe chests`.
 pub fn preview(romfs: &Romfs, out: &std::path::Path) -> Result<()> {
     std::fs::create_dir_all(out)?;
+    let emblems = Emblems::load(romfs)?;
     for model in &MODELS {
         let metal = top_level(&romfs.read(&texture_file(model.metal))?)?;
         let host = top_level(&romfs.read(&texture_file(model.albedo))?)?;
         for look in Look::all() {
             let mut canvas = Canvas::new(host.clone());
-            paint(&mut canvas, &metal, look)?;
+            paint(&mut canvas, model, &metal, &emblems, look)?;
             let path = out.join(format!("{}.png", copy(model.albedo, look)?));
             std::fs::write(&path, crate::sprites::png(&canvas.texture)?)?;
             println!("{}", path.display());
@@ -454,6 +538,7 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
+        let emblems = Emblems::load(&romfs).unwrap();
         for model in &MODELS {
             let metal = top_level(&romfs.read(&texture_file(model.metal)).unwrap()).unwrap();
             let host = top_level(&romfs.read(&texture_file(model.albedo)).unwrap()).unwrap();
@@ -462,10 +547,46 @@ mod tests {
             let (top, bottom) = ((w / 2, h / 20), (w / 2, h - h / 20));
             for (look, painted, left) in [(Look::Gold, top, bottom), (Look::Heart, bottom, top)] {
                 let mut canvas = Canvas::new(host.clone());
-                paint(&mut canvas, &metal, look).unwrap();
+                paint(&mut canvas, model, &metal, &emblems, look).unwrap();
                 assert!(canvas.is_painted(painted.0, painted.1), "{look:?}");
                 assert!(!canvas.is_painted(left.0, left.1), "{look:?}");
             }
+        }
+    }
+
+    #[test]
+    fn an_emblem_lands_inside_its_planks_and_on_each_one() {
+        let texture = |side: usize, alpha: u8| Texture {
+            name: "FakeIcon".into(),
+            width: side,
+            height: side,
+            rgba: [255, 0, 0, alpha].repeat(side * side),
+        };
+        let icon = texture(8, 255);
+        for model in &MODELS {
+            let (lid, side) = (&model.lid, 768);
+            let mut canvas = Canvas::new(texture(side, 255));
+            for (at, rows) in lid.pieces() {
+                canvas.decal(&icon, at, lid.height, lid.stretch, rows);
+            }
+            let row_of = |y: usize| (y as f32 + 0.5) / side as f32;
+            let on_plank = |v: f32| {
+                lid.planks
+                    .iter()
+                    .position(|(top, bottom)| (*top..*bottom).contains(&v))
+            };
+            let mut planks_hit = vec![0; lid.planks.len()];
+            for y in 0..side {
+                for x in 0..side {
+                    if canvas.is_painted(x, y) {
+                        let plank = on_plank(row_of(y));
+                        let plank =
+                            plank.unwrap_or_else(|| panic!("painted off the planks at row {y}"));
+                        planks_hit[plank] += 1;
+                    }
+                }
+            }
+            assert!(planks_hit.iter().all(|&n| n > 0), "{planks_hit:?}");
         }
     }
 

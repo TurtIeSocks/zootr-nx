@@ -13,7 +13,7 @@ use crate::inventory;
 use crate::known::{Name, actor, field, item};
 
 /// Pouch icons, one BNTX each, named by actor.
-const ICONS: &str = "UI/Tex/Icon/";
+pub(crate) const ICONS: &str = "UI/Tex/Icon/";
 /// Holds what `ICONS` lacks: the songbook and file select art.
 pub(crate) const LAYOUT: &str = "UI/Layout2Archive/Common.Product.100.Nin_Ounce_NVN2.bntx.zs";
 /// Layout textures and the grid icon each one is, matched by eye.

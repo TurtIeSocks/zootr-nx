@@ -54,6 +54,7 @@ fortress-keys = "singles"
 bombchus = "bag"
 skip-cutscenes = true
 chest-size = "vanilla"
+chest-looks = true
 quiet-navi = true
 bunny-hood = true
 scrubs = true

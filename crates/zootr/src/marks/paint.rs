@@ -1,6 +1,8 @@
 //! The marks painted on a breakable's albedo: a gold band, gold Triforces
 //! cut from a texture in the dump.
 
+use std::ops::Range;
+
 use anyhow::{Result, ensure};
 use ounce_formats::{Romfs, Texture, top_level};
 
@@ -108,34 +110,118 @@ impl Canvas {
     pub(crate) fn stamp(
         &mut self,
         mark: &Mark,
-        (u, v): (f32, f32),
+        at: (f32, f32),
         height: f32,
         stretch: f32,
         upright: Upright,
     ) {
+        let place = Place::new(mark.aspect(), at, height, stretch, upright);
+        self.ink(&place, |canvas, x, y, across, down| {
+            // The stone's grain shows through the gold, a little.
+            let grain = 0.8 + 0.2 * lit(canvas.luma(x, y));
+            (GOLD.map(|c| c as f32 * grain), mark.sample(across, down))
+        });
+    }
+
+    /// `icon` laid on in its own colours, by its alpha, placed as
+    /// [`Canvas::stamp`] places a mark, painting only the texels whose v
+    /// falls in `rows`.
+    pub(crate) fn decal(
+        &mut self,
+        icon: &Texture,
+        at: (f32, f32),
+        height: f32,
+        stretch: f32,
+        rows: Range<f32>,
+    ) {
+        let aspect = icon.width as f32 / icon.height as f32;
+        let place = Place {
+            rows,
+            ..Place::new(aspect, at, height, stretch, Upright::AsIs)
+        };
+        self.ink(&place, |_, _, _, across, down| {
+            let inside = (0.0..1.0).contains(&across) && (0.0..1.0).contains(&down);
+            let [r, g, b, a] = sample(icon, across, down);
+            ([r, g, b], if inside { a / 255.0 } else { 0.0 })
+        });
+    }
+
+    /// Each texel inside `place` blended toward the colour `paint` gives
+    /// it, by the share it gives, from where the texel falls across and
+    /// down the placed box (0 to 1, top down as the model shows it).
+    fn ink(
+        &mut self,
+        place: &Place,
+        paint: impl Fn(&Self, usize, usize, f32, f32) -> ([f32; 3], f32),
+    ) {
         let (w, h) = (self.texture.width as f32, self.texture.height as f32);
-        let tall = height * h;
-        let wide = height * mark.aspect() * stretch * w;
-        let (left, top) = (u * w - wide / 2.0, v * h - tall / 2.0);
+        let (tall, wide) = (
+            place.height * h,
+            place.height * place.aspect * place.stretch * w,
+        );
+        let (left, top) = (place.at.0 * w - wide / 2.0, place.at.1 * h - tall / 2.0);
         let xs = left.floor().max(0.0) as usize..((left + wide).ceil() as usize).min(w as usize);
-        let ys = top.floor().max(0.0) as usize..((top + tall).ceil() as usize).min(h as usize);
+        // Rows whose centres fall inside the box and inside `place.rows`.
+        let first = |v: f32| (v - 0.5).ceil().max(0.0) as usize;
+        let ys = first(top.max(place.rows.start * h))
+            ..first((top + tall).min(place.rows.end * h)).min(h as usize);
         for y in ys {
             for x in xs.clone() {
                 let down = (y as f32 + 0.5 - top) / tall;
-                let down = match upright {
+                let down = match place.upright {
                     Upright::AsIs => down,
                     Upright::Flipped => 1.0 - down,
                 };
-                let share = mark.sample((x as f32 + 0.5 - left) / wide, down);
-                if share <= 0.0 {
-                    continue;
-                }
-                // The stone's grain shows through the gold, a little.
-                let grain = 0.8 + 0.2 * lit(self.luma(x, y));
-                self.blend(x, y, GOLD.map(|c| c as f32 * grain), share);
+                let (colour, share) = paint(self, x, y, (x as f32 + 0.5 - left) / wide, down);
+                self.blend(x, y, colour, share);
             }
         }
     }
+}
+
+/// Where a shape goes on a texture: centred at `at` and `height` tall
+/// (fractions of the texture), as wide as its `aspect` makes it on the
+/// model at `stretch`, metres per v over metres per u, which way up, and
+/// the rows (v, fractions) it may paint.
+struct Place {
+    aspect: f32,
+    at: (f32, f32),
+    height: f32,
+    stretch: f32,
+    upright: Upright,
+    rows: Range<f32>,
+}
+
+impl Place {
+    fn new(aspect: f32, at: (f32, f32), height: f32, stretch: f32, upright: Upright) -> Self {
+        Self {
+            aspect,
+            at,
+            height,
+            stretch,
+            upright,
+            rows: 0.0..1.0,
+        }
+    }
+}
+
+/// `texture`'s RGBA at (`u`, `v`), fractions of it, bilinear between
+/// texels, its edges held past it.
+pub(crate) fn sample(texture: &Texture, u: f32, v: f32) -> [f32; 4] {
+    let (w, h) = (texture.width, texture.height);
+    let (fx, fy) = (u * w as f32 - 0.5, v * h as f32 - 0.5);
+    let at = |x: f32, y: f32, c: usize| {
+        let x = (x.max(0.0) as usize).min(w - 1);
+        let y = (y.max(0.0) as usize).min(h - 1);
+        f32::from(texture.rgba[4 * (y * w + x) + c])
+    };
+    let (x0, y0) = (fx.floor(), fy.floor());
+    let (tx, ty) = (fx - x0, fy - y0);
+    std::array::from_fn(|c| {
+        let top = at(x0, y0, c) * (1.0 - tx) + at(x0 + 1.0, y0, c) * tx;
+        let bottom = at(x0, y0 + 1.0, c) * (1.0 - tx) + at(x0 + 1.0, y0 + 1.0, c) * tx;
+        top * (1.0 - ty) + bottom * ty
+    })
 }
 
 /// Which way up a model shows its texture: image rows running down it

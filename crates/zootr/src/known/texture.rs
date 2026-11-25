@@ -2,6 +2,7 @@
 
 use super::Name;
 
+pub const COLLECT_HEART_BASE_00: &Name = &n!(0x12e24f87109bcf07);
 pub const MT_OBJ_T_BOX_A_01_ALB: &Name = &n!(0xf9f82743a5452c42);
 pub const MT_OBJ_T_BOX_A_01_MTL: &Name = &n!(0x6256f543e081ff24);
 pub const MT_OBJ_T_BOX_A_02_ALB_00: &Name = &n!(0x837fb1916cda9667);

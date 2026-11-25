@@ -73,6 +73,7 @@ pub const OPTIONS: &[&str] = &[
     "bombchus",
     "skip-cutscenes",
     "chest-size",
+    "chest-looks",
     "quiet-navi",
     "bunny-hood",
     "scrubs",
