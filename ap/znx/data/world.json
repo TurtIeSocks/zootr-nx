@@ -2398,7 +2398,7 @@
       "forbid": [],
       "hash": "1337254747199514230",
       "id": 545,
-      "name": "Outside Ganon's Castle North Pot 8",
+      "name": "OGC Tower Collapse Upper Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -5146,7 +5146,7 @@
       "forbid": [],
       "hash": "2995876338500118652",
       "id": 596,
-      "name": "Outside Ganon's Castle North Pot 2",
+      "name": "OGC Tower Collapse Lower Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9284,7 +9284,7 @@
       "forbid": [],
       "hash": "5547511959614762973",
       "id": 678,
-      "name": "Outside Ganon's Castle North Pot 6",
+      "name": "OGC Tower Collapse Lower Pot 6",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9501,7 +9501,7 @@
       "forbid": [],
       "hash": "5626064870824758772",
       "id": 333,
-      "name": "Outside Ganon's Castle Gold Skulltula Token",
+      "name": "OGC GS",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -11646,7 +11646,7 @@
       "forbid": [],
       "hash": "7057323129962538362",
       "id": 728,
-      "name": "Outside Ganon's Castle North Pot 3",
+      "name": "OGC Tower Collapse Lower Pot 5",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -12906,7 +12906,7 @@
       "forbid": [],
       "hash": "7806434487081634021",
       "id": 755,
-      "name": "Outside Ganon's Castle North Pot 4",
+      "name": "OGC Tower Collapse Lower Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -17467,7 +17467,7 @@
       "forbid": [],
       "hash": "10448158396041431760",
       "id": 834,
-      "name": "Outside Ganon's Castle North Pot 7",
+      "name": "OGC Tower Collapse Lower Pot 7",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -17524,7 +17524,7 @@
       "forbid": [],
       "hash": "10465703333688921274",
       "id": 172,
-      "name": "Outside Ganon's Castle Great Fairy of Courage",
+      "name": "OGC Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22917,7 +22917,7 @@
       "forbid": [],
       "hash": "13784984248963672668",
       "id": 917,
-      "name": "Outside Ganon's Castle North Pot 5",
+      "name": "OGC Tower Collapse Lower Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -24640,7 +24640,7 @@
       "forbid": [],
       "hash": "15046736084248795685",
       "id": 949,
-      "name": "Outside Ganon's Castle North Pot 1",
+      "name": "OGC Tower Collapse Lower Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -26253,7 +26253,7 @@
       "forbid": [],
       "hash": "16158747032522515754",
       "id": 979,
-      "name": "Outside Ganon's Castle North Pot 9",
+      "name": "OGC Tower Collapse Upper Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
