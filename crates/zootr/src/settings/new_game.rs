@@ -90,6 +90,8 @@ pub struct NewGame {
     pub bunny_hood: bool,
     /// Night-only Gold Skulltulas show by day too.
     pub day_skulltulas: bool,
+    /// Breakables come back on every map load.
+    pub breakables_respawn: bool,
     /// What raises the rainbow bridge.
     pub bridge: Bridge,
     /// Whether Ganon's trials stand or start done.
@@ -259,6 +261,7 @@ impl NewGame {
             quiet_enemies: on(QUIET_ENEMIES),
             bunny_hood: on(BUNNY_HOOD),
             day_skulltulas: on(DAY_SKULLTULAS),
+            breakables_respawn: on(BREAKABLES_RESPAWN),
             bridge,
             trials,
             hints: on(HINTS),
@@ -544,6 +547,7 @@ mod tests {
                 quiet_enemies: false,
                 bunny_hood: false,
                 day_skulltulas: false,
+                breakables_respawn: false,
                 bridge: Bridge::Vanilla,
                 trials: Trials::AllSix,
                 hints: false,

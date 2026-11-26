@@ -465,6 +465,9 @@ impl<'a> Parts<'a> {
         let mut keyed = picked::pairs(&self.picked);
         keyed.extend(&self.steps.copies);
         gamedata::add_keys(root, &keyed)?;
+        if new_game.breakables_respawn {
+            gamedata::respawn_on_load(root)?;
+        }
         let fortress = new_game.fortress_keys.copies();
         for (copy, template, _) in &key_tints::made(new_game.keys.copies(), BOSS_COPIES, fortress) {
             let names = [copy.clone()];
