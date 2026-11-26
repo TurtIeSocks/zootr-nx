@@ -180,10 +180,11 @@ fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     {
         return Err(e.into());
     }
-    let lit = (input.shot(&next)).and_then(|()| Ok(!is_black(&std::fs::read(&next)?)?));
-    match lit {
-        Ok(_) => std::fs::rename(&next, to)?,
-        Err(_) => _ = std::fs::remove_file(&next),
+    let lit = (input.shot(&next))
+        .and_then(|()| Ok(!is_black(&std::fs::read(&next)?)?))
+        .and_then(|lit| Ok(std::fs::rename(&next, to).map(|()| lit)?));
+    if lit.is_err() {
+        _ = std::fs::remove_file(&next);
     }
     lit
 }
@@ -253,7 +254,7 @@ impl Watch {
         }
         if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
             let secs = (at - since).as_secs_f32();
-            let why = format!("no frame came for {secs:.1} s: {}", self.no_frame);
+            let why = format!("no frame read for {secs:.1} s: {}", self.no_frame);
             return Some(Hang::Unread { why });
         }
         let state = match state {
