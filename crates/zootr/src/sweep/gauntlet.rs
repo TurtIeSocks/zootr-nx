@@ -235,6 +235,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         };
         if let Some((hang, frame)) = &hang {
             dump(&mut self.input);
+            let frame = frame.exists().then_some(frame);
             let row = json!({"gauntlet": row::HANG, "name": name, "hang": hang, "frame": frame});
             append(&self.results(), &row)?;
         }
