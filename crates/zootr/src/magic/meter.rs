@@ -20,7 +20,7 @@ pub const NAME: &str = "Item_Rando_MagicMeter";
 pub const METER: &Name = &Name(hash(NAME));
 
 /// The item it's copied from, whose model and icon it wears.
-const LIKE: &Name = item::FAIRY_BLESS_MP_DOUBLE;
+pub(crate) const LIKE: &Name = item::FAIRY_BLESS_MP_DOUBLE;
 /// The single meter's size, in the row's units (tenths of the saved max).
 const SINGLE: i32 = 24;
 

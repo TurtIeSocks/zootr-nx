@@ -65,6 +65,19 @@ pub const LINES: [&[(&Name, &Name)]; 12] = [
 /// One level of a line: the actor a chest drops, then its pouch name.
 pub type Level = (&'static Name, &'static Name);
 
+/// The game actor a level of our own wears: the model and the pose it shows
+/// are that one's, so a holder showing it measures against it. `None` for a
+/// level the game ships.
+pub fn worn(level: &str) -> Option<&'static Name> {
+    (bombchu_bags::copies().into_iter())
+        .find(|(bag, _)| *bag == level)
+        .map(|(_, bag)| bag)
+        .or(match level == meter::NAME {
+            true => Some(meter::LIKE),
+            false => None,
+        })
+}
+
 /// The levels a seed's lines hold: [`LINES`] less the small nut or stick
 /// bag the first nut or stick brings, less the Bombchu Bags in a seed
 /// without them, and less the Magic Meter where magic comes with the first
@@ -210,6 +223,15 @@ pub fn in_line(actor: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_level_of_our_own_wears_the_actor_it_copies() {
+        needs_names!();
+        assert_eq!(worn(bombchu_bags::LARGE.get()), Some(item::BOMB_BAG_LARGE));
+        assert_eq!(worn(meter::NAME), Some(meter::LIKE));
+        // A level the game ships.
+        assert_eq!(worn(item::OCARINA_TIME.get()), None);
+    }
 
     #[test]
     fn a_line_left_with_one_level_is_not_climbed() {

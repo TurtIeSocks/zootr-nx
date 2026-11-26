@@ -10,6 +10,7 @@ use ounce_formats::{ActorPack, Base, Romfs};
 use super::unpacked;
 use crate::known::{actor, field, hash};
 use crate::medallions;
+use crate::progressive;
 use crate::standins::{self, Tables};
 
 /// The animation a shelf pose plays, the first an archive has.
@@ -108,20 +109,24 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     items.sort();
     items.dedup();
     // Each item with the model file it shows, its row's model and its
-    // shelf pose archive. A song shows the medallion it's painted on.
+    // shelf pose archive. A song shows the medallion it's painted on, and a
+    // level of our own wears the actor it's copied from, which is the only
+    // one the dump has a pack and a row for. The table still keys our name,
+    // since that's what a holder sells.
     let mut wanted = Vec::new();
     for item in items {
-        let shown = match medallions::medallion(&item) {
-            Some(_) => medallions::HOST.to_string(),
-            None => item.clone(),
+        let (pack, row) = match (medallions::medallion(&item), progressive::worn(&item)) {
+            (Some(_), _) => (medallions::HOST.to_string(), item.clone()),
+            (None, Some(worn)) => (worn.get().to_string(), worn.get().to_string()),
+            (None, None) => (item.clone(), item.clone()),
         };
-        let file = standins::model_file(&ActorPack::load(romfs, &shown)?)?;
+        let file = standins::model_file(&ActorPack::load(romfs, &pack)?)?;
         let (Some((project, model)), Some(row_model)) =
-            (file, standins::model(&tables.actor, &item)?)
+            (file, standins::model(&tables.actor, &row)?)
         else {
             continue;
         };
-        let pose = standins::vanilla_pose(&tables.actor, &item)?;
+        let pose = standins::vanilla_pose(&tables.actor, &row)?;
         wanted.push((item, format!("{project}.{model}{MODEL}"), row_model, pose));
     }
     let files: HashSet<&str> = wanted.iter().map(|(_, f, _, _)| f.as_str()).collect();
