@@ -88,8 +88,9 @@ pub const BOSS_HEARTS: Kind = Kind {
 };
 
 /// Every pot, each with its [`own_drop`]. The `_Respawn` ones come back
-/// with their area, and Ganon's Castle has `_Dream` ones. The remix's
-/// files stay out ([`REMIX`]).
+/// with their area. The remix's files stay out ([`REMIX`]), and so do the
+/// `_Dream` copies of the pots before Ganondorf: only the boss rush, which
+/// reuses that room, places them (the maintainer's call, EIE spec).
 pub const POTS: Kind = Kind {
     actors: &[
         actor::OBJ_POT_A_01,
@@ -104,7 +105,6 @@ pub const POTS: Kind = Kind {
         actor::OBJ_POT_A_05_RESPAWN,
         actor::OBJ_POT_A_07_RESPAWN,
         actor::OBJ_POT_A_08_RESPAWN,
-        actor::OBJ_POT_A_06_DREAM,
     ],
     item: None,
     field: DROP,
@@ -711,7 +711,7 @@ mod tests {
             (&FREESTANDING, 14),
             (&SKULLTULAS, 100),
             (&BOSS_HEARTS, 8),
-            (&POTS, 530),
+            (&POTS, 518),
             (&CRATES, 38),
             (&ROCKS, 167),
             (&GRASS, 160),
@@ -756,7 +756,7 @@ mod tests {
         // read state and make the Skulltula and its web.
         assert_eq!(watched(&SKULLTULAS), (101, 3, 114));
         // Most watched pots sit in rooms whose groups set flags or play.
-        assert_eq!(watched(&POTS), (25, 36, 530));
+        assert_eq!(watched(&POTS), (25, 24, 518));
     }
 
     /// The Deku Tree's regrowing shrubs (rooms C and H) are watched quiet:
