@@ -419,8 +419,8 @@ pub(super) fn dev(romfs: &Romfs, game_path: &Path, cmd: DevCommand) -> Result<()
         DevCommand::Checked { hash } => {
             let gd = installed_gamedata(romfs)?;
             let history = crate::history::History::load()?;
-            let spots = match history.installed().id.map(|id| history.get(id)) {
-                Some(entry) => entry?.report.spots.clone(),
+            let spots = match history.installed().id.map(|id| history.report(id)) {
+                Some(report) => report?.spots,
                 None => Vec::new(),
             };
             match crate::ledger::seed_flag(romfs, &gd, &spots, hash)? {

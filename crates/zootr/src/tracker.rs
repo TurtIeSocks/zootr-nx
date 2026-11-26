@@ -15,7 +15,7 @@ use serde::Serialize;
 
 use crate::entrances::{DUNGEONS, reveal};
 use crate::gamedata::GameData;
-use crate::generate::{Door, Spot};
+use crate::generate::{Door, Report, Spot};
 use crate::gifts::GIFTS;
 use crate::history::{Entry, Mark};
 use crate::savefile::Change;
@@ -216,8 +216,8 @@ impl Tracker {
         flips
     }
 
-    /// The Checks tab's door rows for a seed's history entry.
-    pub fn door_rows(&self, entry: &Entry) -> Vec<DoorRow> {
+    /// The Checks tab's door rows for a seed's history entry and report.
+    pub fn door_rows(&self, entry: &Entry, report: &Report) -> Vec<DoorRow> {
         let row = |d: &Door| {
             let found = self.revealed.contains(&d.id).then(|| d.dungeon.clone());
             DoorRow {
@@ -231,11 +231,17 @@ impl Tracker {
                 found,
             }
         };
-        entry.report.entrances.iter().map(row).collect()
+        report.entrances.iter().map(row).collect()
     }
 
-    /// The Checks tab's rows, with `label` giving each flag's label.
-    pub fn rows(&self, entry: &Entry, label: impl Fn(u32) -> Option<String>) -> Vec<Row> {
+    /// The Checks tab's rows for a seed's history entry and report, with
+    /// `label` giving each flag's label.
+    pub fn rows(
+        &self,
+        entry: &Entry,
+        report: &Report,
+        label: impl Fn(u32) -> Option<String>,
+    ) -> Vec<Row> {
         let row = |spot: &Spot| {
             // Only a Bool can be labelled.
             let flag = match self.flags.get(&spot.hash) {
@@ -250,7 +256,7 @@ impl Tracker {
                 mark: entry.marks.get(&spot.hash).cloned(),
             }
         };
-        entry.report.spots.iter().map(row).collect()
+        report.spots.iter().map(row).collect()
     }
 
     pub fn checked(&self) -> &BTreeSet<u64> {
@@ -334,13 +340,13 @@ mod tests {
         let none = (Default::default(), Default::default(), Default::default());
         history.add(none.0, none.1, none.2, report);
         history.pick(1, "deku-tree", Some("deku-tree")).unwrap();
-        let entry = history.get(1).unwrap();
-        let rows = t.door_rows(entry);
+        let (entry, report) = (history.get(1).unwrap(), history.report(1).unwrap());
+        let rows = t.door_rows(entry, &report);
         assert_eq!(rows[0].found, None);
         assert_eq!(rows[0].pick.as_deref(), Some("deku-tree"));
         let flips = t.change(&bool_(arrived("fire-temple"), "false -> true"));
         assert!(flips.doors && flips.checked.is_empty());
-        let rows = t.door_rows(entry);
+        let rows = t.door_rows(entry, &report);
         assert_eq!(rows[0].found.as_deref(), Some("fire-temple"));
         assert_eq!(rows[0].pick, None, "a revealed door ignores its pick");
         assert_eq!(rows[1].found, None);
@@ -438,7 +444,7 @@ mod tests {
         );
         history.mark(1, 1, Some(Mark::Skipped)).unwrap();
         let label = |f| (f == MIDO[2].1).then(|| "by the bed".to_owned());
-        let rows = t.rows(history.get(1).unwrap(), label);
+        let rows = t.rows(history.get(1).unwrap(), &history.report(1).unwrap(), label);
         let got: Vec<_> = rows
             .iter()
             .map(|r| (r.checked, r.flag, r.label.as_deref(), r.mark.clone()))

@@ -31,7 +31,7 @@ export type Widths = typeof COLUMNS;
 export type PlayTab = "standard" | "archipelago" | "history" | "favorites";
 
 /** Which seeds History lists. */
-export type HistoryFilter = "all" | "standard" | "archipelago";
+export type HistoryFilter = "all" | "standard" | "archipelago" | "starred";
 
 /** The dev panel's tabs. */
 export type DevTab = "warp" | "actors" | "give" | "values" | "tests";

@@ -262,6 +262,7 @@ pub(crate) const SHUFFLE_STICK_BAG: &str = "shuffle-stick-bag";
 pub(crate) const SHUFFLE_MASKS: &str = "shuffle-masks";
 const BUNNY_HOOD: &str = "bunny-hood";
 const DAY_SKULLTULAS: &str = "day-skulltulas";
+pub(crate) const BREAKABLES_RESPAWN: &str = "breakables-respawn";
 pub(crate) const MAGIC_WITH_FIRST_ITEM: &str = "magic-with-first-item";
 const QUIET_NAVI: &str = "quiet-navi";
 pub(crate) const ONE_TAP_SONGS: &str = "one-tap-songs";
@@ -470,6 +471,7 @@ mod tests {
         assert_eq!(at(PROGRESSIVE), is(place::ITEM_POOL));
         assert_eq!(at(HINTS), is(place::HINTS));
         assert_eq!(at(BUNNY_HOOD), is(place::GAMEPLAY));
+        assert_eq!(at(BREAKABLES_RESPAWN), is(place::GAMEPLAY));
         assert_eq!(at(SKIP_ALL), is(place::CUTSCENES));
         assert_eq!(at(DUNGEON_ENTRANCES), is(place::ENTRANCES));
         // The Logic & Access sections and Shuffles' Dungeons, row by row.

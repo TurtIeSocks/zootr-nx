@@ -24,6 +24,8 @@ interface Shell {
   unsaved?: number;
   /** The search over the whole app is open. */
   find?: boolean;
+  /** How many History rows are drawn, a page more each time it's asked. */
+  historyDrawn?: number;
 }
 
 /** The shell store. Not saved: every launch starts with nothing open. */

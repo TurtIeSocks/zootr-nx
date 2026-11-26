@@ -20,6 +20,7 @@ export const summary = (patch: Partial<Summary> = {}): Summary => ({
   colors: {},
   audio: {},
   place: {},
+  starred: false,
   ...patch,
 });
 
