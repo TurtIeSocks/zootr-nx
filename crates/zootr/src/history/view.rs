@@ -50,6 +50,8 @@ pub struct Summary {
     /// The plando: chest hash to the item it holds.
     #[cfg_attr(feature = "specta", specta(type = std::collections::BTreeMap<String, String>))]
     pub(super) place: Fixed,
+    /// The player keeps it from trimming and Clear.
+    pub(super) starred: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -90,6 +92,7 @@ impl From<&Entry> for Summary {
             colors: asked.colors,
             audio: asked.audio,
             place: e.extras.place.clone(),
+            starred: e.starred,
         }
     }
 }

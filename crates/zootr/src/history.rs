@@ -18,7 +18,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
-/// Oldest entries past this are dropped.
+/// Oldest entries past this are dropped. Starred ones count toward it.
 const KEEP: usize = 100;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -107,6 +107,9 @@ pub struct Entry {
     /// the report's entrances name them.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub picks: BTreeMap<String, String>,
+    /// The player keeps it: trimming and Clear pass it by.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub starred: bool,
 }
 
 impl Entry {
@@ -304,13 +307,14 @@ impl History {
             brief: Brief::from(&report),
             marks: BTreeMap::new(),
             picks: BTreeMap::new(),
+            starred: false,
         });
         self.unsaved.insert(id, report);
-        // The oldest go first, but never an installed one.
-        let installed: Vec<u32> = self.in_place().collect();
+        // The oldest go first, but never a spared one or this one.
+        let kept: Vec<u32> = self.spared().chain([id]).collect();
         let mut excess = self.entries.len().saturating_sub(KEEP);
         self.entries.retain(|e| {
-            let drop = excess > 0 && !installed.contains(&e.id);
+            let drop = excess > 0 && !kept.contains(&e.id);
             excess -= usize::from(drop);
             !drop
         });
@@ -379,21 +383,55 @@ impl History {
     }
 
     /// Forget one seed. Not an installed one, any game's.
-    pub fn remove(&mut self, id: u32) -> Result<()> {
+    /// Forget the seeds `ids`, starred ones too, but not an installed one
+    /// (any game's): how many it kept for being installed.
+    pub fn remove(&mut self, ids: &[u32]) -> Result<usize> {
+        for &id in ids {
+            self.get(id)?;
+        }
+        let installed: Vec<u32> = self.in_place().collect();
+        let kept = ids.iter().filter(|id| installed.contains(id)).count();
+        self.entries
+            .retain(|e| !ids.contains(&e.id) || installed.contains(&e.id));
+        Ok(kept)
+    }
+
+    /// Star the seeds `ids`, or unstar them. Refused whole when it would
+    /// star more than [`KEEP`].
+    pub fn star(&mut self, ids: &[u32], starred: bool) -> Result<()> {
+        for &id in ids {
+            self.get(id)?;
+        }
+        let after = (self.entries.iter())
+            .filter(|e| {
+                if ids.contains(&e.id) {
+                    starred
+                } else {
+                    e.starred
+                }
+            })
+            .count();
         ensure!(
-            !self.in_place().any(|i| i == id),
-            "The installed seed can't be deleted"
+            !starred || after <= KEEP,
+            "History keeps {KEEP} seeds: unstar one first"
         );
-        let before = self.entries.len();
-        self.entries.retain(|e| e.id != id);
-        ensure!(self.entries.len() < before, "no history entry {id}");
+        (self.entries.iter_mut())
+            .filter(|e| ids.contains(&e.id))
+            .for_each(|e| e.starred = starred);
         Ok(())
     }
 
-    /// Forget every seed but the installed ones, every game's.
+    /// The seeds trimming and Clear pass by: every game's installed one,
+    /// and the starred ones.
+    fn spared(&self) -> impl Iterator<Item = u32> + '_ {
+        let starred = self.entries.iter().filter(|e| e.starred).map(|e| e.id);
+        self.in_place().chain(starred)
+    }
+
+    /// Forget every seed but the spared ones ([`History::spared`]).
     pub fn clear(&mut self) {
-        let installed: Vec<u32> = self.in_place().collect();
-        self.entries.retain(|e| installed.contains(&e.id));
+        let kept: Vec<u32> = self.spared().collect();
+        self.entries.retain(|e| kept.contains(&e.id));
     }
 
     /// What to warn when `target`'s mod folder holds another seed than the
@@ -455,7 +493,7 @@ pub(crate) mod tests {
         assert_eq!(reload(&two, Some("FakeHost-3")).installed().id, None);
         // Every game's installed seed is spared, whichever game asks.
         let mut own = reload(&two, None);
-        assert!(own.remove(2).is_err());
+        assert_eq!(own.remove(&[2]).unwrap(), 1, "kept, being installed");
         own.clear();
         assert_eq!(own.entries.iter().map(|e| e.id).collect::<Vec<_>>(), [1, 2]);
         // Taking a slot's seed off leaves the machine's own.
@@ -636,7 +674,7 @@ pub(crate) mod tests {
                 report(seed),
             );
         }
-        history.remove(1).unwrap();
+        history.remove(&[1]).unwrap();
         history.save().unwrap();
         assert!(!dir.join("reports/1.json.zst").exists());
         assert!(dir.join("reports/2.json.zst").exists());
@@ -730,13 +768,52 @@ pub(crate) mod tests {
             );
         }
         history.installed = Some(2);
-        assert!(history.remove(2).is_err());
-        assert!(history.remove(9).is_err());
-        history.remove(1).unwrap();
+        assert!(history.remove(&[1, 9]).is_err(), "an unknown id");
+        assert_eq!(history.entries.len(), 4, "refused whole");
+        history.star(&[3], true).unwrap();
+        assert_eq!(history.remove(&[1, 2]).unwrap(), 1);
         let ids = |h: &History| h.entries.iter().map(|e| e.id).collect::<Vec<_>>();
         assert_eq!(ids(&history), [2, 3, 4]);
         history.clear();
+        assert_eq!(ids(&history), [2, 3], "Clear spares installed and starred");
+        assert_eq!(history.remove(&[3]).unwrap(), 0, "a starred one when asked");
         assert_eq!(ids(&history), [2]);
+    }
+
+    #[test]
+    fn stars_round_trip_and_stop_at_the_cap() {
+        let mut history = History::default();
+        for seed in 0..KEEP as u64 + 1 {
+            history.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            );
+        }
+        let json = serde_json::to_value(&history).unwrap();
+        assert!(
+            json["entries"][0].get("starred").is_none(),
+            "left out when off"
+        );
+        let all: Vec<u32> = history.entries.iter().map(|e| e.id).collect();
+        assert_eq!(all.len(), KEEP);
+        history.star(&all, true).unwrap();
+        let newest = (history.add(
+            Settings::new(),
+            Extras::default(),
+            Label::default(),
+            report(0),
+        ))
+        .id;
+        let err = history.star(&[newest], true).unwrap_err().to_string();
+        assert_eq!(err, format!("History keeps {KEEP} seeds: unstar one first"));
+        history.star(&all[1..2], false).unwrap();
+        history.star(&[newest], true).unwrap();
+        assert!(history.star(&[9999], true).is_err());
+        let back = History::parse(&serde_json::to_vec(&history).unwrap()).unwrap();
+        assert!(back.entries[0].starred && !back.entries[1].starred);
+        assert!(Summary::from(&back.entries[0]).starred);
     }
 
     #[test]
@@ -775,6 +852,40 @@ pub(crate) mod tests {
         assert_eq!(history.entries[0].id, first);
         assert_eq!(history.entries[1].brief.seed, 7);
         assert!(history.view().installed.is_some());
+    }
+
+    #[test]
+    fn trimming_spares_starred_seeds_and_the_newest() {
+        let mut history = History::default();
+        let add = |h: &mut History, seed| {
+            (h.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            ))
+            .id
+        };
+        let first = add(&mut history, 0);
+        history.star(&[first], true).unwrap();
+        for seed in 1..=KEEP as u64 + 5 {
+            add(&mut history, seed);
+        }
+        assert_eq!(history.entries.len(), KEEP);
+        assert_eq!(history.entries[0].id, first, "starred");
+        // Every seed starred: a new one still goes in, and stays while newest.
+        let ids: Vec<u32> = history.entries.iter().map(|e| e.id).collect();
+        history.star(&ids, true).unwrap();
+        let newest = add(&mut history, 999);
+        assert_eq!(history.entries.len(), KEEP + 1);
+        assert_eq!(history.entries.last().unwrap().id, newest);
+        let next = add(&mut history, 1000);
+        assert_eq!(
+            history.entries.len(),
+            KEEP + 1,
+            "the last unstarred one went"
+        );
+        assert!(history.get(newest).is_err() && history.get(next).is_ok());
     }
 
     #[test]

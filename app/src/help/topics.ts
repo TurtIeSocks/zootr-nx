@@ -49,6 +49,7 @@ export const TOPICS = {
     at: { tab: "Play", folder: "history" },
     body: [
       "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
+      "Star a seed to keep it: the oldest seeds make way for new ones, and Clear deletes every seed but the installed and starred ones.",
     ],
   },
   favorites: {

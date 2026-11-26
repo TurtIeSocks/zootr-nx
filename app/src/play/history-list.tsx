@@ -4,6 +4,7 @@ import {
   Loader2,
   Pencil,
   ScrollText,
+  Star,
   Trash2,
 } from "lucide-react";
 import { memo } from "react";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { HISTORY_SHOWS } from "@/play/history-filter";
 import {
   ConfirmButton,
   DiffersIn,
@@ -29,8 +31,9 @@ import { useArmed } from "@/play/use-armed";
 import { rowId } from "@/shell/find/reveal";
 import {
   clearHistory,
-  deleteSeed,
+  deleteSeeds,
   install,
+  starSeeds,
   takeSettings,
   useDiffCount,
   useSeeds,
@@ -38,11 +41,12 @@ import {
 import { openLabel, openSpoiler } from "@/stores/shell";
 import { type HistoryFilter, useUi } from "@/stores/ui";
 
-/** Deletes every seed but the installed one, on a second click. */
+/** Deletes every seed but the installed and starred ones, on a second
+ * click. */
 function ClearHistory() {
   const { armed, ...handlers } = useArmed(clearHistory);
   return (
-    <Tip tip="Delete every seed except the installed one">
+    <Tip tip="Delete every seed except installed and starred ones">
       <Button variant={armed ? "destructive" : "ghost"} size="sm" {...handlers}>
         {armed ? "Really clear?" : "Clear"}
       </Button>
@@ -92,10 +96,39 @@ function DeleteSeed({ id, installed }: DeleteSeedProps) {
       confirm="Really delete?"
       icon={<Trash2 />}
       disabled={busy || installed}
-      onConfirm={() => deleteSeed(id)}
+      onConfirm={() => deleteSeeds([id])}
     />
   );
 }
+
+/** Props for {@link StarSeed}. */
+interface StarSeedProps extends SeedActionProps {
+  starred: boolean;
+}
+
+/** Stars the seed so trimming and Clear pass it by, or unstars it. */
+function StarSeed({ id, starred }: StarSeedProps) {
+  const [busy] = useSeeds.usePath("busy");
+  return (
+    <TipButton
+      label={starred ? "Unstar seed" : "Star seed"}
+      tip={
+        starred
+          ? "Unstar: old seeds and Clear can delete it again"
+          : "Star: old seeds and Clear leave it alone"
+      }
+      variant="ghost"
+      pressed={starred}
+      disabled={busy}
+      onClick={() => starSeeds([id], !starred)}
+    >
+      <Star className={cn(starred && STARRED)} />
+    </TipButton>
+  );
+}
+
+/** A star's look once starred, as the dev panel's. */
+const STARRED = "fill-gold text-gold";
 
 /** Props for {@link InstallMark}. */
 interface InstallMarkProps {
@@ -126,6 +159,7 @@ const FILTERS = [
   { id: "all", label: "All" },
   { id: "standard", label: "Standard" },
   { id: "archipelago", label: "Archipelago" },
+  { id: "starred", label: "Starred" },
 ] as const satisfies readonly { id: HistoryFilter; label: string }[];
 
 /** What a filter that keeps no seed says. */
@@ -133,6 +167,7 @@ const EMPTY: Record<HistoryFilter, string> = {
   all: "No seeds yet.",
   standard: "No standard seeds yet.",
   archipelago: "No Archipelago slots yet.",
+  starred: "No starred seeds yet.",
 };
 
 /** The History folder: every generated seed, newest first, with its
@@ -140,9 +175,7 @@ const EMPTY: Record<HistoryFilter, string> = {
 export function HistoryList() {
   const [entries] = useSeeds.usePath("history.entries");
   const [filter, setFilter] = useUi.usePath("play.history");
-  const shown = entries.filter(
-    (e) => filter === "all" || (filter === "archipelago") === !!e.ap_slot,
-  );
+  const shown = entries.filter(HISTORY_SHOWS[filter]);
   const n = shown.length;
   return (
     <>
@@ -205,6 +238,9 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
       }
       meta={
         <>
+          {e.starred && (
+            <Star aria-label="Starred" className={cn("size-3", STARRED)} />
+          )}
           {when(e.time)}
           <ExtrasBadges entry={e} />
           {!e.ap_slot && <DiffersIn n={differs} />}
@@ -238,6 +274,7 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
             <ScrollText />
           </TipButton>
           {!e.ap_slot && <CopySeed entry={e} variant="ghost" size="icon-sm" />}
+          <StarSeed id={e.id} starred={e.starred} />
           <TipButton
             label="Label seed"
             tip="Name this seed or note what it's for"

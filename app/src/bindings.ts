@@ -49,10 +49,13 @@ export const commands = {
 	/**  Take the mod off every target so the game runs vanilla. */
 	uninstall: () => typedError<null, string>(__TAURI_INVOKE("uninstall")),
 	history: () => typedError<View, string>(__TAURI_INVOKE("history")),
-	deleteSeed: (id: number) => typedError<null, string>(__TAURI_INVOKE("delete_seed", { id })),
+	/**  Delete seeds, starred ones too: how many it kept for being installed. */
+	deleteSeeds: (ids: number[]) => typedError<number, string>(__TAURI_INVOKE("delete_seeds", { ids })),
+	/**  Star seeds so trimming and Clear pass them by, or unstar them. */
+	starSeeds: (ids: number[], starred: boolean) => typedError<null, string>(__TAURI_INVOKE("star_seeds", { ids, starred })),
 	/**  Name a seed and note what it's for. */
 	labelSeed: (id: number, label: Label) => typedError<null, string>(__TAURI_INVOKE("label_seed", { id, label })),
-	/**  Delete every seed but the installed one. */
+	/**  Delete every seed but the installed and starred ones. */
 	clearHistory: () => typedError<null, string>(__TAURI_INVOKE("clear_history")),
 	spoiler: (id: number) => typedError<Spoiler, string>(__TAURI_INVOKE("spoiler", { id })),
 	play: (target: string) => typedError<null, string>(__TAURI_INVOKE("play", { target })),
@@ -1281,6 +1284,8 @@ export type Summary = {
 	audio: AudioDraft,
 	/**  The plando: chest hash to the item it holds. */
 	place: { [key in string]: string },
+	/**  The player keeps it from trimming and Clear. */
+	starred: boolean,
 };
 
 /**  Where a seed installs and the game runs. Nothing here knows which one it is. */
