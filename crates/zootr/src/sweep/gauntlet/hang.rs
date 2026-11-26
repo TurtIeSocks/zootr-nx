@@ -45,8 +45,10 @@ const LIT: usize = 64;
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
-    /// Pure black, no triforce: `secs` of black, `map` the map read then.
-    Black { secs: f32, map: String },
+    /// Pure black, no triforce: `secs` of black over `frames` frames, `map`
+    /// the map read then. Few frames over many seconds mean slow shots: a
+    /// game starved of its GPU (a model loaded beside it) loads slowly too.
+    Black { secs: f32, frames: u32, map: String },
     /// Still loading after the load limit: `secs` since the teleport.
     Loading { secs: f32, map: String },
     /// Settled on another map than the one asked for.
@@ -173,6 +175,8 @@ fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
 struct Watch {
     /// Since when every frame was black.
     black: Option<Duration>,
+    /// How many black frames since then.
+    dark: u32,
     /// Since when no frame came.
     unframed: Option<Duration>,
     /// Why the last frame didn't come.
@@ -207,8 +211,11 @@ impl Watch {
         // still answers reads. A missing frame neither starts nor ends the
         // black.
         match lit {
-            Some(false) => _ = self.black.get_or_insert(at),
-            Some(true) => self.black = None,
+            Some(false) => {
+                self.black.get_or_insert(at);
+                self.dark += 1;
+            }
+            Some(true) => (self.black, self.dark) = (None, 0),
             None => {}
         }
         match lit {
@@ -225,8 +232,8 @@ impl Watch {
         }
         if let Some(since) = self.black.filter(|since| at - *since >= limits.black) {
             let secs = (at - since).as_secs_f32();
-            let map = self.map.clone();
-            return Some(Hang::Black { secs, map });
+            let (frames, map) = (self.dark, self.map.clone());
+            return Some(Hang::Black { secs, frames, map });
         }
         if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
             let secs = (at - since).as_secs_f32();
@@ -402,6 +409,7 @@ mod tests {
             look(&mut w, 3.0, Some(false)),
             Some(Hang::Black {
                 secs: 2.0,
+                frames: 2,
                 map: "FakeMap".into()
             })
         );
