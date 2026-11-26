@@ -194,7 +194,7 @@
       "forbid": [],
       "hash": "160045946964554702",
       "id": 503,
-      "name": "Market South Pot 40",
+      "name": "Market Guard House Child Pot 43",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -390,7 +390,7 @@
       "forbid": [],
       "hash": "209505766503989880",
       "id": 505,
-      "name": "Market South Pot 34",
+      "name": "Market Guard House Child Pot 29",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -662,7 +662,7 @@
       "forbid": [],
       "hash": "355724575355865248",
       "id": 508,
-      "name": "Market South Pot 9",
+      "name": "Market Guard House Child Pot 34",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -989,7 +989,7 @@
       "forbid": [],
       "hash": "630840502432038415",
       "id": 515,
-      "name": "Market South Pot 11",
+      "name": "Market Guard House Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1644,7 +1644,7 @@
       "forbid": [],
       "hash": "1023031635146699070",
       "id": 531,
-      "name": "Market West Pot 3",
+      "name": "Market Bombchu Bowling Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2546,7 +2546,7 @@
       "forbid": [],
       "hash": "1403700953474659107",
       "id": 224,
-      "name": "Market Potion Shop 4",
+      "name": "Market Potion Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -2784,7 +2784,7 @@
       "forbid": [],
       "hash": "1546412329969349153",
       "id": 556,
-      "name": "Market South Pot 32",
+      "name": "Market Guard House Child Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3023,7 +3023,7 @@
       "forbid": [],
       "hash": "1661231129625843374",
       "id": 560,
-      "name": "Market South Pot 20",
+      "name": "Market Guard House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3521,7 +3521,7 @@
       "forbid": [],
       "hash": "1966095333205719145",
       "id": 565,
-      "name": "Market South Pot 38",
+      "name": "Market Guard House Child Pot 31",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3642,7 +3642,7 @@
       "forbid": [],
       "hash": "2026157113981043805",
       "id": 568,
-      "name": "Market South Pot 36",
+      "name": "Market Guard House Child Pot 18",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3896,7 +3896,7 @@
       "forbid": [],
       "hash": "2165030477346767192",
       "id": 574,
-      "name": "Market South Pot 41",
+      "name": "Market Guard House Child Pot 44",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4310,7 +4310,7 @@
       "forbid": [],
       "hash": "2470662836017610480",
       "id": 281,
-      "name": "Market Bazaar 8",
+      "name": "Market Bazaar Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -4347,7 +4347,7 @@
       "forbid": [],
       "hash": "2503132981930328096",
       "id": 578,
-      "name": "Market South Pot 16",
+      "name": "Market Guard House Child Pot 9",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5060,7 +5060,7 @@
       "forbid": [],
       "hash": "2912260394483772772",
       "id": 592,
-      "name": "Market South Pot 42",
+      "name": "Market Guard House Child Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5297,7 +5297,7 @@
       "forbid": [],
       "hash": "3102293137454811300",
       "id": 601,
-      "name": "Market South Pot 17",
+      "name": "Market Guard House Child Pot 12",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5955,7 +5955,7 @@
       "forbid": [],
       "hash": "3527237855955722340",
       "id": 617,
-      "name": "Market South Pot 22",
+      "name": "Market Guard House Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6441,7 +6441,7 @@
       "forbid": [],
       "hash": "3844892122736768995",
       "id": 628,
-      "name": "Market South Pot 25",
+      "name": "Market Guard House Child Pot 38",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6795,7 +6795,7 @@
       "forbid": [],
       "hash": "4016405848881617652",
       "id": 1056,
-      "name": "Market South Crate 2",
+      "name": "Market Guard House Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -7144,7 +7144,7 @@
       "forbid": [],
       "hash": "4262167623178799478",
       "id": 639,
-      "name": "Market South Pot 5",
+      "name": "Market Guard House Child Pot 16",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7295,7 +7295,7 @@
       "forbid": [],
       "hash": "4349592517917306866",
       "id": 642,
-      "name": "Market South Pot 37",
+      "name": "Market Guard House Child Pot 26",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7715,7 +7715,7 @@
       "forbid": [],
       "hash": "4541346301504764442",
       "id": 650,
-      "name": "Market South Pot 15",
+      "name": "Market Guard House Child Pot 24",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8681,7 +8681,7 @@
       "forbid": [],
       "hash": "5101608369586255705",
       "id": 257,
-      "name": "Market Bazaar 5",
+      "name": "Market Bazaar Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -9427,7 +9427,7 @@
       "forbid": [],
       "hash": "5615457568081558860",
       "id": 264,
-      "name": "Market Potion Shop 6",
+      "name": "Market Potion Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -9565,7 +9565,7 @@
       "forbid": [],
       "hash": "5653833064804058759",
       "id": 1065,
-      "name": "Market South Crate 1",
+      "name": "Market Guard House Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -9819,7 +9819,7 @@
       "forbid": [],
       "hash": "5784220025515362731",
       "id": 226,
-      "name": "Market Bazaar 2",
+      "name": "Market Bazaar Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -9853,7 +9853,7 @@
       "forbid": [],
       "hash": "5831980957101408041",
       "id": 686,
-      "name": "Market South Pot 33",
+      "name": "Market Guard House Child Pot 10",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10143,7 +10143,7 @@
       "forbid": [],
       "hash": "6011696378209808077",
       "id": 283,
-      "name": "Market Potion Shop 8",
+      "name": "Market Potion Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -10302,7 +10302,7 @@
       "forbid": [],
       "hash": "6159178651520699084",
       "id": 697,
-      "name": "Market South Pot 23",
+      "name": "Market Guard House Child Pot 33",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10509,7 +10509,7 @@
       "forbid": [],
       "hash": "6294925652555242451",
       "id": 702,
-      "name": "Market South Pot 4",
+      "name": "Market Guard House Child Pot 35",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10579,7 +10579,7 @@
       "forbid": [],
       "hash": "6305438045388642560",
       "id": 706,
-      "name": "Market South Pot 3",
+      "name": "Market Guard House Child Pot 19",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10851,7 +10851,7 @@
       "forbid": [],
       "hash": "6465850391777915933",
       "id": 222,
-      "name": "Market Master Sword Pedestal",
+      "name": "Market ToT Master Sword",
       "unprovable": false,
       "when": {
         "setting": "master-sword-shuffle"
@@ -11228,7 +11228,7 @@
       "forbid": [],
       "hash": "6796029720660653103",
       "id": 229,
-      "name": "Market Potion Shop 2",
+      "name": "Market Potion Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -11617,7 +11617,7 @@
       "forbid": [],
       "hash": "7026635600153347152",
       "id": 726,
-      "name": "Market Southwest Pot 1",
+      "name": "Market Back Alley Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11912,7 +11912,7 @@
       "forbid": [],
       "hash": "7228035372353946866",
       "id": 733,
-      "name": "Market South Pot 39",
+      "name": "Market Guard House Child Pot 41",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12067,7 +12067,7 @@
       "forbid": [],
       "hash": "7250344944862033169",
       "id": 738,
-      "name": "Market South Pot 43",
+      "name": "Market Guard House Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12500,7 +12500,7 @@
       "forbid": [],
       "hash": "7521824399864207059",
       "id": 744,
-      "name": "Market South Pot 21",
+      "name": "Market Guard House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12895,7 +12895,7 @@
       "forbid": [],
       "hash": "7804057436886816165",
       "id": 265,
-      "name": "Market Bazaar 6",
+      "name": "Market Bazaar Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -12997,7 +12997,7 @@
       "forbid": [],
       "hash": "7975754981590731986",
       "id": 162,
-      "name": "Market Poe Collector",
+      "name": "Market 10 Big Poes",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13033,7 +13033,7 @@
       "forbid": [],
       "hash": "7981518132387036590",
       "id": 232,
-      "name": "Market Bombchu Shop 1",
+      "name": "Market Bombchu Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -13196,7 +13196,7 @@
       "forbid": [],
       "hash": "8052831843135618910",
       "id": 163,
-      "name": "Market Bombchu Bowling: Third Prize",
+      "name": "Market Bombchu Bowling Second Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14007,7 +14007,7 @@
       "forbid": [],
       "hash": "8748954161277078873",
       "id": 165,
-      "name": "Market Bombchu Bowling: Second Prize",
+      "name": "Market Bombchu Bowling First Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14267,7 +14267,7 @@
       "forbid": [],
       "hash": "8862936792925648296",
       "id": 273,
-      "name": "Market Potion Shop 7",
+      "name": "Market Potion Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -14339,7 +14339,7 @@
       "forbid": [],
       "hash": "8921752458646988665",
       "id": 776,
-      "name": "Market South Pot 12",
+      "name": "Market Guard House Child Pot 39",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14376,7 +14376,7 @@
       "forbid": [],
       "hash": "8942465719711548237",
       "id": 349,
-      "name": "Market Gold Skulltula Token",
+      "name": "Market GS Guard House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15033,7 +15033,7 @@
       "forbid": [],
       "hash": "9161085961847838380",
       "id": 788,
-      "name": "Market South Pot 7",
+      "name": "Market Guard House Child Pot 32",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15302,7 +15302,7 @@
       "forbid": [],
       "hash": "9299500760108964836",
       "id": 1071,
-      "name": "Market South Crate 5",
+      "name": "Market Guard House Crate 5",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -15486,7 +15486,7 @@
       "forbid": [],
       "hash": "9431172931320301236",
       "id": 795,
-      "name": "Market South Pot 47",
+      "name": "Market Guard House Child Pot 37",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15913,7 +15913,7 @@
       "forbid": [],
       "hash": "9625992517764898163",
       "id": 803,
-      "name": "Market South Pot 29",
+      "name": "Market Guard House Child Pot 42",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16486,7 +16486,7 @@
       "forbid": [],
       "hash": "9935389509796719985",
       "id": 170,
-      "name": "Market Bombchu Bowling: First Prize",
+      "name": "Market Bombchu Bowling Bombchus",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -16682,7 +16682,7 @@
       "forbid": [],
       "hash": "10043319116785133483",
       "id": 238,
-      "name": "Market Bombchu Shop 3",
+      "name": "Market Bombchu Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -17056,7 +17056,7 @@
       "forbid": [],
       "hash": "10233336340851937748",
       "id": 824,
-      "name": "Market South Pot 10",
+      "name": "Market Guard House Child Pot 15",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17924,7 +17924,7 @@
       "forbid": [],
       "hash": "10790097866069291961",
       "id": 842,
-      "name": "Market West Pot 1",
+      "name": "Market Back Alley Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18838,7 +18838,7 @@
       "forbid": [],
       "hash": "11342286987436207867",
       "id": 177,
-      "name": "Market Richard's Owner",
+      "name": "Market Lost Dog",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -19208,7 +19208,7 @@
       "forbid": [],
       "hash": "11528490284966062201",
       "id": 259,
-      "name": "Market Potion Shop 5",
+      "name": "Market Potion Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -20391,7 +20391,7 @@
       "forbid": [],
       "hash": "12239117590972833691",
       "id": 875,
-      "name": "Market South Pot 13",
+      "name": "Market Guard House Child Pot 28",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20537,7 +20537,7 @@
       "forbid": [],
       "hash": "12290558272066687065",
       "id": 878,
-      "name": "Market West Pot 4",
+      "name": "Market Bombchu Bowling Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20786,7 +20786,7 @@
       "forbid": [],
       "hash": "12426385834471778854",
       "id": 246,
-      "name": "Market Bombchu Shop 2",
+      "name": "Market Bombchu Shop Item 2",
       "unprovable": true,
       "when": {
         "ref": 95
@@ -20880,7 +20880,7 @@
       "forbid": [],
       "hash": "12533087173674017391",
       "id": 884,
-      "name": "Market South Pot 44",
+      "name": "Market Guard House Child Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20914,7 +20914,7 @@
       "forbid": [],
       "hash": "12535663762055135836",
       "id": 285,
-      "name": "Market Bombchu Shop 8",
+      "name": "Market Bombchu Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -20966,7 +20966,7 @@
       "forbid": [],
       "hash": "12555045194845838033",
       "id": 181,
-      "name": "Market Shooting Gallery",
+      "name": "Market Shooting Gallery Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21054,7 +21054,7 @@
       "forbid": [],
       "hash": "12582583935041109669",
       "id": 887,
-      "name": "Market South Pot 19",
+      "name": "Market Guard House Child Pot 40",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21724,7 +21724,7 @@
       "forbid": [],
       "hash": "13037119094293428679",
       "id": 247,
-      "name": "Market Bazaar 3",
+      "name": "Market Bazaar Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -21957,7 +21957,7 @@
       "forbid": [],
       "hash": "13196856183265505423",
       "id": 897,
-      "name": "Market South Pot 45",
+      "name": "Market Guard House Child Pot 22",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22005,7 +22005,7 @@
       "forbid": [],
       "hash": "13242971960259401995",
       "id": 261,
-      "name": "Market Bombchu Shop 5",
+      "name": "Market Bombchu Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -22021,7 +22021,7 @@
       "forbid": [],
       "hash": "13260935631141400078",
       "id": 899,
-      "name": "Market South Pot 6",
+      "name": "Market Guard House Child Pot 23",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22488,7 +22488,7 @@
       "forbid": [],
       "hash": "13550170368761162591",
       "id": 911,
-      "name": "Market South Pot 35",
+      "name": "Market Guard House Child Pot 21",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22689,7 +22689,7 @@
       "forbid": [],
       "hash": "13625579619088899452",
       "id": 912,
-      "name": "Market Southwest Pot 2",
+      "name": "Market Back Alley Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22856,7 +22856,7 @@
       "forbid": [],
       "hash": "13737156624680648007",
       "id": 185,
-      "name": "Market Light Arrows",
+      "name": "Market ToT Light Arrows Cutscene",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23128,7 +23128,7 @@
       "forbid": [],
       "hash": "13904446280042756301",
       "id": 275,
-      "name": "Market Bombchu Shop 7",
+      "name": "Market Bombchu Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -23216,7 +23216,7 @@
       "forbid": [],
       "hash": "13975641145686964401",
       "id": 919,
-      "name": "Market South Pot 18",
+      "name": "Market Guard House Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23517,7 +23517,7 @@
       "forbid": [],
       "hash": "14164799327792384879",
       "id": 276,
-      "name": "Market Bazaar 7",
+      "name": "Market Bazaar Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -23598,7 +23598,7 @@
       "forbid": [],
       "hash": "14307285627541295517",
       "id": 930,
-      "name": "Market South Pot 24",
+      "name": "Market Guard House Child Pot 17",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23872,7 +23872,7 @@
       "forbid": [],
       "hash": "14513580006326949285",
       "id": 938,
-      "name": "Market South Pot 30",
+      "name": "Market Guard House Child Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24512,7 +24512,7 @@
       "forbid": [],
       "hash": "14951295602089760727",
       "id": 1082,
-      "name": "Market South Crate 4",
+      "name": "Market Guard House Crate 4",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -24590,7 +24590,7 @@
       "forbid": [],
       "hash": "15019753598795808613",
       "id": 206,
-      "name": "Market Sheik at the Temple of Time",
+      "name": "Market Sheik at Temple",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -25169,7 +25169,7 @@
       "forbid": [],
       "hash": "15351736782374583877",
       "id": 249,
-      "name": "Market Bombchu Shop 4",
+      "name": "Market Bombchu Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -25460,7 +25460,7 @@
       "forbid": [],
       "hash": "15640208633097747924",
       "id": 959,
-      "name": "Market South Pot 28",
+      "name": "Market Guard House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25476,7 +25476,7 @@
       "forbid": [],
       "hash": "15645888800487826584",
       "id": 960,
-      "name": "Market South Pot 31",
+      "name": "Market Guard House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25646,7 +25646,7 @@
       "forbid": [],
       "hash": "15795527451931683735",
       "id": 423,
-      "name": "Market Rauru",
+      "name": "Market Gift from Rauru",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -25680,7 +25680,7 @@
       "forbid": [],
       "hash": "15836061056953346480",
       "id": 1083,
-      "name": "Market South Crate 3",
+      "name": "Market Guard House Crate 3",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -25808,7 +25808,7 @@
       "forbid": [],
       "hash": "15903102006731147891",
       "id": 970,
-      "name": "Market South Pot 48",
+      "name": "Market Guard House Child Pot 14",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26379,7 +26379,7 @@
       "forbid": [],
       "hash": "16216886893185262461",
       "id": 982,
-      "name": "Market South Pot 8",
+      "name": "Market Guard House Child Pot 20",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26587,7 +26587,7 @@
       "forbid": [],
       "hash": "16342679806948549224",
       "id": 250,
-      "name": "Market Potion Shop 3",
+      "name": "Market Potion Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -26879,7 +26879,7 @@
       "forbid": [],
       "hash": "16594423016797951568",
       "id": 251,
-      "name": "Market Potion Shop 1",
+      "name": "Market Potion Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -27247,7 +27247,7 @@
       "forbid": [],
       "hash": "16805024386575467769",
       "id": 997,
-      "name": "Market South Pot 27",
+      "name": "Market Guard House Child Pot 11",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27281,7 +27281,7 @@
       "forbid": [],
       "hash": "16832099878838036087",
       "id": 998,
-      "name": "Market South Pot 26",
+      "name": "Market Guard House Child Pot 25",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27333,7 +27333,7 @@
       "forbid": [],
       "hash": "16881481538337649070",
       "id": 120,
-      "name": "Market Treasure Chest Game Prize",
+      "name": "Market Treasure Chest Game Reward",
       "unprovable": false
     },
     {
@@ -27786,7 +27786,7 @@
       "forbid": [],
       "hash": "17061969935310382029",
       "id": 1008,
-      "name": "Market South Pot 1",
+      "name": "Market Guard House Child Pot 13",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28118,7 +28118,7 @@
       "forbid": [],
       "hash": "17261237591139782514",
       "id": 1014,
-      "name": "Market South Pot 46",
+      "name": "Market Guard House Child Pot 30",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28152,7 +28152,7 @@
       "forbid": [],
       "hash": "17272623210701397911",
       "id": 1016,
-      "name": "Market South Pot 2",
+      "name": "Market Guard House Child Pot 27",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28268,7 +28268,7 @@
       "forbid": [],
       "hash": "17337660928398648347",
       "id": 1019,
-      "name": "Market South Pot 14",
+      "name": "Market Guard House Child Pot 36",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28615,7 +28615,7 @@
       "forbid": [],
       "hash": "17535587547850276606",
       "id": 1023,
-      "name": "Market West Pot 2",
+      "name": "Market Bombchu Bowling Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28637,7 +28637,7 @@
       "forbid": [],
       "hash": "17558451189872819062",
       "id": 270,
-      "name": "Market Bombchu Shop 6",
+      "name": "Market Bombchu Shop Item 6",
       "unprovable": true,
       "when": {
         "ref": 44
@@ -29601,7 +29601,7 @@
       "forbid": [],
       "hash": "18084221514669050690",
       "id": 253,
-      "name": "Market Bazaar 1",
+      "name": "Market Bazaar Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -29700,7 +29700,7 @@
       "forbid": [],
       "hash": "18157355906313333023",
       "id": 254,
-      "name": "Market Bazaar 4",
+      "name": "Market Bazaar Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -30061,7 +30061,7 @@
       "forbid": [],
       "hash": "18439654067606795684",
       "id": 195,
-      "name": "Market Poe Collector: 1000 Points",
+      "name": "Market Big Poes 1000 Points",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
