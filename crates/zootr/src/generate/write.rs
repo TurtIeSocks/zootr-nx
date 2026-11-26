@@ -266,7 +266,7 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     // After ageless items, which add to the same sound users.
-    crate::audio::write(&mut builder, &new_game.audio)?;
+    crate::audio::write(&mut builder, &new_game.audio, new_game.seed)?;
     // Last: a feature copying a texture copies it as the dump has it.
     crate::colors::write(&mut builder, &new_game.colors)?;
     run.check()?;

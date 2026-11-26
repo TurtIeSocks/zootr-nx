@@ -62,21 +62,16 @@ impl Checks {
                 doors: vec![],
             });
         };
+        let mut report = history.report(id)?;
         let mut tracker = self.0.lock().unwrap();
         if tracker.as_ref().is_none_or(|(had, _)| *had != id) {
             let config = Config::load()?;
-            if history
-                .get(id)?
-                .report
-                .spots
-                .iter()
-                .all(|s| s.place.is_empty())
-            {
+            if report.spots.iter().all(|s| s.place.is_empty()) {
                 history.place(id, &romfs(&config)?)?;
                 history.save()?;
+                report = history.report(id)?;
             }
             let gd = app.state::<Live>().gamedata(&config)?;
-            let report = &history.get(id)?.report;
             let mut t = Tracker::new(&gd, &report.spots)?.with_doors(&report.entrances);
             // Only a save played since this seed went in: an older one
             // holds another seed's checks.
@@ -91,8 +86,8 @@ impl Checks {
         let entry = history.get(id)?;
         Ok(ChecksState {
             id: Some(id),
-            rows: t.rows(entry, |f| gd.as_ref()?.label(f)),
-            doors: t.door_rows(entry),
+            rows: t.rows(entry, &report, |f| gd.as_ref()?.label(f)),
+            doors: t.door_rows(entry, &report),
         })
     }
 
@@ -104,9 +99,10 @@ impl Checks {
         if flips.doors
             && let Ok(history) = History::load()
             && let Ok(entry) = history.get(*id)
+            && let Ok(report) = history.report(*id)
         {
             let _ = DoorsEvent {
-                doors: t.door_rows(entry),
+                doors: t.door_rows(entry, &report),
             }
             .emit(app);
         }

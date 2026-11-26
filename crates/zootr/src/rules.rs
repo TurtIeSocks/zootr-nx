@@ -174,7 +174,7 @@ impl Book {
         self.need(&rule.expr, ctx)
     }
 
-    /// A check's name in the rule files, if it has an entry.
+    /// A check's draft name in the rule files, if it has one.
     pub fn name(hash: u64) -> Option<&'static str> {
         static NAMES: OnceLock<BTreeMap<u64, String>> = OnceLock::new();
         // The tests load every rule file, so an error here never ships.
@@ -183,7 +183,28 @@ impl Book {
                 .map(|b| b.checks.into_iter().map(|(h, e)| (h, e.name)).collect())
                 .unwrap_or_default()
         });
-        names.get(&hash).map(String::as_str)
+        names
+            .get(&hash)
+            .map(String::as_str)
+            .filter(|n| !n.is_empty())
+    }
+
+    /// The comment above a check's entry in its rule file, line by line,
+    /// `#` kept: where it is and how its rule was read.
+    pub fn comment(hash: u64) -> Vec<&'static str> {
+        let wanted = format!("hash = {hash}");
+        for (_, text) in files::FILES {
+            let lines: Vec<&str> = text.lines().collect();
+            let Some(at) = lines.iter().position(|l| l.trim() == wanted) else {
+                continue;
+            };
+            let above = lines[..at].iter().rev();
+            let above = above.skip_while(|l| l.trim_start().starts_with("[["));
+            let mut out: Vec<&str> = above.take_while(|l| l.starts_with('#')).copied().collect();
+            out.reverse();
+            return out;
+        }
+        Vec::new()
     }
 
     /// The hand-written rule for a check, if it has one.

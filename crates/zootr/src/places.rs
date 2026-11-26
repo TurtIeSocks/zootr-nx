@@ -8,12 +8,12 @@ use std::f32::consts::{FRAC_PI_4, TAU};
 use anyhow::Result;
 use ounce_formats::{Byml, Romfs};
 
+use crate::check_names;
 use crate::checks::{
     GYAML, actors, area_of, banc_area, banc_files, flat, hash_of, load_bancs, str_field, vec3,
 };
 use crate::generate::Spot;
 use crate::known::{Name, actor, field};
-use crate::rules::Book;
 
 /// House models and the house each one is, in OoTR's words.
 const HOUSES: [(&Name, &str); 1] = [(actor::LAND_KOKIRI_HOUSE_INSIDE_E_03, "Mido's House")];
@@ -37,13 +37,13 @@ const COMPASS: [&str; 8] = [
     "Northwest",
 ];
 
-/// Sets each spot's `custom` name from the rule files, and each placed
+/// Sets each spot's `custom` name, its hand-written one (`check_names`), and each placed
 /// spot's `place`. Same places in an area get numbers, in room order.
 pub fn fill(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
     let areas = read(romfs, spots)?;
     let mut found = Vec::new();
     for (i, spot) in spots.iter_mut().enumerate() {
-        spot.custom = Book::name(spot.hash).unwrap_or_default().to_owned();
+        spot.custom = check_names::of(spot.hash).unwrap_or_default().to_owned();
         let Some(area) = areas.get(&spot.area) else {
             continue;
         };
@@ -81,6 +81,17 @@ pub fn fill_any(romfs: &Romfs, spots: &mut [Spot]) -> Result<()> {
     }
     number(spots, found);
     Ok(())
+}
+
+/// Where each of `spots` stands: its dungeon room (0 outside dungeons)
+/// and its position. Spots not placed in their area are left out.
+pub fn stand(romfs: &Romfs, spots: &[Spot]) -> Result<HashMap<u64, (i32, [f32; 3])>> {
+    let areas = read(romfs, spots)?;
+    let at = |s: &Spot| {
+        let placed = areas.get(&s.area)?.placed.get(&s.hash)?;
+        Some((s.hash, (placed.room, placed.pos)))
+    };
+    Ok(spots.iter().filter_map(at).collect())
 }
 
 #[derive(Clone, Copy, Default)]

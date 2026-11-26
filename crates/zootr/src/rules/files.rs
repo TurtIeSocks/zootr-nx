@@ -104,7 +104,9 @@ struct RuleFile {
 #[serde(deny_unknown_fields)]
 struct CheckRule {
     hash: u64,
-    /// Shown in place of the generated name (`Spot::name`).
+    /// A draft name for `probe names`, until its region's names file
+    /// (`check_names`) replaces it.
+    #[serde(default)]
     name: String,
     needs: String,
     /// Where a check with no placement is, like a gift, or one whose

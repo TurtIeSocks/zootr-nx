@@ -1,0 +1,59 @@
+# Death Mountain Trail. OoTR's name wherever the remake keeps the spot.
+# A spot with a copy in each age map names both, the age before the kind
+# ("Child Rock 1", "Adult Rock 1"), as OoTR's Market Guard House pots do.
+# Numbered west to east; two rocks that share one spot go in hash order.
+
+# Gold Skulltulas, matched by the remake guides: the cracked wall
+# low on the trail, the bean soil, and two hammer boulders
+351345377871782696 = "DMT GS Near Kak"
+17425319789138387506 = "DMT GS Bean Patch"
+17669199296215821346 = "DMT GS Above Dodongos Cavern"
+832677387023638406 = "DMT GS Falling Rocks Path"
+
+# The heart piece above Dodongo's Cavern and the chest on the trail
+715147239509454487 = "DMT Freestanding PoH"
+9809508929088891725 = "DMT Chest"
+
+# Rocks by Dodongo's Cavern, and one on the ledge above it
+2851507096200394201 = "DMT Near Dodongos Cavern Child Rock 1"
+14939062091580693841 = "DMT Near Dodongos Cavern Child Rock 2"
+13948143684682776614 = "DMT Near Dodongos Cavern Adult Rock 1"
+12245920151873026789 = "DMT Near Dodongos Cavern Adult Rock 2"
+15028130154350955098 = "DMT Above Dodongos Cavern Rock"
+
+# Rocks east of the signposts where the trail forks, and on the slope
+# above them. Two pairs above share a spot. Not in OoTR.
+11840734680907699074 = "DMT Near Signposts Child Rock 1" # guess: named for the signposts at the fork
+18346525865052973000 = "DMT Near Signposts Child Rock 2" # guess: named for the signposts at the fork
+5670786033047026238 = "DMT Near Signposts Adult Rock 1" # guess: named for the signposts at the fork
+327492638871129940 = "DMT Near Signposts Adult Rock 2" # guess: named for the signposts at the fork
+6087670250388905572 = "DMT Above Signposts Rock 1" # guess: named for the signposts at the fork
+11138816988756551783 = "DMT Above Signposts Rock 2" # guess: named for the signposts at the fork
+3302088556978088009 = "DMT Above Signposts Rock 3" # guess: named for the signposts at the fork
+11074416093858939225 = "DMT Above Signposts Rock 4" # guess: named for the signposts at the fork
+13787606981173272160 = "DMT Above Signposts Rock 5" # guess: named for the signposts at the fork
+3834806024043284116 = "DMT Above Signposts Rock" # guess: named for the signposts at the fork
+
+# Rocks at the summit, by the way into the crater. Not in OoTR.
+18073597818631342065 = "DMT Summit Rock 1"
+13595148908038154752 = "DMT Summit Rock 2"
+
+# The cow grotto, behind a rock a blast or hammer breaks
+6253945510651149508 = "DMT Cow Grotto Cow"
+4790064441201624663 = "DMT Cow Grotto Child Grass"
+11830620217139163618 = "DMT Cow Grotto Adult Grass"
+
+# A second grotto nearby, with Baby Dodongos and rupees, adult only.
+# OoTR's cow grotto holds its rupees; the remake splits them off.
+6307624256587354938 = "DMT Dodongo Grotto Green Rupee 1" # guess: a grotto of its own, named for its Baby Dodongos
+17286901874670360605 = "DMT Dodongo Grotto Green Rupee 2" # guess: a grotto of its own, named for its Baby Dodongos
+5008999164523690598 = "DMT Dodongo Grotto Green Rupee 3" # guess: a grotto of its own, named for its Baby Dodongos
+9972535766636368278 = "DMT Dodongo Grotto Blue Rupee 1" # guess: a grotto of its own, named for its Baby Dodongos
+12472730518306029279 = "DMT Dodongo Grotto Blue Rupee 2" # guess: a grotto of its own, named for its Baby Dodongos
+991975198297951915 = "DMT Dodongo Grotto Red Rupee" # guess: a grotto of its own, named for its Baby Dodongos
+
+# The Great Fairy and Biggoron at the summit
+10198943489153675532 = "DMT Great Fairy Reward" # guess: this fairy gives Dins Fire in the remake
+17580352713807808478 = "DMT Biggoron"
+1215836471142643217 = "DMT Trade Broken Sword"
+8480443483483791996 = "DMT Trade Eyedrops"

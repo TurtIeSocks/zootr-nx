@@ -1,0 +1,33 @@
+# Hyrule Castle. OoTR's name wherever the remake keeps the spot: the two
+# Gold Skulltulas match the remake guides (the garden tree, and the Song
+# of Storms grotto under the tree by the moat). Pots and crates are the
+# remake's own, named by the nearest landmark and numbered west to east.
+
+# The garden tree before the moat, rolled into as a child.
+2504273934093629549 = "HC GS Tree"
+
+# The Song of Storms grotto under the moat tree: OoTR's has four pots,
+# the remake's two.
+9162653017526462607 = "HC GS Storms Grotto"
+6050451915923533728 = "HC Storms Grotto Pot 1"
+4993011432510724566 = "HC Storms Grotto Pot 2"
+
+# Just inside the guarded gate on the path up from the field.
+10059814395578920693 = "HC Gate Pot 1" # guess: by the gate guard, on the castle side of the gate
+3850073398103270554 = "HC Gate Pot 2" # guess: by the gate guard, on the castle side of the gate
+
+# On the ledge above the moat by the castle's steel door, near where
+# Talon sleeps.
+17403667611047276834 = "HC Castle Door Pot 1" # guess: landmark read from the door beside them
+14678650210325974267 = "HC Castle Door Pot 2" # guess: landmark read from the door beside them
+
+# Inside the castle courtyard, by a tower short of Zelda's garden.
+5862372604076992768 = "HC Courtyard Crate 1" # guess: north of the moat, near Zelda's garden
+5507607260679107783 = "HC Courtyard Crate 2" # guess: north of the moat, near Zelda's garden
+
+# Gifts. The fountain behind the rock wall is OoTR's HC fairy; the remake
+# gives Improved Spin here, where OoTR gives Din's Fire.
+8102167512715863528 = "HC Great Fairy Reward"
+4575241808838949671 = "HC Zeldas Letter"
+10551859442360452256 = "HC Malon Egg"
+9485640170203711850 = "HC Song from Impa"

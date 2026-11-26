@@ -28,7 +28,7 @@
       "forbid": [],
       "hash": "35339038829944767",
       "id": 496,
-      "name": "Kakariko Village East Pot 3",
+      "name": "Kak Near Odd Medicine Building Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -44,7 +44,7 @@
       "forbid": [],
       "hash": "46774521065789894",
       "id": 497,
-      "name": "Kokiri Forest West Pot 1",
+      "name": "KF Near Know It All House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -91,7 +91,7 @@
       "forbid": [],
       "hash": "105365569697370932",
       "id": 1256,
-      "name": "Lost Woods Northeast Grass 9",
+      "name": "LW Near Shortcuts Grotto Adult Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -127,7 +127,7 @@
       "forbid": [],
       "hash": "116284582719887989",
       "id": 500,
-      "name": "Water Temple Pot 9",
+      "name": "Water Temple B1 Behind Gate Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -145,7 +145,7 @@
       "forbid": [],
       "hash": "129299066248871900",
       "id": 1,
-      "name": "Kokiri Forest Saria",
+      "name": "LW Gift from Saria",
       "unprovable": false
     },
     {
@@ -194,7 +194,7 @@
       "forbid": [],
       "hash": "160045946964554702",
       "id": 503,
-      "name": "Market South Pot 40",
+      "name": "Market Guard House Child Pot 43",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -287,7 +287,7 @@
       "forbid": [],
       "hash": "182031956235860994",
       "id": 2,
-      "name": "Kokiri Forest Business Scrub (Sticks)",
+      "name": "KF Deku Scrub Near Bridge",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -323,7 +323,7 @@
       "forbid": [],
       "hash": "186694424287048567",
       "id": 310,
-      "name": "Water Temple Gold Skulltula Token 4",
+      "name": "Water Temple 1F GS Near Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -390,7 +390,7 @@
       "forbid": [],
       "hash": "209505766503989880",
       "id": 505,
-      "name": "Market South Pot 34",
+      "name": "Market Guard House Child Pot 29",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -408,7 +408,7 @@
       "forbid": [],
       "hash": "220530141870229252",
       "id": 1089,
-      "name": "Hyrule Field West Rock 4",
+      "name": "HF West Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -450,7 +450,7 @@
       "forbid": [],
       "hash": "229475726653285413",
       "id": 311,
-      "name": "Graveyard West Gold Skulltula Token",
+      "name": "Graveyard GS Wall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -515,7 +515,7 @@
       "forbid": [],
       "hash": "313487388078450371",
       "id": 1414,
-      "name": "Kakariko Village East Beehive 19",
+      "name": "Kak Skulltula House Grotto Adult Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -551,7 +551,7 @@
       "forbid": [],
       "hash": "321976280272956796",
       "id": 1091,
-      "name": "Hyrule Field Northwest Rock 1",
+      "name": "HF Cow Grotto Entrance Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -569,7 +569,7 @@
       "forbid": [],
       "hash": "327492638871129940",
       "id": 1092,
-      "name": "Death Mountain Trail East Rock 1",
+      "name": "DMT Near Signposts Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -593,7 +593,7 @@
       "forbid": [],
       "hash": "341792603838029977",
       "id": 313,
-      "name": "Hyrule Field North Gold Skulltula Token 1",
+      "name": "LLR GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -628,7 +628,7 @@
       "forbid": [],
       "hash": "351345377871782696",
       "id": 314,
-      "name": "Death Mountain Trail West Gold Skulltula Token",
+      "name": "DMT GS Near Kak",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -662,7 +662,7 @@
       "forbid": [],
       "hash": "355724575355865248",
       "id": 508,
-      "name": "Market South Pot 9",
+      "name": "Market Guard House Child Pot 34",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -729,7 +729,7 @@
       "forbid": [],
       "hash": "474136620438465634",
       "id": 146,
-      "name": "Hyrule Field Ruto's Letter",
+      "name": "LH Underwater Item",
       "unprovable": false,
       "when": {
         "any": [
@@ -754,7 +754,7 @@
       "forbid": [],
       "hash": "493105369468884447",
       "id": 1259,
-      "name": "Hyrule Field Northeast Grass 13",
+      "name": "HF Storms Grotto Entrance Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -868,7 +868,7 @@
       "forbid": [],
       "hash": "578077075299673958",
       "id": 1436,
-      "name": "Hyrule Field Southwest Green Rupee (1) 4",
+      "name": "LH Water Temple Entrance Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -884,7 +884,7 @@
       "forbid": [],
       "hash": "591443488390566560",
       "id": 1094,
-      "name": "Kokiri Forest Southeast Rock 3",
+      "name": "KF Behind Sarias House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -918,7 +918,7 @@
       "forbid": [],
       "hash": "601921676218178237",
       "id": 1261,
-      "name": "Kakariko Village Southeast Grass 2",
+      "name": "Kak Near Impas House Adult Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -934,7 +934,7 @@
       "forbid": [],
       "hash": "610633925189690236",
       "id": 1049,
-      "name": "Kakariko Village Crate",
+      "name": "Kak Near Windmill Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -952,7 +952,7 @@
       "forbid": [],
       "hash": "629760094542173614",
       "id": 1437,
-      "name": "Hyrule Field East Green Rupee (1) 2",
+      "name": "HF Near Zora River Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -973,7 +973,7 @@
       "forbid": [],
       "hash": "630435123241072803",
       "id": 1415,
-      "name": "Kakariko Village East Beehive 14",
+      "name": "Kak Skulltula House Grotto Child Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -989,7 +989,7 @@
       "forbid": [],
       "hash": "630840502432038415",
       "id": 515,
-      "name": "Market South Pot 11",
+      "name": "Market Guard House Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1069,7 +1069,7 @@
       "forbid": [],
       "hash": "693126994387192480",
       "id": 1438,
-      "name": "Hyrule Field East Blue Rupee (5)",
+      "name": "HF Near Zora River Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -1101,7 +1101,7 @@
       "forbid": [],
       "hash": "700577879275312973",
       "id": 520,
-      "name": "Kakariko Village Southeast Pot 1",
+      "name": "Kak Near Impas House Child Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1119,7 +1119,7 @@
       "forbid": [],
       "hash": "700813349264257115",
       "id": 1262,
-      "name": "Lost Woods Northeast Grass 3",
+      "name": "LW Near Shortcuts Grotto Adult Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1161,7 +1161,7 @@
       "forbid": [],
       "hash": "715147239509454487",
       "id": 287,
-      "name": "Death Mountain Trail Piece of Heart",
+      "name": "DMT Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -1232,7 +1232,7 @@
       "forbid": [],
       "hash": "789492162651991711",
       "id": 316,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 5",
+      "name": "LH GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -1248,7 +1248,7 @@
       "forbid": [],
       "hash": "802407974539353270",
       "id": 1095,
-      "name": "Kokiri Forest West Rock 7",
+      "name": "KF Rock Circle Adult Rock 8",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1283,7 +1283,7 @@
       "forbid": [],
       "hash": "832677387023638406",
       "id": 317,
-      "name": "Death Mountain Trail North Gold Skulltula Token 1",
+      "name": "DMT GS Falling Rocks Path",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -1436,7 +1436,7 @@
       "forbid": [],
       "hash": "887949387241974339",
       "id": 147,
-      "name": "Kakariko Village Shooting Gallery",
+      "name": "Kak Shooting Gallery Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -1457,7 +1457,7 @@
       "forbid": [],
       "hash": "909723496375037131",
       "id": 148,
-      "name": "Kakariko Village House of Skulltula: 20",
+      "name": "Kak 20 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -1592,7 +1592,7 @@
       "forbid": [],
       "hash": "991975198297951915",
       "id": 1441,
-      "name": "Death Mountain Trail Red Rupee (20)",
+      "name": "DMT Dodongo Grotto Red Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -1610,7 +1610,7 @@
       "forbid": [],
       "hash": "1003681645323701836",
       "id": 529,
-      "name": "Hyrule Field South Pot 4",
+      "name": "LLR Grotto Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1644,7 +1644,7 @@
       "forbid": [],
       "hash": "1023031635146699070",
       "id": 531,
-      "name": "Market West Pot 3",
+      "name": "Market Bombchu Bowling Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1680,7 +1680,7 @@
       "forbid": [],
       "hash": "1031860467156401446",
       "id": 1263,
-      "name": "Hyrule Field Southwest Grass 9",
+      "name": "LH West Islet Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1700,7 +1700,7 @@
       "forbid": [],
       "hash": "1034471250009702566",
       "id": 279,
-      "name": "Kakariko Village Potion Shop 8",
+      "name": "Kak Potion Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -1752,7 +1752,7 @@
       "forbid": [],
       "hash": "1106450200910772173",
       "id": 1264,
-      "name": "Kokiri Forest Northeast Grass 2",
+      "name": "KF Behind Shop Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1807,7 +1807,7 @@
       "forbid": [],
       "hash": "1135865174486388723",
       "id": 1442,
-      "name": "Kokiri Forest South Recovery Heart 1",
+      "name": "KF Top of Sarias Child Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -1825,7 +1825,7 @@
       "forbid": [],
       "hash": "1140483042709047538",
       "id": 1265,
-      "name": "Hyrule Field Southeast Grass 7",
+      "name": "HF Marsh Grotto Entrance Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1841,7 +1841,7 @@
       "forbid": [],
       "hash": "1155385119688866072",
       "id": 534,
-      "name": "Kakariko Village Northeast Pot 5",
+      "name": "Kak Near Potion Shop Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1880,7 +1880,7 @@
       "forbid": [],
       "hash": "1163740567397714729",
       "id": 10,
-      "name": "Hyrule Field South Red Rupee (20) Chest",
+      "name": "HF South Chest",
       "unprovable": false
     },
     {
@@ -2094,7 +2094,7 @@
       "forbid": [],
       "hash": "1202776697094645489",
       "id": 1416,
-      "name": "Kakariko Village East Beehive 3",
+      "name": "Kak Skulltula House Grotto Burned Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -2114,7 +2114,7 @@
       "forbid": [],
       "hash": "1212183037605930043",
       "id": 223,
-      "name": "Kokiri Forest Shop 2",
+      "name": "KF Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -2130,7 +2130,7 @@
       "forbid": [],
       "hash": "1214219023609128151",
       "id": 1443,
-      "name": "Kokiri Forest South Recovery Heart 2",
+      "name": "KF Top of Sarias Adult Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2158,7 +2158,7 @@
       "forbid": [],
       "hash": "1215836471142643217",
       "id": 209,
-      "name": "Death Mountain Trail Biggoron: Broken Sword",
+      "name": "DMT Trade Broken Sword",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -2309,7 +2309,7 @@
       "forbid": [],
       "hash": "1279554567131519582",
       "id": 542,
-      "name": "Water Temple Pot 6",
+      "name": "Water Temple 2F Lobby Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2345,7 +2345,7 @@
       "forbid": [],
       "hash": "1288408765345426328",
       "id": 1266,
-      "name": "Sacred Forest Meadow South Grass 3",
+      "name": "SFM Near Fairy Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2398,7 +2398,7 @@
       "forbid": [],
       "hash": "1337254747199514230",
       "id": 545,
-      "name": "Outside Ganon's Castle North Pot 8",
+      "name": "OGC Tower Collapse Upper Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -2434,7 +2434,7 @@
       "forbid": [],
       "hash": "1361616512535825301",
       "id": 1267,
-      "name": "Hyrule Field Southeast Grass 10",
+      "name": "HF Marsh Grotto Entrance Child Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2470,7 +2470,7 @@
       "forbid": [],
       "hash": "1388174912867327163",
       "id": 1268,
-      "name": "Hyrule Field Southeast Grass 5",
+      "name": "HF Marsh Grotto Entrance Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2488,7 +2488,7 @@
       "forbid": [],
       "hash": "1388311011907432964",
       "id": 548,
-      "name": "Hyrule Field Southwest Pot 2",
+      "name": "LH Southwest Shore Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2546,7 +2546,7 @@
       "forbid": [],
       "hash": "1403700953474659107",
       "id": 224,
-      "name": "Market Potion Shop 4",
+      "name": "Market Potion Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -2575,7 +2575,7 @@
       "forbid": [],
       "hash": "1415353695595294309",
       "id": 1269,
-      "name": "Hyrule Field Northwest Grass 3",
+      "name": "HF Cow Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2611,7 +2611,7 @@
       "forbid": [],
       "hash": "1439274781043171114",
       "id": 552,
-      "name": "Hyrule Field Northwest Pot 4",
+      "name": "HF Cow Grotto Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2629,7 +2629,7 @@
       "forbid": [],
       "hash": "1472455071461140792",
       "id": 1270,
-      "name": "Hyrule Field Northeast Grass 11",
+      "name": "HF Storms Grotto Entrance Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -2784,7 +2784,7 @@
       "forbid": [],
       "hash": "1546412329969349153",
       "id": 556,
-      "name": "Market South Pot 32",
+      "name": "Market Guard House Child Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2800,7 +2800,7 @@
       "forbid": [],
       "hash": "1564209214895161222",
       "id": 1447,
-      "name": "Kokiri Forest South Blue Rupee (5)",
+      "name": "KF End of Bridge Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2818,7 +2818,7 @@
       "forbid": [],
       "hash": "1586568880795558629",
       "id": 1448,
-      "name": "Hyrule Field Southwest Green Rupee (1) 5",
+      "name": "LH Water Temple Entrance Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2955,7 +2955,7 @@
       "forbid": [],
       "hash": "1619904051930079553",
       "id": 559,
-      "name": "Kakariko Village North Pot 2",
+      "name": "Kak Near Gate Guard Burned Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2989,7 +2989,7 @@
       "forbid": [],
       "hash": "1640513490125741145",
       "id": 1271,
-      "name": "Kokiri Forest Southeast Grass 2",
+      "name": "KF Weeding Yard Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3007,7 +3007,7 @@
       "forbid": [],
       "hash": "1653162402693744760",
       "id": 1417,
-      "name": "Kakariko Village East Beehive 7",
+      "name": "Kak Skulltula House Grotto Adult Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -3023,7 +3023,7 @@
       "forbid": [],
       "hash": "1661231129625843374",
       "id": 560,
-      "name": "Market South Pot 20",
+      "name": "Market Guard House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3059,7 +3059,7 @@
       "forbid": [],
       "hash": "1702878762460339592",
       "id": 1272,
-      "name": "Hyrule Field Northeast Grass 17",
+      "name": "HF Storms Grotto Entrance Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3099,7 +3099,7 @@
       "forbid": [],
       "hash": "1718356088455579946",
       "id": 1449,
-      "name": "Graveyard East Green Rupee (1) 1",
+      "name": "Graveyard Dampe Race Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3149,7 +3149,7 @@
       "forbid": [],
       "hash": "1748192465494650957",
       "id": 271,
-      "name": "Kokiri Forest Shop 7",
+      "name": "KF Shop Item 7",
       "unprovable": true,
       "when": {
         "ref": 19
@@ -3183,7 +3183,7 @@
       "forbid": [],
       "hash": "1758714094280233423",
       "id": 1273,
-      "name": "Hyrule Field Northeast Grass 15",
+      "name": "HF Storms Grotto Entrance Adult Grass 12",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3207,7 +3207,7 @@
       "forbid": [],
       "hash": "1764383515296652106",
       "id": 135,
-      "name": "Sacred Forest Meadow North Business Scrub Seed Chest",
+      "name": "SFM Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -3240,7 +3240,7 @@
       "forbid": [],
       "hash": "1804603571840151022",
       "id": 1274,
-      "name": "Hyrule Field Southwest Grass 13",
+      "name": "LH South Islet Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3434,7 +3434,7 @@
       "forbid": [],
       "hash": "1921578605840057080",
       "id": 1051,
-      "name": "Hyrule Field North Crate 5",
+      "name": "HF Tektite Grotto Adult Crate 3",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -3521,7 +3521,7 @@
       "forbid": [],
       "hash": "1966095333205719145",
       "id": 565,
-      "name": "Market South Pot 38",
+      "name": "Market Guard House Child Pot 31",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3642,7 +3642,7 @@
       "forbid": [],
       "hash": "2026157113981043805",
       "id": 568,
-      "name": "Market South Pot 36",
+      "name": "Market Guard House Child Pot 18",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3730,7 +3730,7 @@
       "forbid": [],
       "hash": "2056926167552020049",
       "id": 1451,
-      "name": "Kokiri Forest East Blue Rupee (5) 2",
+      "name": "KF Stream Blue Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3748,7 +3748,7 @@
       "forbid": [],
       "hash": "2067586981487636357",
       "id": 1452,
-      "name": "Hyrule Field East Green Rupee (1) 8",
+      "name": "HF Near Zora River Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3782,7 +3782,7 @@
       "forbid": [],
       "hash": "2108281022000564101",
       "id": 572,
-      "name": "Kokiri Forest West Pot 2",
+      "name": "KF Near Know It All House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3848,7 +3848,7 @@
       "forbid": [],
       "hash": "2139721051512122393",
       "id": 302,
-      "name": "Hyrule Field Lon Lon Ranch Cow 1",
+      "name": "LLR Stables Left Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -3880,7 +3880,7 @@
       "forbid": [],
       "hash": "2157466067026784951",
       "id": 289,
-      "name": "Graveyard Piece of Heart",
+      "name": "Graveyard Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -3896,7 +3896,7 @@
       "forbid": [],
       "hash": "2165030477346767192",
       "id": 574,
-      "name": "Market South Pot 41",
+      "name": "Market Guard House Child Pot 44",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3920,7 +3920,7 @@
       "forbid": [],
       "hash": "2177746409373494991",
       "id": 322,
-      "name": "Hyrule Field East Gold Skulltula Token",
+      "name": "HF GS Lone Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -3938,7 +3938,7 @@
       "forbid": [],
       "hash": "2198102825223763053",
       "id": 1277,
-      "name": "Lost Woods Northeast Grass 17",
+      "name": "LW Near Shortcuts Grotto Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4016,7 +4016,7 @@
       "forbid": [],
       "hash": "2214083465643671502",
       "id": 15,
-      "name": "Lost Woods Business Scrub (Rock Grotto)",
+      "name": "LW Deku Scrub Grotto Rear",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -4108,7 +4108,7 @@
       "forbid": [],
       "hash": "2276876878264572073",
       "id": 1278,
-      "name": "Hyrule Field Southwest Grass 14",
+      "name": "LH South Islet Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4185,7 +4185,7 @@
       "forbid": [],
       "hash": "2314514470754031061",
       "id": 1457,
-      "name": "Hyrule Field Northeast Blue Rupee (5) 2",
+      "name": "HF Near Zora River Grotto Blue Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4203,7 +4203,7 @@
       "forbid": [],
       "hash": "2344173684202144129",
       "id": 1279,
-      "name": "Hyrule Field West Grass",
+      "name": "HF West Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4310,7 +4310,7 @@
       "forbid": [],
       "hash": "2470662836017610480",
       "id": 281,
-      "name": "Market Bazaar 8",
+      "name": "Market Bazaar Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -4347,7 +4347,7 @@
       "forbid": [],
       "hash": "2503132981930328096",
       "id": 578,
-      "name": "Market South Pot 16",
+      "name": "Market Guard House Child Pot 9",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4365,7 +4365,7 @@
       "forbid": [],
       "hash": "2503861086004941173",
       "id": 453,
-      "name": "Water Temple Small Key Chest 2",
+      "name": "Water Temple 1F Torches Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -4386,7 +4386,7 @@
       "forbid": [],
       "hash": "2504273934093629549",
       "id": 323,
-      "name": "Hyrule Castle North Gold Skulltula Token",
+      "name": "HC GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -4420,7 +4420,7 @@
       "forbid": [],
       "hash": "2512122383157745514",
       "id": 1458,
-      "name": "Kokiri Forest East Green Rupee (1) 3",
+      "name": "KF Bean Platform Green Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4552,7 +4552,7 @@
       "forbid": [],
       "hash": "2569517939889411425",
       "id": 19,
-      "name": "Lost Woods Business Scrub (Bug Buyer)",
+      "name": "LW Deku Scrub Near Deku Theater Left",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -4570,7 +4570,7 @@
       "forbid": [],
       "hash": "2570611913323957485",
       "id": 1281,
-      "name": "Hyrule Field Northwest Grass 2",
+      "name": "HF Cow Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4640,7 +4640,7 @@
       "forbid": [],
       "hash": "2657789777104100407",
       "id": 1107,
-      "name": "Kokiri Forest Northwest Rock 20",
+      "name": "KF Rock Circle Adult Rock 11",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4656,7 +4656,7 @@
       "forbid": [],
       "hash": "2661037609348760452",
       "id": 1108,
-      "name": "Kokiri Forest Northwest Rock 19",
+      "name": "KF Rock Circle Rock 7",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4690,7 +4690,7 @@
       "forbid": [],
       "hash": "2664667477796335039",
       "id": 584,
-      "name": "Kakariko Village Southeast Pot 6",
+      "name": "Kak Near Impas House Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4712,7 +4712,7 @@
       "forbid": [],
       "hash": "2669035957658688527",
       "id": 1459,
-      "name": "Graveyard Southeast Green Rupee (1) 3",
+      "name": "Graveyard Dampe Race Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4730,7 +4730,7 @@
       "forbid": [],
       "hash": "2669182838975155515",
       "id": 1282,
-      "name": "Sacred Forest Meadow South Grass 12",
+      "name": "SFM Near Wolfos Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4782,7 +4782,7 @@
       "forbid": [],
       "hash": "2730270174636576878",
       "id": 587,
-      "name": "Water Temple Pot 8",
+      "name": "Water Temple B1 Behind Gate Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4806,7 +4806,7 @@
       "forbid": [],
       "hash": "2730878115209290675",
       "id": 324,
-      "name": "Hyrule Field West Gold Skulltula Token",
+      "name": "LLR GS Tower",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -4842,7 +4842,7 @@
       "forbid": [],
       "hash": "2746689496522958019",
       "id": 1283,
-      "name": "Hyrule Field Southeast Grass 1",
+      "name": "HF Marsh Grotto Entrance Adult Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4860,7 +4860,7 @@
       "forbid": [],
       "hash": "2768742205155026921",
       "id": 1284,
-      "name": "Hyrule Field Southwest Grass 10",
+      "name": "LH South Islet Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4966,7 +4966,7 @@
       "forbid": [],
       "hash": "2822270749178751883",
       "id": 1286,
-      "name": "Lost Woods Northeast Grass 14",
+      "name": "LW Near Shortcuts Grotto Child Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5002,7 +5002,7 @@
       "forbid": [],
       "hash": "2851507096200394201",
       "id": 1111,
-      "name": "Death Mountain Trail Northwest Rock 4",
+      "name": "DMT Near Dodongos Cavern Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5026,7 +5026,7 @@
       "forbid": [],
       "hash": "2882450735448834595",
       "id": 1287,
-      "name": "Kokiri Forest Southeast Grass 6",
+      "name": "KF Weeding Yard Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5044,7 +5044,7 @@
       "forbid": [],
       "hash": "2907799653264284118",
       "id": 1288,
-      "name": "Hyrule Field Northeast Grass 10",
+      "name": "HF Storms Grotto Entrance Child Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5060,7 +5060,7 @@
       "forbid": [],
       "hash": "2912260394483772772",
       "id": 592,
-      "name": "Market South Pot 42",
+      "name": "Market Guard House Child Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5120,7 +5120,7 @@
       "forbid": [],
       "hash": "2967378296224661060",
       "id": 21,
-      "name": "Hyrule Field Northwest Piece of Heart Chest",
+      "name": "HF Fairy Note Chest",
       "unprovable": false
     },
     {
@@ -5146,7 +5146,7 @@
       "forbid": [],
       "hash": "2995876338500118652",
       "id": 596,
-      "name": "Outside Ganon's Castle North Pot 2",
+      "name": "OGC Tower Collapse Lower Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -5211,7 +5211,7 @@
       "forbid": [],
       "hash": "3063235766944682979",
       "id": 225,
-      "name": "Kakariko Village Potion Shop 3",
+      "name": "Kak Potion Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -5281,7 +5281,7 @@
       "forbid": [],
       "hash": "3081295406367672138",
       "id": 600,
-      "name": "Kakariko Village East Pot 2",
+      "name": "Kak Near Odd Medicine Building Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5297,7 +5297,7 @@
       "forbid": [],
       "hash": "3102293137454811300",
       "id": 601,
-      "name": "Market South Pot 17",
+      "name": "Market Guard House Child Pot 12",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5364,7 +5364,7 @@
       "forbid": [],
       "hash": "3139014475176937354",
       "id": 1055,
-      "name": "Hyrule Field Southwest Crate 2",
+      "name": "LH Lab Child Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -5454,7 +5454,7 @@
       "forbid": [],
       "hash": "3210871505869713729",
       "id": 1289,
-      "name": "Hyrule Field Southwest Grass 3",
+      "name": "LH Island Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5470,7 +5470,7 @@
       "forbid": [],
       "hash": "3211747475593407179",
       "id": 1460,
-      "name": "Kokiri Forest South Recovery Heart 8",
+      "name": "KF Sarias House Child Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -5528,7 +5528,7 @@
       "forbid": [],
       "hash": "3236392495739397075",
       "id": 1461,
-      "name": "Graveyard Northeast Green Rupee (1)",
+      "name": "Graveyard Dampe Race Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -5544,7 +5544,7 @@
       "forbid": [],
       "hash": "3252450751793784313",
       "id": 608,
-      "name": "Kakariko Village Northeast Pot 3",
+      "name": "Kak Near Potion Shop Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5560,7 +5560,7 @@
       "forbid": [],
       "hash": "3252807497395580785",
       "id": 609,
-      "name": "Kakariko Village Southeast Pot 4",
+      "name": "Kak Near Impas House Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5632,7 +5632,7 @@
       "forbid": [],
       "hash": "3302088556978088009",
       "id": 1114,
-      "name": "Death Mountain Trail North Rock 6",
+      "name": "DMT Above Signposts Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5682,7 +5682,7 @@
       "forbid": [],
       "hash": "3310819903461047792",
       "id": 326,
-      "name": "Kakariko Village Southeast Gold Skulltula Token",
+      "name": "Kak GS Above Impas House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -5742,7 +5742,7 @@
       "forbid": [],
       "hash": "3350061319058231770",
       "id": 197,
-      "name": "Sacred Forest Meadow Saria",
+      "name": "SFM Song from Saria",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -5955,7 +5955,7 @@
       "forbid": [],
       "hash": "3527237855955722340",
       "id": 617,
-      "name": "Market South Pot 22",
+      "name": "Market Guard House Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5989,7 +5989,7 @@
       "forbid": [],
       "hash": "3535150139081827459",
       "id": 1293,
-      "name": "Kokiri Forest Northwest Grass 4",
+      "name": "KF Near Midos House Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6037,7 +6037,7 @@
       "forbid": [],
       "hash": "3581309213670406493",
       "id": 303,
-      "name": "Kakariko Village Cow",
+      "name": "Kak Impas House Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -6055,7 +6055,7 @@
       "forbid": [],
       "hash": "3585686260179499649",
       "id": 620,
-      "name": "Water Temple Pot 3",
+      "name": "Water Temple 3F Lobby Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6073,7 +6073,7 @@
       "forbid": [],
       "hash": "3591228656871093720",
       "id": 621,
-      "name": "Water Temple Pot 24",
+      "name": "Water Temple 2F Behind Cracked Wall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6176,7 +6176,7 @@
       "forbid": [],
       "hash": "3669266735444406174",
       "id": 1464,
-      "name": "Kokiri Forest East Green Rupee (1) 6",
+      "name": "KF Bean Platform Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6212,7 +6212,7 @@
       "forbid": [],
       "hash": "3689958676603857333",
       "id": 1465,
-      "name": "Hyrule Field East Green Rupee (1) 7",
+      "name": "HF Near Zora River Green Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -6230,7 +6230,7 @@
       "forbid": [],
       "hash": "3693930347660122883",
       "id": 455,
-      "name": "Water Temple Small Key Chest 4",
+      "name": "Water Temple 1F Central Bow Target Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -6251,7 +6251,7 @@
       "forbid": [],
       "hash": "3701241424386675305",
       "id": 198,
-      "name": "Hyrule Field Zelda's Song",
+      "name": "HF Song from Ocarina of Time",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -6320,7 +6320,7 @@
       "forbid": [],
       "hash": "3747825875636115828",
       "id": 626,
-      "name": "Hyrule Field South Pot 2",
+      "name": "LLR Grotto Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6338,7 +6338,7 @@
       "forbid": [],
       "hash": "3749373667484950216",
       "id": 1294,
-      "name": "Hyrule Field Northeast Grass 27",
+      "name": "HF Central Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6407,7 +6407,7 @@
       "forbid": [],
       "hash": "3817329614376327303",
       "id": 1117,
-      "name": "Hyrule Field Northwest Rock 6",
+      "name": "HF Cow Grotto Entrance Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6425,7 +6425,7 @@
       "forbid": [],
       "hash": "3834806024043284116",
       "id": 1118,
-      "name": "Death Mountain Trail North Rock 4",
+      "name": "DMT Above Signposts Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6441,7 +6441,7 @@
       "forbid": [],
       "hash": "3844892122736768995",
       "id": 628,
-      "name": "Market South Pot 25",
+      "name": "Market Guard House Child Pot 38",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6457,7 +6457,7 @@
       "forbid": [],
       "hash": "3850073398103270554",
       "id": 629,
-      "name": "Hyrule Castle Northeast Pot 3",
+      "name": "HC Gate Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6579,7 +6579,7 @@
       "forbid": [],
       "hash": "3897504282010392499",
       "id": 1296,
-      "name": "Sacred Forest Meadow South Grass 7",
+      "name": "SFM Lower Maze Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6704,7 +6704,7 @@
       "forbid": [],
       "hash": "3952888275772445673",
       "id": 1297,
-      "name": "Sacred Forest Meadow South Grass 10",
+      "name": "SFM Near Wolfos Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6743,7 +6743,7 @@
       "forbid": [],
       "hash": "3994987831222113762",
       "id": 211,
-      "name": "Kakariko Village Granny: Odd Mushroom",
+      "name": "Kak Trade Odd Mushroom",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -6795,7 +6795,7 @@
       "forbid": [],
       "hash": "4016405848881617652",
       "id": 1056,
-      "name": "Market South Crate 2",
+      "name": "Market Guard House Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -6813,7 +6813,7 @@
       "forbid": [],
       "hash": "4025608826386451139",
       "id": 636,
-      "name": "Water Temple Pot 5",
+      "name": "Water Temple 2F Lobby Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6909,7 +6909,7 @@
       "forbid": [],
       "hash": "4115284299259285529",
       "id": 1057,
-      "name": "Hyrule Field North Crate 7",
+      "name": "HF Near Market Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -6978,7 +6978,7 @@
       "forbid": [],
       "hash": "4164292104786619976",
       "id": 1124,
-      "name": "Kokiri Forest Northwest Rock 8",
+      "name": "KF Rock Circle Child Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7012,7 +7012,7 @@
       "forbid": [],
       "hash": "4182932136190668163",
       "id": 1125,
-      "name": "Kokiri Forest Northwest Rock 10",
+      "name": "KF Rock Circle Child Rock 10",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7034,7 +7034,7 @@
       "forbid": [],
       "hash": "4184471392680640567",
       "id": 1470,
-      "name": "Graveyard East Green Rupee (1) 3",
+      "name": "Graveyard Dampe Race Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7074,7 +7074,7 @@
       "forbid": [],
       "hash": "4233716466148257051",
       "id": 199,
-      "name": "Sacred Forest Meadow Sheik",
+      "name": "SFM Sheik in Forest",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -7144,7 +7144,7 @@
       "forbid": [],
       "hash": "4262167623178799478",
       "id": 639,
-      "name": "Market South Pot 5",
+      "name": "Market Guard House Child Pot 16",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7160,7 +7160,7 @@
       "forbid": [],
       "hash": "4262639976510329423",
       "id": 640,
-      "name": "Kakariko Village Northeast Pot 1",
+      "name": "Kak Near Potion Shop Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7189,7 +7189,7 @@
       "forbid": [],
       "hash": "4293238463102171135",
       "id": 1059,
-      "name": "Hyrule Field North Crate 2",
+      "name": "HF Tektite Grotto Child Crate 2",
       "unprovable": true,
       "when": {
         "setting": "crates"
@@ -7242,7 +7242,7 @@
       "forbid": [],
       "hash": "4328741615941752705",
       "id": 29,
-      "name": "Lost Woods Business Scrub (Nuts)",
+      "name": "LW Deku Scrub Grotto Front",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -7260,7 +7260,7 @@
       "forbid": [],
       "hash": "4335656213162247230",
       "id": 328,
-      "name": "Lost Woods North Gold Skulltula Token 1",
+      "name": "LW GS Above Theater",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -7282,7 +7282,7 @@
       "forbid": [],
       "hash": "4349272251343787229",
       "id": 30,
-      "name": "Kokiri Forest West Purple Rupee (50) Chest",
+      "name": "KF Ledge Near Bridge Chest",
       "unprovable": false
     },
     {
@@ -7295,7 +7295,7 @@
       "forbid": [],
       "hash": "4349592517917306866",
       "id": 642,
-      "name": "Market South Pot 37",
+      "name": "Market Guard House Child Pot 26",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7311,7 +7311,7 @@
       "forbid": [],
       "hash": "4350448546553475237",
       "id": 1299,
-      "name": "Kokiri Forest Southeast Grass 1",
+      "name": "KF Weeding Yard Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7346,7 +7346,7 @@
       "forbid": [],
       "hash": "4353811140173259339",
       "id": 152,
-      "name": "Lost Woods Deku Theater: Mask of Truth",
+      "name": "LW Deku Theater Mask of Truth",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -7411,7 +7411,7 @@
       "forbid": [],
       "hash": "4399424945134189769",
       "id": 329,
-      "name": "Water Temple Gold Skulltula Token 5",
+      "name": "Water Temple 2F GS Behind Cracked Wall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -7453,7 +7453,7 @@
       "forbid": [],
       "hash": "4405219083245412012",
       "id": 153,
-      "name": "Kakariko Village House of Skulltula: 40",
+      "name": "Kak 40 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -7487,7 +7487,7 @@
       "forbid": [],
       "hash": "4453932386573032729",
       "id": 1300,
-      "name": "Lost Woods Northeast Grass 2",
+      "name": "LW Near Shortcuts Grotto Child Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7503,7 +7503,7 @@
       "forbid": [],
       "hash": "4460159811813955992",
       "id": 1301,
-      "name": "Kokiri Forest Northeast Grass 6",
+      "name": "KF Behind Shop Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7519,7 +7519,7 @@
       "forbid": [],
       "hash": "4462556192312188043",
       "id": 1471,
-      "name": "Kokiri Forest East Green Rupee (1) 8",
+      "name": "KF Bean Platform Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7551,7 +7551,7 @@
       "forbid": [],
       "hash": "4490005694725260163",
       "id": 1472,
-      "name": "Kokiri Forest North Blue Rupee (5)",
+      "name": "KF Stream Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7569,7 +7569,7 @@
       "forbid": [],
       "hash": "4495046968780299020",
       "id": 647,
-      "name": "Water Temple Pot 11",
+      "name": "Water Temple 1F Near Compass Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7648,7 +7648,7 @@
       "forbid": [],
       "hash": "4522352553331655338",
       "id": 208,
-      "name": "Kakariko Village House of Skulltula: 100",
+      "name": "Kak 100 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "all": [
@@ -7691,7 +7691,7 @@
       "forbid": [],
       "hash": "4525337806931267688",
       "id": 1473,
-      "name": "Hyrule Field Southwest Blue Rupee (5) 2",
+      "name": "LH Water Temple Entrance Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7715,7 +7715,7 @@
       "forbid": [],
       "hash": "4541346301504764442",
       "id": 650,
-      "name": "Market South Pot 15",
+      "name": "Market Guard House Child Pot 24",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7735,7 +7735,7 @@
       "forbid": [],
       "hash": "4555665598794293658",
       "id": 34,
-      "name": "Kokiri Forest Mido's House Front Left Chest",
+      "name": "KF Midos Top Right Chest",
       "unprovable": false
     },
     {
@@ -7774,7 +7774,7 @@
       "forbid": [],
       "hash": "4575241808838949671",
       "id": 154,
-      "name": "Hyrule Castle Zelda's Letter",
+      "name": "HC Zeldas Letter",
       "unprovable": false,
       "when": {
         "ref": 1
@@ -7790,7 +7790,7 @@
       "forbid": [],
       "hash": "4576019929976975366",
       "id": 1474,
-      "name": "Kokiri Forest East Green Rupee (1) 2",
+      "name": "KF Bean Platform Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7850,7 +7850,7 @@
       "forbid": [],
       "hash": "4598657944866228526",
       "id": 155,
-      "name": "Hyrule Field Fire Arrows",
+      "name": "LH Sun",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -7890,7 +7890,7 @@
       "forbid": [],
       "hash": "4624030970593856299",
       "id": 200,
-      "name": "Kakariko Village Windmill Man",
+      "name": "Kak Song from Windmill",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -7926,7 +7926,7 @@
       "forbid": [],
       "hash": "4630615646721664618",
       "id": 651,
-      "name": "Water Temple Pot 12",
+      "name": "Water Temple 1F Near Compass Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8004,7 +8004,7 @@
       "forbid": [],
       "hash": "4706627579492125828",
       "id": 1062,
-      "name": "Hyrule Field North Crate 1",
+      "name": "HF Tektite Grotto Adult Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -8056,7 +8056,7 @@
       "forbid": [],
       "hash": "4733558664880481899",
       "id": 1304,
-      "name": "Kakariko Village Southeast Grass 3",
+      "name": "Kak Near Impas House Child Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8100,7 +8100,7 @@
       "forbid": [],
       "hash": "4738397009648900238",
       "id": 1128,
-      "name": "Kokiri Forest West Rock 5",
+      "name": "KF Rock Circle Adult Rock 9",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8116,7 +8116,7 @@
       "forbid": [],
       "hash": "4751294038826612236",
       "id": 1477,
-      "name": "Kokiri Forest South Recovery Heart 7",
+      "name": "KF Sarias House Adult Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8152,7 +8152,7 @@
       "forbid": [],
       "hash": "4790064441201624663",
       "id": 1305,
-      "name": "Death Mountain Trail North Grass 2",
+      "name": "DMT Cow Grotto Child Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8202,7 +8202,7 @@
       "forbid": [],
       "hash": "4804777660082210636",
       "id": 256,
-      "name": "Kokiri Forest Shop 5",
+      "name": "KF Shop Item 5",
       "unprovable": true,
       "when": {
         "ref": 51
@@ -8220,7 +8220,7 @@
       "forbid": [],
       "hash": "4816761342260235661",
       "id": 1306,
-      "name": "Lost Woods Northeast Grass 8",
+      "name": "LW Near Shortcuts Grotto Child Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8264,7 +8264,7 @@
       "forbid": [],
       "hash": "4825657261695689152",
       "id": 304,
-      "name": "Hyrule Field Grotto Cow",
+      "name": "HF Cow Grotto Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -8298,7 +8298,7 @@
       "forbid": [],
       "hash": "4829374028878320404",
       "id": 212,
-      "name": "Kakariko Village Anju as Adult",
+      "name": "Kak Anju as Adult",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -8319,7 +8319,7 @@
       "forbid": [],
       "hash": "4830705234802295701",
       "id": 213,
-      "name": "Lost Woods Grog: Cojiro",
+      "name": "LW Trade Cojiro",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -8337,7 +8337,7 @@
       "forbid": [],
       "hash": "4849451237618976647",
       "id": 1307,
-      "name": "Hyrule Field Southwest Grass 5",
+      "name": "LH Island Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8409,7 +8409,7 @@
       "forbid": [],
       "hash": "4947234326749173851",
       "id": 1308,
-      "name": "Hyrule Field Southwest Grass 15",
+      "name": "LH South Islet Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8427,7 +8427,7 @@
       "forbid": [],
       "hash": "4947448008209653397",
       "id": 1063,
-      "name": "Hyrule Field East Crate",
+      "name": "HF Near Zora River Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -8445,7 +8445,7 @@
       "forbid": [],
       "hash": "4948971738939676499",
       "id": 1309,
-      "name": "Hyrule Field Southwest Grass 7",
+      "name": "LH West Islet Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8463,7 +8463,7 @@
       "forbid": [],
       "hash": "4974669760799564503",
       "id": 1418,
-      "name": "Kakariko Village East Beehive 9",
+      "name": "Kak Skulltula House Grotto Burned Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -8479,7 +8479,7 @@
       "forbid": [],
       "hash": "4993011432510724566",
       "id": 657,
-      "name": "Hyrule Castle Northeast Pot 1",
+      "name": "HC Storms Grotto Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8497,7 +8497,7 @@
       "forbid": [],
       "hash": "5007394544348392451",
       "id": 1310,
-      "name": "Lost Woods Northeast Grass 12",
+      "name": "LW Near Shortcuts Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8521,7 +8521,7 @@
       "forbid": [],
       "hash": "5008999164523690598",
       "id": 1478,
-      "name": "Death Mountain Trail North Green Rupee (1) 1",
+      "name": "DMT Dodongo Grotto Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -8681,7 +8681,7 @@
       "forbid": [],
       "hash": "5101608369586255705",
       "id": 257,
-      "name": "Market Bazaar 5",
+      "name": "Market Bazaar Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -8731,7 +8731,7 @@
       "forbid": [],
       "hash": "5133775918408786238",
       "id": 666,
-      "name": "Kokiri Forest Southeast Pot 1",
+      "name": "KF Near House of Twins Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8785,7 +8785,7 @@
       "forbid": [],
       "hash": "5148317565845368467",
       "id": 1311,
-      "name": "Sacred Forest Meadow South Grass 5",
+      "name": "SFM Lower Maze Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8837,7 +8837,7 @@
       "forbid": [],
       "hash": "5190570933151534141",
       "id": 1312,
-      "name": "Kokiri Forest Northeast Grass 5",
+      "name": "KF Behind Shop Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8908,7 +8908,7 @@
       "forbid": [],
       "hash": "5236682125833187881",
       "id": 671,
-      "name": "Hyrule Field South Pot 3",
+      "name": "LLR Grotto Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8962,7 +8962,7 @@
       "forbid": [],
       "hash": "5269723470233996461",
       "id": 1314,
-      "name": "Hyrule Field Southeast Grass 6",
+      "name": "HF Marsh Grotto Entrance Child Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9011,7 +9011,7 @@
       "forbid": [],
       "hash": "5312950394209176374",
       "id": 1132,
-      "name": "Kokiri Forest Northwest Rock 11",
+      "name": "KF Rock Circle Adult Rock 12",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9065,7 +9065,7 @@
       "forbid": [],
       "hash": "5355103373173124554",
       "id": 1480,
-      "name": "Hyrule Field East Green Rupee (1) 4",
+      "name": "HF Near Zora River Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9081,7 +9081,7 @@
       "forbid": [],
       "hash": "5365536334971735242",
       "id": 674,
-      "name": "Kakariko Village Northeast Pot 2",
+      "name": "Kak Near Potion Shop Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9109,7 +9109,7 @@
       "forbid": [],
       "hash": "5406759280757349546",
       "id": 37,
-      "name": "Lost Woods Business Scrub (Sticks)",
+      "name": "LW Deku Scrub Near Bridge",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -9211,7 +9211,7 @@
       "forbid": [],
       "hash": "5488835131617393219",
       "id": 1315,
-      "name": "Lost Woods Northeast Grass 6",
+      "name": "LW Near Shortcuts Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9227,7 +9227,7 @@
       "forbid": [],
       "hash": "5507607260679107783",
       "id": 1064,
-      "name": "Hyrule Castle North Crate 2",
+      "name": "HC Courtyard Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -9258,7 +9258,7 @@
       "forbid": [],
       "hash": "5534919361313859554",
       "id": 40,
-      "name": "Graveyard Southwest Piece of Heart Chest",
+      "name": "Graveyard Dampe Race Heart Piece Chest",
       "unprovable": false
     },
     {
@@ -9284,7 +9284,7 @@
       "forbid": [],
       "hash": "5547511959614762973",
       "id": 678,
-      "name": "Outside Ganon's Castle North Pot 6",
+      "name": "OGC Tower Collapse Lower Pot 6",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9318,7 +9318,7 @@
       "forbid": [],
       "hash": "5556420768102851394",
       "id": 1134,
-      "name": "Kokiri Forest Northwest Rock 4",
+      "name": "KF Near Midos House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9354,7 +9354,7 @@
       "forbid": [],
       "hash": "5597448927131828918",
       "id": 1316,
-      "name": "Lost Woods Northeast Grass 18",
+      "name": "LW Near Shortcuts Grotto Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9375,7 +9375,7 @@
       "forbid": [],
       "hash": "5600989862490052494",
       "id": 214,
-      "name": "Kakariko Village Talon: Pocket Cucco",
+      "name": "Kak Trade Pocket Cucco",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -9393,7 +9393,7 @@
       "forbid": [],
       "hash": "5604234566446979847",
       "id": 679,
-      "name": "Water Temple Pot 10",
+      "name": "Water Temple B1 Behind Gate Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9427,7 +9427,7 @@
       "forbid": [],
       "hash": "5615457568081558860",
       "id": 264,
-      "name": "Market Potion Shop 6",
+      "name": "Market Potion Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -9445,7 +9445,7 @@
       "forbid": [],
       "hash": "5615843072514010626",
       "id": 1136,
-      "name": "Hyrule Field Northwest Rock 3",
+      "name": "HF Cow Grotto Entrance Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9469,7 +9469,7 @@
       "forbid": [],
       "hash": "5620885265123329978",
       "id": 1482,
-      "name": "Hyrule Field Northeast Blue Rupee (5) 3",
+      "name": "HF Near Zora River Grotto Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9501,7 +9501,7 @@
       "forbid": [],
       "hash": "5626064870824758772",
       "id": 333,
-      "name": "Outside Ganon's Castle Gold Skulltula Token",
+      "name": "OGC GS",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -9549,7 +9549,7 @@
       "forbid": [],
       "hash": "5648900055318470269",
       "id": 1317,
-      "name": "Kokiri Forest Northeast Grass 3",
+      "name": "KF Behind Shop Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9565,7 +9565,7 @@
       "forbid": [],
       "hash": "5653833064804058759",
       "id": 1065,
-      "name": "Market South Crate 1",
+      "name": "Market Guard House Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -9589,7 +9589,7 @@
       "forbid": [],
       "hash": "5665703420335364217",
       "id": 305,
-      "name": "Hyrule Field Lon Lon Ranch Cow 2",
+      "name": "LLR Stables Right Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -9607,7 +9607,7 @@
       "forbid": [],
       "hash": "5670786033047026238",
       "id": 1137,
-      "name": "Death Mountain Trail East Rock 3",
+      "name": "DMT Near Signposts Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9623,7 +9623,7 @@
       "forbid": [],
       "hash": "5675403228854574159",
       "id": 1138,
-      "name": "Kokiri Forest Northwest Rock 17",
+      "name": "KF Rock Circle Adult Rock 13",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9734,7 +9734,7 @@
       "forbid": [],
       "hash": "5755485285664292988",
       "id": 42,
-      "name": "Hyrule Field Northeast Purple Rupee (50) Chest",
+      "name": "HF Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -9819,7 +9819,7 @@
       "forbid": [],
       "hash": "5784220025515362731",
       "id": 226,
-      "name": "Market Bazaar 2",
+      "name": "Market Bazaar Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -9853,7 +9853,7 @@
       "forbid": [],
       "hash": "5831980957101408041",
       "id": 686,
-      "name": "Market South Pot 33",
+      "name": "Market Guard House Child Pot 10",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9871,7 +9871,7 @@
       "forbid": [],
       "hash": "5848096526143037248",
       "id": 687,
-      "name": "Water Temple Pot 2",
+      "name": "Water Temple 3F Lobby Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9887,7 +9887,7 @@
       "forbid": [],
       "hash": "5853846732169153879",
       "id": 1140,
-      "name": "Kokiri Forest West Rock 3",
+      "name": "KF Rock Circle Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9903,7 +9903,7 @@
       "forbid": [],
       "hash": "5862372604076992768",
       "id": 1066,
-      "name": "Hyrule Castle North Crate 1",
+      "name": "HC Courtyard Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -10037,7 +10037,7 @@
       "forbid": [],
       "hash": "5955961334009237089",
       "id": 201,
-      "name": "Hyrule Field Malon",
+      "name": "LLR Song from Malon",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -10073,7 +10073,7 @@
       "forbid": [],
       "hash": "5968908134751131760",
       "id": 1318,
-      "name": "Hyrule Field Southeast Grass 8",
+      "name": "HF Marsh Grotto Entrance Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10143,7 +10143,7 @@
       "forbid": [],
       "hash": "6011696378209808077",
       "id": 283,
-      "name": "Market Potion Shop 8",
+      "name": "Market Potion Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -10183,7 +10183,7 @@
       "forbid": [],
       "hash": "6050451915923533728",
       "id": 696,
-      "name": "Hyrule Castle Northeast Pot 2",
+      "name": "HC Storms Grotto Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10214,7 +10214,7 @@
       "forbid": [],
       "hash": "6079532033038180376",
       "id": 1486,
-      "name": "Kokiri Forest Northeast Blue Rupee (5)",
+      "name": "KF Stream Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10232,7 +10232,7 @@
       "forbid": [],
       "hash": "6087670250388905572",
       "id": 1143,
-      "name": "Death Mountain Trail North Rock 9",
+      "name": "DMT Above Signposts Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10250,7 +10250,7 @@
       "forbid": [],
       "hash": "6105291056585907279",
       "id": 1144,
-      "name": "Hyrule Field Northwest Rock 8",
+      "name": "HF Cow Grotto Entrance Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10302,7 +10302,7 @@
       "forbid": [],
       "hash": "6159178651520699084",
       "id": 697,
-      "name": "Market South Pot 23",
+      "name": "Market Guard House Child Pot 33",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10336,7 +10336,7 @@
       "forbid": [],
       "hash": "6195808453148783180",
       "id": 699,
-      "name": "Kakariko Village Northeast Pot 6",
+      "name": "Kak Near Potion Shop Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10352,7 +10352,7 @@
       "forbid": [],
       "hash": "6202340199554483612",
       "id": 700,
-      "name": "Kakariko Village Southeast Pot 5",
+      "name": "Kak Near Impas House Burned Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10383,7 +10383,7 @@
       "forbid": [],
       "hash": "6226476025750490375",
       "id": 1146,
-      "name": "Kokiri Forest Northwest Rock 3",
+      "name": "KF Near Midos House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10401,7 +10401,7 @@
       "forbid": [],
       "hash": "6233273780664277824",
       "id": 1419,
-      "name": "Kakariko Village East Beehive 21",
+      "name": "Kak Skulltula House Grotto Burned Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -10439,7 +10439,7 @@
       "forbid": [],
       "hash": "6253945510651149508",
       "id": 306,
-      "name": "Death Mountain Trail Grotto Cow",
+      "name": "DMT Cow Grotto Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -10509,7 +10509,7 @@
       "forbid": [],
       "hash": "6294925652555242451",
       "id": 702,
-      "name": "Market South Pot 4",
+      "name": "Market Guard House Child Pot 35",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10545,7 +10545,7 @@
       "forbid": [],
       "hash": "6304980196399281219",
       "id": 704,
-      "name": "Water Temple Pot 21",
+      "name": "Water Temple 2F River Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10579,7 +10579,7 @@
       "forbid": [],
       "hash": "6305438045388642560",
       "id": 706,
-      "name": "Market South Pot 3",
+      "name": "Market Guard House Child Pot 19",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10603,7 +10603,7 @@
       "forbid": [],
       "hash": "6307624256587354938",
       "id": 1487,
-      "name": "Death Mountain Trail North Green Rupee (1) 2",
+      "name": "DMT Dodongo Grotto Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10675,7 +10675,7 @@
       "forbid": [],
       "hash": "6371576460968048747",
       "id": 1322,
-      "name": "Lost Woods Northeast Grass 15",
+      "name": "LW Near Shortcuts Grotto Adult Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10738,7 +10738,7 @@
       "forbid": [],
       "hash": "6429280567576879719",
       "id": 1147,
-      "name": "Kokiri Forest Northwest Rock 14",
+      "name": "KF Rock Circle Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10754,7 +10754,7 @@
       "forbid": [],
       "hash": "6438251486637186433",
       "id": 1325,
-      "name": "Kokiri Forest Northeast Grass 1",
+      "name": "KF Behind Shop Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10851,7 +10851,7 @@
       "forbid": [],
       "hash": "6465850391777915933",
       "id": 222,
-      "name": "Market Master Sword Pedestal",
+      "name": "Market ToT Master Sword",
       "unprovable": false,
       "when": {
         "setting": "master-sword-shuffle"
@@ -10871,7 +10871,7 @@
       "forbid": [],
       "hash": "6472964510849521373",
       "id": 227,
-      "name": "Kakariko Village Bazaar 1",
+      "name": "Kak Bazaar Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -10963,7 +10963,7 @@
       "forbid": [],
       "hash": "6618764049130440222",
       "id": 1490,
-      "name": "Kokiri Forest Southwest Blue Rupee (5) 1",
+      "name": "KF Boulder Maze Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -10979,7 +10979,7 @@
       "forbid": [],
       "hash": "6663933541925368008",
       "id": 713,
-      "name": "Kakariko Village East Pot 5",
+      "name": "Kak Near Odd Medicine Building Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10995,7 +10995,7 @@
       "forbid": [],
       "hash": "6674340586234083423",
       "id": 1326,
-      "name": "Kokiri Forest Northwest Grass 3",
+      "name": "KF Near Midos House Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11212,7 +11212,7 @@
       "forbid": [],
       "hash": "6794980312912759563",
       "id": 1328,
-      "name": "Hyrule Field Northeast Grass 9",
+      "name": "HF Storms Grotto Entrance Adult Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11228,7 +11228,7 @@
       "forbid": [],
       "hash": "6796029720660653103",
       "id": 229,
-      "name": "Market Potion Shop 2",
+      "name": "Market Potion Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -11331,7 +11331,7 @@
       "forbid": [],
       "hash": "6890402875059286502",
       "id": 1330,
-      "name": "Kokiri Forest Southeast Grass 5",
+      "name": "KF Weeding Yard Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11402,7 +11402,7 @@
       "forbid": [],
       "hash": "6900843020594897860",
       "id": 46,
-      "name": "Hyrule Field Southwest Red Rupee (20) Chest 1",
+      "name": "LH Grotto Chest",
       "unprovable": false
     },
     {
@@ -11420,7 +11420,7 @@
       "forbid": [],
       "hash": "6909031777249284340",
       "id": 1420,
-      "name": "Kakariko Village East Beehive 2",
+      "name": "Kak Skulltula House Grotto Child Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -11456,7 +11456,7 @@
       "forbid": [],
       "hash": "6943274243219023180",
       "id": 1331,
-      "name": "Sacred Forest Meadow South Grass 4",
+      "name": "SFM Near Fairy Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11583,7 +11583,7 @@
       "forbid": [],
       "hash": "7014193622407727514",
       "id": 336,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 2",
+      "name": "LH GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -11617,7 +11617,7 @@
       "forbid": [],
       "hash": "7026635600153347152",
       "id": 726,
-      "name": "Market Southwest Pot 1",
+      "name": "Market Back Alley Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11646,7 +11646,7 @@
       "forbid": [],
       "hash": "7057323129962538362",
       "id": 728,
-      "name": "Outside Ganon's Castle North Pot 3",
+      "name": "OGC Tower Collapse Lower Pot 5",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -11664,7 +11664,7 @@
       "forbid": [],
       "hash": "7109345210051555604",
       "id": 729,
-      "name": "Water Temple Pot 20",
+      "name": "Water Temple 2F River Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11686,7 +11686,7 @@
       "forbid": [],
       "hash": "7116603238806634901",
       "id": 337,
-      "name": "Kokiri Forest Southeast Gold Skulltula Token",
+      "name": "KF GS House of Twins",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -11731,7 +11731,7 @@
       "forbid": [],
       "hash": "7120300037202526714",
       "id": 730,
-      "name": "Kakariko Village Northeast Pot 4",
+      "name": "Kak Near Potion Shop Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11749,7 +11749,7 @@
       "forbid": [],
       "hash": "7122842226382586963",
       "id": 1421,
-      "name": "Kakariko Village East Beehive 1",
+      "name": "Kak Skulltula House Grotto Adult Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -11874,7 +11874,7 @@
       "forbid": [],
       "hash": "7213843677856822468",
       "id": 732,
-      "name": "Kakariko Village North Pot 1",
+      "name": "Kak Near Gate Guard Adult Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11896,7 +11896,7 @@
       "forbid": [],
       "hash": "7220582405369522243",
       "id": 1151,
-      "name": "Graveyard West Rock 1",
+      "name": "Graveyard Entrance Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -11912,7 +11912,7 @@
       "forbid": [],
       "hash": "7228035372353946866",
       "id": 733,
-      "name": "Market South Pot 39",
+      "name": "Market Guard House Child Pot 41",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11974,7 +11974,7 @@
       "forbid": [],
       "hash": "7242922901245289051",
       "id": 230,
-      "name": "Kakariko Village Bazaar 4",
+      "name": "Kak Bazaar Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -11990,7 +11990,7 @@
       "forbid": [],
       "hash": "7243630621233515413",
       "id": 1152,
-      "name": "Kokiri Forest West Rock 8",
+      "name": "KF Rock Circle Child Rock 8",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12033,7 +12033,7 @@
       "forbid": [],
       "hash": "7249046631724680605",
       "id": 1067,
-      "name": "Hyrule Field North Crate 6",
+      "name": "HF Tektite Grotto Child Crate 3",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -12051,7 +12051,7 @@
       "forbid": [],
       "hash": "7249585227432273089",
       "id": 737,
-      "name": "Water Temple Pot 16",
+      "name": "Water Temple 3F Tektite Hall Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12067,7 +12067,7 @@
       "forbid": [],
       "hash": "7250344944862033169",
       "id": 738,
-      "name": "Market South Pot 43",
+      "name": "Market Guard House Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12091,7 +12091,7 @@
       "forbid": [],
       "hash": "7268667473541116466",
       "id": 1492,
-      "name": "Hyrule Field Northeast Green Rupee (1) 2",
+      "name": "HF Near Zora River Grotto Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -12125,7 +12125,7 @@
       "forbid": [],
       "hash": "7313645087345190627",
       "id": 1153,
-      "name": "Kokiri Forest Southeast Rock 4",
+      "name": "KF Behind Sarias House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12143,7 +12143,7 @@
       "forbid": [],
       "hash": "7321227760391395251",
       "id": 740,
-      "name": "Water Temple Pot 15",
+      "name": "Water Temple 3F Tektite Hall Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12179,7 +12179,7 @@
       "forbid": [],
       "hash": "7331502814510362649",
       "id": 742,
-      "name": "Water Temple Pot 14",
+      "name": "Water Temple 3F Tektite Hall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12241,7 +12241,7 @@
       "forbid": [],
       "hash": "7388645484070660331",
       "id": 340,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 3",
+      "name": "LH GS Lab Crate",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12308,7 +12308,7 @@
       "forbid": [],
       "hash": "7397402781751080416",
       "id": 743,
-      "name": "Water Temple Pot 4",
+      "name": "Water Temple 3F Lobby Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12326,7 +12326,7 @@
       "forbid": [],
       "hash": "7406907156349628304",
       "id": 1332,
-      "name": "Hyrule Field Southeast Grass 3",
+      "name": "HF Marsh Grotto Entrance Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -12386,7 +12386,7 @@
       "forbid": [],
       "hash": "7412275398037840462",
       "id": 1333,
-      "name": "Lost Woods Northeast Grass 10",
+      "name": "LW Near Shortcuts Grotto Child Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -12500,7 +12500,7 @@
       "forbid": [],
       "hash": "7521824399864207059",
       "id": 744,
-      "name": "Market South Pot 21",
+      "name": "Market Guard House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12699,7 +12699,7 @@
       "forbid": [],
       "hash": "7629603093975129142",
       "id": 749,
-      "name": "Hyrule Field South Pot 1",
+      "name": "LLR Grotto Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12772,7 +12772,7 @@
       "forbid": [],
       "hash": "7677963516305772491",
       "id": 342,
-      "name": "Kakariko Village Northeast Gold Skulltula Token 2",
+      "name": "Kak GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12895,7 +12895,7 @@
       "forbid": [],
       "hash": "7804057436886816165",
       "id": 265,
-      "name": "Market Bazaar 6",
+      "name": "Market Bazaar Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -12906,7 +12906,7 @@
       "forbid": [],
       "hash": "7806434487081634021",
       "id": 755,
-      "name": "Outside Ganon's Castle North Pot 4",
+      "name": "OGC Tower Collapse Lower Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -12950,7 +12950,7 @@
       "forbid": [],
       "hash": "7934783801419233385",
       "id": 756,
-      "name": "Water Temple Pot 19",
+      "name": "Water Temple 2F River Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12979,7 +12979,7 @@
       "forbid": [],
       "hash": "7968474297316728619",
       "id": 161,
-      "name": "Lost Woods Skull Kid",
+      "name": "LW Skull Kid",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -12997,7 +12997,7 @@
       "forbid": [],
       "hash": "7975754981590731986",
       "id": 162,
-      "name": "Market Poe Collector",
+      "name": "Market 10 Big Poes",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13033,7 +13033,7 @@
       "forbid": [],
       "hash": "7981518132387036590",
       "id": 232,
-      "name": "Market Bombchu Shop 1",
+      "name": "Market Bombchu Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -13057,7 +13057,7 @@
       "forbid": [],
       "hash": "7995233962349162969",
       "id": 55,
-      "name": "Sacred Forest Meadow South Purple Rupee (50) Chest",
+      "name": "SFM Wolfos Grotto Chest",
       "unprovable": false
     },
     {
@@ -13070,7 +13070,7 @@
       "forbid": [],
       "hash": "8015913209367877534",
       "id": 758,
-      "name": "Kakariko Village North Pot 3",
+      "name": "Kak Near Gate Guard Child Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13088,7 +13088,7 @@
       "forbid": [],
       "hash": "8023741251559567641",
       "id": 1335,
-      "name": "Hyrule Field Northeast Grass 16",
+      "name": "HF Storms Grotto Entrance Child Grass 12",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13142,7 +13142,7 @@
       "forbid": [],
       "hash": "8033380555144713456",
       "id": 1157,
-      "name": "Hyrule Field West Rock 2",
+      "name": "HF West Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13178,7 +13178,7 @@
       "forbid": [],
       "hash": "8040993757853149095",
       "id": 1159,
-      "name": "Hyrule Field Northeast Rock 3",
+      "name": "HF Near Kak Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13196,7 +13196,7 @@
       "forbid": [],
       "hash": "8052831843135618910",
       "id": 163,
-      "name": "Market Bombchu Bowling: Third Prize",
+      "name": "Market Bombchu Bowling Second Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13232,7 +13232,7 @@
       "forbid": [],
       "hash": "8102167512715863528",
       "id": 164,
-      "name": "Hyrule Castle Great Fairy of Power",
+      "name": "HC Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -13293,7 +13293,7 @@
       "forbid": [],
       "hash": "8132480728943356272",
       "id": 760,
-      "name": "Hyrule Field Northwest Pot 2",
+      "name": "HF Cow Grotto Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13313,7 +13313,7 @@
       "forbid": [],
       "hash": "8161552603046357963",
       "id": 284,
-      "name": "Kokiri Forest Shop 8",
+      "name": "KF Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -13380,7 +13380,7 @@
       "forbid": [],
       "hash": "8217415107461137996",
       "id": 1495,
-      "name": "Kokiri Forest South Recovery Heart 10",
+      "name": "KF Sarias House Child Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -13416,7 +13416,7 @@
       "forbid": [],
       "hash": "8235277831792843095",
       "id": 1496,
-      "name": "Hyrule Field East Green Rupee (1) 5",
+      "name": "HF Near Zora River Green Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -13488,7 +13488,7 @@
       "forbid": [],
       "hash": "8258690081080809149",
       "id": 1338,
-      "name": "Hyrule Field Northeast Grass 18",
+      "name": "HF Storms Grotto Entrance Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13595,7 +13595,7 @@
       "forbid": [],
       "hash": "8404733154085657768",
       "id": 1497,
-      "name": "Graveyard East Green Rupee (1) 2",
+      "name": "Graveyard Dampe Race Rupee 7",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -13681,7 +13681,7 @@
       "forbid": [],
       "hash": "8480443483483791996",
       "id": 216,
-      "name": "Death Mountain Trail Biggoron: Eye Drops",
+      "name": "DMT Trade Eyedrops",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -13829,7 +13829,7 @@
       "forbid": [],
       "hash": "8655370827943125875",
       "id": 346,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 6",
+      "name": "LH GS Crawlspace",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -13845,7 +13845,7 @@
       "forbid": [],
       "hash": "8686048425858269244",
       "id": 1499,
-      "name": "Kokiri Forest East Green Rupee (1) 7",
+      "name": "KF Bean Platform Green Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14007,7 +14007,7 @@
       "forbid": [],
       "hash": "8748954161277078873",
       "id": 165,
-      "name": "Market Bombchu Bowling: Second Prize",
+      "name": "Market Bombchu Bowling First Prize",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14041,7 +14041,7 @@
       "forbid": [],
       "hash": "8769999659774163216",
       "id": 1163,
-      "name": "Graveyard West Rock 2",
+      "name": "Graveyard Entrance Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14075,7 +14075,7 @@
       "forbid": [],
       "hash": "8795160036094865435",
       "id": 1164,
-      "name": "Kokiri Forest Northwest Rock 21",
+      "name": "KF Rock Circle Child Rock 11",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14190,7 +14190,7 @@
       "forbid": [],
       "hash": "8827339149651327899",
       "id": 1339,
-      "name": "Hyrule Field Northeast Grass 12",
+      "name": "HF Storms Grotto Entrance Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -14267,7 +14267,7 @@
       "forbid": [],
       "hash": "8862936792925648296",
       "id": 273,
-      "name": "Market Potion Shop 7",
+      "name": "Market Potion Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -14323,7 +14323,7 @@
       "forbid": [],
       "hash": "8914926333771357265",
       "id": 266,
-      "name": "Kakariko Village Potion Shop 6",
+      "name": "Kak Potion Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -14339,7 +14339,7 @@
       "forbid": [],
       "hash": "8921752458646988665",
       "id": 776,
-      "name": "Market South Pot 12",
+      "name": "Market Guard House Child Pot 39",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14355,7 +14355,7 @@
       "forbid": [],
       "hash": "8931631613049749371",
       "id": 1166,
-      "name": "Kokiri Forest Northwest Rock 13",
+      "name": "KF Rock Circle Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14376,7 +14376,7 @@
       "forbid": [],
       "hash": "8942465719711548237",
       "id": 349,
-      "name": "Market Gold Skulltula Token",
+      "name": "Market GS Guard House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -14412,7 +14412,7 @@
       "forbid": [],
       "hash": "8955407423151725378",
       "id": 1500,
-      "name": "Hyrule Field East Green Rupee (1) 1",
+      "name": "HF Near Zora River Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14430,7 +14430,7 @@
       "forbid": [],
       "hash": "8957227260103329265",
       "id": 1340,
-      "name": "Lost Woods Northeast Grass 4",
+      "name": "LW Near Shortcuts Grotto Child Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -14481,7 +14481,7 @@
       "forbid": [],
       "hash": "8976284932613239030",
       "id": 1501,
-      "name": "Hyrule Field Southwest Green Rupee (1) 1",
+      "name": "LH Underwater Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14499,7 +14499,7 @@
       "forbid": [],
       "hash": "8977808724731648233",
       "id": 779,
-      "name": "Hyrule Field Southwest Pot 3",
+      "name": "LH Southwest Shore Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14521,7 +14521,7 @@
       "forbid": [],
       "hash": "8980892284071798868",
       "id": 1502,
-      "name": "Hyrule Field Deku Stick",
+      "name": "LH Underwater Deku Stick",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14561,7 +14561,7 @@
       "forbid": [],
       "hash": "8987278980043647768",
       "id": 1503,
-      "name": "Graveyard East Green Rupee (1) 4",
+      "name": "Graveyard Dampe Race Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14633,7 +14633,7 @@
       "forbid": [],
       "hash": "9014488669281029221",
       "id": 1341,
-      "name": "Hyrule Field Northeast Grass 14",
+      "name": "HF Storms Grotto Entrance Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -14666,7 +14666,7 @@
       "forbid": [],
       "hash": "9047381233010434881",
       "id": 350,
-      "name": "Hyrule Field Southeast Gold Skulltula Token",
+      "name": "HF GS Marsh Grotto",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -14734,7 +14734,7 @@
       "forbid": [],
       "hash": "9060474567289915003",
       "id": 166,
-      "name": "Kakariko Village House of Skulltula: 10",
+      "name": "Kak 10 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -14763,7 +14763,7 @@
       "forbid": [],
       "hash": "9075422221887327651",
       "id": 1167,
-      "name": "Hyrule Field West Rock 5",
+      "name": "HF West Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14969,7 +14969,7 @@
       "forbid": [],
       "hash": "9129764610893735958",
       "id": 1342,
-      "name": "Sacred Forest Meadow South Grass 1",
+      "name": "SFM Near Fairy Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -15002,7 +15002,7 @@
       "forbid": [],
       "hash": "9149464054892125753",
       "id": 1170,
-      "name": "Hyrule Field West Rock 3",
+      "name": "HF West Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15033,7 +15033,7 @@
       "forbid": [],
       "hash": "9161085961847838380",
       "id": 788,
-      "name": "Market South Pot 7",
+      "name": "Market Guard House Child Pot 32",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15054,7 +15054,7 @@
       "forbid": [],
       "hash": "9162653017526462607",
       "id": 351,
-      "name": "Hyrule Castle Northeast Gold Skulltula Token",
+      "name": "HC GS Storms Grotto",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15214,7 +15214,7 @@
       "forbid": [],
       "hash": "9279441469018472147",
       "id": 203,
-      "name": "Graveyard Royal Family's Tomb",
+      "name": "Graveyard Song from Royal Familys Tomb",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -15232,7 +15232,7 @@
       "forbid": [],
       "hash": "9279676533195108628",
       "id": 1343,
-      "name": "Hyrule Field Southeast Grass 12",
+      "name": "HF Marsh Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -15286,7 +15286,7 @@
       "forbid": [],
       "hash": "9296345993092817586",
       "id": 1173,
-      "name": "Kokiri Forest West Rock 12",
+      "name": "KF Near Know It All House Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15302,7 +15302,7 @@
       "forbid": [],
       "hash": "9299500760108964836",
       "id": 1071,
-      "name": "Market South Crate 5",
+      "name": "Market Guard House Crate 5",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -15322,7 +15322,7 @@
       "forbid": [],
       "hash": "9329787277345810673",
       "id": 234,
-      "name": "Kakariko Village Bazaar 3",
+      "name": "Kak Bazaar Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -15333,7 +15333,7 @@
       "forbid": [],
       "hash": "9333354743976439033",
       "id": 353,
-      "name": "Lost Woods Southwest Gold Skulltula Token",
+      "name": "LW GS Bean Patch Near Bridge",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -15349,7 +15349,7 @@
       "forbid": [],
       "hash": "9333984718219537434",
       "id": 1508,
-      "name": "Kokiri Forest South Recovery Heart 3",
+      "name": "KF Sarias House Child Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15434,7 +15434,7 @@
       "forbid": [],
       "hash": "9411228621880230151",
       "id": 167,
-      "name": "Lost Woods Target",
+      "name": "LW Target in Woods",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -15454,7 +15454,7 @@
       "forbid": [],
       "hash": "9419965511399476345",
       "id": 235,
-      "name": "Kakariko Village Potion Shop 4",
+      "name": "Kak Potion Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -15470,7 +15470,7 @@
       "forbid": [],
       "hash": "9430625341946461210",
       "id": 794,
-      "name": "Kakariko Village Southeast Pot 14",
+      "name": "Kak Near Impas House Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15486,7 +15486,7 @@
       "forbid": [],
       "hash": "9431172931320301236",
       "id": 795,
-      "name": "Market South Pot 47",
+      "name": "Market Guard House Child Pot 37",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15522,7 +15522,7 @@
       "forbid": [],
       "hash": "9447699849637278794",
       "id": 204,
-      "name": "Kakariko Village Sheik",
+      "name": "Kak Sheik in Kakariko",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -15594,7 +15594,7 @@
       "forbid": [],
       "hash": "9485640170203711850",
       "id": 205,
-      "name": "Hyrule Castle Impa",
+      "name": "HC Song from Impa",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -15635,7 +15635,7 @@
       "forbid": [],
       "hash": "9498246738218276037",
       "id": 796,
-      "name": "Kakariko Village Southeast Pot 8",
+      "name": "Kak Near Impas House Burned Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15815,7 +15815,7 @@
       "forbid": [],
       "hash": "9602474208541439570",
       "id": 1510,
-      "name": "Hyrule Field Deku Seeds (3)",
+      "name": "LH Underwater Deku Seeds",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -15851,7 +15851,7 @@
       "forbid": [],
       "hash": "9614156843162683069",
       "id": 801,
-      "name": "Water Temple Pot 1",
+      "name": "Water Temple 3F Lobby Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15889,7 +15889,7 @@
       "forbid": [],
       "hash": "9622128545943056087",
       "id": 67,
-      "name": "Graveyard South Piece of Heart Chest",
+      "name": "Graveyard Heart Piece Grave Chest",
       "unprovable": false
     },
     {
@@ -15897,7 +15897,7 @@
       "forbid": [],
       "hash": "9623998892552467148",
       "id": 358,
-      "name": "Kokiri Forest East Gold Skulltula Token",
+      "name": "KF GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -15913,7 +15913,7 @@
       "forbid": [],
       "hash": "9625992517764898163",
       "id": 803,
-      "name": "Market South Pot 29",
+      "name": "Market Guard House Child Pot 42",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15989,7 +15989,7 @@
       "forbid": [],
       "hash": "9667799371071602538",
       "id": 1512,
-      "name": "Kokiri Forest East Green Rupee (1) 1",
+      "name": "KF Bean Platform Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16087,7 +16087,7 @@
       "forbid": [],
       "hash": "9725242744547055868",
       "id": 68,
-      "name": "Kokiri Forest Mido's House Front Right Chest",
+      "name": "KF Midos Top Left Chest",
       "unprovable": false
     },
     {
@@ -16102,7 +16102,7 @@
       "forbid": [],
       "hash": "9741567715578520992",
       "id": 1344,
-      "name": "Sacred Forest Meadow South Grass 13",
+      "name": "SFM Near Wolfos Grotto Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16136,7 +16136,7 @@
       "forbid": [],
       "hash": "9778104484775444655",
       "id": 1513,
-      "name": "Kokiri Forest Southeast Recovery Heart 1",
+      "name": "KF Top of Sarias Child Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16154,7 +16154,7 @@
       "forbid": [],
       "hash": "9778224113645681398",
       "id": 1345,
-      "name": "Hyrule Field Northeast Grass 20",
+      "name": "HF Storms Grotto Entrance Child Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16176,7 +16176,7 @@
       "forbid": [],
       "hash": "9780435211847824593",
       "id": 169,
-      "name": "Kakariko Village Man on the Roof",
+      "name": "Kak Man on Roof",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -16234,7 +16234,7 @@
       "forbid": [],
       "hash": "9807262312429560898",
       "id": 1514,
-      "name": "Hyrule Field Deku Nut",
+      "name": "LH Underwater Deku Nut",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16258,7 +16258,7 @@
       "forbid": [],
       "hash": "9809508929088891725",
       "id": 141,
-      "name": "Death Mountain Trail South Business Scrub Seed Chest",
+      "name": "DMT Chest",
       "unprovable": false
     },
     {
@@ -16271,7 +16271,7 @@
       "forbid": [],
       "hash": "9810178254940844962",
       "id": 1174,
-      "name": "Kokiri Forest Southeast Rock 2",
+      "name": "KF Behind Sarias House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -16289,7 +16289,7 @@
       "forbid": [],
       "hash": "9814903750835309225",
       "id": 292,
-      "name": "Hyrule Field West Piece of Heart",
+      "name": "LLR Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -16307,7 +16307,7 @@
       "forbid": [],
       "hash": "9816312395494594323",
       "id": 1346,
-      "name": "Hyrule Field Northwest Grass 1",
+      "name": "HF Cow Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16393,7 +16393,7 @@
       "forbid": [],
       "hash": "9891111455604007674",
       "id": 70,
-      "name": "Hyrule Field Northeast Red Rupee (20) Chest",
+      "name": "HF Stone Bridge Chest",
       "unprovable": false
     },
     {
@@ -16468,7 +16468,7 @@
       "forbid": [],
       "hash": "9924885918140405518",
       "id": 1516,
-      "name": "Hyrule Field Southwest Blue Rupee (5) 1",
+      "name": "LH Lab Dive Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16486,7 +16486,7 @@
       "forbid": [],
       "hash": "9935389509796719985",
       "id": 170,
-      "name": "Market Bombchu Bowling: First Prize",
+      "name": "Market Bombchu Bowling Bombchus",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -16543,7 +16543,7 @@
       "forbid": [],
       "hash": "9972535766636368278",
       "id": 1517,
-      "name": "Death Mountain Trail North Blue Rupee (5) 2",
+      "name": "DMT Dodongo Grotto Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16561,7 +16561,7 @@
       "forbid": [],
       "hash": "9983734507820448325",
       "id": 1347,
-      "name": "Sacred Forest Meadow South Grass 6",
+      "name": "SFM Lower Maze Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16579,7 +16579,7 @@
       "forbid": [],
       "hash": "9989181491842997674",
       "id": 1518,
-      "name": "Hyrule Field Southwest Green Rupee (1) 3",
+      "name": "LH Water Temple Entrance Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16630,7 +16630,7 @@
       "forbid": [],
       "hash": "10016653679204206712",
       "id": 1519,
-      "name": "Hyrule Field Southwest Green Rupee (1) 2",
+      "name": "LH Underwater Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -16648,7 +16648,7 @@
       "forbid": [],
       "hash": "10016740363687289194",
       "id": 1349,
-      "name": "Hyrule Field Southwest Grass 11",
+      "name": "LH South Islet Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -16682,7 +16682,7 @@
       "forbid": [],
       "hash": "10043319116785133483",
       "id": 238,
-      "name": "Market Bombchu Shop 3",
+      "name": "Market Bombchu Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -16734,7 +16734,7 @@
       "forbid": [],
       "hash": "10059814395578920693",
       "id": 817,
-      "name": "Hyrule Castle Northeast Pot 4",
+      "name": "HC Gate Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16815,7 +16815,7 @@
       "forbid": [],
       "hash": "10103296210716215394",
       "id": 217,
-      "name": "Lost Woods Fado: Odd Powder",
+      "name": "LW Trade Odd Potion",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -16934,7 +16934,7 @@
       "forbid": [],
       "hash": "10132571390884605046",
       "id": 820,
-      "name": "Kakariko Village Southeast Pot 10",
+      "name": "Kak Near Impas House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16952,7 +16952,7 @@
       "forbid": [],
       "hash": "10145298046756223872",
       "id": 1422,
-      "name": "Kakariko Village East Beehive 4",
+      "name": "Kak Skulltula House Grotto Adult Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -16986,7 +16986,7 @@
       "forbid": [],
       "hash": "10165937155993394562",
       "id": 822,
-      "name": "Kakariko Village East Pot 1",
+      "name": "Kak Near Odd Medicine Building Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17022,7 +17022,7 @@
       "forbid": [],
       "hash": "10198943489153675532",
       "id": 171,
-      "name": "Death Mountain Trail Great Fairy of Din",
+      "name": "DMT Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -17056,7 +17056,7 @@
       "forbid": [],
       "hash": "10233336340851937748",
       "id": 824,
-      "name": "Market South Pot 10",
+      "name": "Market Guard House Child Pot 15",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17281,7 +17281,7 @@
       "forbid": [],
       "hash": "10327775662812412709",
       "id": 1521,
-      "name": "Kokiri Forest East Green Rupee (1) 5",
+      "name": "KF Bean Platform Green Rupee 8",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -17409,7 +17409,7 @@
       "forbid": [],
       "hash": "10364468093017215295",
       "id": 74,
-      "name": "Hyrule Field Business Scrub (Heart Piece)",
+      "name": "HF Drawbridge Grotto Deku Scrub",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -17427,7 +17427,7 @@
       "forbid": [],
       "hash": "10378828369334876242",
       "id": 473,
-      "name": "Water Temple Boss Key Chest",
+      "name": "Water Temple 1F Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -17456,7 +17456,7 @@
       "forbid": [],
       "hash": "10444788187435815162",
       "id": 1352,
-      "name": "Hyrule Field Southeast Grass 11",
+      "name": "HF Marsh Grotto Entrance Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -17467,7 +17467,7 @@
       "forbid": [],
       "hash": "10448158396041431760",
       "id": 834,
-      "name": "Outside Ganon's Castle North Pot 7",
+      "name": "OGC Tower Collapse Lower Pot 7",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -17524,7 +17524,7 @@
       "forbid": [],
       "hash": "10465703333688921274",
       "id": 172,
-      "name": "Outside Ganon's Castle Great Fairy of Courage",
+      "name": "OGC Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -17560,7 +17560,7 @@
       "forbid": [],
       "hash": "10495799149339563142",
       "id": 1178,
-      "name": "Hyrule Field Northwest Rock 7",
+      "name": "HF Cow Grotto Entrance Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17684,7 +17684,7 @@
       "forbid": [],
       "hash": "10551859442360452256",
       "id": 173,
-      "name": "Hyrule Castle Weird Egg",
+      "name": "HC Malon Egg",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -17758,7 +17758,7 @@
       "forbid": [],
       "hash": "10656348214587939196",
       "id": 1180,
-      "name": "Kokiri Forest Northwest Rock 15",
+      "name": "KF Rock Circle Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17908,7 +17908,7 @@
       "forbid": [],
       "hash": "10770932550933339193",
       "id": 240,
-      "name": "Kakariko Village Bazaar 2",
+      "name": "Kak Bazaar Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -17924,7 +17924,7 @@
       "forbid": [],
       "hash": "10790097866069291961",
       "id": 842,
-      "name": "Market West Pot 1",
+      "name": "Market Back Alley Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17944,7 +17944,7 @@
       "forbid": [],
       "hash": "10831981390482426294",
       "id": 77,
-      "name": "Kokiri Forest Mido's House Back Right Chest",
+      "name": "KF Midos Bottom Left Chest",
       "unprovable": false
     },
     {
@@ -17975,7 +17975,7 @@
       "forbid": [],
       "hash": "10848757081092766316",
       "id": 1525,
-      "name": "Hyrule Field Southwest Green Rupee (1) 6",
+      "name": "LH Water Temple Entrance Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -18050,7 +18050,7 @@
       "forbid": [],
       "hash": "10888561858771484232",
       "id": 174,
-      "name": "Hyrule Field Lake Scientist",
+      "name": "LH Lab Dive",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18078,7 +18078,7 @@
       "forbid": [],
       "hash": "10902337446962469519",
       "id": 175,
-      "name": "Lost Woods Deku Theater: Skull Mask",
+      "name": "LW Deku Theater Skull Mask",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18162,7 +18162,7 @@
       "forbid": [],
       "hash": "10950878580448147055",
       "id": 1354,
-      "name": "Hyrule Field Northeast Grass 22",
+      "name": "HF Storms Grotto Entrance Child Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18178,7 +18178,7 @@
       "forbid": [],
       "hash": "10951624736530275630",
       "id": 1355,
-      "name": "Kokiri Forest Northwest Grass 2",
+      "name": "KF Near Midos House Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18336,7 +18336,7 @@
       "forbid": [],
       "hash": "11066753475037239452",
       "id": 268,
-      "name": "Kakariko Village Bazaar 6",
+      "name": "Kak Bazaar Item 6",
       "unprovable": true,
       "when": {
         "ref": 44
@@ -18354,7 +18354,7 @@
       "forbid": [],
       "hash": "11068226974023171918",
       "id": 1356,
-      "name": "Hyrule Field Southwest Grass 4",
+      "name": "LH Island Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18372,7 +18372,7 @@
       "forbid": [],
       "hash": "11074416093858939225",
       "id": 1181,
-      "name": "Death Mountain Trail North Rock 7",
+      "name": "DMT Above Signposts Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18469,7 +18469,7 @@
       "forbid": [],
       "hash": "11131560251710515452",
       "id": 176,
-      "name": "Kokiri Forest Rock Clearing",
+      "name": "KF Rock Circle Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18505,7 +18505,7 @@
       "forbid": [],
       "hash": "11138816988756551783",
       "id": 1182,
-      "name": "Death Mountain Trail North Rock 8",
+      "name": "DMT Above Signposts Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18541,7 +18541,7 @@
       "forbid": [],
       "hash": "11142894434822030727",
       "id": 308,
-      "name": "Kokiri Forest Link's House Cow",
+      "name": "KF Links House Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -18612,7 +18612,7 @@
       "forbid": [],
       "hash": "11168192012016841724",
       "id": 1357,
-      "name": "Hyrule Field Southwest Grass 2",
+      "name": "LH Island Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18630,7 +18630,7 @@
       "forbid": [],
       "hash": "11169424749066888813",
       "id": 1358,
-      "name": "Sacred Forest Meadow South Grass 8",
+      "name": "SFM Lower Maze Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18648,7 +18648,7 @@
       "forbid": [],
       "hash": "11170096559973302143",
       "id": 1423,
-      "name": "Kakariko Village East Beehive 18",
+      "name": "Kak Skulltula House Grotto Burned Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -18700,7 +18700,7 @@
       "forbid": [],
       "hash": "11219803099333988363",
       "id": 1528,
-      "name": "Kokiri Forest Northeast Green Rupee (1)",
+      "name": "KF Stream Green Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -18718,7 +18718,7 @@
       "forbid": [],
       "hash": "11261275733557963781",
       "id": 1359,
-      "name": "Hyrule Field Southeast Grass 2",
+      "name": "HF Marsh Grotto Entrance Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18734,7 +18734,7 @@
       "forbid": [],
       "hash": "11271184709488608562",
       "id": 1360,
-      "name": "Kokiri Forest Northwest Grass 6",
+      "name": "KF Near Midos House Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18804,7 +18804,7 @@
       "forbid": [],
       "hash": "11310912260140613389",
       "id": 1361,
-      "name": "Hyrule Field Northeast Grass 26",
+      "name": "HF Storms Grotto Entrance Child Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18838,7 +18838,7 @@
       "forbid": [],
       "hash": "11342286987436207867",
       "id": 177,
-      "name": "Market Richard's Owner",
+      "name": "Market Lost Dog",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18934,7 +18934,7 @@
       "forbid": [],
       "hash": "11400416564850751157",
       "id": 1362,
-      "name": "Kokiri Forest Southeast Grass 4",
+      "name": "KF Weeding Yard Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18973,7 +18973,7 @@
       "forbid": [],
       "hash": "11445577403649451289",
       "id": 179,
-      "name": "Kakariko Village House of Skulltula: 50",
+      "name": "Kak 50 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -19104,7 +19104,7 @@
       "forbid": [],
       "hash": "11485802066891699092",
       "id": 180,
-      "name": "Hyrule Field Fishing as an Adult",
+      "name": "LH Adult Fishing",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -19122,7 +19122,7 @@
       "forbid": [],
       "hash": "11490165347466345300",
       "id": 1424,
-      "name": "Kakariko Village East Beehive 10",
+      "name": "Kak Skulltula House Grotto Adult Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -19174,7 +19174,7 @@
       "forbid": [],
       "hash": "11501932305561522817",
       "id": 1529,
-      "name": "Kokiri Forest South Recovery Heart 9",
+      "name": "KF Sarias House Adult Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19208,7 +19208,7 @@
       "forbid": [],
       "hash": "11528490284966062201",
       "id": 259,
-      "name": "Market Potion Shop 5",
+      "name": "Market Potion Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -19308,7 +19308,7 @@
       "forbid": [],
       "hash": "11571778270592589517",
       "id": 369,
-      "name": "Water Temple Gold Skulltula Token 1",
+      "name": "Water Temple 3F GS Central Pillar",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19368,7 +19368,7 @@
       "forbid": [],
       "hash": "11584460719857891610",
       "id": 1363,
-      "name": "Sacred Forest Meadow South Grass 2",
+      "name": "SFM Near Fairy Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19388,7 +19388,7 @@
       "forbid": [],
       "hash": "11595064306709942551",
       "id": 241,
-      "name": "Kokiri Forest Shop 1",
+      "name": "KF Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -19445,7 +19445,7 @@
       "forbid": [],
       "hash": "11629189455828560791",
       "id": 370,
-      "name": "Kakariko Village North Gold Skulltula Token",
+      "name": "Kak GS Near Gate Guard",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19463,7 +19463,7 @@
       "forbid": [],
       "hash": "11631894770326169336",
       "id": 1365,
-      "name": "Hyrule Field Southwest Grass 1",
+      "name": "HF Near Lake Grotto Entrance Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19503,7 +19503,7 @@
       "forbid": [],
       "hash": "11634540265512998108",
       "id": 860,
-      "name": "Kokiri Forest Southeast Pot 2",
+      "name": "KF Near House of Twins Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19523,7 +19523,7 @@
       "forbid": [],
       "hash": "11639399395084703081",
       "id": 242,
-      "name": "Kakariko Village Potion Shop 2",
+      "name": "Kak Potion Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -19598,7 +19598,7 @@
       "forbid": [],
       "hash": "11682974908842171598",
       "id": 83,
-      "name": "Water Temple Red Rupee (20) Chest",
+      "name": "Water Temple B1 Central Pillar Chest",
       "unprovable": false
     },
     {
@@ -19740,7 +19740,7 @@
       "forbid": [],
       "hash": "11775162899811054217",
       "id": 1187,
-      "name": "Hyrule Field Northwest Rock 2",
+      "name": "HF Cow Grotto Entrance Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19776,7 +19776,7 @@
       "forbid": [],
       "hash": "11830620217139163618",
       "id": 1366,
-      "name": "Death Mountain Trail North Grass 1",
+      "name": "DMT Cow Grotto Adult Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19794,7 +19794,7 @@
       "forbid": [],
       "hash": "11840734680907699074",
       "id": 1188,
-      "name": "Death Mountain Trail East Rock 4",
+      "name": "DMT Near Signposts Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19810,7 +19810,7 @@
       "forbid": [],
       "hash": "11881247981246911148",
       "id": 1189,
-      "name": "Kokiri Forest West Rock 11",
+      "name": "KF Near Know It All House Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19846,7 +19846,7 @@
       "forbid": [],
       "hash": "11917730692592781756",
       "id": 1534,
-      "name": "Hyrule Field East Green Rupee (1) 3",
+      "name": "HF Near Zora River Green Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -19880,7 +19880,7 @@
       "forbid": [],
       "hash": "11929552275106311978",
       "id": 86,
-      "name": "Kakariko Village East Purple Rupee (50) Chest 1",
+      "name": "Kak Windmill Adult Chest",
       "unprovable": false
     },
     {
@@ -19955,7 +19955,7 @@
       "forbid": [],
       "hash": "12007978132755687032",
       "id": 371,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 1",
+      "name": "HF GS Near Lake Grotto",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -20011,7 +20011,7 @@
       "forbid": [],
       "hash": "12023735427638332018",
       "id": 243,
-      "name": "Kakariko Village Potion Shop 1",
+      "name": "Kak Potion Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -20063,7 +20063,7 @@
       "forbid": [],
       "hash": "12045642716728132811",
       "id": 1191,
-      "name": "Kokiri Forest West Rock 6",
+      "name": "KF Rock Circle Child Rock 9",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20079,7 +20079,7 @@
       "forbid": [],
       "hash": "12079876816721924835",
       "id": 1535,
-      "name": "Kokiri Forest East Green Rupee (1) 4",
+      "name": "KF Bean Platform Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20097,7 +20097,7 @@
       "forbid": [],
       "hash": "12081469056021144650",
       "id": 1075,
-      "name": "Hyrule Field North Crate 8",
+      "name": "HF Northwest Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -20212,7 +20212,7 @@
       "forbid": [],
       "hash": "12111374068099501077",
       "id": 1368,
-      "name": "Hyrule Field Northeast Grass 23",
+      "name": "HF Storms Grotto Entrance Adult Grass 11",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20248,7 +20248,7 @@
       "forbid": [],
       "hash": "12146339761792216385",
       "id": 872,
-      "name": "Water Temple Pot 17",
+      "name": "Water Temple 2F Map Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20375,7 +20375,7 @@
       "forbid": [],
       "hash": "12216364986168177616",
       "id": 1369,
-      "name": "Kokiri Forest Northwest Grass 5",
+      "name": "KF Near Midos House Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20391,7 +20391,7 @@
       "forbid": [],
       "hash": "12239117590972833691",
       "id": 875,
-      "name": "Market South Pot 13",
+      "name": "Market Guard House Child Pot 28",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20409,7 +20409,7 @@
       "forbid": [],
       "hash": "12245920151873026789",
       "id": 1194,
-      "name": "Death Mountain Trail Northwest Rock 1",
+      "name": "DMT Near Dodongos Cavern Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20503,7 +20503,7 @@
       "forbid": [],
       "hash": "12274555791381804315",
       "id": 244,
-      "name": "Kokiri Forest Shop 3",
+      "name": "KF Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -20537,7 +20537,7 @@
       "forbid": [],
       "hash": "12290558272066687065",
       "id": 878,
-      "name": "Market West Pot 4",
+      "name": "Market Bombchu Bowling Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20553,7 +20553,7 @@
       "forbid": [],
       "hash": "12317452644253046635",
       "id": 1536,
-      "name": "Kokiri Forest Southeast Recovery Heart 2",
+      "name": "KF Top of Sarias Adult Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20613,7 +20613,7 @@
       "forbid": [],
       "hash": "12340005938488096890",
       "id": 1371,
-      "name": "Hyrule Field North Grass",
+      "name": "HF Northwest Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20764,7 +20764,7 @@
       "forbid": [],
       "hash": "12416733255464110660",
       "id": 245,
-      "name": "Kokiri Forest Shop 4",
+      "name": "KF Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -20786,7 +20786,7 @@
       "forbid": [],
       "hash": "12426385834471778854",
       "id": 246,
-      "name": "Market Bombchu Shop 2",
+      "name": "Market Bombchu Shop Item 2",
       "unprovable": true,
       "when": {
         "ref": 95
@@ -20804,7 +20804,7 @@
       "forbid": [],
       "hash": "12433346503492556092",
       "id": 881,
-      "name": "Hyrule Field Northwest Pot 3",
+      "name": "HF Cow Grotto Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20846,7 +20846,7 @@
       "forbid": [],
       "hash": "12472730518306029279",
       "id": 1538,
-      "name": "Death Mountain Trail North Blue Rupee (5) 1",
+      "name": "DMT Dodongo Grotto Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -20880,7 +20880,7 @@
       "forbid": [],
       "hash": "12533087173674017391",
       "id": 884,
-      "name": "Market South Pot 44",
+      "name": "Market Guard House Child Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20898,7 +20898,7 @@
       "forbid": [],
       "hash": "12534845042709325315",
       "id": 885,
-      "name": "Water Temple Pot 23",
+      "name": "Water Temple 2F Behind Cracked Wall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20914,7 +20914,7 @@
       "forbid": [],
       "hash": "12535663762055135836",
       "id": 285,
-      "name": "Market Bombchu Shop 8",
+      "name": "Market Bombchu Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -20950,7 +20950,7 @@
       "forbid": [],
       "hash": "12554124099881313894",
       "id": 1373,
-      "name": "Hyrule Field Southwest Grass 12",
+      "name": "LH South Islet Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20966,7 +20966,7 @@
       "forbid": [],
       "hash": "12555045194845838033",
       "id": 181,
-      "name": "Market Shooting Gallery",
+      "name": "Market Shooting Gallery Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21054,7 +21054,7 @@
       "forbid": [],
       "hash": "12582583935041109669",
       "id": 887,
-      "name": "Market South Pot 19",
+      "name": "Market Guard House Child Pot 40",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21094,7 +21094,7 @@
       "forbid": [],
       "hash": "12611601700011014094",
       "id": 182,
-      "name": "Hyrule Field Fishing as a Child",
+      "name": "LH Child Fishing",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21148,7 +21148,7 @@
       "forbid": [],
       "hash": "12665247659442490400",
       "id": 1374,
-      "name": "Lost Woods Northeast Grass 16",
+      "name": "LW Near Shortcuts Grotto Child Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21238,7 +21238,7 @@
       "forbid": [],
       "hash": "12744945159394614918",
       "id": 1540,
-      "name": "Kokiri Forest South Recovery Heart 5",
+      "name": "KF Top of Sarias Child Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -21312,7 +21312,7 @@
       "forbid": [],
       "hash": "12786193094758345086",
       "id": 90,
-      "name": "Kokiri Forest Mido's House Back Left Chest",
+      "name": "KF Midos Bottom Right Chest",
       "unprovable": false
     },
     {
@@ -21369,7 +21369,7 @@
       "forbid": [],
       "hash": "12830501860874391361",
       "id": 1199,
-      "name": "Hyrule Field Northwest Rock 5",
+      "name": "HF Cow Grotto Entrance Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21387,7 +21387,7 @@
       "forbid": [],
       "hash": "12870146517126532303",
       "id": 1376,
-      "name": "Hyrule Field Northeast Grass 6",
+      "name": "HF Storms Grotto Entrance Child Grass 10",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21426,7 +21426,7 @@
       "forbid": [],
       "hash": "12901354557574090016",
       "id": 92,
-      "name": "Hyrule Field Business Scrub (Seeds)",
+      "name": "LLR Deku Scrub Grotto Center",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -21450,7 +21450,7 @@
       "forbid": [],
       "hash": "12902291359202819102",
       "id": 93,
-      "name": "Kakariko Village Northeast Blue Rupee (5) Chest",
+      "name": "Kak Open Grotto Chest",
       "unprovable": false
     },
     {
@@ -21590,7 +21590,7 @@
       "forbid": [],
       "hash": "12976212884789503099",
       "id": 1542,
-      "name": "Graveyard Southeast Green Rupee (1) 2",
+      "name": "Graveyard Dampe Race Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -21639,7 +21639,7 @@
       "forbid": [],
       "hash": "13002777795600434992",
       "id": 1201,
-      "name": "Kokiri Forest West Rock 4",
+      "name": "KF Rock Circle Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21655,7 +21655,7 @@
       "forbid": [],
       "hash": "13009491718918701905",
       "id": 1377,
-      "name": "Kokiri Forest Southeast Grass 3",
+      "name": "KF Weeding Yard Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21690,7 +21690,7 @@
       "forbid": [],
       "hash": "13030954850772711586",
       "id": 1378,
-      "name": "Hyrule Field Northeast Grass 1",
+      "name": "HF Storms Grotto Entrance Adult Grass 13",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21724,7 +21724,7 @@
       "forbid": [],
       "hash": "13037119094293428679",
       "id": 247,
-      "name": "Market Bazaar 3",
+      "name": "Market Bazaar Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -21742,7 +21742,7 @@
       "forbid": [],
       "hash": "13037178969835996014",
       "id": 1379,
-      "name": "Hyrule Field Northeast Grass 7",
+      "name": "HF Storms Grotto Entrance Adult Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21758,7 +21758,7 @@
       "forbid": [],
       "hash": "13040976737240109424",
       "id": 892,
-      "name": "Kakariko Village Southeast Pot 2",
+      "name": "Kak Near Impas House Burned Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21792,7 +21792,7 @@
       "forbid": [],
       "hash": "13080955777249750889",
       "id": 97,
-      "name": "Kakariko Village East Purple Rupee (50) Chest 2",
+      "name": "Kak Windmill Burned Chest",
       "unprovable": false
     },
     {
@@ -21809,7 +21809,7 @@
       "forbid": [],
       "hash": "13090519859098389042",
       "id": 260,
-      "name": "Kakariko Village Potion Shop 5",
+      "name": "Kak Potion Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -21903,7 +21903,7 @@
       "forbid": [],
       "hash": "13164882936498639212",
       "id": 1202,
-      "name": "Kokiri Forest Northwest Rock 5",
+      "name": "KF Rock Circle Adult Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21941,7 +21941,7 @@
       "forbid": [],
       "hash": "13192127861177212694",
       "id": 269,
-      "name": "Kokiri Forest Shop 6",
+      "name": "KF Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -21957,7 +21957,7 @@
       "forbid": [],
       "hash": "13196856183265505423",
       "id": 897,
-      "name": "Market South Pot 45",
+      "name": "Market Guard House Child Pot 22",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21973,7 +21973,7 @@
       "forbid": [],
       "hash": "13219695470225186387",
       "id": 1203,
-      "name": "Kokiri Forest Northwest Rock 12",
+      "name": "KF Rock Circle Child Rock 12",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22005,7 +22005,7 @@
       "forbid": [],
       "hash": "13242971960259401995",
       "id": 261,
-      "name": "Market Bombchu Shop 5",
+      "name": "Market Bombchu Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -22021,7 +22021,7 @@
       "forbid": [],
       "hash": "13260935631141400078",
       "id": 899,
-      "name": "Market South Pot 6",
+      "name": "Market Guard House Child Pot 23",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22057,7 +22057,7 @@
       "forbid": [],
       "hash": "13290504378426406086",
       "id": 1380,
-      "name": "Hyrule Field Northeast Grass 3",
+      "name": "HF Storms Grotto Entrance Adult Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22073,7 +22073,7 @@
       "forbid": [],
       "hash": "13297194429826823773",
       "id": 1381,
-      "name": "Kokiri Forest Northeast Grass 4",
+      "name": "KF Behind Shop Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22125,7 +22125,7 @@
       "forbid": [],
       "hash": "13321954940214063371",
       "id": 1206,
-      "name": "Kokiri Forest Northwest Rock 18",
+      "name": "KF Rock Circle Child Rock 13",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22172,7 +22172,7 @@
       "forbid": [],
       "hash": "13369906429285452607",
       "id": 1382,
-      "name": "Hyrule Field Southeast Grass 9",
+      "name": "HF Marsh Grotto Entrance Adult Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22214,7 +22214,7 @@
       "forbid": [],
       "hash": "13389209437182306002",
       "id": 297,
-      "name": "Kakariko Village East Piece of Heart",
+      "name": "Kak Windmill Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -22301,7 +22301,7 @@
       "forbid": [],
       "hash": "13469300937852836203",
       "id": 298,
-      "name": "Hyrule Field Southwest Piece of Heart",
+      "name": "LH Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -22384,7 +22384,7 @@
       "forbid": [],
       "hash": "13505816572168486267",
       "id": 1079,
-      "name": "Hyrule Field North Crate 4",
+      "name": "HF Tektite Grotto Child Crate 1",
       "unprovable": true,
       "when": {
         "setting": "crates"
@@ -22488,7 +22488,7 @@
       "forbid": [],
       "hash": "13550170368761162591",
       "id": 911,
-      "name": "Market South Pot 35",
+      "name": "Market Guard House Child Pot 21",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22510,7 +22510,7 @@
       "forbid": [],
       "hash": "13557807086646791370",
       "id": 184,
-      "name": "Lost Woods Skull Kid's Memory Game",
+      "name": "LW Ocarina Memory Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22528,7 +22528,7 @@
       "forbid": [],
       "hash": "13581472975735926379",
       "id": 1425,
-      "name": "Kakariko Village East Beehive 15",
+      "name": "Kak Skulltula House Grotto Burned Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -22564,7 +22564,7 @@
       "forbid": [],
       "hash": "13595148908038154752",
       "id": 1207,
-      "name": "Death Mountain Trail North Rock 2",
+      "name": "DMT Summit Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22689,7 +22689,7 @@
       "forbid": [],
       "hash": "13625579619088899452",
       "id": 912,
-      "name": "Market Southwest Pot 2",
+      "name": "Market Back Alley Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22705,7 +22705,7 @@
       "forbid": [],
       "hash": "13635177047804265751",
       "id": 913,
-      "name": "Kakariko Village East Pot 4",
+      "name": "Kak Near Odd Medicine Building Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22726,7 +22726,7 @@
       "forbid": [],
       "hash": "13688624943009703242",
       "id": 1426,
-      "name": "Kakariko Village East Beehive 5",
+      "name": "Kak Skulltula House Grotto Child Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -22856,7 +22856,7 @@
       "forbid": [],
       "hash": "13737156624680648007",
       "id": 185,
-      "name": "Market Light Arrows",
+      "name": "Market ToT Light Arrows Cutscene",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -22890,7 +22890,7 @@
       "forbid": [],
       "hash": "13752432406165881016",
       "id": 1545,
-      "name": "Kokiri Forest South Recovery Heart 4",
+      "name": "KF Sarias House Adult Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22906,7 +22906,7 @@
       "forbid": [],
       "hash": "13766700305743331316",
       "id": 1546,
-      "name": "Kokiri Forest Southeast Recovery Heart 4",
+      "name": "KF Sarias House Child Recovery Heart 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22917,7 +22917,7 @@
       "forbid": [],
       "hash": "13784984248963672668",
       "id": 917,
-      "name": "Outside Ganon's Castle North Pot 5",
+      "name": "OGC Tower Collapse Lower Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -22941,7 +22941,7 @@
       "forbid": [],
       "hash": "13785854691967032815",
       "id": 1547,
-      "name": "Hyrule Field Northeast Blue Rupee (5) 4",
+      "name": "HF Near Zora River Grotto Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22959,7 +22959,7 @@
       "forbid": [],
       "hash": "13787606981173272160",
       "id": 1210,
-      "name": "Death Mountain Trail North Rock 5",
+      "name": "DMT Above Signposts Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22975,7 +22975,7 @@
       "forbid": [],
       "hash": "13817169663978116369",
       "id": 1211,
-      "name": "Kokiri Forest West Rock 1",
+      "name": "KF Rock Circle Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23034,7 +23034,7 @@
       "forbid": [],
       "hash": "13833126295519757344",
       "id": 1212,
-      "name": "Kokiri Forest Southeast Rock 1",
+      "name": "KF Behind Sarias House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23112,7 +23112,7 @@
       "forbid": [],
       "hash": "13892637748591133371",
       "id": 918,
-      "name": "Water Temple Pot 13",
+      "name": "Water Temple 3F Tektite Hall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23128,7 +23128,7 @@
       "forbid": [],
       "hash": "13904446280042756301",
       "id": 275,
-      "name": "Market Bombchu Shop 7",
+      "name": "Market Bombchu Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -23146,7 +23146,7 @@
       "forbid": [],
       "hash": "13907362561290610779",
       "id": 1385,
-      "name": "Hyrule Field Southwest Grass 8",
+      "name": "LH West Islet Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -23164,7 +23164,7 @@
       "forbid": [],
       "hash": "13942975907881711341",
       "id": 1080,
-      "name": "Hyrule Field North Crate 3",
+      "name": "HF Tektite Grotto Adult Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -23182,7 +23182,7 @@
       "forbid": [],
       "hash": "13944703896577680014",
       "id": 381,
-      "name": "Hyrule Field Southwest Gold Skulltula Token 4",
+      "name": "LH GS Lab Wall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23200,7 +23200,7 @@
       "forbid": [],
       "hash": "13948143684682776614",
       "id": 1213,
-      "name": "Death Mountain Trail Northwest Rock 3",
+      "name": "DMT Near Dodongos Cavern Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23216,7 +23216,7 @@
       "forbid": [],
       "hash": "13975641145686964401",
       "id": 919,
-      "name": "Market South Pot 18",
+      "name": "Market Guard House Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23234,7 +23234,7 @@
       "forbid": [],
       "hash": "14012747169982643998",
       "id": 1386,
-      "name": "Hyrule Field Northeast Grass 4",
+      "name": "HF Storms Grotto Entrance Child Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -23252,7 +23252,7 @@
       "forbid": [],
       "hash": "14014730143884270499",
       "id": 186,
-      "name": "Hyrule Field Talon's Cuccos",
+      "name": "LLR Talons Chickens",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23286,7 +23286,7 @@
       "forbid": [],
       "hash": "14020355262484604054",
       "id": 921,
-      "name": "Kakariko Village Southeast Pot 3",
+      "name": "Kak Near Impas House Adult Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23319,7 +23319,7 @@
       "forbid": [],
       "hash": "14040579338952279240",
       "id": 1387,
-      "name": "Hyrule Field Northeast Grass 24",
+      "name": "HF Storms Grotto Entrance Child Grass 11",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -23376,7 +23376,7 @@
       "forbid": [],
       "hash": "14062454289055492415",
       "id": 1548,
-      "name": "Hyrule Field Southwest Red Rupee (20) 2",
+      "name": "LH West Islet Red Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -23433,7 +23433,7 @@
       "forbid": [],
       "hash": "14107117960174262321",
       "id": 382,
-      "name": "Kakariko Village East Gold Skulltula Token 1",
+      "name": "Kak GS House Under Construction",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23449,7 +23449,7 @@
       "forbid": [],
       "hash": "14122332566338914320",
       "id": 923,
-      "name": "Kakariko Village Southeast Pot 12",
+      "name": "Kak Near Impas House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23517,7 +23517,7 @@
       "forbid": [],
       "hash": "14164799327792384879",
       "id": 276,
-      "name": "Market Bazaar 7",
+      "name": "Market Bazaar Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -23598,7 +23598,7 @@
       "forbid": [],
       "hash": "14307285627541295517",
       "id": 930,
-      "name": "Market South Pot 24",
+      "name": "Market Guard House Child Pot 17",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23668,7 +23668,7 @@
       "forbid": [],
       "hash": "14353012063098347569",
       "id": 1388,
-      "name": "Lost Woods Northeast Grass 13",
+      "name": "LW Near Shortcuts Grotto Adult Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -23684,7 +23684,7 @@
       "forbid": [],
       "hash": "14381003020707329822",
       "id": 1549,
-      "name": "Kokiri Forest East Blue Rupee (5) 1",
+      "name": "KF Shop Blue Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -23726,7 +23726,7 @@
       "forbid": [],
       "hash": "14398093248612909712",
       "id": 1550,
-      "name": "Hyrule Field Northeast Green Rupee (1) 3",
+      "name": "HF Near Zora River Grotto Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -23755,7 +23755,7 @@
       "forbid": [],
       "hash": "14426685265732353862",
       "id": 413,
-      "name": "Water Temple Heart Container",
+      "name": "Water Temple 3F Morpha Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -23820,7 +23820,7 @@
       "forbid": [],
       "hash": "14473218207379268379",
       "id": 383,
-      "name": "Sacred Forest Meadow Gold Skulltula Token",
+      "name": "SFM GS",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23872,7 +23872,7 @@
       "forbid": [],
       "hash": "14513580006326949285",
       "id": 938,
-      "name": "Market South Pot 30",
+      "name": "Market Guard House Child Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23954,7 +23954,7 @@
       "forbid": [],
       "hash": "14573579641810810967",
       "id": 277,
-      "name": "Kakariko Village Potion Shop 7",
+      "name": "Kak Potion Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -23996,7 +23996,7 @@
       "forbid": [],
       "hash": "14621798303840927376",
       "id": 1389,
-      "name": "Hyrule Field Northeast Grass 21",
+      "name": "HF Storms Grotto Entrance Adult Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24014,7 +24014,7 @@
       "forbid": [],
       "hash": "14630606235340334840",
       "id": 1390,
-      "name": "Hyrule Field Northeast Grass 25",
+      "name": "HF Storms Grotto Entrance Adult Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24032,7 +24032,7 @@
       "forbid": [],
       "hash": "14633400672259963744",
       "id": 1217,
-      "name": "Hyrule Field West Rock 6",
+      "name": "HF West Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24093,7 +24093,7 @@
       "forbid": [],
       "hash": "14654205574115276454",
       "id": 1081,
-      "name": "Hyrule Field Southeast Crate",
+      "name": "HF Marsh Grotto Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -24127,7 +24127,7 @@
       "forbid": [],
       "hash": "14678650210325974267",
       "id": 943,
-      "name": "Hyrule Castle North Pot 2",
+      "name": "HC Castle Door Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24193,7 +24193,7 @@
       "forbid": [],
       "hash": "14765439090025621259",
       "id": 1218,
-      "name": "Kokiri Forest Northwest Rock 2",
+      "name": "KF Near Midos House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24229,7 +24229,7 @@
       "forbid": [],
       "hash": "14799938113178843638",
       "id": 1391,
-      "name": "Lost Woods Northeast Grass 1",
+      "name": "LW Near Shortcuts Grotto Adult Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24257,7 +24257,7 @@
       "forbid": [],
       "hash": "14818888396401495482",
       "id": 105,
-      "name": "Kokiri Forest Northwest Green Rupee (1) Chest",
+      "name": "KF Storms Grotto Chest",
       "unprovable": false
     },
     {
@@ -24304,7 +24304,7 @@
       "forbid": [],
       "hash": "14822820938445509245",
       "id": 1427,
-      "name": "Kakariko Village East Beehive 20",
+      "name": "Kak Skulltula House Grotto Child Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -24338,7 +24338,7 @@
       "forbid": [],
       "hash": "14828228683041039284",
       "id": 944,
-      "name": "Kokiri Forest West Pot 3",
+      "name": "KF Near Know It All House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24354,7 +24354,7 @@
       "forbid": [],
       "hash": "14889198299869016305",
       "id": 945,
-      "name": "Kakariko Village East Pot 6",
+      "name": "Kak Near Odd Medicine Building Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24478,7 +24478,7 @@
       "forbid": [],
       "hash": "14939062091580693841",
       "id": 1221,
-      "name": "Death Mountain Trail Northwest Rock 2",
+      "name": "DMT Near Dodongos Cavern Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24512,7 +24512,7 @@
       "forbid": [],
       "hash": "14951295602089760727",
       "id": 1082,
-      "name": "Market South Crate 4",
+      "name": "Market Guard House Crate 4",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -24590,7 +24590,7 @@
       "forbid": [],
       "hash": "15019753598795808613",
       "id": 206,
-      "name": "Market Sheik at the Temple of Time",
+      "name": "Market Sheik at Temple",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -24608,7 +24608,7 @@
       "forbid": [],
       "hash": "15028130154350955098",
       "id": 1222,
-      "name": "Death Mountain Trail North Rock 3",
+      "name": "DMT Above Dodongos Cavern Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24629,7 +24629,7 @@
       "forbid": [],
       "hash": "15036633555144416666",
       "id": 1428,
-      "name": "Kakariko Village East Beehive 11",
+      "name": "Kak Skulltula House Grotto Child Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -24640,7 +24640,7 @@
       "forbid": [],
       "hash": "15046736084248795685",
       "id": 949,
-      "name": "Outside Ganon's Castle North Pot 1",
+      "name": "OGC Tower Collapse Lower Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -24665,7 +24665,7 @@
       "forbid": [],
       "hash": "15048088372638595204",
       "id": 107,
-      "name": "Lost Woods Business Scrub (Potions)",
+      "name": "LW Deku Scrub Near Deku Theater Right",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -24765,7 +24765,7 @@
       "forbid": [],
       "hash": "15115104996046978489",
       "id": 1223,
-      "name": "Kokiri Forest West Rock 9",
+      "name": "KF Near Know It All House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24786,7 +24786,7 @@
       "forbid": [],
       "hash": "15118290503807073158",
       "id": 388,
-      "name": "Kakariko Village Northeast Gold Skulltula Token 1",
+      "name": "Kak GS Watchtower",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24810,7 +24810,7 @@
       "forbid": [],
       "hash": "15135356131305809944",
       "id": 1553,
-      "name": "Hyrule Field Northeast Green Rupee (1) 1",
+      "name": "HF Near Zora River Grotto Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -24864,7 +24864,7 @@
       "forbid": [],
       "hash": "15154370679873778361",
       "id": 1392,
-      "name": "Hyrule Field Northeast Grass 28",
+      "name": "HF Central Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24880,7 +24880,7 @@
       "forbid": [],
       "hash": "15188778840589944684",
       "id": 1393,
-      "name": "Kokiri Forest Northwest Grass 1",
+      "name": "KF Near Midos House Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24898,7 +24898,7 @@
       "forbid": [],
       "hash": "15194145214241428457",
       "id": 1429,
-      "name": "Kakariko Village East Beehive 13",
+      "name": "Kak Skulltula House Grotto Adult Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -24948,7 +24948,7 @@
       "forbid": [],
       "hash": "15227875255265438204",
       "id": 1554,
-      "name": "Kokiri Forest South Recovery Heart 6",
+      "name": "KF Top of Sarias Adult Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -25012,7 +25012,7 @@
       "forbid": [],
       "hash": "15293421241716881989",
       "id": 1394,
-      "name": "Sacred Forest Meadow South Grass 11",
+      "name": "SFM Near Wolfos Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -25069,7 +25069,7 @@
       "forbid": [],
       "hash": "15314554401574296838",
       "id": 391,
-      "name": "Kakariko Village East Gold Skulltula Token 2",
+      "name": "Kak GS Skulltula House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25119,7 +25119,7 @@
       "forbid": [],
       "hash": "15323969315798721959",
       "id": 286,
-      "name": "Kakariko Village Bazaar 8",
+      "name": "Kak Bazaar Item 8",
       "unprovable": true,
       "when": {
         "ref": 2
@@ -25153,7 +25153,7 @@
       "forbid": [],
       "hash": "15339892171811522074",
       "id": 1225,
-      "name": "Kokiri Forest West Rock 10",
+      "name": "KF Near Know It All House Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25169,7 +25169,7 @@
       "forbid": [],
       "hash": "15351736782374583877",
       "id": 249,
-      "name": "Market Bombchu Shop 4",
+      "name": "Market Bombchu Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -25187,7 +25187,7 @@
       "forbid": [],
       "hash": "15386075207884711919",
       "id": 1395,
-      "name": "Hyrule Field Northwest Grass 4",
+      "name": "HF Cow Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -25203,7 +25203,7 @@
       "forbid": [],
       "hash": "15388836867476865988",
       "id": 1226,
-      "name": "Kokiri Forest Northwest Rock 9",
+      "name": "KF Rock Circle Adult Rock 10",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25219,7 +25219,7 @@
       "forbid": [],
       "hash": "15406610986108637956",
       "id": 956,
-      "name": "Kokiri Forest Southeast Pot 3",
+      "name": "KF Near House of Twins Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25315,7 +25315,7 @@
       "forbid": [],
       "hash": "15506432733081566465",
       "id": 392,
-      "name": "Water Temple Gold Skulltula Token 3",
+      "name": "Water Temple 2F GS River",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25426,7 +25426,7 @@
       "forbid": [],
       "hash": "15621232994617920561",
       "id": 1430,
-      "name": "Kakariko Village East Beehive 8",
+      "name": "Kak Skulltula House Grotto Child Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -25460,7 +25460,7 @@
       "forbid": [],
       "hash": "15640208633097747924",
       "id": 959,
-      "name": "Market South Pot 28",
+      "name": "Market Guard House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25476,7 +25476,7 @@
       "forbid": [],
       "hash": "15645888800487826584",
       "id": 960,
-      "name": "Market South Pot 31",
+      "name": "Market Guard House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25526,7 +25526,7 @@
       "forbid": [],
       "hash": "15692166203658509037",
       "id": 188,
-      "name": "Kakariko Village Anju",
+      "name": "Kak Anju as Child",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -25596,7 +25596,7 @@
       "forbid": [],
       "hash": "15732862253800965646",
       "id": 1228,
-      "name": "Kokiri Forest Northwest Rock 7",
+      "name": "KF Rock Circle Adult Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25612,7 +25612,7 @@
       "forbid": [],
       "hash": "15770142332975255876",
       "id": 1229,
-      "name": "Kokiri Forest Northwest Rock 1",
+      "name": "KF Near Midos House Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -25646,7 +25646,7 @@
       "forbid": [],
       "hash": "15795527451931683735",
       "id": 423,
-      "name": "Market Rauru",
+      "name": "Market Gift from Rauru",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -25680,7 +25680,7 @@
       "forbid": [],
       "hash": "15836061056953346480",
       "id": 1083,
-      "name": "Market South Crate 3",
+      "name": "Market Guard House Crate 3",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -25774,7 +25774,7 @@
       "forbid": [],
       "hash": "15889002414176907668",
       "id": 394,
-      "name": "Hyrule Field North Gold Skulltula Token 2",
+      "name": "LLR GS House Window",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25808,7 +25808,7 @@
       "forbid": [],
       "hash": "15903102006731147891",
       "id": 970,
-      "name": "Market South Pot 48",
+      "name": "Market Guard House Child Pot 14",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25844,7 +25844,7 @@
       "forbid": [],
       "hash": "15914819269763159469",
       "id": 1397,
-      "name": "Hyrule Field Southeast Grass 4",
+      "name": "HF Marsh Grotto Entrance Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26015,7 +26015,7 @@
       "forbid": [],
       "hash": "16028206441208456211",
       "id": 114,
-      "name": "Hyrule Field Zelda",
+      "name": "HF Ocarina of Time Item",
       "unprovable": false
     },
     {
@@ -26046,7 +26046,7 @@
       "forbid": [],
       "hash": "16041366920820397198",
       "id": 115,
-      "name": "Graveyard Southwest Hookshot Chest",
+      "name": "Graveyard Dampe Race Hookshot Chest",
       "unprovable": false
     },
     {
@@ -26097,7 +26097,7 @@
       "forbid": [],
       "hash": "16053425221492455201",
       "id": 1399,
-      "name": "Hyrule Field Northeast Grass 2",
+      "name": "HF Storms Grotto Entrance Child Grass 13",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26115,7 +26115,7 @@
       "forbid": [],
       "hash": "16059709934581007857",
       "id": 1400,
-      "name": "Hyrule Field Northeast Grass 8",
+      "name": "HF Storms Grotto Entrance Child Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26133,7 +26133,7 @@
       "forbid": [],
       "hash": "16080263030858016933",
       "id": 424,
-      "name": "Water Temple Morpha",
+      "name": "Water Temple 3F Morpha",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -26175,7 +26175,7 @@
       "forbid": [],
       "hash": "16106513735391908889",
       "id": 1401,
-      "name": "Hyrule Field Northeast Grass 5",
+      "name": "HF Storms Grotto Entrance Adult Grass 10",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26242,7 +26242,7 @@
       "forbid": [],
       "hash": "16157272130665282352",
       "id": 397,
-      "name": "Water Temple Gold Skulltula Token 2",
+      "name": "Water Temple B1 GS Behind Gate",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -26253,7 +26253,7 @@
       "forbid": [],
       "hash": "16158747032522515754",
       "id": 979,
-      "name": "Outside Ganon's Castle North Pot 9",
+      "name": "OGC Tower Collapse Upper Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -26291,7 +26291,7 @@
       "forbid": [],
       "hash": "16178671185680094683",
       "id": 1402,
-      "name": "Lost Woods Northeast Grass 7",
+      "name": "LW Near Shortcuts Grotto Adult Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26327,7 +26327,7 @@
       "forbid": [],
       "hash": "16206638005430417269",
       "id": 1403,
-      "name": "Lost Woods Northeast Grass 11",
+      "name": "LW Near Shortcuts Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26379,7 +26379,7 @@
       "forbid": [],
       "hash": "16216886893185262461",
       "id": 982,
-      "name": "Market South Pot 8",
+      "name": "Market Guard House Child Pot 20",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26462,7 +26462,7 @@
       "forbid": [],
       "hash": "16274291912323313727",
       "id": 1085,
-      "name": "Hyrule Field Southwest Crate 1",
+      "name": "LH Lab Adult Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -26483,7 +26483,7 @@
       "forbid": [],
       "hash": "16284910007420782019",
       "id": 189,
-      "name": "Kakariko Village House of Skulltula: 30",
+      "name": "Kak 30 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -26571,7 +26571,7 @@
       "forbid": [],
       "hash": "16338658219881018069",
       "id": 987,
-      "name": "Kakariko Village Southeast Pot 11",
+      "name": "Kak Near Impas House Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26587,7 +26587,7 @@
       "forbid": [],
       "hash": "16342679806948549224",
       "id": 250,
-      "name": "Market Potion Shop 3",
+      "name": "Market Potion Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -26625,7 +26625,7 @@
       "forbid": [],
       "hash": "16356631288008319500",
       "id": 988,
-      "name": "Water Temple Pot 7",
+      "name": "Water Temple B1 Behind Gate Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26664,7 +26664,7 @@
       "forbid": [],
       "hash": "16372087067032602965",
       "id": 1431,
-      "name": "Kakariko Village East Beehive 17",
+      "name": "Kak Skulltula House Grotto Child Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -26682,7 +26682,7 @@
       "forbid": [],
       "hash": "16384925224245172970",
       "id": 443,
-      "name": "Water Temple Map Chest",
+      "name": "Water Temple 3F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -26698,7 +26698,7 @@
       "forbid": [],
       "hash": "16386301107460847261",
       "id": 990,
-      "name": "Kokiri Forest West Pot 4",
+      "name": "KF Near Know It All House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26734,7 +26734,7 @@
       "forbid": [],
       "hash": "16400245230574378269",
       "id": 992,
-      "name": "Hyrule Field Southwest Pot 1",
+      "name": "LH Southwest Shore Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26752,7 +26752,7 @@
       "forbid": [],
       "hash": "16403770190582583828",
       "id": 1232,
-      "name": "Hyrule Field Northeast Rock 2",
+      "name": "HF Near Kak Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -26774,7 +26774,7 @@
       "forbid": [],
       "hash": "16424266294822218796",
       "id": 444,
-      "name": "Water Temple Compass Chest",
+      "name": "Water Temple 1F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -26798,7 +26798,7 @@
       "forbid": [],
       "hash": "16437715071442568790",
       "id": 1558,
-      "name": "Hyrule Field Northeast Blue Rupee (5) 1",
+      "name": "HF Near Zora River Grotto Blue Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -26834,7 +26834,7 @@
       "forbid": [],
       "hash": "16490222392193949581",
       "id": 485,
-      "name": "Water Temple Small Key Chest 1",
+      "name": "Water Temple 2F Cracked Wall Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -26879,7 +26879,7 @@
       "forbid": [],
       "hash": "16594423016797951568",
       "id": 251,
-      "name": "Market Potion Shop 1",
+      "name": "Market Potion Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -26933,7 +26933,7 @@
       "forbid": [],
       "hash": "16610069774496468056",
       "id": 1407,
-      "name": "Kakariko Village Southeast Grass 1",
+      "name": "Kak Near Impas House Burned Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26966,7 +26966,7 @@
       "forbid": [],
       "hash": "16645699538870768077",
       "id": 1233,
-      "name": "Hyrule Field Northwest Rock 4",
+      "name": "HF Cow Grotto Entrance Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -26982,7 +26982,7 @@
       "forbid": [],
       "hash": "16647730239269178270",
       "id": 1560,
-      "name": "Kokiri Forest Southwest Blue Rupee (5) 2",
+      "name": "KF Boulder Maze Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27057,7 +27057,7 @@
       "forbid": [],
       "hash": "16672855544778411393",
       "id": 118,
-      "name": "Hyrule Field Business Scrub (Bombs)",
+      "name": "LLR Deku Scrub Grotto Right",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -27077,7 +27077,7 @@
       "forbid": [],
       "hash": "16693599174313571081",
       "id": 278,
-      "name": "Kakariko Village Bazaar 7",
+      "name": "Kak Bazaar Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -27147,7 +27147,7 @@
       "forbid": [],
       "hash": "16757992849254467386",
       "id": 119,
-      "name": "Kokiri Forest Southwest Kokiri Sword Chest",
+      "name": "KF Kokiri Sword Chest",
       "unprovable": false
     },
     {
@@ -27160,7 +27160,7 @@
       "forbid": [],
       "hash": "16780156705177292663",
       "id": 1234,
-      "name": "Kokiri Forest West Rock 2",
+      "name": "KF Rock Circle Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27213,7 +27213,7 @@
       "forbid": [],
       "hash": "16798263777516949500",
       "id": 398,
-      "name": "Graveyard Northwest Gold Skulltula Token",
+      "name": "Graveyard GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -27231,7 +27231,7 @@
       "forbid": [],
       "hash": "16799768758395032082",
       "id": 1432,
-      "name": "Kakariko Village East Beehive 16",
+      "name": "Kak Skulltula House Grotto Adult Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -27247,7 +27247,7 @@
       "forbid": [],
       "hash": "16805024386575467769",
       "id": 997,
-      "name": "Market South Pot 27",
+      "name": "Market Guard House Child Pot 11",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27281,7 +27281,7 @@
       "forbid": [],
       "hash": "16832099878838036087",
       "id": 998,
-      "name": "Market South Pot 26",
+      "name": "Market Guard House Child Pot 25",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27315,7 +27315,7 @@
       "forbid": [],
       "hash": "16857565298886773615",
       "id": 1236,
-      "name": "Kokiri Forest Northwest Rock 6",
+      "name": "KF Rock Circle Child Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27333,7 +27333,7 @@
       "forbid": [],
       "hash": "16881481538337649070",
       "id": 120,
-      "name": "Market Treasure Chest Game Prize",
+      "name": "Market Treasure Chest Game Reward",
       "unprovable": false
     },
     {
@@ -27348,7 +27348,7 @@
       "forbid": [],
       "hash": "16885214594534747225",
       "id": 1000,
-      "name": "Water Temple Pot 22",
+      "name": "Water Temple 2F River Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27382,7 +27382,7 @@
       "forbid": [],
       "hash": "16890252572970412506",
       "id": 1563,
-      "name": "Kokiri Forest Southeast Recovery Heart 3",
+      "name": "KF Sarias House Adult Recovery Heart 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27408,7 +27408,7 @@
       "forbid": [],
       "hash": "16912540161937823130",
       "id": 121,
-      "name": "Graveyard East Hylian Shield Chest",
+      "name": "Graveyard Shield Grave Chest",
       "unprovable": false
     },
     {
@@ -27662,7 +27662,7 @@
       "forbid": [],
       "hash": "17023457248274633121",
       "id": 124,
-      "name": "Hyrule Field Southwest Red Rupee (20) Chest 2",
+      "name": "LH Southwest Shore Chest",
       "unprovable": false
     },
     {
@@ -27713,7 +27713,7 @@
       "forbid": [],
       "hash": "17032648015876276563",
       "id": 1408,
-      "name": "Sacred Forest Meadow South Grass 9",
+      "name": "SFM Near Wolfos Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -27786,7 +27786,7 @@
       "forbid": [],
       "hash": "17061969935310382029",
       "id": 1008,
-      "name": "Market South Pot 1",
+      "name": "Market Guard House Child Pot 13",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27807,7 +27807,7 @@
       "forbid": [],
       "hash": "17067594426901953848",
       "id": 400,
-      "name": "Kokiri Forest West Gold Skulltula Token",
+      "name": "KF GS Know It All House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -27859,7 +27859,7 @@
       "forbid": [],
       "hash": "17130900495045735954",
       "id": 1409,
-      "name": "Hyrule Field Northeast Grass 19",
+      "name": "HF Storms Grotto Entrance Adult Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -27888,7 +27888,7 @@
       "forbid": [],
       "hash": "17138417389390636986",
       "id": 1433,
-      "name": "Kakariko Village East Beehive 12",
+      "name": "Kak Skulltula House Grotto Burned Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -27987,7 +27987,7 @@
       "forbid": [],
       "hash": "17177665557365847615",
       "id": 1567,
-      "name": "Graveyard Southeast Green Rupee (1) 1",
+      "name": "Graveyard Dampe Race Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28019,7 +28019,7 @@
       "forbid": [],
       "hash": "17186151219195818834",
       "id": 1240,
-      "name": "Kokiri Forest Northwest Rock 16",
+      "name": "KF Rock Circle Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28035,7 +28035,7 @@
       "forbid": [],
       "hash": "17212015369679208115",
       "id": 1568,
-      "name": "Kokiri Forest Purple Rupee (50)",
+      "name": "KF Bean Platform Purple Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28102,7 +28102,7 @@
       "forbid": [],
       "hash": "17252547494024141430",
       "id": 262,
-      "name": "Kakariko Village Bazaar 5",
+      "name": "Kak Bazaar Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -28118,7 +28118,7 @@
       "forbid": [],
       "hash": "17261237591139782514",
       "id": 1014,
-      "name": "Market South Pot 46",
+      "name": "Market Guard House Child Pot 30",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28152,7 +28152,7 @@
       "forbid": [],
       "hash": "17272623210701397911",
       "id": 1016,
-      "name": "Market South Pot 2",
+      "name": "Market Guard House Child Pot 27",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28176,7 +28176,7 @@
       "forbid": [],
       "hash": "17286901874670360605",
       "id": 1569,
-      "name": "Death Mountain Trail North Green Rupee (1) 3",
+      "name": "DMT Dodongo Grotto Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28252,7 +28252,7 @@
       "forbid": [],
       "hash": "17332353328325691959",
       "id": 1018,
-      "name": "Kakariko Village Southeast Pot 13",
+      "name": "Kak Near Impas House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28268,7 +28268,7 @@
       "forbid": [],
       "hash": "17337660928398648347",
       "id": 1019,
-      "name": "Market South Pot 14",
+      "name": "Market Guard House Child Pot 36",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28341,7 +28341,7 @@
       "forbid": [],
       "hash": "17403667611047276834",
       "id": 1021,
-      "name": "Hyrule Castle North Pot 1",
+      "name": "HC Castle Door Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28381,7 +28381,7 @@
       "forbid": [],
       "hash": "17417703929745359430",
       "id": 1022,
-      "name": "Kakariko Village Southeast Pot 7",
+      "name": "Kak Near Impas House Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28399,7 +28399,7 @@
       "forbid": [],
       "hash": "17418042722045679657",
       "id": 125,
-      "name": "Hyrule Field Business Scrub (Nuts)",
+      "name": "LLR Deku Scrub Grotto Left",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -28410,7 +28410,7 @@
       "forbid": [],
       "hash": "17425319789138387506",
       "id": 402,
-      "name": "Death Mountain Trail Northwest Gold Skulltula Token",
+      "name": "DMT GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -28434,7 +28434,7 @@
       "forbid": [],
       "hash": "17445672702269453589",
       "id": 145,
-      "name": "Hyrule Field West Business Scrub Seed Chest",
+      "name": "LLR Tower Chest",
       "unprovable": false
     },
     {
@@ -28455,7 +28455,7 @@
       "forbid": [],
       "hash": "17479747339356189279",
       "id": 126,
-      "name": "Lost Woods Southwest Purple Rupee (50) Chest",
+      "name": "LW Ledge Near Bridge Chest",
       "unprovable": false
     },
     {
@@ -28615,7 +28615,7 @@
       "forbid": [],
       "hash": "17535587547850276606",
       "id": 1023,
-      "name": "Market West Pot 2",
+      "name": "Market Bombchu Bowling Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28637,7 +28637,7 @@
       "forbid": [],
       "hash": "17558451189872819062",
       "id": 270,
-      "name": "Market Bombchu Shop 6",
+      "name": "Market Bombchu Shop Item 6",
       "unprovable": true,
       "when": {
         "ref": 44
@@ -28683,7 +28683,7 @@
       "forbid": [],
       "hash": "17580352713807808478",
       "id": 191,
-      "name": "Death Mountain Trail Biggoron",
+      "name": "DMT Biggoron",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -28789,7 +28789,7 @@
       "forbid": [],
       "hash": "17622124669395045653",
       "id": 1244,
-      "name": "Hyrule Field West Rock 1",
+      "name": "HF West Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28921,7 +28921,7 @@
       "forbid": [],
       "hash": "17669199296215821346",
       "id": 405,
-      "name": "Death Mountain Trail North Gold Skulltula Token 2",
+      "name": "DMT GS Above Dodongos Cavern",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -29018,7 +29018,7 @@
       "forbid": [],
       "hash": "17796658857969527112",
       "id": 406,
-      "name": "Lost Woods North Gold Skulltula Token 2",
+      "name": "LW GS Bean Patch Near Theater",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -29083,7 +29083,7 @@
       "forbid": [],
       "hash": "17838365680427384562",
       "id": 1033,
-      "name": "Hyrule Field Northwest Pot 1",
+      "name": "HF Cow Grotto Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29153,7 +29153,7 @@
       "forbid": [],
       "hash": "17867878524448700795",
       "id": 192,
-      "name": "Kokiri Forest Yard Weeding",
+      "name": "KF Weeding Yard Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -29238,7 +29238,7 @@
       "forbid": [],
       "hash": "17926402522258180222",
       "id": 301,
-      "name": "Kakariko Village Southeast Piece of Heart",
+      "name": "Kak Impas House Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -29254,7 +29254,7 @@
       "forbid": [],
       "hash": "17935200704288465987",
       "id": 1038,
-      "name": "Kokiri Forest Southeast Pot 4",
+      "name": "KF Near House of Twins Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29308,7 +29308,7 @@
       "forbid": [],
       "hash": "17953588650051017776",
       "id": 193,
-      "name": "Graveyard Dampe's Dig",
+      "name": "Graveyard Dampe Gravedigging Tour",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -29324,7 +29324,7 @@
       "forbid": [],
       "hash": "17991454493447452409",
       "id": 1039,
-      "name": "Kakariko Village Southeast Pot 15",
+      "name": "Kak Near Impas House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29342,7 +29342,7 @@
       "forbid": [],
       "hash": "17993712008759335925",
       "id": 1410,
-      "name": "Lost Woods Northeast Grass 5",
+      "name": "LW Near Shortcuts Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -29410,7 +29410,7 @@
       "forbid": [],
       "hash": "18024025553142632322",
       "id": 1434,
-      "name": "Kakariko Village East Beehive 6",
+      "name": "Kak Skulltula House Grotto Burned Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -29459,7 +29459,7 @@
       "forbid": [],
       "hash": "18059711820131847165",
       "id": 129,
-      "name": "Water Temple Longshot Chest",
+      "name": "Water Temple 3F Longshot Chest",
       "unprovable": false
     },
     {
@@ -29492,7 +29492,7 @@
       "forbid": [],
       "hash": "18073597818631342065",
       "id": 1249,
-      "name": "Death Mountain Trail North Rock 1",
+      "name": "DMT Summit Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29567,7 +29567,7 @@
       "forbid": [],
       "hash": "18078110404684471865",
       "id": 1044,
-      "name": "Kakariko Village Southeast Pot 9",
+      "name": "Kak Near Impas House Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29585,7 +29585,7 @@
       "forbid": [],
       "hash": "18080167579417541655",
       "id": 1573,
-      "name": "Hyrule Field East Green Rupee (1) 6",
+      "name": "HF Near Zora River Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -29601,7 +29601,7 @@
       "forbid": [],
       "hash": "18084221514669050690",
       "id": 253,
-      "name": "Market Bazaar 1",
+      "name": "Market Bazaar Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -29637,7 +29637,7 @@
       "forbid": [],
       "hash": "18099019250896853049",
       "id": 491,
-      "name": "Water Temple Small Key Chest 3",
+      "name": "Water Temple 1F Spike Pit Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -29655,7 +29655,7 @@
       "forbid": [],
       "hash": "18118085020877564799",
       "id": 1251,
-      "name": "Hyrule Field Northeast Rock 1",
+      "name": "HF Near Kak Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29700,7 +29700,7 @@
       "forbid": [],
       "hash": "18157355906313333023",
       "id": 254,
-      "name": "Market Bazaar 4",
+      "name": "Market Bazaar Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -29790,7 +29790,7 @@
       "forbid": [],
       "hash": "18255407930372306012",
       "id": 1412,
-      "name": "Sacred Forest Meadow South Grass 14",
+      "name": "SFM Near Wolfos Grotto Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -29893,7 +29893,7 @@
       "forbid": [],
       "hash": "18317670516128277611",
       "id": 1047,
-      "name": "Water Temple Pot 18",
+      "name": "Water Temple 2F Map Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29911,7 +29911,7 @@
       "forbid": [],
       "hash": "18346525865052973000",
       "id": 1253,
-      "name": "Death Mountain Trail East Rock 2",
+      "name": "DMT Near Signposts Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -30004,7 +30004,7 @@
       "forbid": [],
       "hash": "18417667443552316769",
       "id": 1574,
-      "name": "Hyrule Field Southwest Red Rupee (20) 1",
+      "name": "LH Lab Dive Red Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -30022,7 +30022,7 @@
       "forbid": [],
       "hash": "18423958765558734622",
       "id": 1413,
-      "name": "Hyrule Field Southwest Grass 6",
+      "name": "LH West Islet Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -30043,7 +30043,7 @@
       "forbid": [],
       "hash": "18434302011375146275",
       "id": 218,
-      "name": "Hyrule Field Lake Scientist: Eyeball Frog",
+      "name": "LH Lab Trade Eyeball Frog",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -30061,7 +30061,7 @@
       "forbid": [],
       "hash": "18439654067606795684",
       "id": 195,
-      "name": "Market Poe Collector: 1000 Points",
+      "name": "Market Big Poes 1000 Points",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"

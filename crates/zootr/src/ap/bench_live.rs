@@ -208,8 +208,8 @@ fn wait<T>(limit: Duration, mut ready: impl FnMut() -> Option<T>) -> Result<T> {
 /// holder's flag can start its scene, and Link stays busy in it.
 fn unchecked(gd: &crate::gamedata::GameData, book: &Book, game: &live::Game) -> Result<Vec<u32>> {
     let history = crate::history::History::load()?;
-    let entry = history.installed_entry()?;
-    let spots = &entry.report.spots;
+    let report = history.installed_report()?;
+    let spots = &report.spots;
     let tracker = Tracker::new(gd, spots)?;
     let picks: Vec<(i64, u32)> = (spots.iter())
         .filter(|s| !s.given && crate::checks::is_chest(&s.holder))

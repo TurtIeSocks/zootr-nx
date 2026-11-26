@@ -1,0 +1,117 @@
+# Market, with the Temple of Time. OoTR's name wherever the remake keeps
+# the spot. The guard house, shops and minigames sit in the Market's own
+# map in the remake; pots and crates are numbered west to east inside each.
+
+# Guard house by the entrance. The Gold Skulltula is in a crate at the
+# back, as in OoTR. 44 child pots, as OoTR has; the adult has four.
+8942465719711548237 = "Market GS Guard House"
+15645888800487826584 = "Market Guard House Child Pot 1"
+15640208633097747924 = "Market Guard House Child Pot 2"
+7250344944862033169 = "Market Guard House Child Pot 3"
+13975641145686964401 = "Market Guard House Child Pot 4"
+1546412329969349153 = "Market Guard House Child Pot 5"
+12533087173674017391 = "Market Guard House Child Pot 6"
+14513580006326949285 = "Market Guard House Child Pot 7"
+2912260394483772772 = "Market Guard House Child Pot 8"
+2503132981930328096 = "Market Guard House Child Pot 9"
+5831980957101408041 = "Market Guard House Child Pot 10"
+16805024386575467769 = "Market Guard House Child Pot 11"
+3102293137454811300 = "Market Guard House Child Pot 12"
+17061969935310382029 = "Market Guard House Child Pot 13"
+15903102006731147891 = "Market Guard House Child Pot 14"
+10233336340851937748 = "Market Guard House Child Pot 15"
+4262167623178799478 = "Market Guard House Child Pot 16"
+14307285627541295517 = "Market Guard House Child Pot 17"
+2026157113981043805 = "Market Guard House Child Pot 18"
+6305438045388642560 = "Market Guard House Child Pot 19"
+16216886893185262461 = "Market Guard House Child Pot 20"
+13550170368761162591 = "Market Guard House Child Pot 21"
+13196856183265505423 = "Market Guard House Child Pot 22"
+13260935631141400078 = "Market Guard House Child Pot 23"
+4541346301504764442 = "Market Guard House Child Pot 24"
+16832099878838036087 = "Market Guard House Child Pot 25"
+4349592517917306866 = "Market Guard House Child Pot 26"
+17272623210701397911 = "Market Guard House Child Pot 27"
+12239117590972833691 = "Market Guard House Child Pot 28"
+209505766503989880 = "Market Guard House Child Pot 29"
+17261237591139782514 = "Market Guard House Child Pot 30"
+1966095333205719145 = "Market Guard House Child Pot 31"
+9161085961847838380 = "Market Guard House Child Pot 32"
+6159178651520699084 = "Market Guard House Child Pot 33"
+355724575355865248 = "Market Guard House Child Pot 34"
+6294925652555242451 = "Market Guard House Child Pot 35"
+17337660928398648347 = "Market Guard House Child Pot 36"
+9431172931320301236 = "Market Guard House Child Pot 37"
+3844892122736768995 = "Market Guard House Child Pot 38"
+8921752458646988665 = "Market Guard House Child Pot 39"
+12582583935041109669 = "Market Guard House Child Pot 40"
+7228035372353946866 = "Market Guard House Child Pot 41"
+9625992517764898163 = "Market Guard House Child Pot 42"
+160045946964554702 = "Market Guard House Child Pot 43"
+2165030477346767192 = "Market Guard House Child Pot 44"
+1661231129625843374 = "Market Guard House Adult Pot 1"
+7521824399864207059 = "Market Guard House Adult Pot 2"
+630840502432038415 = "Market Guard House Adult Pot 3"
+3527237855955722340 = "Market Guard House Adult Pot 4"
+5653833064804058759 = "Market Guard House Crate 1" # guess: OoTR has one crate here, the remake five
+4016405848881617652 = "Market Guard House Crate 2" # guess: OoTR has one crate here, the remake five
+15836061056953346480 = "Market Guard House Crate 3" # guess: OoTR has one crate here, the remake five
+14951295602089760727 = "Market Guard House Crate 4" # guess: OoTR has one crate here, the remake five
+9299500760108964836 = "Market Guard House Crate 5" # guess: OoTR has one crate here, the remake five
+
+# Back alley: one pot by the houses at the west end, two by the house of
+# Richard's owner. Not in OoTR.
+10790097866069291961 = "Market Back Alley Pot 1" # guess: outdoors in the alley, not inside a house
+7026635600153347152 = "Market Back Alley Pot 2" # guess: outdoors in the alley, not inside a house
+13625579619088899452 = "Market Back Alley Pot 3" # guess: outdoors in the alley, not inside a house
+
+# Bombchu Bowling Alley, up on its raised floor. Not in OoTR.
+17535587547850276606 = "Market Bombchu Bowling Pot 1" # guess: in the alley building, above its lanes
+1023031635146699070 = "Market Bombchu Bowling Pot 2" # guess: in the alley building, above its lanes
+12290558272066687065 = "Market Bombchu Bowling Pot 3" # guess: in the alley building, above its lanes
+
+# Minigames and people
+16881481538337649070 = "Market Treasure Chest Game Reward"
+12555045194845838033 = "Market Shooting Gallery Reward"
+8748954161277078873 = "Market Bombchu Bowling First Prize" # guess: OoTR first prize is the bomb bag, the remake gives Bombchus before it
+8052831843135618910 = "Market Bombchu Bowling Second Prize" # guess: the heart piece, OoTR second prize
+9935389509796719985 = "Market Bombchu Bowling Bombchus" # guess: the remake win before the bomb bag
+11342286987436207867 = "Market Lost Dog"
+7148370261830864548 = "Market Potion Shop Bottle"
+
+# The Poe collector in the guard house. OoTR's 10 Big Poes is his bottle;
+# the remake adds a gold reward at 1000 points.
+7975754981590731986 = "Market 10 Big Poes" # guess: the remake may give the bottle before 1000 points
+18439654067606795684 = "Market Big Poes 1000 Points"
+
+# Bazaar, Potion Shop and Bombchu Shop, by shelf slot as OoTR counts them
+18084221514669050690 = "Market Bazaar Item 1"
+5784220025515362731 = "Market Bazaar Item 2"
+13037119094293428679 = "Market Bazaar Item 3"
+18157355906313333023 = "Market Bazaar Item 4"
+5101608369586255705 = "Market Bazaar Item 5"
+7804057436886816165 = "Market Bazaar Item 6"
+14164799327792384879 = "Market Bazaar Item 7"
+2470662836017610480 = "Market Bazaar Item 8"
+16594423016797951568 = "Market Potion Shop Item 1"
+6796029720660653103 = "Market Potion Shop Item 2"
+16342679806948549224 = "Market Potion Shop Item 3"
+1403700953474659107 = "Market Potion Shop Item 4"
+11528490284966062201 = "Market Potion Shop Item 5"
+5615457568081558860 = "Market Potion Shop Item 6"
+8862936792925648296 = "Market Potion Shop Item 7"
+6011696378209808077 = "Market Potion Shop Item 8"
+7981518132387036590 = "Market Bombchu Shop Item 1"
+12426385834471778854 = "Market Bombchu Shop Item 2"
+10043319116785133483 = "Market Bombchu Shop Item 3"
+15351736782374583877 = "Market Bombchu Shop Item 4"
+13242971960259401995 = "Market Bombchu Shop Item 5"
+17558451189872819062 = "Market Bombchu Shop Item 6"
+13904446280042756301 = "Market Bombchu Shop Item 7"
+12535663762055135836 = "Market Bombchu Shop Item 8"
+
+# Temple of Time
+15019753598795808613 = "Market Sheik at Temple"
+6465850391777915933 = "Market ToT Master Sword"
+15795527451931683735 = "Market Gift from Rauru"
+13737156624680648007 = "Market ToT Light Arrows Cutscene"

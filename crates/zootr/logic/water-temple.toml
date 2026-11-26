@@ -2,7 +2,6 @@
 # (guess: the pillar's token, matched by position)
 [[check]]
 hash = 11571778270592589517
-name = "Tablet Ledge Gold Skulltula"
 needs = "zeldas-lullaby and longshot"
 setting = "gold-skulltulas"
 
@@ -10,21 +9,18 @@ setting = "gold-skulltulas"
 # (guess: the pillar's bottom chest, matched by position)
 [[check]]
 hash = 11682974908842171598
-name = "Water Temple Red Rupee (20) Chest"
 needs = "zeldas-lullaby and hookshot and explosives"
 
 # Room 2, the alcove at the pillar's foot: low water, bombs and the Hookshot, and a blade for the cage's switch.
 # (guess: the cage's token or the pillar's, matched by position)
 [[check]]
 hash = 16157272130665282352
-name = "Spike Alcove Gold Skulltula"
 needs = "zeldas-lullaby and hookshot and explosives and (adult-sword or hammer)"
 setting = "gold-skulltulas"
 
 # Room 3, the compass room: the Hookshot takes Link to its door and hits the switch.
 [[check]]
 hash = 16424266294822218796
-name = "Water Temple Compass Chest"
 needs = "hookshot"
 setting = "maps-compasses"
 
@@ -32,27 +28,23 @@ setting = "maps-compasses"
 # (guess: matched by position, no Ship region named it)
 [[check]]
 hash = 16490222392193949581
-name = "Water Temple Small Key Chest"
 needs = "zeldas-lullaby and hookshot and goron-bracelet and explosives"
 setting = "keys"
 
 # Room 7, past the Dark Link room: the Hookshot crosses the spikes and a sword beats Dark Link.
 [[check]]
 hash = 18059711820131847165
-name = "Water Temple Longshot Chest"
 needs = "hookshot and adult-sword"
 
 # Room 8, the torch room: low water, a lit torch and a weapon for the shell blades.
 [[check]]
 hash = 2503861086004941173
-name = "Water Temple Small Key Chest"
 needs = "zeldas-lullaby and (fire or bow) and (adult-sword or hammer or explosives or hookshot or bow or dins-fire)"
 setting = "keys"
 
 # Room 15, the boss key room: the Longshot past the moat, then the block room or the Hover Boots.
 [[check]]
 hash = 10378828369334876242
-name = "Water Temple Boss Key Chest"
 needs = "longshot and ((goron-bracelet and explosives) or hover-boots)"
 setting = "keys"
 
@@ -60,7 +52,6 @@ setting = "keys"
 # (guess: the map chest's route, matched by name)
 [[check]]
 hash = 16384925224245172970
-name = "Water Temple Map Chest"
 needs = "adult-sword or hammer or explosives or hookshot or bow or dins-fire"
 setting = "maps-compasses"
 
@@ -68,7 +59,6 @@ setting = "maps-compasses"
 # (guess: the map chest's route, matched by the spikes)
 [[check]]
 hash = 18099019250896853049
-name = "Water Temple Small Key Chest"
 needs = "adult-sword or hammer or explosives or hookshot or bow or dins-fire"
 setting = "keys"
 
@@ -77,14 +67,12 @@ setting = "keys"
 # the Zora Tunic, then the Bow and the Longshot carry him the rest.
 [[check]]
 hash = 3693930347660122883
-name = "Small Key 4"
 needs = "bow and longshot and iron-boots and zora-tunic"
 
 # Room 21, over the river: the Hookshot from the water, after Dark Link and the Song of Time block.
 # (guess: the river's token, matched by position)
 [[check]]
 hash = 15506432733081566465
-name = "Bottomless Pit Gold Skulltula"
 needs = "hookshot and adult-sword and song-of-time"
 setting = "gold-skulltulas"
 
@@ -92,7 +80,6 @@ setting = "gold-skulltulas"
 # (guess: the token near the boss key chest, matched by room)
 [[check]]
 hash = 186694424287048567
-name = "Boulder Corridor Gold Skulltula"
 needs = "longshot and ((goron-bracelet and explosives) or hover-boots)"
 setting = "gold-skulltulas"
 
@@ -100,6 +87,5 @@ setting = "gold-skulltulas"
 # (guess: the cage's token, matched by position)
 [[check]]
 hash = 4399424945134189769
-name = "Shell Blade Alcove Gold Skulltula"
 needs = "zeldas-lullaby and hookshot and explosives and (adult-sword or hammer)"
 setting = "gold-skulltulas"

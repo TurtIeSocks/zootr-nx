@@ -40,13 +40,9 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
     let base = base();
     // Every seed below reads the same game data, so it's read once.
     let dump = Dump::new(romfs)?;
-    let base_seed = Seed::build_in(&dump, &base, &open())?;
     let variants = variants()?;
     let domains = domains()?;
-    // Each seed builds on its own, so they build at once.
-    let built: Vec<Seed> = par_map(&variants, |v| Seed::build_in(&dump, &v.settings(), &open()))
-        .into_iter()
-        .collect::<Result<_>>()?;
+    let (base_seed, built) = built(&dump, &base, &variants)?;
     // The base first, then each variant's seed.
     let seeds: Vec<&Seed> = std::iter::once(&base_seed).chain(&built).collect();
     // The same, each with its settings set rather than left as words.
@@ -502,6 +498,24 @@ fn edges(w: &crate::logic::World) -> Vec<(Option<usize>, usize, String)> {
 /// The event a check the deal leaves vanilla stands for.
 fn vanilla(hash: u64) -> String {
     format!("vanilla-{hash}")
+}
+
+/// The base seed and each variant's. Each builds on its own, so they
+/// build at once.
+fn built(dump: &Dump, base: &Settings, variants: &[Variant]) -> Result<(Seed, Vec<Seed>)> {
+    let base_seed = Seed::build_in(dump, base, &open())?;
+    let built = par_map(variants, |v| Seed::build_in(dump, &v.settings(), &open()))
+        .into_iter()
+        .collect::<Result<_>>()?;
+    Ok((base_seed, built))
+}
+
+/// Every check the world has a location for: each one any of its seeds
+/// shuffles.
+pub fn checks(romfs: &Romfs) -> Result<Vec<ItemCheck>> {
+    let (base_seed, built) = built(&Dump::new(romfs)?, &base(), &variants()?)?;
+    let seeds: Vec<&Seed> = std::iter::once(&base_seed).chain(&built).collect();
+    Ok(unique_free(&seeds))
 }
 
 /// Each check any of `seeds` shuffles, once.

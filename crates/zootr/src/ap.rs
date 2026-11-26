@@ -14,7 +14,7 @@ pub mod bench;
 pub mod bench_live;
 pub mod client;
 mod death;
-mod export;
+pub(crate) mod export;
 mod game;
 mod golden;
 mod ids;

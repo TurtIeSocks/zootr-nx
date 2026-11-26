@@ -49,6 +49,8 @@ export const TOPICS = {
     at: { tab: "Play", folder: "history" },
     body: [
       "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
+      "Star a seed to keep it: the oldest seeds make way for new ones, and Clear deletes every seed but the installed and starred ones.",
+      "History keeps 1000 seeds, stars included. Select picks many at once to star, unstar or delete: shift-click picks a run.",
     ],
   },
   favorites: {
@@ -114,7 +116,7 @@ export const TOPICS = {
     at: { section: "audio" },
     body: [
       "Shuffle the game's music within its kind: area, battle, cutscene, fanfare and ocarina songs, Link's voice by age, and the NPCs' voices. Music doesn't change the shuffle, and a share code leaves it out.",
-      "Shuffle trades songs so each plays somewhere once; Random lets one song play in many places. Fanfares, cutscene songs and ocarina songs trade only with ones of a similar length. Link's voice trades within his age: each cue (a sword swing, a fall) takes another's takes. An NPC voice is shared by every NPC that uses it, and they change together; cutscene lines keep their own voice, and a line the new voice has no take for goes quiet.",
+      "Shuffle trades songs so each plays somewhere once; Random lets one song play in many places. Fanfares, cutscene songs and ocarina songs trade only with ones of a similar length. Link's voice trades within his age: each cue (a sword swing, a fall) takes another's takes. An NPC voice is shared by every NPC that uses it, and they change together; cutscene lines keep their own voice, and a line the new voice has no take for goes quiet. NPC voices also have Chaos: each voice keeps all its lines, and each line plays some voice's clip of the same feeling, so a laugh is always someone's laugh.",
       "The next seed you generate plays it this way. To play it in the installed seed without a new shuffle, use Apply to Installed Seed on the bar at the foot of the page. Each change saves as you make it.",
     ],
   },
