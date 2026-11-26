@@ -1,7 +1,8 @@
 //! Placed actors that hold an item as a check without a chest: freestanding
 //! heart pieces, Gold Skulltulas, whose kill drops their token, the
 //! pots, crates, rocks, grass, hives and flying pots that drop something
-//! when broken, the Gerudo thieves' keys, and the rupees, hearts and other
+//! when broken, the boulders whose item lies where they stood
+//! ([`seats`]), the Gerudo thieves' keys, and the rupees, hearts and other
 //! pickups lying loose. One
 //! that holds something else gets a pickup for it, a stand-in built on a
 //! pickup that gives a major item when no `Obj_*` form exists.
@@ -30,9 +31,11 @@ mod stale;
 pub mod steps;
 pub mod taken;
 mod moves;
+pub mod seats;
 
 use drops::own_drop;
 pub use moves::{moved, stand_ins, tabled, write};
+pub use seats::{BOULDERS, RED_BOULDERS};
 
 /// One kind of placed holder.
 #[derive(PartialEq)]
@@ -125,8 +128,9 @@ pub const CRATES: Kind = Kind {
     named: None,
 };
 
-/// Small rocks Link lifts and throws, both of the light grade. The rock
-/// that needs gauntlets stays out.
+/// Small rocks Link lifts and throws, both of the light grade. The boulders
+/// are [`BOULDERS`] and [`RED_BOULDERS`]. The rocks that need gauntlets
+/// wait for their stage (rocks spec).
 pub const ROCKS: Kind = Kind {
     actors: &[actor::OBJ_LIFT_ROCK_A_01, actor::OBJ_LIFT_ROCK_A_03],
     item: None,
@@ -266,7 +270,7 @@ pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 14] = [
+const KINDS: [&Kind; 16] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
@@ -281,6 +285,8 @@ const KINDS: [&Kind; 14] = [
     &FIRE_ARROWS,
     &RUTOS_LETTER,
     &LOOSE,
+    &BOULDERS,
+    &RED_BOULDERS,
 ];
 
 /// What a thief's key check is held by, in the spoiler.
@@ -397,6 +403,8 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.pots, &FLYING_POTS),
         (new_game.crates, &CRATES),
         (new_game.rocks, &ROCKS),
+        (new_game.rocks, &BOULDERS),
+        (new_game.rocks, &RED_BOULDERS),
         (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
         (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
@@ -523,6 +531,8 @@ mod tests {
             (&FIRE_ARROWS, 1),
             (&RUTOS_LETTER, 1),
             (&LOOSE, 140),
+            (&BOULDERS, 40),
+            (&RED_BOULDERS, 30),
         ] {
             let checks = kind.checks(&romfs).unwrap();
             let hashes: BTreeSet<u64> = checks.iter().map(|c| c.hash).collect();

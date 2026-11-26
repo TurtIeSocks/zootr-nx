@@ -55,7 +55,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -102,7 +102,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -120,7 +120,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -131,6 +131,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 295
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 268
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "125530267563245847",
+      "id": 1584,
+      "name": "HF Near Cow Grotto Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -153,7 +177,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -171,7 +195,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -216,7 +240,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -234,7 +258,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -252,7 +276,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 258
+            "ref": 272
           }
         }
       ],
@@ -334,7 +358,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -352,7 +376,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 171
+            "ref": 172
           }
         }
       ],
@@ -367,7 +391,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -401,7 +425,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -470,6 +494,24 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "235030242296092194",
+      "id": 1585,
+      "name": "GV Near Pillar Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "place-b13887e8-child",
           "rule": {
             "ref": 114
@@ -490,7 +532,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -526,7 +568,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -544,7 +586,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -580,13 +622,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -613,9 +655,33 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "350218654240957402",
+      "id": 1586,
+      "name": "GC Maze Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "death-mountain-trail-adult",
           "rule": {
-            "ref": 166
+            "ref": 167
           }
         },
         {
@@ -687,6 +753,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 232
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "399653387701256048",
+      "id": 1587,
+      "name": "DMT Above Signposts Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "418728388637525878",
@@ -695,6 +785,31 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "all": [
+              {
+                "ref": 254
+              },
+              {
+                "ref": 124
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "437500486740655632",
+      "id": 1588,
+      "name": "GV Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -747,7 +862,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -799,7 +914,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -819,6 +934,30 @@
       "id": 4,
       "name": "Dream World Boss Rush Chest 5",
       "unprovable": true
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "568594831719413463",
+      "id": 1589,
+      "name": "GC Maze Boulder 7",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
     },
     {
       "at": [
@@ -861,7 +1000,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -895,7 +1034,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -945,7 +1084,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -1000,7 +1139,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 253
+            "ref": 265
           }
         }
       ],
@@ -1015,7 +1154,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -1033,7 +1172,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -1062,7 +1201,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -1130,7 +1269,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -1225,7 +1364,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         }
       ],
@@ -1276,7 +1415,7 @@
         {
           "place": "death-mountain-trail-adult",
           "rule": {
-            "ref": 166
+            "ref": 167
           }
         }
       ],
@@ -1294,7 +1433,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -1317,10 +1456,10 @@
                 "ref": 140
               },
               {
-                "ref": 235
+                "ref": 245
               },
               {
-                "ref": 209
+                "ref": 213
               },
               {
                 "count": 1,
@@ -1330,7 +1469,7 @@
                 ]
               },
               {
-                "ref": 169
+                "ref": 170
               }
             ]
           }
@@ -1343,7 +1482,7 @@
                 "ref": 155
               },
               {
-                "ref": 209
+                "ref": 213
               },
               {
                 "ref": 45
@@ -1377,7 +1516,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 168
+            "ref": 169
           }
         }
       ],
@@ -1392,7 +1531,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -1422,7 +1561,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -1512,7 +1651,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -1618,7 +1757,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -1636,7 +1775,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -1688,7 +1827,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -1726,7 +1865,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -1744,7 +1883,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -1833,7 +1972,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -1844,6 +1983,30 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1144847674319821543",
+      "id": 1590,
+      "name": "GC Upper Staircase Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -1867,7 +2030,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -1888,7 +2051,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -2030,7 +2193,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -2051,7 +2214,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -2227,7 +2390,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 246
+            "ref": 258
           }
         }
       ],
@@ -2245,7 +2408,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -2263,7 +2426,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -2279,9 +2442,27 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1260877297084261540",
+      "id": 1591,
+      "name": "GV Near Pillar Red Boulder 4",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -2299,7 +2480,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -2317,7 +2498,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -2353,7 +2534,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 251
+            "ref": 263
           }
         }
       ],
@@ -2391,6 +2572,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1326474780527120523",
+      "id": 1592,
+      "name": "GC Maze Boulder 5",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "1337254747199514230",
@@ -2406,7 +2611,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -2424,7 +2629,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -2442,7 +2647,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -2460,7 +2665,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -2478,7 +2683,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -2565,7 +2770,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -2601,7 +2806,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -2619,7 +2824,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -2687,7 +2892,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -2698,6 +2903,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "1493583863851704702",
+      "id": 1593,
+      "name": "GC Maze Boulder 6",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -2758,7 +2987,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -2808,7 +3037,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -2826,7 +3055,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -2890,7 +3119,7 @@
               {
                 "all": [
                   {
-                    "ref": 244
+                    "ref": 255
                   },
                   {
                     "count": 1,
@@ -2929,7 +3158,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 249
+            "ref": 261
           }
         }
       ],
@@ -3049,7 +3278,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -3067,7 +3296,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 182
+            "ref": 185
           }
         }
       ],
@@ -3173,7 +3402,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -3212,7 +3441,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -3230,7 +3459,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -3248,7 +3477,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -3320,7 +3549,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -3338,7 +3567,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 171
+            "ref": 172
           }
         }
       ],
@@ -3406,7 +3635,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -3444,7 +3673,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -3511,7 +3740,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -3529,7 +3758,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -3547,7 +3776,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -3650,7 +3879,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -3720,7 +3949,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -3738,7 +3967,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -3770,9 +3999,33 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 240
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2109842002649137583",
+      "id": 1594,
+      "name": "DMC Near DMT Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 187
+            "ref": 190
           }
         }
       ],
@@ -3790,7 +4043,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -3886,13 +4139,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -3988,7 +4241,7 @@
         {
           "place": "lost-woods-child",
           "rule": {
-            "ref": 179
+            "ref": 180
           }
         }
       ],
@@ -3999,6 +4252,24 @@
       "unprovable": false,
       "when": {
         "setting": "scrubs"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2214331431043654664",
+      "id": 1595,
+      "name": "GC Maze Red Boulder 5",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -4080,7 +4351,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -4151,13 +4422,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -4175,7 +4446,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -4211,7 +4482,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -4248,7 +4519,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -4337,7 +4608,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 271
+            "ref": 285
           }
         }
       ],
@@ -4392,7 +4663,7 @@
         {
           "place": "death-mountain-crater-child",
           "rule": {
-            "ref": 179
+            "ref": 180
           }
         }
       ],
@@ -4410,7 +4681,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -4446,7 +4717,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -4464,7 +4735,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -4482,7 +4753,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -4524,7 +4795,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -4718,7 +4989,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -4736,7 +5007,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -4754,13 +5025,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -4778,7 +5049,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -4796,7 +5067,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -4812,9 +5083,27 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "2748115100431371354",
+      "id": 1596,
+      "name": "GC Maze Red Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -4848,7 +5137,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -4866,7 +5155,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 285
+            "ref": 300
           }
         }
       ],
@@ -4938,7 +5227,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 248
+            "ref": 260
           }
         }
       ],
@@ -4998,7 +5287,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -5050,13 +5339,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -5071,7 +5360,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -5093,6 +5382,30 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3009822989781876601",
+      "id": 1597,
+      "name": "GC Upper Staircase Boulder 4",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -5127,7 +5440,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 251
+            "ref": 263
           }
         }
       ],
@@ -5300,7 +5613,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -5318,7 +5631,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -5354,7 +5667,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 277
+            "ref": 291
           }
         }
       ],
@@ -5372,7 +5685,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -5390,7 +5703,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -5424,7 +5737,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -5442,7 +5755,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -5527,7 +5840,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -5563,7 +5876,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -5599,7 +5912,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -5673,7 +5986,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -5709,7 +6022,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -5725,9 +6038,33 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 232
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3405298614843554622",
+      "id": 1598,
+      "name": "DMT Above Signposts Boulder 4",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -5763,7 +6100,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -5799,7 +6136,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 216
+            "ref": 222
           }
         }
       ],
@@ -5817,7 +6154,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -5856,7 +6193,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -5888,7 +6225,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -5956,7 +6293,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -5967,6 +6304,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3559172832032073716",
+      "id": 1599,
+      "name": "GC Maze Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -6004,7 +6359,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -6022,7 +6377,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -6161,7 +6516,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -6218,7 +6573,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -6254,7 +6609,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 227
+            "ref": 234
           }
         }
       ],
@@ -6267,9 +6622,33 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3721220525082878677",
+      "id": 1600,
+      "name": "GC Upper Staircase Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -6287,7 +6666,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -6305,7 +6684,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 224
+            "ref": 230
           }
         }
       ],
@@ -6320,7 +6699,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -6356,7 +6735,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -6424,7 +6803,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -6442,7 +6821,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -6463,7 +6842,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -6481,7 +6860,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 231
+            "ref": 239
           }
         }
       ],
@@ -6581,7 +6960,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -6599,7 +6978,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -6617,7 +6996,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 186
+            "ref": 189
           }
         }
       ],
@@ -6671,7 +7050,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -6728,7 +7107,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -6762,7 +7141,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -6798,7 +7177,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -6816,7 +7195,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -6858,7 +7237,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -6896,7 +7275,7 @@
           "rule": {
             "all": [
               {
-                "ref": 244
+                "ref": 255
               },
               {
                 "count": 1,
@@ -7041,7 +7420,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -7059,7 +7438,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -7077,7 +7456,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -7167,7 +7546,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 207
+            "ref": 211
           }
         }
       ],
@@ -7191,7 +7570,7 @@
         {
           "place": "lost-woods-child",
           "rule": {
-            "ref": 179
+            "ref": 180
           }
         }
       ],
@@ -7342,7 +7721,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -7360,7 +7739,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 180
+            "ref": 181
           }
         }
       ],
@@ -7378,7 +7757,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -7518,7 +7897,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -7577,7 +7956,7 @@
                 ]
               },
               {
-                "ref": 214
+                "ref": 219
               }
             ]
           }
@@ -7622,7 +8001,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -7640,7 +8019,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -7699,13 +8078,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 287
+            "ref": 302
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 259
+            "ref": 273
           }
         }
       ],
@@ -7817,7 +8196,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -7857,7 +8236,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -7875,7 +8254,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -7893,7 +8272,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -7911,7 +8290,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -8195,7 +8574,7 @@
                 "ref": 124
               },
               {
-                "ref": 197
+                "ref": 201
               }
             ]
           }
@@ -8286,7 +8665,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -8304,7 +8683,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 226
+            "ref": 233
           }
         }
       ],
@@ -8322,7 +8701,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -8340,7 +8719,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -8358,7 +8737,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -8376,7 +8755,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -8394,7 +8773,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 246
+            "ref": 258
           }
         }
       ],
@@ -8503,7 +8882,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -8521,7 +8900,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 285
+            "ref": 300
           }
         }
       ],
@@ -8539,7 +8918,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 216
+            "ref": 222
           }
         }
       ],
@@ -8557,7 +8936,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 186
+            "ref": 189
           }
         }
       ],
@@ -8677,6 +9056,30 @@
     {
       "at": [
         {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 295
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 268
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5127423624846795718",
+      "id": 1601,
+      "name": "HF West Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -8695,7 +9098,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -8713,7 +9116,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -8767,7 +9170,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -8797,6 +9200,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "lost-woods-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "lost-woods-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5207698098030997501",
+      "id": 1602,
+      "name": "LW Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "5214952873966346016",
@@ -8812,7 +9239,7 @@
         {
           "place": "zora-river-child",
           "rule": {
-            "ref": 230
+            "ref": 237
           }
         }
       ],
@@ -8854,7 +9281,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -8890,7 +9317,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -8908,7 +9335,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -8993,7 +9420,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 224
+            "ref": 230
           }
         }
       ],
@@ -9011,7 +9438,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -9096,6 +9523,17 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "5416806354710087510",
+      "id": 1603,
+      "name": "DMC Near Fire Temple Red Boulder 1",
+      "unprovable": true,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [
         {
           "place": "bottom-of-the-well-child",
@@ -9115,7 +9553,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -9133,7 +9571,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -9189,6 +9627,30 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 240
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5524931827254348969",
+      "id": 1604,
+      "name": "DMC Upper Grotto Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": {
             "ref": 135
@@ -9219,7 +9681,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -9248,7 +9710,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 178
+            "ref": 179
           }
         }
       ],
@@ -9339,7 +9801,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -9391,7 +9853,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -9409,13 +9871,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -9587,7 +10049,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 279
+            "ref": 293
           }
         }
       ],
@@ -9620,7 +10082,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -9674,7 +10136,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -9749,7 +10211,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 216
+            "ref": 222
           }
         }
       ],
@@ -9767,7 +10229,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 196
+            "ref": 200
           }
         }
       ],
@@ -9799,9 +10261,27 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "5803622411498968148",
+      "id": 1605,
+      "name": "DMT Falling Rocks Path Red Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 226
+            "ref": 233
           }
         }
       ],
@@ -9835,7 +10315,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -9918,7 +10398,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -10037,7 +10517,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -10055,7 +10535,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -10091,7 +10571,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -10165,7 +10645,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 204
+            "ref": 208
           }
         }
       ],
@@ -10214,7 +10694,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -10232,7 +10712,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -10347,6 +10827,30 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6224093172612549845",
+      "id": 1606,
+      "name": "GC Maze Boulder 9",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -10421,7 +10925,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -10457,7 +10961,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -10491,7 +10995,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 187
+            "ref": 190
           }
         }
       ],
@@ -10509,7 +11013,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -10527,7 +11031,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 285
+            "ref": 300
           }
         }
       ],
@@ -10585,7 +11089,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -10621,7 +11125,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -10657,7 +11161,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -10686,7 +11190,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -10736,7 +11240,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 277
+            "ref": 291
           }
         }
       ],
@@ -10796,7 +11300,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         },
         {
@@ -10871,7 +11375,25 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6527832079093591587",
+      "id": 1607,
+      "name": "Bottom of the Well B2 Basement Boulder 7",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 195
           }
         }
       ],
@@ -10889,7 +11411,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 291
+            "ref": 306
           }
         }
       ],
@@ -10907,7 +11429,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -10959,6 +11481,30 @@
     {
       "at": [
         {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6669732312980766026",
+      "id": 1608,
+      "name": "ZR Near Storms Grotto Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -10977,7 +11523,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -11013,7 +11559,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -11031,7 +11577,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -11049,7 +11595,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -11152,7 +11698,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -11176,7 +11722,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -11228,7 +11774,7 @@
           "rule": {
             "all": [
               {
-                "ref": 244
+                "ref": 255
               },
               {
                 "count": 1,
@@ -11244,7 +11790,7 @@
                 "ref": 130
               },
               {
-                "ref": 214
+                "ref": 219
               }
             ]
           }
@@ -11261,7 +11807,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -11279,7 +11825,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -11313,7 +11859,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -11331,7 +11877,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 268
+            "ref": 282
           }
         }
       ],
@@ -11348,10 +11894,10 @@
           "rule": {
             "all": [
               {
-                "ref": 197
+                "ref": 201
               },
               {
-                "ref": 263
+                "ref": 277
               }
             ]
           }
@@ -11364,7 +11910,7 @@
                 "ref": 112
               },
               {
-                "ref": 236
+                "ref": 246
               }
             ]
           }
@@ -11402,7 +11948,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -11413,6 +11959,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6933130136085028789",
+      "id": 1609,
+      "name": "GV Near Chest Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -11438,7 +12002,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -11472,6 +12036,24 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6958775698257163131",
+      "id": 1610,
+      "name": "GC Maze Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": true
         }
@@ -11490,7 +12072,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -11536,7 +12118,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -11565,7 +12147,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -11599,7 +12181,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -11628,7 +12210,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -11770,7 +12352,7 @@
           "rule": {
             "all": [
               {
-                "ref": 244
+                "ref": 255
               },
               {
                 "count": 1,
@@ -11997,7 +12579,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -12015,7 +12597,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -12049,13 +12631,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -12073,7 +12655,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 249
+            "ref": 261
           }
         }
       ],
@@ -12107,7 +12689,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -12125,7 +12707,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -12143,7 +12725,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -12205,7 +12787,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         }
       ],
@@ -12230,7 +12812,7 @@
                     "ref": 140
                   },
                   {
-                    "ref": 169
+                    "ref": 170
                   }
                 ]
               },
@@ -12272,7 +12854,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -12290,7 +12872,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -12386,7 +12968,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -12412,7 +12994,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 241
+            "ref": 252
           }
         }
       ],
@@ -12482,13 +13064,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 288
+            "ref": 303
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 276
+            "ref": 290
           }
         }
       ],
@@ -12531,7 +13113,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 282
+            "ref": 297
           }
         }
       ],
@@ -12549,7 +13131,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -12603,7 +13185,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -12661,9 +13243,27 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7623590182732686599",
+      "id": 1611,
+      "name": "GV Near Pillar Red Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -12793,13 +13393,13 @@
                 "ref": 140
               },
               {
-                "ref": 235
+                "ref": 245
               },
               {
-                "ref": 209
+                "ref": 213
               },
               {
-                "ref": 169
+                "ref": 170
               }
             ]
           }
@@ -12812,7 +13412,7 @@
                 "ref": 155
               },
               {
-                "ref": 209
+                "ref": 213
               },
               {
                 "ref": 150
@@ -12832,7 +13432,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -12888,7 +13488,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 224
+            "ref": 230
           }
         }
       ],
@@ -12929,7 +13529,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -13067,7 +13667,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13121,7 +13721,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13139,7 +13739,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -13157,7 +13757,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13193,7 +13793,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -13272,7 +13872,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13310,7 +13910,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -13377,7 +13977,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -13395,7 +13995,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13413,7 +14013,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -13467,7 +14067,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -13552,7 +14152,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -13590,6 +14190,24 @@
     {
       "at": [
         {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8438942300162055419",
+      "id": 1612,
+      "name": "GC Middle Floor Child Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": true
         }
@@ -13608,7 +14226,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -13626,13 +14244,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 287
+            "ref": 302
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 259
+            "ref": 273
           }
         }
       ],
@@ -13678,7 +14296,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -13714,9 +14332,33 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 232
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8580335210618464267",
+      "id": 1613,
+      "name": "DMT Above Signposts Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -13734,7 +14376,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 260
+            "ref": 274
           }
         },
         {
@@ -13784,7 +14426,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -13802,13 +14444,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -13819,6 +14461,42 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8668774813841012997",
+      "id": 1614,
+      "name": "GC Middle Floor Adult Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 183
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8679993994356197333",
+      "id": 1615,
+      "name": "DMC Near Deku Scrub Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -13878,7 +14556,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -13918,7 +14596,7 @@
               {
                 "all": [
                   {
-                    "ref": 198
+                    "ref": 202
                   },
                   {
                     "count": 1,
@@ -13950,7 +14628,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -13968,7 +14646,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -14038,7 +14716,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -14148,7 +14826,7 @@
         {
           "place": "haunted-wasteland-adult",
           "rule": {
-            "ref": 197
+            "ref": 201
           }
         },
         {
@@ -14169,7 +14847,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -14264,7 +14942,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -14282,7 +14960,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -14371,6 +15049,24 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8950244213799048861",
+      "id": 1616,
+      "name": "DMT Above Dodongos Cavern Red Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "zora-river-adult",
           "rule": {
             "ref": 124
@@ -14391,7 +15087,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -14427,7 +15123,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -14445,7 +15141,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -14460,7 +15156,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -14478,7 +15174,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -14558,7 +15254,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -14594,7 +15290,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -14612,7 +15308,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -14623,6 +15319,24 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9022198436374961374",
+      "id": 1617,
+      "name": "Bottom of the Well B2 Basement Boulder 5",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -14645,7 +15359,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         }
       ],
@@ -14663,7 +15377,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -14742,7 +15456,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -14794,7 +15508,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -14818,7 +15532,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -14860,7 +15574,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -14966,7 +15680,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 229
+            "ref": 236
           }
         }
       ],
@@ -14981,7 +15695,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -14989,6 +15703,24 @@
       "hash": "9149464054892125753",
       "id": 1170,
       "name": "HF West Adult Rock 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9157903178214713404",
+      "id": 1618,
+      "name": "Bottom of the Well B2 Basement Boulder 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15051,7 +15783,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 178
+            "ref": 179
           }
         }
       ],
@@ -15103,7 +15835,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -15139,7 +15871,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 280
+            "ref": 294
           }
         }
       ],
@@ -15175,7 +15907,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -15211,7 +15943,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -15229,7 +15961,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -15339,6 +16071,24 @@
       "unprovable": false,
       "when": {
         "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9341058477314100352",
+      "id": 1619,
+      "name": "Bottom of the Well B2 Basement Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -15517,6 +16267,24 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9449864367576682354",
+      "id": 1620,
+      "name": "DMT Above Signposts Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "zora-river-adult",
           "rule": {
             "ref": 137
@@ -15537,7 +16305,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 256
+            "ref": 270
           }
         }
       ],
@@ -15584,6 +16352,24 @@
       "unprovable": false,
       "when": {
         "setting": "songs"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "fire-temple-adult",
+          "rule": {
+            "ref": 266
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9487554220373337506",
+      "id": 1621,
+      "name": "Fire Temple 3F Near Highest Goron Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -15650,7 +16436,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -15706,7 +16492,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -15730,7 +16516,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -15772,7 +16558,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -15812,7 +16598,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -15830,7 +16616,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -15848,7 +16634,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -15934,7 +16720,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -15984,6 +16770,24 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9677582272997323629",
+      "id": 1622,
+      "name": "DMT Above Signposts Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "zora-domain-adult",
           "rule": {
             "count": 1,
@@ -16028,7 +16832,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -16046,7 +16850,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -16097,9 +16901,33 @@
     {
       "at": [
         {
+          "place": "lost-woods-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "lost-woods-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "9751605155924795623",
+      "id": 1623,
+      "name": "LW Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -16133,7 +16961,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -16191,7 +17019,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -16268,7 +17096,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -16286,7 +17114,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -16304,7 +17132,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 280
+            "ref": 294
           }
         }
       ],
@@ -16330,7 +17158,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -16372,7 +17200,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -16387,7 +17215,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -16405,7 +17233,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 207
+            "ref": 211
           }
         }
       ],
@@ -16423,7 +17251,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -16441,13 +17269,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -16558,7 +17386,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -16576,7 +17404,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -16609,7 +17437,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -16627,7 +17455,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -16645,7 +17473,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -16679,7 +17507,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 189
+            "ref": 192
           }
         }
       ],
@@ -16697,7 +17525,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -16794,7 +17622,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -16913,7 +17741,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -16947,7 +17775,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -17017,7 +17845,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -17046,7 +17874,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -17082,7 +17910,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -17104,7 +17932,7 @@
               {
                 "all": [
                   {
-                    "ref": 257
+                    "ref": 271
                   },
                   {
                     "count": 1,
@@ -17152,9 +17980,33 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 240
+          }
+        },
+        {
+          "place": "death-mountain-crater-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10291266372915035962",
+      "id": 1624,
+      "name": "DMC Near Deku Scrub Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -17172,7 +18024,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -17224,7 +18076,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -17248,7 +18100,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -17266,7 +18118,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -17284,7 +18136,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 227
+            "ref": 234
           }
         }
       ],
@@ -17299,7 +18151,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -17319,7 +18171,7 @@
           "rule": {
             "all": [
               {
-                "ref": 263
+                "ref": 277
               },
               {
                 "count": 1,
@@ -17334,7 +18186,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 254
+            "ref": 267
           }
         }
       ],
@@ -17352,7 +18204,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 199
+            "ref": 203
           }
         }
       ],
@@ -17381,7 +18233,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -17467,7 +18319,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -17485,7 +18337,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -17521,7 +18373,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -17539,7 +18391,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 232
+            "ref": 241
           }
         }
       ],
@@ -17631,7 +18483,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -17649,7 +18501,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -17882,7 +18734,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -17900,7 +18752,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -17936,7 +18788,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -17947,6 +18799,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "fire-temple-adult",
+          "rule": {
+            "ref": 238
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "10887294463827394248",
+      "id": 1625,
+      "name": "Fire Temple 1F Boss Key Loop Red Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -18003,7 +18873,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 253
+            "ref": 265
           }
         }
       ],
@@ -18036,7 +18906,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -18069,7 +18939,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -18109,7 +18979,7 @@
                   {
                     "all": [
                       {
-                        "ref": 220
+                        "ref": 226
                       },
                       {
                         "any": [
@@ -18169,7 +19039,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -18187,7 +19057,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -18211,7 +19081,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -18261,7 +19131,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -18352,9 +19222,27 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11101586527269648394",
+      "id": 1626,
+      "name": "GV Near Chest Red Boulder 3",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -18394,7 +19282,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -18420,6 +19308,24 @@
       "hash": "11138816988756551783",
       "id": 1182,
       "name": "DMT Above Signposts Rock 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11141178457141260693",
+      "id": 1627,
+      "name": "Bottom of the Well B2 Basement Boulder 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18519,7 +19425,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -18573,7 +19479,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 246
+            "ref": 258
           }
         }
       ],
@@ -18640,7 +19546,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -18708,7 +19614,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -18726,7 +19632,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -18778,7 +19684,7 @@
         {
           "place": "zora-river-child",
           "rule": {
-            "ref": 230
+            "ref": 237
           }
         }
       ],
@@ -18840,7 +19746,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -18892,7 +19798,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -18955,7 +19861,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -19000,6 +19906,24 @@
       "unprovable": true,
       "when": {
         "ref": 51
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 183
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11477097298279134715",
+      "id": 1628,
+      "name": "DMC Near GC Red Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -19080,7 +20004,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 272
+            "ref": 286
           }
         }
       ],
@@ -19098,7 +20022,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -19125,6 +20049,24 @@
       "unprovable": false,
       "when": {
         "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "11505128767127996486",
+      "id": 1629,
+      "name": "Bottom of the Well B2 Basement Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -19166,7 +20108,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 245
+            "ref": 257
           }
         }
       ],
@@ -19202,7 +20144,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -19287,13 +20229,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 288
+            "ref": 303
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 276
+            "ref": 290
           }
         }
       ],
@@ -19346,7 +20288,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -19364,7 +20306,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -19403,7 +20345,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -19553,7 +20495,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 171
+            "ref": 172
           }
         }
       ],
@@ -19568,7 +20510,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 187
+            "ref": 190
           }
         }
       ],
@@ -19606,7 +20548,7 @@
           "rule": {
             "all": [
               {
-                "ref": 176
+                "ref": 177
               },
               {
                 "ref": 30
@@ -19629,7 +20571,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -19665,7 +20607,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 268
+            "ref": 282
           }
         }
       ],
@@ -19680,7 +20622,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -19698,7 +20640,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -19768,7 +20710,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -19786,7 +20728,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -19804,7 +20746,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -19835,7 +20777,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -19853,7 +20795,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 250
+            "ref": 262
           }
         }
       ],
@@ -19871,7 +20813,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -19889,13 +20831,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 269
+            "ref": 283
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -19913,7 +20855,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -19987,7 +20929,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 238
+            "ref": 249
           }
         }
       ],
@@ -20037,7 +20979,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -20116,7 +21058,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -20134,7 +21076,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -20152,7 +21094,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -20170,7 +21112,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 291
+            "ref": 306
           }
         }
       ],
@@ -20188,7 +21130,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -20206,7 +21148,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -20224,13 +21166,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 286
+            "ref": 301
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 255
+            "ref": 269
           }
         }
       ],
@@ -20245,7 +21187,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 241
+            "ref": 252
           }
         }
       ],
@@ -20263,7 +21205,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -20281,7 +21223,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -20299,7 +21241,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -20390,10 +21332,10 @@
                 "ref": 140
               },
               {
-                "ref": 235
+                "ref": 245
               },
               {
-                "ref": 209
+                "ref": 213
               }
             ]
           }
@@ -20406,7 +21348,7 @@
                 "ref": 155
               },
               {
-                "ref": 209
+                "ref": 213
               }
             ]
           }
@@ -20423,7 +21365,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -20461,7 +21403,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 248
+            "ref": 260
           }
         }
       ],
@@ -20553,7 +21495,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -20586,7 +21528,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 279
+            "ref": 293
           }
         }
       ],
@@ -20595,6 +21537,24 @@
       "id": 144,
       "name": "Shadow Temple B3 Wind Hint Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12350172607562201215",
+      "id": 1630,
+      "name": "GC Maze Red Boulder 4",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
     },
     {
       "at": [
@@ -20744,7 +21704,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -20762,7 +21722,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -20804,7 +21764,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -20838,7 +21798,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -20872,7 +21832,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -20890,7 +21850,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -20924,7 +21884,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 291
+            "ref": 306
           }
         }
       ],
@@ -20942,7 +21902,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 205
+            "ref": 209
           }
         }
       ],
@@ -20958,9 +21918,27 @@
     {
       "at": [
         {
+          "place": "death-mountain-crater-adult",
+          "rule": {
+            "ref": 183
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12575210264974120106",
+      "id": 1631,
+      "name": "DMC Near Deku Scrub Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 285
+            "ref": 300
           }
         }
       ],
@@ -20978,7 +21956,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -21012,7 +21990,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -21070,7 +22048,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -21106,7 +22084,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -21267,7 +22245,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 251
+            "ref": 263
           }
         }
       ],
@@ -21309,7 +22287,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -21327,7 +22305,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -21345,13 +22323,13 @@
         {
           "place": "place-0aa7c24a-child",
           "rule": {
-            "ref": 190
+            "ref": 193
           }
         },
         {
           "place": "place-0aa7c24a-adult",
           "rule": {
-            "ref": 239
+            "ref": 250
           }
         }
       ],
@@ -21366,7 +22344,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 254
+            "ref": 267
           }
         }
       ],
@@ -21420,7 +22398,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -21438,7 +22416,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 206
+            "ref": 210
           }
         }
       ],
@@ -21508,6 +22486,30 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "lost-woods-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "lost-woods-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "12960902182455217518",
+      "id": 1632,
+      "name": "LW Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -21619,7 +22621,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -21671,7 +22673,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -21705,7 +22707,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -21756,7 +22758,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 187
+            "ref": 190
           }
         }
       ],
@@ -21816,7 +22818,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -21918,6 +22920,24 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13220487356418123141",
+      "id": 1633,
+      "name": "GV Near Chest Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": true
         }
@@ -21986,7 +23006,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -22020,7 +23040,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -22083,7 +23103,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -22101,7 +23121,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -22159,6 +23179,30 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13404489088146365032",
+      "id": 1634,
+      "name": "GC Maze Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "zora-river-adult",
           "rule": {
             "ref": 124
@@ -22201,7 +23245,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -22248,7 +23292,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -22284,7 +23328,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -22331,7 +23375,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -22365,7 +23409,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 252
+            "ref": 264
           }
         }
       ],
@@ -22383,7 +23427,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 273
+            "ref": 287
           }
         }
       ],
@@ -22475,7 +23519,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 245
+            "ref": 257
           }
         }
       ],
@@ -22587,7 +23631,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -22602,7 +23646,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -22673,7 +23717,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -22693,7 +23737,7 @@
           "rule": {
             "all": [
               {
-                "ref": 288
+                "ref": 303
               },
               {
                 "count": 1,
@@ -22714,7 +23758,7 @@
                     "ref": 155
                   },
                   {
-                    "ref": 209
+                    "ref": 213
                   },
                   {
                     "ref": 45
@@ -22749,7 +23793,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 248
+            "ref": 260
           }
         }
       ],
@@ -22767,7 +23811,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -22811,6 +23855,30 @@
       "hash": "13737853645147528759",
       "id": 1209,
       "name": "ZR Near Storms Grotto Adult Rock 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13752329688808041417",
+      "id": 1635,
+      "name": "GC Maze Boulder 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22864,13 +23932,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -22981,13 +24049,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 167
+            "ref": 168
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 233
+            "ref": 242
           }
         }
       ],
@@ -23023,7 +24091,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -23041,7 +24109,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -23075,7 +24143,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -23111,7 +24179,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -23159,11 +24227,22 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "13991526616466298561",
+      "id": 1636,
+      "name": "DMC Near Fire Temple Red Boulder 3",
+      "unprovable": true,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -23199,7 +24278,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -23233,7 +24312,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 229
+            "ref": 236
           }
         }
       ],
@@ -23248,7 +24327,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -23305,7 +24384,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -23341,7 +24420,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -23412,7 +24491,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -23464,7 +24543,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 186
+            "ref": 189
           }
         }
       ],
@@ -23482,7 +24561,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -23500,7 +24579,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -23561,7 +24640,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -23579,7 +24658,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -23631,7 +24710,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 189
+            "ref": 192
           }
         }
       ],
@@ -23649,13 +24728,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -23702,7 +24781,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -23731,6 +24810,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 184
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14465858715163701812",
+      "id": 1637,
+      "name": "GC Maze Red Boulder 6",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -23767,7 +24864,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 250
+            "ref": 262
           }
         }
       ],
@@ -23863,7 +24960,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -23899,9 +24996,27 @@
     {
       "at": [
         {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14603693818119288124",
+      "id": 1638,
+      "name": "Bottom of the Well B2 Basement Boulder 8",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -23925,7 +25040,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -23943,7 +25058,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -23961,7 +25076,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -24001,7 +25116,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -24022,7 +25137,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -24040,7 +25155,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -24140,7 +25255,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 201
+            "ref": 205
           }
         }
       ],
@@ -24203,7 +25318,7 @@
           "rule": {
             "all": [
               {
-                "ref": 273
+                "ref": 287
               },
               {
                 "count": 1,
@@ -24332,7 +25447,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -24389,7 +25504,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -24425,7 +25540,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -24459,7 +25574,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -24483,7 +25598,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 274
+            "ref": 288
           }
         }
       ],
@@ -24492,6 +25607,30 @@
       "id": 106,
       "name": "Ganons Castle Light Trial Invisible Enemies Chest",
       "unprovable": false
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 232
+          }
+        },
+        {
+          "place": "death-mountain-trail-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "14984065111564053892",
+      "id": 1639,
+      "name": "DMT Above Signposts Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
     },
     {
       "at": [
@@ -24569,6 +25708,17 @@
       "unprovable": false,
       "when": {
         "setting": "hives"
+      }
+    },
+    {
+      "at": [],
+      "forbid": [],
+      "hash": "15044423826661592135",
+      "id": 1640,
+      "name": "DMC Near Fire Temple Red Boulder 2",
+      "unprovable": true,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -24663,7 +25813,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 168
+            "ref": 169
           }
         }
       ],
@@ -24678,7 +25828,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -24689,6 +25839,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15114269249738800955",
+      "id": 1641,
+      "name": "ZR Near Storms Grotto Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -24712,7 +25886,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -24748,13 +25922,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -24808,7 +25982,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -24876,7 +26050,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -24903,6 +26077,24 @@
       "unprovable": false,
       "when": {
         "setting": "loose-items"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15242943501730516725",
+      "id": 1642,
+      "name": "DMT Near Dodongos Cavern Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -24938,7 +26130,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 226
+            "ref": 233
           }
         }
       ],
@@ -24974,7 +26166,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 226
+            "ref": 233
           }
         }
       ],
@@ -25031,7 +26223,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 274
+            "ref": 288
           }
         }
       ],
@@ -25081,7 +26273,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -25131,7 +26323,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -25181,7 +26373,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 292
+            "ref": 307
           }
         }
       ],
@@ -25277,7 +26469,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -25299,7 +26491,7 @@
               {
                 "all": [
                   {
-                    "ref": 247
+                    "ref": 259
                   },
                   {
                     "count": 1,
@@ -25331,7 +26523,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -25342,6 +26534,30 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "hyrule-field-adult",
+          "rule": {
+            "ref": 295
+          }
+        },
+        {
+          "place": "hyrule-field-child",
+          "rule": {
+            "ref": 268
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15605814217953065995",
+      "id": 1643,
+      "name": "HF Cow Grotto Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -25454,6 +26670,30 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "15677699532769498187",
+      "id": 1644,
+      "name": "GC Maze Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "jabu-jabu-child",
           "rule": true
         }
@@ -25488,7 +26728,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -25524,7 +26764,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -25574,7 +26814,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -25660,7 +26900,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         },
         {
@@ -25700,7 +26940,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -25718,7 +26958,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 240
+            "ref": 251
           }
         }
       ],
@@ -25736,7 +26976,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 250
+            "ref": 262
           }
         }
       ],
@@ -25770,7 +27010,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -25788,7 +27028,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -25830,7 +27070,7 @@
           "rule": {
             "all": [
               {
-                "ref": 176
+                "ref": 177
               },
               {
                 "ref": 100
@@ -25853,7 +27093,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -25938,7 +27178,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -25974,7 +27214,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -26005,7 +27245,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 290
+            "ref": 305
           }
         }
       ],
@@ -26041,7 +27281,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26059,7 +27299,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26119,7 +27359,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -26137,7 +27377,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         },
         {
@@ -26161,7 +27401,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 246
+            "ref": 258
           }
         }
       ],
@@ -26181,7 +27421,7 @@
           "rule": {
             "all": [
               {
-                "ref": 180
+                "ref": 181
               },
               {
                 "ref": 60
@@ -26253,7 +27493,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -26289,7 +27529,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -26352,7 +27592,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -26388,7 +27628,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 217
+            "ref": 223
           }
         }
       ],
@@ -26406,7 +27646,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -26445,7 +27685,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -26463,7 +27703,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -26497,9 +27737,27 @@
     {
       "at": [
         {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16329060730828157520",
+      "id": 1645,
+      "name": "GV Near Pillar Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -26526,6 +27784,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "gerudo-valley-adult",
+          "rule": {
+            "ref": 256
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16340216739483509937",
+      "id": 1646,
+      "name": "GV Near Pillar Red Boulder 5",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -26569,7 +27845,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -26587,7 +27863,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -26626,7 +27902,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 221
+            "ref": 227
           }
         }
       ],
@@ -26660,7 +27936,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -26678,7 +27954,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26696,7 +27972,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26736,13 +28012,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26760,7 +28036,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 285
+            "ref": 300
           }
         }
       ],
@@ -26778,7 +28054,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 174
+            "ref": 175
           }
         }
       ],
@@ -26796,7 +28072,7 @@
         {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -26810,6 +28086,30 @@
       }
     },
     {
+      "at": [
+        {
+          "place": "zora-river-adult",
+          "rule": {
+            "ref": 216
+          }
+        },
+        {
+          "place": "zora-river-child",
+          "rule": {
+            "ref": 197
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16547116969322393756",
+      "id": 1647,
+      "name": "ZR Near Fairy Grotto Boulder",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [],
       "forbid": [],
       "hash": "16552860015818359893",
@@ -26818,6 +28118,30 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16561044195918001352",
+      "id": 1648,
+      "name": "GC Upper Staircase Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -26861,7 +28185,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         }
       ],
@@ -26910,7 +28234,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -26944,7 +28268,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 204
+            "ref": 208
           }
         }
       ],
@@ -27001,7 +28325,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 254
+            "ref": 267
           }
         }
       ],
@@ -27039,7 +28363,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -27057,7 +28381,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 185
+            "ref": 188
           }
         }
       ],
@@ -27122,7 +28446,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 205
+            "ref": 209
           }
         }
       ],
@@ -27140,7 +28464,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -27292,7 +28616,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 225
+            "ref": 231
           }
         }
       ],
@@ -27387,13 +28711,37 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 243
+          }
+        },
+        {
+          "place": "goron-city-child",
+          "rule": {
+            "ref": 220
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "16929684490549965748",
+      "id": 1649,
+      "name": "GC Maze Boulder 8",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "shadow-temple-adult",
           "rule": {
             "all": [
               {
                 "all": [
                   {
-                    "ref": 198
+                    "ref": 202
                   },
                   {
                     "count": 1,
@@ -27479,7 +28827,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         }
       ],
@@ -27497,7 +28845,7 @@
         {
           "place": "goron-city-adult",
           "rule": {
-            "ref": 175
+            "ref": 176
           }
         },
         {
@@ -27521,7 +28869,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 168
+            "ref": 169
           }
         }
       ],
@@ -27588,7 +28936,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -27603,7 +28951,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -27678,7 +29026,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -27696,7 +29044,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -27767,7 +29115,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 294
+            "ref": 309
           }
         }
       ],
@@ -27785,7 +29133,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -27885,7 +29233,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -27979,7 +29327,7 @@
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 203
+            "ref": 207
           }
         }
       ],
@@ -27997,7 +29345,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 308
           }
         }
       ],
@@ -28062,7 +29410,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -28251,7 +29599,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 250
+            "ref": 262
           }
         }
       ],
@@ -28285,13 +29633,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 183
+            "ref": 186
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 237
+            "ref": 248
           }
         }
       ],
@@ -28325,7 +29673,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 254
+            "ref": 267
           }
         }
       ],
@@ -28350,17 +29698,28 @@
       }
     },
     {
+      "at": [],
+      "forbid": [],
+      "hash": "17444962966713158176",
+      "id": 1650,
+      "name": "DMC Near Deku Scrub Red Boulder 3",
+      "unprovable": true,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
       "at": [
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -28495,7 +29854,7 @@
         {
           "place": "death-mountain-crater-adult",
           "rule": {
-            "ref": 173
+            "ref": 174
           }
         },
         {
@@ -28517,9 +29876,27 @@
     {
       "at": [
         {
+          "place": "bottom-of-the-well-child",
+          "rule": {
+            "ref": 247
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "17529505535892353824",
+      "id": 1651,
+      "name": "Bottom of the Well B2 Basement Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 260
+            "ref": 274
           }
         },
         {
@@ -28683,7 +30060,7 @@
               {
                 "all": [
                   {
-                    "ref": 220
+                    "ref": 226
                   },
                   {
                     "count": 1,
@@ -28715,7 +30092,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -28733,7 +30110,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -28751,7 +30128,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -28811,7 +30188,7 @@
         {
           "place": "death-mountain-trail-adult",
           "rule": {
-            "ref": 166
+            "ref": 167
           }
         }
       ],
@@ -28840,7 +30217,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -28876,7 +30253,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         },
         {
@@ -28915,7 +30292,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 251
+            "ref": 263
           }
         }
       ],
@@ -28973,7 +30350,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -28991,7 +30368,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -29009,7 +30386,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -29045,7 +30422,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 289
+            "ref": 304
           }
         }
       ],
@@ -29079,7 +30456,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 188
+            "ref": 191
           }
         }
       ],
@@ -29122,7 +30499,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 267
+            "ref": 281
           }
         }
       ],
@@ -29300,7 +30677,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 251
+            "ref": 263
           }
         }
       ],
@@ -29382,7 +30759,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 187
+            "ref": 190
           }
         }
       ],
@@ -29493,7 +30870,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -29545,7 +30922,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 221
+            "ref": 227
           }
         }
       ],
@@ -29563,7 +30940,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -29583,7 +30960,7 @@
           "rule": {
             "all": [
               {
-                "ref": 175
+                "ref": 176
               },
               {
                 "count": 1,
@@ -29624,9 +31001,45 @@
     {
       "at": [
         {
+          "place": "death-mountain-trail-adult",
+          "rule": {
+            "ref": 164
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "18165494116056569063",
+      "id": 1652,
+      "name": "DMT Near Dodongos Cavern Red Boulder 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "fire-temple-adult",
+          "rule": {
+            "ref": 266
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "18166761150827896849",
+      "id": 1653,
+      "name": "Fire Temple 3F Near Highest Goron Red Boulder 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "deku-tree-child",
           "rule": {
-            "ref": 242
+            "ref": 253
           }
         }
       ],
@@ -29680,7 +31093,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -29783,7 +31196,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -29801,7 +31214,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 195
+            "ref": 199
           }
         }
       ],
@@ -29891,7 +31304,7 @@
         {
           "place": "gerudo-valley-adult",
           "rule": {
-            "ref": 243
+            "ref": 254
           }
         }
       ],
@@ -29906,13 +31319,13 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         },
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -29930,7 +31343,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 263
+            "ref": 277
           }
         }
       ],
@@ -30439,13 +31852,13 @@
         {
           "place": "place-0aa7c74a-child",
           "rule": {
-            "ref": 191
+            "ref": 194
           }
         },
         {
           "place": "place-0aa7c74a-adult",
           "rule": {
-            "ref": 234
+            "ref": 244
           }
         }
       ],
@@ -30479,7 +31892,7 @@
         {
           "place": "place-0aa7c54a-adult",
           "rule": {
-            "ref": 197
+            "ref": 201
           }
         }
       ],
@@ -30490,13 +31903,13 @@
         {
           "place": "place-0aa7cf4a-child",
           "rule": {
-            "ref": 191
+            "ref": 194
           }
         },
         {
           "place": "place-0aa7cf4a-adult",
           "rule": {
-            "ref": 234
+            "ref": 244
           }
         }
       ],
@@ -30945,7 +32358,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -30956,7 +32369,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 199
+            "ref": 203
           }
         }
       ],
@@ -30970,7 +32383,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 232
+            "ref": 241
           }
         }
       ],
@@ -31001,7 +32414,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 272
+            "ref": 286
           }
         }
       ],
@@ -31041,7 +32454,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 238
+            "ref": 249
           }
         }
       ],
@@ -31064,7 +32477,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -31075,7 +32488,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 291
+            "ref": 306
           }
         }
       ],
@@ -31089,7 +32502,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 205
+            "ref": 209
           }
         }
       ],
@@ -31112,7 +32525,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 206
+            "ref": 210
           }
         }
       ],
@@ -31149,7 +32562,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 252
+            "ref": 264
           }
         }
       ],
@@ -31163,7 +32576,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 273
+            "ref": 287
           }
         }
       ],
@@ -31200,7 +32613,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 215
+            "ref": 221
           }
         }
       ],
@@ -31211,13 +32624,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 167
+            "ref": 168
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 233
+            "ref": 242
           }
         }
       ],
@@ -31248,7 +32661,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 215
+            "ref": 221
           }
         }
       ],
@@ -31259,7 +32672,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 201
+            "ref": 205
           }
         }
       ],
@@ -31273,7 +32686,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -31304,7 +32717,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 274
+            "ref": 288
           }
         }
       ],
@@ -31341,7 +32754,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 217
+            "ref": 223
           }
         }
       ],
@@ -31355,7 +32768,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 221
+            "ref": 227
           }
         }
       ],
@@ -31387,7 +32800,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 174
+            "ref": 175
           }
         }
       ],
@@ -31401,7 +32814,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -31415,7 +32828,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 205
+            "ref": 209
           }
         }
       ],
@@ -31429,7 +32842,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 258
+            "ref": 272
           }
         }
       ],
@@ -31443,7 +32856,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 182
+            "ref": 185
           }
         }
       ],
@@ -31457,7 +32870,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 294
+            "ref": 309
           }
         }
       ],
@@ -31485,13 +32898,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 183
+            "ref": 186
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 237
+            "ref": 248
           }
         }
       ],
@@ -31505,7 +32918,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 260
+            "ref": 274
           }
         },
         {
@@ -31525,7 +32938,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 192
+            "ref": 195
           }
         }
       ],
@@ -31539,7 +32952,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 283
+            "ref": 298
           }
         }
       ],
@@ -31559,7 +32972,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 267
+            "ref": 281
           }
         }
       ],
@@ -31573,7 +32986,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 200
+            "ref": 204
           }
         }
       ],
@@ -31584,7 +32997,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 221
+            "ref": 227
           }
         }
       ],
@@ -31639,7 +33052,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 171
+            "ref": 172
           }
         }
       ],
@@ -31667,13 +33080,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 184
+            "ref": 187
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 222
+            "ref": 228
           }
         }
       ],
@@ -31684,7 +33097,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 271
+            "ref": 285
           }
         }
       ],
@@ -31698,13 +33111,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 184
+            "ref": 187
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 222
+            "ref": 228
           }
         }
       ],
@@ -31715,7 +33128,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 215
+            "ref": 221
           }
         }
       ],
@@ -31726,7 +33139,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 277
+            "ref": 291
           }
         }
       ],
@@ -31810,7 +33223,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 200
+            "ref": 204
           }
         }
       ],
@@ -31900,7 +33313,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 207
+            "ref": 211
           }
         }
       ],
@@ -31928,13 +33341,13 @@
         {
           "place": "spirit-temple-child",
           "rule": {
-            "ref": 184
+            "ref": 187
           }
         },
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 222
+            "ref": 228
           }
         }
       ],
@@ -31985,7 +33398,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 224
+            "ref": 230
           }
         }
       ],
@@ -32034,7 +33447,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 196
+            "ref": 200
           }
         }
       ],
@@ -32048,7 +33461,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 200
+            "ref": 204
           }
         }
       ],
@@ -32059,7 +33472,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 277
+            "ref": 291
           }
         }
       ],
@@ -32091,7 +33504,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 200
+            "ref": 204
           }
         }
       ],
@@ -32134,7 +33547,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 282
+            "ref": 297
           }
         }
       ],
@@ -32148,7 +33561,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 200
+            "ref": 204
           }
         }
       ],
@@ -32179,7 +33592,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 228
+            "ref": 235
           }
         }
       ],
@@ -32209,7 +33622,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 215
+            "ref": 221
           }
         }
       ],
@@ -32220,7 +33633,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 280
+            "ref": 294
           }
         }
       ],
@@ -32250,7 +33663,7 @@
         {
           "place": "bottom-of-the-well-child",
           "rule": {
-            "ref": 256
+            "ref": 270
           }
         }
       ],
@@ -32273,7 +33686,7 @@
         {
           "place": "fire-temple-adult",
           "rule": {
-            "ref": 223
+            "ref": 229
           }
         }
       ],
@@ -32287,7 +33700,7 @@
         {
           "place": "hyrule-field-child",
           "rule": {
-            "ref": 236
+            "ref": 246
           }
         }
       ],
@@ -32298,7 +33711,7 @@
         {
           "place": "spirit-temple-adult",
           "rule": {
-            "ref": 215
+            "ref": 221
           }
         }
       ],
@@ -32309,7 +33722,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 207
+            "ref": 211
           }
         }
       ],
@@ -32323,7 +33736,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 284
+            "ref": 299
           }
         }
       ],
@@ -32985,7 +34398,7 @@
     {
       "from": "goron-city-adult",
       "rule": {
-        "ref": 212
+        "ref": 217
       },
       "to": "lost-woods-adult"
     },
@@ -33009,7 +34422,7 @@
     {
       "from": "goron-city-child",
       "rule": {
-        "ref": 194
+        "ref": 198
       },
       "to": "lost-woods-child"
     },
@@ -33042,7 +34455,7 @@
       "rule": {
         "all": [
           {
-            "ref": 197
+            "ref": 201
           },
           {
             "count": 1,
@@ -33267,7 +34680,7 @@
     {
       "from": "inside-ganons-castle-adult",
       "rule": {
-        "ref": 284
+        "ref": 299
       },
       "to": "ganondorf-room-adult"
     },
@@ -33474,7 +34887,7 @@
     {
       "from": "lost-woods-adult",
       "rule": {
-        "ref": 212
+        "ref": 217
       },
       "to": "goron-city-adult"
     },
@@ -33507,7 +34920,7 @@
     {
       "from": "lost-woods-child",
       "rule": {
-        "ref": 194
+        "ref": 198
       },
       "to": "goron-city-child"
     },
@@ -33695,10 +35108,10 @@
       "rule": {
         "any": [
           {
-            "ref": 197
+            "ref": 201
           },
           {
-            "ref": 197
+            "ref": 201
           }
         ]
       },
@@ -33991,7 +35404,7 @@
     {
       "from": "place-0aa7cf4a-adult",
       "rule": {
-        "ref": 197
+        "ref": 201
       },
       "to": "place-0aa7c24a-adult"
     },
@@ -34054,7 +35467,7 @@
             ]
           },
           {
-            "ref": 197
+            "ref": 201
           },
           {
             "count": 1,
@@ -34400,7 +35813,7 @@
                     ]
                   },
                   {
-                    "ref": 197
+                    "ref": 201
                   }
                 ]
               },
@@ -37382,6 +38795,19 @@
       ]
     },
     {
+      "all": [
+        {
+          "ref": 158
+        },
+        {
+          "count": 1,
+          "items": [
+            "Megaton Hammer"
+          ]
+        }
+      ]
+    },
+    {
       "any": [
         {
           "ref": 115
@@ -37703,7 +39129,7 @@
     {
       "all": [
         {
-          "ref": 170
+          "ref": 171
         },
         {
           "count": 1,
@@ -37741,6 +39167,32 @@
         },
         {
           "ref": 130
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 174
+        },
+        {
+          "count": 1,
+          "items": [
+            "Megaton Hammer"
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 176
+        },
+        {
+          "count": 1,
+          "items": [
+            "Megaton Hammer"
+          ]
         }
       ]
     },
@@ -37900,6 +39352,16 @@
       ]
     },
     {
+      "all": [
+        {
+          "ref": 115
+        },
+        {
+          "ref": 115
+        }
+      ]
+    },
+    {
       "any": [
         {
           "ref": 115
@@ -38037,7 +39499,7 @@
     {
       "all": [
         {
-          "ref": 176
+          "ref": 177
         },
         {
           "ref": 30
@@ -38083,7 +39545,7 @@
     {
       "any": [
         {
-          "ref": 197
+          "ref": 201
         },
         {
           "count": 1,
@@ -38123,7 +39585,7 @@
           ]
         },
         {
-          "ref": 197
+          "ref": 201
         }
       ]
     },
@@ -38138,6 +39600,16 @@
       ]
     },
     {
+      "all": [
+        {
+          "ref": 124
+        },
+        {
+          "ref": 124
+        }
+      ]
+    },
+    {
       "any": [
         {
           "ref": 124
@@ -38200,7 +39672,17 @@
     {
       "all": [
         {
-          "ref": 172
+          "ref": 138
+        },
+        {
+          "ref": 115
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 173
         },
         {
           "ref": 89
@@ -38210,7 +39692,7 @@
     {
       "all": [
         {
-          "ref": 192
+          "ref": 195
         },
         {
           "ref": 41
@@ -38220,7 +39702,7 @@
     {
       "all": [
         {
-          "ref": 177
+          "ref": 178
         },
         {
           "ref": 89
@@ -38244,7 +39726,7 @@
           ]
         },
         {
-          "ref": 197
+          "ref": 201
         }
       ]
     },
@@ -38332,7 +39814,7 @@
     {
       "all": [
         {
-          "ref": 181
+          "ref": 182
         },
         {
           "ref": 87
@@ -38342,7 +39824,7 @@
     {
       "all": [
         {
-          "ref": 165
+          "ref": 166
         },
         {
           "ref": 107
@@ -38376,10 +39858,20 @@
     {
       "all": [
         {
-          "ref": 195
+          "ref": 199
         },
         {
           "ref": 60
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 158
+        },
+        {
+          "ref": 124
         }
       ]
     },
@@ -38424,7 +39916,7 @@
     {
       "all": [
         {
-          "ref": 198
+          "ref": 202
         },
         {
           "ref": 76
@@ -38434,7 +39926,7 @@
     {
       "all": [
         {
-          "ref": 176
+          "ref": 177
         },
         {
           "ref": 114
@@ -38444,7 +39936,7 @@
     {
       "all": [
         {
-          "ref": 202
+          "ref": 206
         },
         {
           "ref": 88
@@ -38482,7 +39974,20 @@
     {
       "all": [
         {
-          "ref": 228
+          "ref": 233
+        },
+        {
+          "count": 1,
+          "items": [
+            "Megaton Hammer"
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 235
         },
         {
           "count": 1,
@@ -38495,7 +40000,17 @@
     {
       "all": [
         {
-          "ref": 193
+          "ref": 174
+        },
+        {
+          "ref": 124
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 196
         },
         {
           "ref": 108
@@ -38505,10 +40020,20 @@
     {
       "all": [
         {
-          "ref": 210
+          "ref": 214
         },
         {
           "ref": 87
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 176
+        },
+        {
+          "ref": 124
         }
       ]
     },
@@ -38535,7 +40060,7 @@
           ]
         },
         {
-          "ref": 197
+          "ref": 201
         },
         {
           "count": 1,
@@ -38552,7 +40077,7 @@
     {
       "all": [
         {
-          "ref": 169
+          "ref": 170
         },
         {
           "ref": 141
@@ -38562,7 +40087,7 @@
     {
       "all": [
         {
-          "ref": 190
+          "ref": 193
         },
         {
           "ref": 115
@@ -38572,7 +40097,17 @@
     {
       "all": [
         {
-          "ref": 218
+          "ref": 195
+        },
+        {
+          "ref": 115
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 224
         },
         {
           "ref": 86
@@ -38582,7 +40117,7 @@
     {
       "all": [
         {
-          "ref": 219
+          "ref": 225
         },
         {
           "ref": 88
@@ -38595,14 +40130,14 @@
           "ref": 115
         },
         {
-          "ref": 197
+          "ref": 201
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 236
+          "ref": 246
         },
         {
           "count": 1,
@@ -38615,7 +40150,7 @@
     {
       "all": [
         {
-          "ref": 231
+          "ref": 239
         },
         {
           "ref": 41
@@ -38625,7 +40160,7 @@
     {
       "all": [
         {
-          "ref": 190
+          "ref": 193
         },
         {
           "ref": 112
@@ -38668,7 +40203,7 @@
           ]
         },
         {
-          "ref": 197
+          "ref": 201
         },
         {
           "count": 1,
@@ -38683,7 +40218,20 @@
     {
       "all": [
         {
-          "ref": 243
+          "ref": 254
+        },
+        {
+          "count": 1,
+          "items": [
+            "Megaton Hammer"
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 254
         },
         {
           "count": 1,
@@ -38755,7 +40303,7 @@
     {
       "all": [
         {
-          "ref": 226
+          "ref": 233
         },
         {
           "ref": 105
@@ -38765,7 +40313,7 @@
     {
       "all": [
         {
-          "ref": 226
+          "ref": 233
         },
         {
           "ref": 106
@@ -38775,7 +40323,7 @@
     {
       "all": [
         {
-          "ref": 226
+          "ref": 233
         },
         {
           "ref": 107
@@ -38785,7 +40333,7 @@
     {
       "all": [
         {
-          "ref": 226
+          "ref": 233
         },
         {
           "ref": 108
@@ -38808,7 +40356,7 @@
     {
       "all": [
         {
-          "ref": 176
+          "ref": 177
         },
         {
           "ref": 114
@@ -38821,7 +40369,17 @@
     {
       "all": [
         {
-          "ref": 236
+          "ref": 238
+        },
+        {
+          "ref": 108
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 246
         },
         {
           "ref": 100
@@ -38831,10 +40389,20 @@
     {
       "all": [
         {
+          "ref": 246
+        },
+        {
+          "ref": 115
+        }
+      ]
+    },
+    {
+      "all": [
+        {
           "ref": 155
         },
         {
-          "ref": 209
+          "ref": 213
         },
         {
           "ref": 45
@@ -38844,10 +40412,10 @@
     {
       "all": [
         {
-          "ref": 176
+          "ref": 177
         },
         {
-          "ref": 211
+          "ref": 215
         }
       ]
     },
@@ -38885,7 +40453,7 @@
     {
       "all": [
         {
-          "ref": 247
+          "ref": 259
         },
         {
           "ref": 80
@@ -38895,7 +40463,7 @@
     {
       "all": [
         {
-          "ref": 255
+          "ref": 269
         },
         {
           "count": 1,
@@ -38912,7 +40480,7 @@
           "ref": 140
         },
         {
-          "ref": 235
+          "ref": 245
         }
       ]
     },
@@ -39003,10 +40571,10 @@
     {
       "all": [
         {
-          "ref": 220
+          "ref": 226
         },
         {
-          "ref": 164
+          "ref": 165
         },
         {
           "ref": 70
@@ -39016,7 +40584,7 @@
     {
       "all": [
         {
-          "ref": 239
+          "ref": 250
         },
         {
           "ref": 124
@@ -39144,14 +40712,14 @@
           "setting": "ganons-trials=done"
         },
         {
-          "ref": 261
+          "ref": 275
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 257
+          "ref": 271
         },
         {
           "ref": 82
@@ -39181,14 +40749,14 @@
           "ref": 114
         },
         {
-          "ref": 213
+          "ref": 218
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 263
+          "ref": 277
         },
         {
           "count": 1,
@@ -39205,7 +40773,7 @@
           "setting": "ganons-trials=done"
         },
         {
-          "ref": 264
+          "ref": 278
         }
       ]
     },
@@ -39215,17 +40783,17 @@
           "ref": 30
         },
         {
-          "ref": 208
+          "ref": 212
         },
         {
-          "ref": 221
+          "ref": 227
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 244
+          "ref": 255
         },
         {
           "ref": 130
@@ -39245,7 +40813,7 @@
     {
       "all": [
         {
-          "ref": 244
+          "ref": 255
         },
         {
           "count": 1,
@@ -39274,7 +40842,7 @@
           "ref": 114
         },
         {
-          "ref": 220
+          "ref": 226
         },
         {
           "ref": 162
@@ -39321,7 +40889,7 @@
           "ref": 155
         },
         {
-          "ref": 209
+          "ref": 213
         },
         {
           "ref": 45
@@ -39334,7 +40902,7 @@
     {
       "all": [
         {
-          "ref": 262
+          "ref": 276
         },
         {
           "ref": 77
@@ -39344,20 +40912,20 @@
     {
       "all": [
         {
-          "ref": 220
+          "ref": 226
         },
         {
           "ref": 68
         },
         {
-          "ref": 213
+          "ref": 218
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 265
+          "ref": 279
         },
         {
           "ref": 80
@@ -39367,7 +40935,7 @@
     {
       "all": [
         {
-          "ref": 275
+          "ref": 289
         },
         {
           "ref": 84
@@ -39377,7 +40945,17 @@
     {
       "all": [
         {
-          "ref": 266
+          "ref": 277
+        },
+        {
+          "ref": 124
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 280
         },
         {
           "ref": 103
@@ -39406,7 +40984,7 @@
     {
       "all": [
         {
-          "ref": 278
+          "ref": 292
         },
         {
           "ref": 79
@@ -39426,7 +41004,7 @@
           ]
         },
         {
-          "ref": 239
+          "ref": 250
         },
         {
           "count": 1,
@@ -39461,7 +41039,7 @@
     {
       "all": [
         {
-          "ref": 281
+          "ref": 296
         },
         {
           "ref": 65
@@ -39471,7 +41049,7 @@
     {
       "all": [
         {
-          "ref": 283
+          "ref": 298
         },
         {
           "ref": 11
@@ -39484,10 +41062,10 @@
           "ref": 140
         },
         {
-          "ref": 235
+          "ref": 245
         },
         {
-          "ref": 209
+          "ref": 213
         },
         {
           "count": 1,
@@ -39501,7 +41079,7 @@
     {
       "all": [
         {
-          "ref": 286
+          "ref": 301
         },
         {
           "count": 1,
@@ -39517,10 +41095,10 @@
           "ref": 140
         },
         {
-          "ref": 235
+          "ref": 245
         },
         {
-          "ref": 209
+          "ref": 213
         },
         {
           "count": 1,
@@ -39537,13 +41115,13 @@
     {
       "all": [
         {
-          "ref": 239
+          "ref": 250
         },
         {
           "ref": 124
         },
         {
-          "ref": 197
+          "ref": 201
         },
         {
           "count": 1,
@@ -39563,7 +41141,7 @@
     {
       "all": [
         {
-          "ref": 289
+          "ref": 304
         },
         {
           "ref": 76
@@ -39573,7 +41151,7 @@
     {
       "all": [
         {
-          "ref": 289
+          "ref": 304
         },
         {
           "ref": 78
@@ -39583,7 +41161,7 @@
     {
       "all": [
         {
-          "ref": 289
+          "ref": 304
         },
         {
           "ref": 80
@@ -39593,7 +41171,7 @@
     {
       "all": [
         {
-          "ref": 289
+          "ref": 304
         },
         {
           "ref": 82
@@ -39603,7 +41181,7 @@
     {
       "all": [
         {
-          "ref": 270
+          "ref": 284
         },
         {
           "ref": 128

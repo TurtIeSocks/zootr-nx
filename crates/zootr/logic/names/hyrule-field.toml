@@ -255,3 +255,9 @@
 # The fishing pond.
 12611601700011014094 = "LH Child Fishing"
 11485802066891699092 = "LH Adult Fishing"
+
+# Boulders (bombs or the hammer). Ours, as OoTR has none. Numbered west
+# to east.
+5127423624846795718 = "HF West Boulder"
+125530267563245847 = "HF Near Cow Grotto Boulder"
+15605814217953065995 = "HF Cow Grotto Boulder"

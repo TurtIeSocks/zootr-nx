@@ -63,3 +63,9 @@
 # Bridge Chest.
 5406759280757349546 = "LW Deku Scrub Near Bridge"
 17479747339356189279 = "LW Ledge Near Bridge Chest"
+
+# Boulders (bombs or the hammer). Ours, as OoTR has none. Numbered west
+# to east.
+5207698098030997501 = "LW Boulder 1"
+12960902182455217518 = "LW Boulder 2"
+9751605155924795623 = "LW Boulder 3"

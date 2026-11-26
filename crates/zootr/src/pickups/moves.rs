@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use super::drops::{pickup_for, template_for};
-use super::{DROP, Kind, NEW, kind_of, stale, steps};
+use super::{DROP, Kind, NEW, kind_of, seats, stale, steps};
 use crate::checks::{Drop, ItemCheck};
 use crate::gifts;
 use crate::settings::NewGame;
@@ -16,7 +16,11 @@ use crate::standins::{StandIn, Tables, item_pack};
 
 /// A holder whose item changed, and the actor its placement field names.
 pub struct Moved<'a> {
+    /// Where the item lies: the holder's own placement, a step's copy of
+    /// it, or a boulder's seat (`seats`).
     pub hash: u64,
+    /// The holder's own placement, its check's hash.
+    pub of: u64,
     /// What the holder was.
     pub vanilla: &'a str,
     /// What it now holds.
@@ -41,24 +45,29 @@ impl Moved<'_> {
 
 /// Every holder in `checks` whose item in `drops` isn't its own, and each
 /// step's placement past a holder's own when it shows them a step at a
-/// time.
+/// time. A boulder's item always lies in its seat, its own item too.
 pub fn moved<'a>(
     checks: &'a [ItemCheck],
     drops: &'a HashMap<u64, Drop>,
     progressive: crate::progressive::Lines,
 ) -> Vec<Moved<'a>> {
-    let holders: BTreeSet<(u64, &str, &str)> = checks
+    let holders: BTreeSet<(u64, &str, &str, bool)> = checks
         .iter()
-        .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field)))
+        .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field, seats::holds(c))))
         .collect();
     let mut out = Vec::new();
-    for (n, (hash, vanilla, field)) in holders.into_iter().enumerate() {
-        let item = gifts::item_at(drops, hash, vanilla);
-        if item == vanilla {
+    for (n, (of, vanilla, field, seated)) in holders.into_iter().enumerate() {
+        let item = gifts::item_at(drops, of, vanilla);
+        if item == vanilla && !seated {
             continue;
         }
+        let lies = |placement, k| match seated {
+            true => seats::seat(of, k),
+            false => placement,
+        };
         let at = |hash, item, actor: String, step| Moved {
             hash,
+            of,
             vanilla,
             item,
             field,
@@ -67,15 +76,15 @@ pub fn moved<'a>(
             step,
         };
         let dropped = field == DROP;
-        let Some(steps) = steps::of(hash, item, progressive) else {
+        let Some(steps) = steps::of(of, item, progressive) else {
             let actor = pickup_for(item, dropped).unwrap_or_else(|| format!("{NEW}{n:03}"));
-            out.push(at(hash, item, actor, None));
+            out.push(at(lies(of, 0), item, actor, None));
             continue;
         };
         for (k, (placement, shows, step)) in steps.into_iter().enumerate() {
             let built = || format!("{}{n:03}_{k}", stale::STEP);
             let actor = pickup_for(shows, dropped).unwrap_or_else(built);
-            out.push(at(placement, shows, actor, Some(step)));
+            out.push(at(lies(placement, k), shows, actor, Some(step)));
         }
     }
     out
@@ -90,9 +99,7 @@ pub fn stand_ins(
 ) -> Vec<(u64, String)> {
     let moved = moved(checks, drops, progressive).into_iter();
     let built = moved.filter(Moved::built);
-    built
-        .map(|m| (m.step.as_ref().map_or(m.hash, |s| s.of), m.actor))
-        .collect()
+    built.map(|m| (m.of, m.actor)).collect()
 }
 
 /// Build a pickup for each holder whose item changed, and return the
@@ -131,6 +138,11 @@ pub fn write(
             fields.push(format!("{}.{DROP}={item}", c.hash));
         }
     }
+    // A boulder's item lies in its seat, so the boulder drops nothing.
+    let boulders: BTreeSet<u64> = (checks.iter().filter(|c| seats::holds(c)))
+        .map(|c| c.hash)
+        .collect();
+    fields.extend(boulders.into_iter().map(seats::no_drop));
     Ok(fields)
 }
 

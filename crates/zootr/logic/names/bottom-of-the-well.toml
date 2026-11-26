@@ -105,3 +105,14 @@
 3307762411934841364 = "Bottom of the Well B2 Dead Hand Pot 1"
 6539220255102910600 = "Bottom of the Well B2 Dead Hand Pot 2"
 6064359710907908886 = "Bottom of the Well B1 Past Dead Hand Chest" # guess: new chest, behind the shutters that open once Dead Hand falls
+
+# Boulders: eight cracked boulders in the B2 basement, bombs or the
+# hammer. Ours, as OoTR has none. Numbered west to east.
+11505128767127996486 = "Bottom of the Well B2 Basement Boulder 1"
+17529505535892353824 = "Bottom of the Well B2 Basement Boulder 2"
+9341058477314100352 = "Bottom of the Well B2 Basement Boulder 3"
+9157903178214713404 = "Bottom of the Well B2 Basement Boulder 4"
+9022198436374961374 = "Bottom of the Well B2 Basement Boulder 5"
+11141178457141260693 = "Bottom of the Well B2 Basement Boulder 6"
+6527832079093591587 = "Bottom of the Well B2 Basement Boulder 7"
+14603693818119288124 = "Bottom of the Well B2 Basement Boulder 8"
