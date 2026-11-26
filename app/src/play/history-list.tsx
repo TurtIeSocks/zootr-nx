@@ -7,27 +7,28 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import type { Summary } from "@/bindings";
 import { CardHeader } from "@/components/card";
 import { CopySeed, SeedIcons } from "@/components/seed-icons";
 import { divided } from "@/components/styles";
-import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import { nameOf, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { HISTORY_SHOWS } from "@/play/history-filter";
+import { HISTORY_SHOWS, PAGE } from "@/play/history-filter";
+import { NONE, type Selection, toggled } from "@/play/history-select";
+import { SelectBar } from "@/play/history-select-bar";
 import {
   ConfirmButton,
+  ConfirmText,
   DiffersIn,
   ListRow,
   UseSettings,
 } from "@/play/list-row";
 import { ExtrasBadges, Name } from "@/play/seed";
-import { useArmed } from "@/play/use-armed";
 import { rowId } from "@/shell/find/reveal";
 import {
   clearHistory,
@@ -38,19 +39,19 @@ import {
   useDiffCount,
   useSeeds,
 } from "@/stores/seeds";
-import { openLabel, openSpoiler } from "@/stores/shell";
+import { openLabel, openSpoiler, useShell } from "@/stores/shell";
 import { type HistoryFilter, useUi } from "@/stores/ui";
 
 /** Deletes every seed but the installed and starred ones, on a second
  * click. */
 function ClearHistory() {
-  const { armed, ...handlers } = useArmed(clearHistory);
   return (
-    <Tip tip="Delete every seed except installed and starred ones">
-      <Button variant={armed ? "destructive" : "ghost"} size="sm" {...handlers}>
-        {armed ? "Really clear?" : "Clear"}
-      </Button>
-    </Tip>
+    <ConfirmText
+      label="Clear"
+      tip="Delete every seed except installed and starred ones"
+      confirm="Really clear?"
+      onConfirm={clearHistory}
+    />
   );
 }
 
@@ -170,19 +171,41 @@ const EMPTY: Record<HistoryFilter, string> = {
   starred: "No starred seeds yet.",
 };
 
+/** "N seeds", and "· M starred" when any are. */
+function counted(shown: Summary[]) {
+  const n = shown.length;
+  const starred = shown.filter((e) => e.starred).length;
+  return `${n} seed${n === 1 ? "" : "s"}${starred ? ` · ${starred} starred` : ""}`;
+}
+
 /** The History folder: every generated seed, newest first, with its
- * actions a hover away. */
+ * actions a hover away. Draws a page of rows at a time. Select mode picks
+ * many seeds to star, unstar or delete at once. */
 export function HistoryList() {
   const [entries] = useSeeds.usePath("history.entries");
   const [filter, setFilter] = useUi.usePath("play.history");
+  const [drawn = PAGE, setDrawn] = useShell.usePath("historyDrawn");
+  const [selecting, setSelecting] = useState(false);
+  const [sel, setSel] = useState<Selection>(NONE);
   const shown = entries.filter(HISTORY_SHOWS[filter]);
+  const ids = useRef<number[]>([]);
+  ids.current = shown.map((e) => e.id);
+  const toggle = useCallback(
+    (id: number, range: boolean) =>
+      setSel((s) => toggled(s, id, ids.current, range)),
+    [],
+  );
+  const done = () => {
+    setSelecting(false);
+    setSel(NONE);
+  };
   const n = shown.length;
   return (
     <>
       <CardHeader
         title="History"
         help="history"
-        meta={n > 0 && `${n} seed${n === 1 ? "" : "s"}`}
+        meta={n > 0 && counted(shown)}
         action={
           <div className="flex items-center gap-2">
             {entries.length > 0 && (
@@ -193,20 +216,55 @@ export function HistoryList() {
                 onValueChange={setFilter}
               />
             )}
-            {entries.length > 1 && <ClearHistory />}
+            {entries.length > 1 && !selecting && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelecting(true)}
+                >
+                  Select
+                </Button>
+                <ClearHistory />
+              </>
+            )}
           </div>
         }
       />
+      {selecting && (
+        <SelectBar
+          picked={shown.filter((e) => sel.ids.has(e.id))}
+          shown={n}
+          onSelectAll={() => setSel({ ids: new Set(ids.current) })}
+          onDone={done}
+        />
+      )}
       {n === 0 ? (
         <p className="px-4 pb-4 text-[13px] text-ink-muted">
           {entries.length ? EMPTY[filter] : "No seeds yet."}
         </p>
       ) : (
         <ul className={cn("px-1 pb-1", divided)}>
-          {shown.map((e) => (
-            <HistoryRow key={e.id} entry={e} />
+          {shown.slice(0, drawn).map((e) => (
+            <HistoryRow
+              key={e.id}
+              entry={e}
+              picked={selecting ? sel.ids.has(e.id) : undefined}
+              onToggle={toggle}
+            />
           ))}
         </ul>
+      )}
+      {n > drawn && (
+        <div className="flex justify-center px-4 pb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDrawn(drawn + PAGE)}
+          >
+            Show {Math.min(PAGE, n - drawn)} more
+          </Button>
+        </div>
       )}
     </>
   );
@@ -215,11 +273,18 @@ export function HistoryList() {
 /** Props for {@link HistoryRow}. */
 interface HistoryRowProps {
   entry: Summary;
+  /** Whether it's picked, in select mode. `undefined` outside it. */
+  picked: boolean | undefined;
+  onToggle: (id: number, range: boolean) => void;
 }
 
 /** An entry keeps its identity until history changes, so a row redraws only
  * for its own values. */
-const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
+const HistoryRow = memo(function HistoryRow({
+  entry: e,
+  picked,
+  onToggle,
+}: HistoryRowProps) {
   const [installedId] = useSeeds.usePath("history.installed.id");
   const [installingId] = useSeeds.usePath("installing");
   const differs = useDiffCount(e);
@@ -246,6 +311,15 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
           {!e.ap_slot && <DiffersIn n={differs} />}
         </>
       }
+      select={
+        picked !== undefined
+          ? {
+              label: `Select ${nameOf(e) || `seed ${e.seed}`}`,
+              on: picked,
+              toggle: (range) => onToggle(e.id, range),
+            }
+          : undefined
+      }
       mark={
         (isInstalled || isInstalling) && (
           <InstallMark
@@ -255,36 +329,41 @@ const HistoryRow = memo(function HistoryRow({ entry: e }: HistoryRowProps) {
         )
       }
       actions={
-        <>
-          {!isInstalled && !isInstalling && <InstallSeed id={e.id} />}
-          {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
-          {!e.ap_slot && (
-            <UseSettings
-              differs={differs}
-              tip="Use this seed's settings for the next one. Plando and flag edits stay behind"
-              onUse={() => takeSettings(e)}
-            />
-          )}
-          <TipButton
-            label="Spoiler Log"
-            tip="Spoiler Log"
-            variant="ghost"
-            onClick={() => openSpoiler(e)}
-          >
-            <ScrollText />
-          </TipButton>
-          {!e.ap_slot && <CopySeed entry={e} variant="ghost" size="icon-sm" />}
-          <StarSeed id={e.id} starred={e.starred} />
-          <TipButton
-            label="Label seed"
-            tip="Name this seed or note what it's for"
-            variant="ghost"
-            onClick={() => openLabel(e)}
-          >
-            <Pencil />
-          </TipButton>
-          <DeleteSeed id={e.id} installed={isInstalled} />
-        </>
+        // Select mode trades the actions for picking.
+        picked === undefined && (
+          <>
+            {!isInstalled && !isInstalling && <InstallSeed id={e.id} />}
+            {/* A slot's settings belong to its multiworld, and no code rebuilds it. */}
+            {!e.ap_slot && (
+              <UseSettings
+                differs={differs}
+                tip="Use this seed's settings for the next one. Plando and flag edits stay behind"
+                onUse={() => takeSettings(e)}
+              />
+            )}
+            <TipButton
+              label="Spoiler Log"
+              tip="Spoiler Log"
+              variant="ghost"
+              onClick={() => openSpoiler(e)}
+            >
+              <ScrollText />
+            </TipButton>
+            {!e.ap_slot && (
+              <CopySeed entry={e} variant="ghost" size="icon-sm" />
+            )}
+            <StarSeed id={e.id} starred={e.starred} />
+            <TipButton
+              label="Label seed"
+              tip="Name this seed or note what it's for"
+              variant="ghost"
+              onClick={() => openLabel(e)}
+            >
+              <Pencil />
+            </TipButton>
+            <DeleteSeed id={e.id} installed={isInstalled} />
+          </>
+        )
       }
     />
   );

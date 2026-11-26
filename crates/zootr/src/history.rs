@@ -19,7 +19,7 @@ use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
 /// Oldest entries past this are dropped. Starred ones count toward it.
-const KEEP: usize = 100;
+const KEEP: usize = 1000;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct History {

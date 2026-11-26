@@ -15,7 +15,7 @@ import type { PaletteItem } from "@/components/palette/palette";
 import { GROUP_HELP, TOPICS, type Topic } from "@/help/topics";
 import { nameOf } from "@/lib/format";
 import { hasAll, words } from "@/lib/matching";
-import { HISTORY_SHOWS } from "@/play/history-filter";
+import { drawTo, HISTORY_SHOWS } from "@/play/history-filter";
 import { APP_FIELDS } from "@/settings/app-fields";
 import { untested } from "@/settings/setting";
 import { ADVANCED_FIELDS, FIELDS, shown } from "@/settings/targets-draft";
@@ -217,6 +217,7 @@ export function settings(schema: SettingDef[], devTools: boolean): Hit[] {
 function openSeed(entry: Summary) {
   if (!HISTORY_SHOWS[useUi.getPath("play.history")](entry))
     useUi.setPath("play.history", "all");
+  drawTo(entry.id);
   go({ tab: "Play", folder: "history" });
   reveal(rowId.seed(entry.id));
 }
