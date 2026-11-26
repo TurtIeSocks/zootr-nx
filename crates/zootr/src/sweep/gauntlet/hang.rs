@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::Serialize;
 
 use crate::dev::{Dev, State};
@@ -19,7 +19,8 @@ use crate::play::Input;
 pub struct Limits {
     /// Pure black, no triforce.
     pub black: Duration,
-    /// Loading, or not yet on the map asked for.
+    /// Loading, an event or not yet on the map asked for; [`SETTLED`]
+    /// past it, never settled.
     pub load: Duration,
 }
 
@@ -32,7 +33,8 @@ const TICK: Duration = Duration::from_millis(400);
 const DEAD: Duration = Duration::from_secs(5);
 
 /// A channel's level at or under which a pixel is black. Encoders leave
-/// pure black at 0 to 2, and a frame's darkest lit wall sits well above.
+/// pure black at 0 to 2. A dark room's walls sit only a little above, but
+/// its lit pixels number far more than [`LIT`].
 const DARK: u8 = 24;
 /// How long an event plays on the map asked for before A presses
 /// through it.
@@ -69,15 +71,8 @@ pub enum Hang {
 
 /// Whether `png` is pure black: no more than [`LIT`] pixels with any colour
 /// channel over [`DARK`].
-fn black(png: &[u8]) -> Result<bool> {
-    let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
-    decoder.set_transformations(png::Transformations::normalize_to_color8());
-    let mut reader = decoder.read_info()?;
-    let size = reader
-        .output_buffer_size()
-        .context("the frame is too big")?;
-    let mut buf = vec![0; size];
-    let info = reader.next_frame(&mut buf)?;
+fn is_black(png: &[u8]) -> Result<bool> {
+    let (buf, info) = crate::vision::frame8(&mut crate::vision::reader8(png)?)?;
     let samples = info.color_type.samples();
     // Alpha says nothing of light: only the colour channels count.
     let colours = match info.color_type {
@@ -173,7 +168,7 @@ fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     }
     input.shot(to)?;
     let png = std::fs::read(to)?;
-    Ok(!black(&png)?)
+    Ok(!is_black(&png)?)
 }
 
 /// What the watch has seen so far: when each sign began.
@@ -213,20 +208,20 @@ impl Watch {
             return Some(Hang::Crashed { why });
         }
         let secs = at.as_secs_f32();
+        // Play needs every look since it began to reach the end of this
+        // one, lit: any return before then ends it.
+        let played = self.play.take();
         // Frames first: a black screen is a hang whether or not the game
         // still answers reads. A missing frame neither starts nor ends the
-        // black, and play needs a lit frame on every look since it began.
+        // black.
         match lit {
             Some(false) => {
                 self.black.get_or_insert(at);
                 self.dark += 1;
-                (self.unframed, self.play) = (None, None);
+                self.unframed = None;
             }
             Some(true) => (self.black, self.dark, self.unframed) = (None, 0, None),
-            None => {
-                self.unframed.get_or_insert(at);
-                self.play = None;
-            }
+            None => _ = self.unframed.get_or_insert(at),
         }
         if let Ok(s) = &state {
             self.map.clone_from(&s.map);
@@ -248,7 +243,6 @@ impl Watch {
             }
             Err(e) => {
                 let since = *self.unread.get_or_insert(at);
-                self.play = None;
                 return (at - since >= DEAD).then(|| Hang::Unread {
                     why: format!("{e:#}"),
                 });
@@ -257,11 +251,9 @@ impl Watch {
         let past = at >= limits.load;
         let map = || state.map.clone();
         if state.loading {
-            self.play = None;
             return past.then(|| Hang::Loading { secs, map: map() });
         }
         if state.event && state.map == want {
-            self.play = None;
             self.event.get_or_insert(at);
             return past.then(|| Hang::Event { secs, map: map() });
         }
@@ -269,14 +261,13 @@ impl Watch {
         // past the limit it's a mis-arrival, with the map wanted.
         self.event = None;
         if state.map != want {
-            self.play = None;
             return past.then(|| Hang::WrongMap {
                 map: map(),
                 want: want.into(),
             });
         }
         if lit == Some(true) {
-            self.play.get_or_insert(at);
+            self.play = Some(played.unwrap_or(at));
         }
         // Settled by now, or never: a screen that keeps flickering dark.
         let unsettled = at >= limits.load.saturating_add(SETTLED) && !self.settled(at);
@@ -323,22 +314,22 @@ mod tests {
 
     #[test]
     fn pure_black_is_black_and_a_triforce_or_a_dark_room_is_not() {
-        assert!(black(&frame(320, 180, |_, _| [1, 0, 2])).unwrap());
+        assert!(is_black(&frame(320, 180, |_, _| [1, 0, 2])).unwrap());
         // The loading triforce: a small gold patch in a corner.
         let triforce = |x: u32, y: u32| match x > 290 && y > 150 {
             true => [200, 170, 40],
             false => [0, 0, 0],
         };
-        assert!(!black(&frame(320, 180, triforce)).unwrap());
+        assert!(!is_black(&frame(320, 180, triforce)).unwrap());
         // A dark dungeon in play: dim walls and a lit HUD.
         let room = |x: u32, y: u32| match y < 10 && x < 60 {
             true => [220, 30, 30],
             false => [30, 26, 28],
         };
-        assert!(!black(&frame(320, 180, room)).unwrap());
+        assert!(!is_black(&frame(320, 180, room)).unwrap());
         // A few stray pixels don't light a black frame.
         let stray = |x: u32, y: u32| if x < 4 && y < 4 { [255; 3] } else { [0; 3] };
-        assert!(black(&frame(320, 180, stray)).unwrap());
+        assert!(is_black(&frame(320, 180, stray)).unwrap());
     }
 
     /// An input that runs, or quit with a log line.
@@ -526,10 +517,10 @@ mod tests {
         };
         let rgba = |grey| png(png::ColorType::Rgba, &[grey, grey, grey, 255].repeat(256));
         let grey_alpha = |grey| png(png::ColorType::GrayscaleAlpha, &[grey, 255].repeat(256));
-        assert!(black(&rgba(0)).unwrap());
-        assert!(!black(&rgba(200)).unwrap());
-        assert!(black(&grey_alpha(0)).unwrap());
-        assert!(!black(&grey_alpha(200)).unwrap());
+        assert!(is_black(&rgba(0)).unwrap());
+        assert!(!is_black(&rgba(200)).unwrap());
+        assert!(is_black(&grey_alpha(0)).unwrap());
+        assert!(!is_black(&grey_alpha(200)).unwrap());
     }
 
     #[test]
