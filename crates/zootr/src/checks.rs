@@ -42,7 +42,7 @@ pub const CHEST: &str = "Obj_TBox_";
 const BARE_CHEST_DROP: &Name = actor::T_BOX_RUPEE_RED;
 /// The ice-trap chest: it breathes ice on Link and breaks, never opening.
 /// Placed with no `DROP_ACTOR`. Dealt, it becomes a [`PLAIN_CHEST`].
-const TRAP_CHEST: &Name = actor::OBJ_T_BOX_A_04;
+pub(crate) const TRAP_CHEST: &Name = actor::OBJ_T_BOX_A_04;
 
 #[derive(Clone)]
 pub struct ItemCheck {
@@ -347,7 +347,8 @@ pub fn set_drops(
             ""
         };
         // Both swap for the plain chest when they hold an item of their own.
-        let guarded = gyaml.starts_with(&**SUBSTITUTE_CHEST) || gyaml == &**TRAP_CHEST;
+        let trap = gyaml == &**TRAP_CHEST;
+        let guarded = gyaml.starts_with(&**SUBSTITUTE_CHEST) || trap;
         let bare = bare_drop(gyaml).is_some();
         let Some(dynamic) = actor.as_mut_map()?.get_mut(DYNAMIC) else {
             continue;
@@ -378,6 +379,9 @@ pub fn set_drops(
             actor
                 .as_mut_map()?
                 .insert(GYAML.into(), format!("{chest}{bake}").into());
+        }
+        if trap {
+            crate::shows::rehash(actor, crate::trap_chests::placement(hash))?;
         }
         changed.push(hash);
     }
@@ -751,23 +755,24 @@ mod tests {
     }
 
     #[test]
-    fn a_chest_placed_without_a_drop_takes_one_and_a_trap_chest_turns_plain() {
+    fn a_chest_placed_without_a_drop_takes_one_and_a_trap_chest_turns_plain_elsewhere() {
         needs_names!();
         let drops = HashMap::from([(1, Drop::from("Item_A".to_owned()))]);
         let set = |gyaml| {
             let mut root = chest_in(gyaml, [("DefaultDungeonRoomIndex", "0")]);
             let changed = set_drops(&mut root, &drops, |_| false).unwrap();
-            let dynamic = &actors(&root).unwrap()[0].as_map().unwrap()[DYNAMIC];
-            let drop = str_field(dynamic, DROP_ACTOR).map(str::to_owned);
-            (changed, drop, gyamls(&root).concat())
+            let actor = &actors(&root).unwrap()[0];
+            let drop = str_field(&actor.as_map().unwrap()[DYNAMIC], DROP_ACTOR).map(str::to_owned);
+            (changed, drop, gyamls(&root).concat(), hash_of(actor))
         };
-        let plain = (
-            vec![1],
-            Some("Item_A".into()),
-            actor::OBJ_T_BOX_A_01.to_string(),
-        );
-        assert_eq!(set(actor::OBJ_T_BOX_A_01), plain);
-        assert_eq!(set(actor::OBJ_T_BOX_A_04), plain);
+        let plain = |hash| {
+            let item = Some("Item_A".into());
+            (vec![1], item, actor::OBJ_T_BOX_A_01.to_string(), Some(hash))
+        };
+        assert_eq!(set(actor::OBJ_T_BOX_A_01), plain(1));
+        // A trap chest's own hash never opens: it moves to a fresh one.
+        let fresh = crate::trap_chests::placement(1);
+        assert_eq!(set(actor::OBJ_T_BOX_A_04), plain(fresh));
     }
 
     #[test]

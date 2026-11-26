@@ -30,7 +30,7 @@ use crate::{
     dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress, gamedata, gerudo,
     gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies,
     medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, sheik_crater, shops,
-    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    spawn, standins, starting, steps, text, tracker, trade_chain, trap_chests, twins,
 };
 
 /// What both the flows and the mod's files need from the dump for a seed,
@@ -464,7 +464,9 @@ impl<'a> Parts<'a> {
         gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
         let mut keyed = picked::pairs(&self.picked);
         keyed.extend(&self.steps.copies);
+        keyed.extend(trap_chests::keyed(self.drops));
         gamedata::add_keys(root, &keyed)?;
+        trap_chests::game_data(root, self.drops)?;
         if new_game.breakables_respawn {
             gamedata::respawn_on_load(root)?;
         }
