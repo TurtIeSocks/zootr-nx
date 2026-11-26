@@ -305,7 +305,7 @@ fn pool_defs() -> Vec<SettingDef> {
             MAGIC_WITH_FIRST_ITEM,
             place::ITEM_POOL,
             "Magic Comes with the First Magic Item",
-            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
+            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool. With Progressive Items on a Magic Meter joins the pool either way, so the meter always comes before the double",
         ),
     ]
 }

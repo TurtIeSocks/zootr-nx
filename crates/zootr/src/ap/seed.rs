@@ -513,8 +513,9 @@ mod tests {
         assert_eq!(gives(&[], nuts), nuts.get());
         assert_eq!(gives(&[SHUFFLE_NUT_BAG], nuts), item::NUT_BAG_SMALL.get());
         assert_eq!(gives(&[], meter), meter.get());
-        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
-        assert_eq!(gives(&[MAGIC_WITH_FIRST_ITEM], meter), double);
+        // Progressive items keep the meter in the line even with the
+        // setting on, so the line's first level is the meter.
+        assert_eq!(gives(&[MAGIC_WITH_FIRST_ITEM], meter), meter.get());
     }
 
     /// A file from a world before these options opens with what that

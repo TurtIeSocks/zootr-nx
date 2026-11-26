@@ -312,7 +312,7 @@ pub fn captions(new_game: &NewGame) -> Copies<'static> {
 
 /// The items `new_game` adds to the pool, each taking a junk item's place:
 /// the bags it shuffles, and the Magic Meter when magic doesn't come with
-/// the first magic item.
+/// the first magic item or progressive items climb the magic line.
 pub fn added(new_game: &NewGame) -> Vec<&'static str> {
     let nut = new_game.shuffle_nut_bag.then(|| item::NUT_BAG_SMALL.get());
     let stick = new_game
@@ -322,7 +322,9 @@ pub fn added(new_game: &NewGame) -> Vec<&'static str> {
         Bombchus::Bag => &bombchu_bags::BAGS[..],
         _ => &[],
     };
-    let meter = (!new_game.magic_with_first_item).then_some(crate::magic::meter::NAME);
+    let meter = crate::progressive::Lines::of(new_game)
+        .magic_meter
+        .then_some(crate::magic::meter::NAME);
     nut.into_iter()
         .chain(stick)
         .chain(bombchus.iter().copied())
@@ -370,6 +372,12 @@ mod tests {
             ..Default::default()
         };
         assert!(added(&game).is_empty());
+        // Progressive items keep the meter in the pool, so the line climbs.
+        let climbing = NewGame {
+            progressive: true,
+            ..game.clone()
+        };
+        assert_eq!(added(&climbing), [meter]);
         let all = NewGame {
             shuffle_nut_bag: true,
             shuffle_stick_bag: true,

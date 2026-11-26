@@ -124,7 +124,14 @@
           "Magic Meter"
         ],
         "when": {
-          "setting": "magic-with-first-item=off"
+          "any": [
+            {
+              "setting": "magic-with-first-item=off"
+            },
+            {
+              "setting": "progressive-items"
+            }
+          ]
         }
       },
       {
@@ -35949,7 +35956,14 @@
       "count": 1,
       "item": "Magic Meter",
       "when": {
-        "setting": "magic-with-first-item=off"
+        "any": [
+          {
+            "setting": "magic-with-first-item=off"
+          },
+          {
+            "setting": "progressive-items"
+          }
+        ]
       }
     },
     {
