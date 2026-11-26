@@ -3,6 +3,7 @@
 
 mod clock;
 pub mod drills;
+pub mod gauntlet;
 pub mod judge;
 pub mod melody;
 pub mod night;

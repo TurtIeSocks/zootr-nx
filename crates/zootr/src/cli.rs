@@ -15,7 +15,8 @@ use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
 use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
 use play::{
-    Shoot, Sweep, boot_command, drill, drill_report, look, photo, play, sweep, sweep_report,
+    Shoot, Sweep, boot_command, drill, drill_report, gauntlet_run, look, photo, play, sweep,
+    sweep_report,
 };
 use research::{census, chest_events, cutscenes, flags, flow, items, logic, logic_set};
 use running::{ap_connect, dev, give, live, mem, set};
@@ -314,6 +315,32 @@ pub fn run() -> Result<()> {
         } => {
             let (romfs, path) = dump()?;
             drill(&romfs, &path, judge, out, skill, name.as_deref(), repeat)
+        }
+        Command::Gauntlet {
+            run,
+            holders,
+            items,
+            fail_fast,
+            black_limit,
+            load_limit,
+            seed,
+            out,
+            pristine,
+            sides,
+        } => {
+            let (romfs, path) = dump()?;
+            let g = crate::sweep::gauntlet::Gauntlet {
+                run,
+                holders,
+                items,
+                fail_fast,
+                limits: crate::sweep::gauntlet::hang::Limits {
+                    black: std::time::Duration::from_secs_f32(black_limit),
+                    load: std::time::Duration::from_secs_f32(load_limit),
+                },
+                seed,
+            };
+            gauntlet_run(&romfs, &path, g, out, (pristine, sides))
         }
         Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
     }

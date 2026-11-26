@@ -18,7 +18,8 @@ use crate::history::History;
 use crate::live::{self, Game};
 use crate::play::{self, Launch, Report, Run, Script, Start, boot};
 use crate::sweep::drills::{self, Skill};
-use crate::sweep::judge::ModelJudge;
+use crate::sweep::gauntlet::{self, Gauntlet};
+use crate::sweep::judge::{Judge, ModelJudge};
 use crate::sweep::night::{self, Night};
 use crate::sweep::photo::{Mode, Swing};
 use crate::sweep::report;
@@ -280,16 +281,15 @@ impl JudgeArgs {
     }
 }
 
-/// A night on the configured target, judged as `judge` names, writing to
-/// `dir`, handed to `go`.
-fn with_night(
+/// A night on the configured target, judged by `judge`, each start on
+/// `pristine` when given, writing to `dir`, handed to `go`.
+fn with_night<J: Judge, T>(
     romfs: &Romfs,
     game: &Path,
-    judge: JudgeArgs,
+    (judge, pristine): (J, Option<PathBuf>),
     dir: PathBuf,
-    go: impl FnOnce(&mut Night<Box<dyn play::Input>, ModelJudge>) -> Result<()>,
-) -> Result<()> {
-    let (judge, pristine) = judge.judge()?;
+    go: impl FnOnce(&mut Night<Box<dyn play::Input>, J>) -> Result<T>,
+) -> Result<T> {
     let (target, input) = target_input()?;
     let gd = recorder::gamedata(romfs)?;
     let mut night = Night {
@@ -301,6 +301,7 @@ fn with_night(
         judge,
         dir,
         pristine,
+        fresh: false,
         limit: None,
         mix: None,
         only: None,
@@ -361,7 +362,7 @@ pub(super) fn sweep(
         }
         None => None,
     };
-    with_night(romfs, game, judge, dir, |night| {
+    with_night(romfs, game, judge.judge()?, dir, |night| {
         night.limit = limit;
         night.mix = mix;
         night.only = only;
@@ -387,7 +388,7 @@ pub(super) fn drill(
         bail!("no drill fits");
     }
     let turn = turn::harness(turn::session(), super::running::RENEW)?;
-    with_night(romfs, game, judge, dir, |night| {
+    with_night(romfs, game, judge.judge()?, dir, |night| {
         night.ladder(&drills, repeat, &turn)
     })
 }
@@ -416,4 +417,29 @@ pub(super) fn drill_report(dir: &Path) -> Result<()> {
 fn ladder_rows(dir: &Path) -> Result<String> {
     let file = dir.join(drills::ROWS);
     std::fs::read_to_string(&file).with_context(|| format!("reading {}", file.display()))
+}
+
+/// `zootr gauntlet`: run `g` on this machine's game, which `session` must
+/// hold, and exit with its code once the report is written.
+pub(super) fn gauntlet_run(
+    romfs: &Romfs,
+    game: &Path,
+    g: Gauntlet,
+    out: Option<PathBuf>,
+    (pristine, sides): (Option<PathBuf>, Option<PathBuf>),
+) -> Result<()> {
+    let _turn = turn::harness(turn::session(), super::running::RENEW)?;
+    let dir = match out {
+        Some(dir) => dir,
+        None => play::folder("gauntlet", &format!("{:?}", g.run))?,
+    };
+    let fresh = pristine.is_none();
+    let judge = (gauntlet::script::Scripted, pristine);
+    let code = with_night(romfs, game, judge, dir.clone(), |night| {
+        night.fresh = fresh;
+        night.sides = sides;
+        night.gauntlet(&g)
+    })?;
+    println!("{}", dir.join(gauntlet::REPORT).display());
+    std::process::exit(code)
 }

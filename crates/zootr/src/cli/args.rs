@@ -381,6 +381,49 @@ pub(super) enum Command {
         #[command(flatten)]
         judge: JudgeArgs,
     },
+    /// Load every place and try every item kind at every holder kind, on
+    /// seeds with every check kind shuffled, failing on a hung load (2 s of
+    /// pure black, the triforce gone), a crash, a stall or a wrong item. No
+    /// vision model. Writes `<out>/results.jsonl` and `<out>/report.md`,
+    /// and exits 0 when all passed, 1 on any failure, 2 when the harness
+    /// broke or a holder kind has no trigger yet.
+    Gauntlet {
+        /// What to run: `places` is the tour alone, `holders` and `items`
+        /// one row or column of the grid, `quick` and `full` the tour and
+        /// the grid.
+        #[arg(value_enum)]
+        run: crate::sweep::gauntlet::grid::Run,
+        /// Only this holder kind, like `pot`. Repeatable.
+        #[arg(long = "holder")]
+        holders: Vec<String>,
+        /// Only this item kind, like `song`. Repeatable.
+        #[arg(long = "item")]
+        items: Vec<String>,
+        /// Stop at the first failure.
+        #[arg(long)]
+        fail_fast: bool,
+        /// Seconds of pure black, the triforce gone, that make a hang.
+        #[arg(long, default_value_t = 2.0)]
+        black_limit: f32,
+        /// Seconds a load may take before it's a hang.
+        #[arg(long, default_value_t = 45.0)]
+        load_limit: f32,
+        /// The first round's seed, to repeat a run.
+        #[arg(long)]
+        seed: Option<u64>,
+        /// The run's folder. Defaults to `gauntlet/<time>-<run>/` beside
+        /// the app's live logs.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        /// A save folder each start loads instead of a new file: on a
+        /// target with no `{save}` line, a kept new file.
+        #[arg(long)]
+        pristine: Option<PathBuf>,
+        /// A photo pass's `photos.jsonl`, for the side each holder is used
+        /// from first.
+        #[arg(long, value_name = "FILE")]
+        sides: Option<PathBuf>,
+    },
     /// Run the harness ladder's drills: small play tasks with a known
     /// answer, through the sweep's own code, on a seed that shuffles
     /// nothing. Rows go to `<out>/drills.jsonl`.

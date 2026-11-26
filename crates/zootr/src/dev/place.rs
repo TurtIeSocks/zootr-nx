@@ -34,7 +34,7 @@ impl Place {
     }
 
     /// Whether the map is the child one, the adult one, or either.
-    pub(super) fn child(&self) -> Option<bool> {
+    pub(crate) fn child(&self) -> Option<bool> {
         crate::warp::era(&self.map)
     }
 }

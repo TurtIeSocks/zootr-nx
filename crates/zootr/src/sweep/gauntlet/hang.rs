@@ -1,0 +1,429 @@
+//! Hangs: a load that never ends, a black screen that stays, a game that
+//! stops answering or quits. Every hung load players met (#425, #469) went
+//! the same way: the triforce stops spinning and disappears, and the
+//! screen stays pure black (maintainer, 2026-11-25). `play::watch::Stall`
+//! counts a load as never stuck, so it can't see one.
+
+use std::path::{Path, PathBuf};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
+
+use anyhow::{Context, Result};
+use serde::Serialize;
+
+use crate::dev::Dev;
+use crate::play::Input;
+
+/// How long each sign may last before it's a hang.
+#[derive(Clone, Copy, Debug)]
+pub struct Limits {
+    /// Pure black, no triforce.
+    pub black: Duration,
+    /// Loading, or not yet on the map asked for.
+    pub load: Duration,
+}
+
+/// How long Link must stand in play, the screen lit, for a load to count.
+const SETTLED: Duration = Duration::from_secs(3);
+/// How often a frame is taken and the game read.
+const TICK: Duration = Duration::from_millis(400);
+/// How long reads may fail in a row before the game counts as hung.
+const DEAD: Duration = Duration::from_secs(5);
+
+/// A channel's level at or under which a pixel is black. Encoders leave
+/// pure black at 0 to 2, and a frame's darkest lit wall sits well above.
+const DARK: u8 = 24;
+/// How many lit pixels a frame may have and still be black. The triforce
+/// covers thousands, even shrunk; a black frame has none.
+const LIT: usize = 64;
+
+/// How a hang showed.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(tag = "signal", rename_all = "snake_case")]
+pub enum Hang {
+    /// Pure black, no triforce, this long.
+    Black { secs: f32, map: String },
+    /// Still loading after the load limit.
+    Loading { secs: f32, map: String },
+    /// Settled on another map than the one asked for.
+    WrongMap { map: String, want: String },
+    /// An event played through the load limit.
+    Event { secs: f32, map: String },
+    /// The game refused the teleport, or never answered it.
+    Refused { why: String },
+    /// Reads of the game failed this long.
+    Unread { why: String },
+    /// The game quit: what its log says ended it.
+    Crashed { why: String },
+}
+
+/// Whether `png` is pure black: no more than [`LIT`] pixels with any
+/// channel over [`DARK`].
+pub fn black(png: &[u8]) -> Result<bool> {
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    let mut reader = decoder.read_info()?;
+    let size = reader
+        .output_buffer_size()
+        .context("the frame is too big")?;
+    let mut buf = vec![0; size];
+    let info = reader.next_frame(&mut buf)?;
+    let samples = info.color_type.samples();
+    // Alpha says nothing of light: only the colour channels count.
+    let colours = match info.color_type {
+        png::ColorType::Rgba | png::ColorType::GrayscaleAlpha => samples - 1,
+        _ => samples,
+    };
+    let lit = (buf[..info.buffer_size()].chunks_exact(samples))
+        .filter(|px| px[..colours].iter().any(|&c| c > DARK))
+        .count();
+    Ok(lit <= LIT)
+}
+
+/// How a watched load went.
+pub struct Watched {
+    pub secs: f32,
+    /// The last frame taken, kept as evidence.
+    pub frame: Option<PathBuf>,
+    pub hang: Option<Hang>,
+}
+
+/// Watch the game after a teleport to `want` until Link stands on it in
+/// play, the screen lit, for [`SETTLED`], or until a hang. Frames go to
+/// `frame`, the newest kept.
+pub fn settle(
+    dev: &Dev,
+    input: &mut impl Input,
+    want: &str,
+    limits: Limits,
+    frame: &Path,
+) -> Watched {
+    let start = Instant::now();
+    let mut watch = Watch::default();
+    loop {
+        let at = start.elapsed();
+        let lit = shoot(input, frame);
+        let state = dev.state();
+        if let Some(hang) = watch.tick(at, input, state, lit, want, limits) {
+            return Watched {
+                secs: at.as_secs_f32(),
+                frame: frame.exists().then(|| frame.to_owned()),
+                hang: Some(hang),
+            };
+        }
+        if watch.settled(at) {
+            return Watched {
+                secs: at.as_secs_f32(),
+                frame: None,
+                hang: None,
+            };
+        }
+        sleep(TICK);
+    }
+}
+
+/// After a cell that didn't give its item: whether the game hung there,
+/// black, quit or unread, watched long enough for each to show. A stuck
+/// text box isn't a hang here: the cell's own verdict tells of it.
+pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) -> Option<Hang> {
+    let want = dev.state().map(|s| s.map).unwrap_or_default();
+    // Never past the load limit: only black, quit and unread can show.
+    let limits = Limits {
+        load: Duration::MAX,
+        ..limits
+    };
+    let window = limits.black.max(DEAD) + TICK * 2;
+    let start = Instant::now();
+    let mut watch = Watch::default();
+    while start.elapsed() < window {
+        let at = start.elapsed();
+        let lit = shoot(input, frame);
+        if let Some(hang) = watch.tick(at, input, dev.state(), lit, &want, limits) {
+            return Some(hang);
+        }
+        sleep(TICK);
+    }
+    None
+}
+
+/// A frame into `to`, and whether it's lit. `None` when no frame came.
+fn shoot(input: &mut impl Input, to: &Path) -> Option<bool> {
+    input.shot(to).ok()?;
+    let png = std::fs::read(to).ok()?;
+    black(&png).ok().map(|b| !b)
+}
+
+/// What the watch has seen so far: when each sign began.
+#[derive(Default)]
+struct Watch {
+    black: Option<Duration>,
+    unread: Option<Duration>,
+    play: Option<Duration>,
+}
+
+impl Watch {
+    /// One look at `at`: a hang, if this look makes one.
+    fn tick(
+        &mut self,
+        at: Duration,
+        input: &impl Input,
+        state: Result<crate::dev::State>,
+        lit: Option<bool>,
+        want: &str,
+        limits: Limits,
+    ) -> Option<Hang> {
+        if !input.running() {
+            let why = input.crash().unwrap_or_else(|| "the game quit".into());
+            return Some(Hang::Crashed { why });
+        }
+        let secs = at.as_secs_f32();
+        let state = match state {
+            Ok(s) => {
+                self.unread = None;
+                s
+            }
+            Err(e) => {
+                let since = *self.unread.get_or_insert(at);
+                self.play = None;
+                return (at - since >= DEAD).then(|| Hang::Unread {
+                    why: format!("{e:#}"),
+                });
+            }
+        };
+        let map = state.map.clone();
+        // A missing frame neither starts nor ends the black.
+        match lit {
+            Some(false) => _ = self.black.get_or_insert(at),
+            Some(true) => self.black = None,
+            None => {}
+        }
+        if self.black.is_some_and(|since| at - since >= limits.black) {
+            return Some(Hang::Black { secs, map });
+        }
+        let past = at >= limits.load;
+        if state.loading {
+            self.play = None;
+            return past.then_some(Hang::Loading { secs, map });
+        }
+        if state.event {
+            self.play = None;
+            return past.then_some(Hang::Event { secs, map });
+        }
+        if state.map != want {
+            self.play = None;
+            return past.then(|| Hang::WrongMap {
+                map,
+                want: want.into(),
+            });
+        }
+        match self.black {
+            Some(_) => self.play = None,
+            None => _ = self.play.get_or_insert(at),
+        }
+        None
+    }
+
+    /// Whether Link has stood in play, lit, for [`SETTLED`] by `at`.
+    fn settled(&self, at: Duration) -> bool {
+        self.play.is_some_and(|since| at - since >= SETTLED)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dev::{State, Switches};
+
+    fn frame(w: u32, h: u32, paint: impl Fn(u32, u32) -> [u8; 3]) -> Vec<u8> {
+        let mut px = Vec::with_capacity((w * h * 3) as usize);
+        for y in 0..h {
+            for x in 0..w {
+                px.extend(paint(x, y));
+            }
+        }
+        let mut out = Vec::new();
+        let mut enc = png::Encoder::new(&mut out, w, h);
+        enc.set_color(png::ColorType::Rgb);
+        enc.set_depth(png::BitDepth::Eight);
+        enc.write_header().unwrap().write_image_data(&px).unwrap();
+        out
+    }
+
+    #[test]
+    fn pure_black_is_black_and_a_triforce_or_a_dark_room_is_not() {
+        assert!(black(&frame(320, 180, |_, _| [1, 0, 2])).unwrap());
+        // The loading triforce: a small gold patch in a corner.
+        let triforce = |x: u32, y: u32| match x > 290 && y > 150 {
+            true => [200, 170, 40],
+            false => [0, 0, 0],
+        };
+        assert!(!black(&frame(320, 180, triforce)).unwrap());
+        // A dark dungeon in play: dim walls and a lit HUD.
+        let room = |x: u32, y: u32| match y < 10 && x < 60 {
+            true => [220, 30, 30],
+            false => [30, 26, 28],
+        };
+        assert!(!black(&frame(320, 180, room)).unwrap());
+        // A few stray pixels don't light a black frame.
+        let stray = |x: u32, y: u32| if x < 4 && y < 4 { [255; 3] } else { [0; 3] };
+        assert!(black(&frame(320, 180, stray)).unwrap());
+    }
+
+    /// An input that runs, or quit with a log line.
+    struct Up(bool);
+
+    impl Input for Up {
+        fn running(&self) -> bool {
+            self.0
+        }
+        fn launch(&mut self, _: Option<&Path>) -> Result<()> {
+            Ok(())
+        }
+        fn keys(&self) -> Result<()> {
+            Ok(())
+        }
+        fn hold(&mut self, _: &str, _: u64) -> Result<()> {
+            Ok(())
+        }
+        fn stick(&mut self, _: &str, _: u64) -> Result<()> {
+            Ok(())
+        }
+        fn shot(&mut self, _: &Path) -> Result<()> {
+            Ok(())
+        }
+        fn crash(&self) -> Option<String> {
+            Some("exit 139".into())
+        }
+    }
+
+    fn state(map: &str, loading: bool, event: bool) -> Result<State> {
+        Ok(State {
+            map: map.into(),
+            child: true,
+            loading,
+            event,
+            switches: Switches::default(),
+        })
+    }
+
+    const LIMITS: Limits = Limits {
+        black: Duration::from_secs(2),
+        load: Duration::from_secs(45),
+    };
+
+    fn secs(s: f32) -> Duration {
+        Duration::from_secs_f32(s)
+    }
+
+    #[test]
+    fn two_seconds_of_black_hang_even_while_loading() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let look = |w: &mut Watch, at, lit| {
+            w.tick(
+                secs(at),
+                &up,
+                state("FakeMap", true, false),
+                lit,
+                "FakeMap",
+                LIMITS,
+            )
+        };
+        assert_eq!(look(&mut w, 0.0, Some(true)), None);
+        assert_eq!(look(&mut w, 1.0, Some(false)), None);
+        // A missing frame doesn't end the black.
+        assert_eq!(look(&mut w, 2.0, None), None);
+        assert!(matches!(
+            look(&mut w, 3.0, Some(false)),
+            Some(Hang::Black { .. })
+        ));
+    }
+
+    #[test]
+    fn black_that_lights_again_is_a_normal_load() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let mut look = |at, loading, lit| {
+            w.tick(
+                secs(at),
+                &up,
+                state("FakeMap", loading, false),
+                lit,
+                "FakeMap",
+                LIMITS,
+            )
+        };
+        assert_eq!(look(0.0, true, Some(false)), None);
+        assert_eq!(look(1.5, true, Some(true)), None);
+        assert_eq!(look(3.0, true, Some(false)), None);
+        assert_eq!(look(4.0, false, Some(true)), None);
+        assert!(!w.settled(secs(5.0)));
+        assert_eq!(
+            w.tick(
+                secs(7.0),
+                &up,
+                state("FakeMap", false, false),
+                Some(true),
+                "FakeMap",
+                LIMITS
+            ),
+            None
+        );
+        assert!(w.settled(secs(7.0)));
+    }
+
+    #[test]
+    fn a_load_past_its_limit_a_wrong_map_and_a_quit_hang() {
+        let up = Up(true);
+        let mut w = Watch::default();
+        let late = w.tick(
+            secs(46.0),
+            &up,
+            state("FakeMap", true, false),
+            Some(true),
+            "FakeMap",
+            LIMITS,
+        );
+        assert!(matches!(late, Some(Hang::Loading { .. })));
+        let mut w = Watch::default();
+        let wrong = w.tick(
+            secs(46.0),
+            &up,
+            state("FakeOther", false, false),
+            Some(true),
+            "FakeMap",
+            LIMITS,
+        );
+        assert!(matches!(wrong, Some(Hang::WrongMap { .. })));
+        let mut w = Watch::default();
+        let quit = w.tick(
+            secs(1.0),
+            &Up(false),
+            state("FakeMap", false, false),
+            Some(true),
+            "FakeMap",
+            LIMITS,
+        );
+        assert_eq!(
+            quit,
+            Some(Hang::Crashed {
+                why: "exit 139".into()
+            })
+        );
+    }
+
+    #[test]
+    fn reads_failing_five_seconds_hang() {
+        let up = Up(true);
+        let mut w = Watch::default();
+        let fail = || Err(anyhow::anyhow!("no answer"));
+        assert_eq!(
+            w.tick(secs(0.0), &up, fail(), Some(true), "FakeMap", LIMITS),
+            None
+        );
+        assert!(matches!(
+            w.tick(secs(5.0), &up, fail(), Some(true), "FakeMap", LIMITS),
+            Some(Hang::Unread { .. })
+        ));
+    }
+}
