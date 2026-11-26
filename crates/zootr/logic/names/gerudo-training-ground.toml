@@ -46,10 +46,11 @@
 # Under the lava room's water.
 3717705376223508790 = "Gerudo Training Ground Underwater Silver Rupee Chest"
 
-# Past the heavy block, the Like Like's room with four chests. The small
+# Past the heavy block, the Like Like's room with five chests. The small
 # key chest, shown by the Lens of Truth, takes OoTR's key chest's name;
 # the rest go west to east.
 11754783663699171680 = "Gerudo Training Ground Heavy Block First Chest" # guess: OoTR's order unknown here, taken west to east
 6897789835137994741 = "Gerudo Training Ground Heavy Block Second Chest" # guess: OoTR's order unknown here, taken west to east
 5329807728555596183 = "Gerudo Training Ground Heavy Block Third Chest" # guess: a small key, as OoTR's Third Chest holds
 3750231902048775592 = "Gerudo Training Ground Heavy Block Fourth Chest" # guess: OoTR's order unknown here, taken west to east
+7881496104962067240 = "Gerudo Training Ground Heavy Block Fifth Chest" # the ice trap's, on the ledge: new in the remake, so after the four

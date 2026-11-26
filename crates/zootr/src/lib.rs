@@ -133,6 +133,7 @@ mod text;
 mod tools;
 pub mod tracker;
 mod trade_chain;
+mod trap_chests;
 pub mod turn;
 mod twins;
 pub mod value;
