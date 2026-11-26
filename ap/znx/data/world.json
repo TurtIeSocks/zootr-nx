@@ -241,7 +241,7 @@
       "forbid": [],
       "hash": "163222268581924143",
       "id": 1088,
-      "name": "Death Mountain Crater South Rock 11",
+      "name": "DMC Upper Grotto Adult Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1203,7 +1203,7 @@
       "forbid": [],
       "hash": "744856631664786545",
       "id": 288,
-      "name": "Death Mountain Crater North Piece of Heart",
+      "name": "DMC Volcano Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -1791,7 +1791,7 @@
       "forbid": [],
       "hash": "1117292011785988380",
       "id": 1096,
-      "name": "Death Mountain Crater South Rock 10",
+      "name": "DMC Upper Grotto Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -1865,7 +1865,7 @@
       "forbid": [],
       "hash": "1158729434763801603",
       "id": 134,
-      "name": "Death Mountain Crater South Business Scrub Seed Chest",
+      "name": "DMC Upper Grotto Chest",
       "unprovable": false
     },
     {
@@ -2530,7 +2530,7 @@
       "forbid": [],
       "hash": "1392611204303480056",
       "id": 549,
-      "name": "Death Mountain Crater Northwest Pot 2",
+      "name": "DMC Near GC Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3472,7 +3472,7 @@
       "forbid": [],
       "hash": "1926142912245196445",
       "id": 1099,
-      "name": "Death Mountain Crater South Rock 5",
+      "name": "DMC Near Upper Grotto Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -3824,7 +3824,7 @@
       "forbid": [],
       "hash": "2137181062354999972",
       "id": 1453,
-      "name": "Death Mountain Crater North Green Rupee (1) 2",
+      "name": "DMC Near Fire Temple Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4438,7 +4438,7 @@
       "forbid": [],
       "hash": "2518138296199711695",
       "id": 18,
-      "name": "Death Mountain Crater Business Scrub (Heart Piece)",
+      "name": "DMC Deku Scrub",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -6107,7 +6107,7 @@
       "forbid": [],
       "hash": "3608254906757039927",
       "id": 623,
-      "name": "Death Mountain Crater Southeast Pot 1",
+      "name": "DMC Near DMT Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6650,7 +6650,7 @@
       "forbid": [],
       "hash": "3943721227043271732",
       "id": 1121,
-      "name": "Death Mountain Crater South Rock 13",
+      "name": "DMC Upper Grotto Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6873,7 +6873,7 @@
       "forbid": [],
       "hash": "4077912846886775366",
       "id": 1468,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 4",
+      "name": "DMC Adult Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -7128,7 +7128,7 @@
       "forbid": [],
       "hash": "4256755263998205765",
       "id": 1126,
-      "name": "Death Mountain Crater South Rock 7",
+      "name": "DMC Near Upper Grotto Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -7587,7 +7587,7 @@
       "forbid": [],
       "hash": "4502491733150659917",
       "id": 1060,
-      "name": "Death Mountain Crater South Crate 2",
+      "name": "DMC Near DMT Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -8170,7 +8170,7 @@
       "forbid": [],
       "hash": "4793260471136377552",
       "id": 1129,
-      "name": "Death Mountain Crater Southeast Rock 2",
+      "name": "DMC Near DMT Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8647,7 +8647,7 @@
       "forbid": [],
       "hash": "5094859563924152486",
       "id": 663,
-      "name": "Death Mountain Crater Southeast Pot 2",
+      "name": "DMC Near DMT Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9169,7 +9169,7 @@
       "forbid": [],
       "hash": "5461607116687866226",
       "id": 1133,
-      "name": "Death Mountain Crater Northeast Rock",
+      "name": "DMC Near Fire Temple Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9411,7 +9411,7 @@
       "forbid": [],
       "hash": "5605006337447940100",
       "id": 1135,
-      "name": "Death Mountain Crater East Rock 2",
+      "name": "DMC Near Gossip Stone Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -9749,7 +9749,7 @@
       "forbid": [],
       "hash": "5758039723623033052",
       "id": 1139,
-      "name": "Death Mountain Crater Southeast Rock 4",
+      "name": "DMC Near DMT Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10704,7 +10704,7 @@
       "forbid": [],
       "hash": "6397182598322965076",
       "id": 334,
-      "name": "Death Mountain Crater Northeast Gold Skulltula Token",
+      "name": "DMC GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -11194,7 +11194,7 @@
       "forbid": [],
       "hash": "6794008535785537922",
       "id": 1491,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 1",
+      "name": "DMC Adult Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -11526,7 +11526,7 @@
       "forbid": [],
       "hash": "6987338395680713863",
       "id": 1149,
-      "name": "Death Mountain Crater North Rock 2",
+      "name": "DMC Near Fire Temple Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12484,7 +12484,7 @@
       "forbid": [],
       "hash": "7517995748820283814",
       "id": 202,
-      "name": "Death Mountain Crater Sheik",
+      "name": "DMC Sheik in Crater",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -12549,7 +12549,7 @@
       "forbid": [],
       "hash": "7533377855264181032",
       "id": 159,
-      "name": "Death Mountain Crater Great Fairy of Wisdom",
+      "name": "DMC Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -12603,7 +12603,7 @@
       "forbid": [],
       "hash": "7544648525216776809",
       "id": 1154,
-      "name": "Death Mountain Crater South Rock 12",
+      "name": "DMC Upper Grotto Child Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12621,7 +12621,7 @@
       "forbid": [],
       "hash": "7564605921637587273",
       "id": 1155,
-      "name": "Death Mountain Crater South Rock 14",
+      "name": "DMC Upper Grotto Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -12790,7 +12790,7 @@
       "forbid": [],
       "hash": "7682609425523332827",
       "id": 1156,
-      "name": "Death Mountain Crater South Rock 4",
+      "name": "DMC Near Upper Grotto Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13160,7 +13160,7 @@
       "forbid": [],
       "hash": "8039316352414536735",
       "id": 1158,
-      "name": "Death Mountain Crater South Rock 9",
+      "name": "DMC Upper Grotto Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13699,7 +13699,7 @@
       "forbid": [],
       "hash": "8572656032555563605",
       "id": 1160,
-      "name": "Death Mountain Crater Southeast Rock 7",
+      "name": "DMC Near DMT Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -13971,7 +13971,7 @@
       "forbid": [],
       "hash": "8740412976381850469",
       "id": 1162,
-      "name": "Death Mountain Crater South Rock 1",
+      "name": "DMC Near Deku Scrub Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14229,7 +14229,7 @@
       "forbid": [],
       "hash": "8852244876520518028",
       "id": 773,
-      "name": "Death Mountain Crater Northwest Pot 4",
+      "name": "DMC Near GC Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14597,7 +14597,7 @@
       "forbid": [],
       "hash": "8995841256848496528",
       "id": 782,
-      "name": "Death Mountain Crater South Pot",
+      "name": "DMC Near DMT Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14845,7 +14845,7 @@
       "forbid": [],
       "hash": "9089638521355540295",
       "id": 1506,
-      "name": "Death Mountain Crater North Green Rupee (1) 1",
+      "name": "DMC Near Fire Temple Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -14954,7 +14954,7 @@
       "forbid": [],
       "hash": "9128916506605227251",
       "id": 63,
-      "name": "Death Mountain Crater West Purple Rupee (50) Chest",
+      "name": "DMC Near GC Grotto Chest",
       "unprovable": false
     },
     {
@@ -15250,7 +15250,7 @@
       "forbid": [],
       "hash": "9284120517102697436",
       "id": 1172,
-      "name": "Death Mountain Crater South Rock 3",
+      "name": "DMC Near Upper Grotto Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17040,7 +17040,7 @@
       "forbid": [],
       "hash": "10206985919030447838",
       "id": 1176,
-      "name": "Death Mountain Crater South Rock 16",
+      "name": "DMC Upper Grotto Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17157,7 +17157,7 @@
       "forbid": [],
       "hash": "10254537967204215143",
       "id": 1177,
-      "name": "Death Mountain Crater South Rock 17",
+      "name": "DMC Upper Grotto Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -17305,7 +17305,7 @@
       "forbid": [],
       "hash": "10331043360028932045",
       "id": 293,
-      "name": "Death Mountain Crater Southeast Piece of Heart",
+      "name": "DMC Wall Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -17596,7 +17596,7 @@
       "forbid": [],
       "hash": "10520267131921302353",
       "id": 1179,
-      "name": "Death Mountain Crater South Rock 15",
+      "name": "DMC Upper Grotto Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18453,7 +18453,7 @@
       "forbid": [],
       "hash": "11105674007629451672",
       "id": 1527,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 2",
+      "name": "DMC Adult Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -18559,7 +18559,7 @@
       "forbid": [],
       "hash": "11152633378830838160",
       "id": 1183,
-      "name": "Death Mountain Crater Southeast Rock 6",
+      "name": "DMC Near Gossip Stone Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18786,7 +18786,7 @@
       "forbid": [],
       "hash": "11298927640547352220",
       "id": 1185,
-      "name": "Death Mountain Crater Southeast Rock 5",
+      "name": "DMC Near Gossip Stone Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19262,7 +19262,7 @@
       "forbid": [],
       "hash": "11571574743199210991",
       "id": 858,
-      "name": "Death Mountain Crater Northwest Pot 3",
+      "name": "DMC Near GC Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20266,7 +20266,7 @@
       "forbid": [],
       "hash": "12149948234252356692",
       "id": 1192,
-      "name": "Death Mountain Crater Southeast Rock 1",
+      "name": "DMC Near DMT Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20323,7 +20323,7 @@
       "forbid": [],
       "hash": "12189550029126530073",
       "id": 1193,
-      "name": "Death Mountain Crater East Rock 1",
+      "name": "DMC Near Gossip Stone Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -21078,7 +21078,7 @@
       "forbid": [],
       "hash": "12599391464019187002",
       "id": 1539,
-      "name": "Death Mountain Crater Purple Rupee (50)",
+      "name": "DMC Purple Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -21112,7 +21112,7 @@
       "forbid": [],
       "hash": "12627030076101040890",
       "id": 1076,
-      "name": "Death Mountain Crater South Crate 1",
+      "name": "DMC Near DMT Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -21292,7 +21292,7 @@
       "forbid": [],
       "hash": "12764696357690143910",
       "id": 1198,
-      "name": "Death Mountain Crater South Rock 2",
+      "name": "DMC Near Deku Scrub Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22039,7 +22039,7 @@
       "forbid": [],
       "hash": "13279296057525147608",
       "id": 1204,
-      "name": "Death Mountain Crater Southeast Rock 8",
+      "name": "DMC Near DMT Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23571,7 +23571,7 @@
       "forbid": [],
       "hash": "14216626233574515210",
       "id": 1215,
-      "name": "Death Mountain Crater North Rock 1",
+      "name": "DMC Near Fire Temple Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24460,7 +24460,7 @@
       "forbid": [],
       "hash": "14936226666394533208",
       "id": 1220,
-      "name": "Death Mountain Crater Southeast Rock 3",
+      "name": "DMC Near DMT Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24536,7 +24536,7 @@
       "forbid": [],
       "hash": "14962149652005504200",
       "id": 1551,
-      "name": "Death Mountain Crater Red Rupee (20)",
+      "name": "DMC Near Fire Temple Red Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -25048,7 +25048,7 @@
       "forbid": [],
       "hash": "15310626505717414559",
       "id": 1224,
-      "name": "Death Mountain Crater South Rock 6",
+      "name": "DMC Near Upper Grotto Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27202,7 +27202,7 @@
       "forbid": [],
       "hash": "16794923646428529814",
       "id": 1562,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 5",
+      "name": "DMC Adult Green Rupee 6",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -27553,7 +27553,7 @@
       "forbid": [],
       "hash": "16987791207545600180",
       "id": 1003,
-      "name": "Death Mountain Crater Northwest Pot 1",
+      "name": "DMC Near GC Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27626,7 +27626,7 @@
       "forbid": [],
       "hash": "17016411154641075498",
       "id": 1237,
-      "name": "Death Mountain Crater South Rock 18",
+      "name": "DMC Upper Grotto Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27965,7 +27965,7 @@
       "forbid": [],
       "hash": "17170677546946622823",
       "id": 1566,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 3",
+      "name": "DMC Adult Green Rupee 5",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28551,7 +28551,7 @@
       "forbid": [],
       "hash": "17510543738023527238",
       "id": 1242,
-      "name": "Death Mountain Crater South Rock 8",
+      "name": "DMC Near Upper Grotto Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28575,7 +28575,7 @@
       "forbid": [],
       "hash": "17524442172396680694",
       "id": 1571,
-      "name": "Death Mountain Crater Northeast Green Rupee (1) 6",
+      "name": "DMC Adult Green Rupee 4",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -29754,7 +29754,7 @@
       "forbid": [],
       "hash": "18219295034534354574",
       "id": 409,
-      "name": "Death Mountain Crater South Gold Skulltula Token",
+      "name": "DMC GS Crate",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
