@@ -109,7 +109,7 @@
       "forbid": [],
       "hash": "107698896144035778",
       "id": 499,
-      "name": "Shadow Temple Lower Pot 3",
+      "name": "Shadow Temple B3 Invisible Blades Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -160,7 +160,7 @@
       "forbid": [],
       "hash": "134986578316042658",
       "id": 501,
-      "name": "Shadow Temple Lower Pot 8",
+      "name": "Shadow Temple B3 Invisible Blades Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -259,7 +259,7 @@
       "forbid": [],
       "hash": "169081039115821925",
       "id": 447,
-      "name": "Shadow Temple Lower Small Key Chest 2",
+      "name": "Shadow Temple B3 After Wind Hidden Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -902,7 +902,7 @@
       "forbid": [],
       "hash": "599553213768790720",
       "id": 514,
-      "name": "Shadow Temple Lower Pot 14",
+      "name": "Shadow Temple B3 Falling Spikes Lower Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1022,7 +1022,7 @@
       "forbid": [],
       "hash": "637997711414805291",
       "id": 516,
-      "name": "Shadow Temple Pot 6",
+      "name": "Shadow Temple B1 Whispering Walls Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1040,7 +1040,7 @@
       "forbid": [],
       "hash": "645964684709624210",
       "id": 517,
-      "name": "Shadow Temple Lower Pot 38",
+      "name": "Shadow Temple B4 After Boat Upper Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1137,7 +1137,7 @@
       "forbid": [],
       "hash": "712957976181550607",
       "id": 521,
-      "name": "Shadow Temple Lower Pot 32",
+      "name": "Shadow Temple B4 Before Boat Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1504,7 +1504,7 @@
       "forbid": [],
       "hash": "942717339458442898",
       "id": 527,
-      "name": "Shadow Temple Lower Pot 6",
+      "name": "Shadow Temple B3 Invisible Blades Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1773,7 +1773,7 @@
       "forbid": [],
       "hash": "1111717451118505545",
       "id": 448,
-      "name": "Shadow Temple Small Key Chest",
+      "name": "Shadow Temple B2 Early Silver Rupee Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -2255,7 +2255,7 @@
       "forbid": [],
       "hash": "1252191464782579179",
       "id": 539,
-      "name": "Shadow Temple Lower Pot 24",
+      "name": "Shadow Temple B3 Wind Hint Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2291,7 +2291,7 @@
       "forbid": [],
       "hash": "1269682677594157588",
       "id": 541,
-      "name": "Shadow Temple Lower Pot 31",
+      "name": "Shadow Temple B4 After Boat Lower Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2416,7 +2416,7 @@
       "forbid": [],
       "hash": "1349030569854865098",
       "id": 546,
-      "name": "Shadow Temple Lower Pot 27",
+      "name": "Shadow Temple B4 Before Boat Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2768,7 +2768,7 @@
       "forbid": [],
       "hash": "1516979191701649719",
       "id": 555,
-      "name": "Shadow Temple Pot 16",
+      "name": "Shadow Temple B2 Early Silver Rupee Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3117,7 +3117,7 @@
       "forbid": [],
       "hash": "1733372171176975157",
       "id": 427,
-      "name": "Shadow Temple Compass Chest",
+      "name": "Shadow Temple B2 Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -4239,7 +4239,7 @@
       "forbid": [],
       "hash": "2390438047371933001",
       "id": 576,
-      "name": "Shadow Temple Lower Pot 41",
+      "name": "Shadow Temple B4 Triple Giant Pot Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4492,7 +4492,7 @@
       "forbid": [],
       "hash": "2535753234898910734",
       "id": 582,
-      "name": "Shadow Temple Lower Pot 45",
+      "name": "Shadow Temple B4 Near Boss Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4824,7 +4824,7 @@
       "forbid": [],
       "hash": "2739008401552783208",
       "id": 588,
-      "name": "Shadow Temple Lower Pot 10",
+      "name": "Shadow Temple B3 Invisible Blades Pot 9",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5614,7 +5614,7 @@
       "forbid": [],
       "hash": "3296148488970241946",
       "id": 610,
-      "name": "Shadow Temple Lower Flying Pot 1",
+      "name": "Shadow Temple B3 After Wind Flying Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5814,7 +5814,7 @@
       "forbid": [],
       "hash": "3425839498342409275",
       "id": 614,
-      "name": "Shadow Temple Lower Pot 22",
+      "name": "Shadow Temple B3 Wind Tunnel Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6007,7 +6007,7 @@
       "forbid": [],
       "hash": "3535930098895909483",
       "id": 619,
-      "name": "Shadow Temple Lower Pot 36",
+      "name": "Shadow Temple B4 After Boat Upper Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6305,7 +6305,7 @@
       "forbid": [],
       "hash": "3718790579351798247",
       "id": 25,
-      "name": "Shadow Temple Lower Red Rupee (20) Chest 3",
+      "name": "Shadow Temple B3 Invisible Blades Invisible Chest",
       "unprovable": false
     },
     {
@@ -6371,7 +6371,7 @@
       "forbid": [],
       "hash": "3756369741882798824",
       "id": 627,
-      "name": "Shadow Temple Lower Pot 39",
+      "name": "Shadow Temple B4 After Boat Upper Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7393,7 +7393,7 @@
       "forbid": [],
       "hash": "4385961172347528446",
       "id": 644,
-      "name": "Shadow Temple Pot 1",
+      "name": "Shadow Temple B1 Entrance Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7673,7 +7673,7 @@
       "forbid": [],
       "hash": "4523454191033743159",
       "id": 649,
-      "name": "Shadow Temple Pot 9",
+      "name": "Shadow Temple B1 Whispering Walls Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8557,7 +8557,7 @@
       "forbid": [],
       "hash": "5029848030828875088",
       "id": 659,
-      "name": "Shadow Temple Lower Pot 4",
+      "name": "Shadow Temple B3 Invisible Blades Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8749,7 +8749,7 @@
       "forbid": [],
       "hash": "5137262787253127252",
       "id": 667,
-      "name": "Shadow Temple Pot 2",
+      "name": "Shadow Temple B1 Entrance Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8821,7 +8821,7 @@
       "forbid": [],
       "hash": "5186468140174045596",
       "id": 669,
-      "name": "Shadow Temple Lower Pot 26",
+      "name": "Shadow Temple B3 After Wind Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9273,7 +9273,7 @@
       "forbid": [],
       "hash": "5547078554456230394",
       "id": 677,
-      "name": "Shadow Temple Lower Pot 44",
+      "name": "Shadow Temple B4 Near Boss Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9641,7 +9641,7 @@
       "forbid": [],
       "hash": "5681107746948738726",
       "id": 41,
-      "name": "Shadow Temple Lower Green Rupee (1) Chest",
+      "name": "Shadow Temple B3 After Wind Enemy Chest",
       "unprovable": false
     },
     {
@@ -9674,7 +9674,7 @@
       "forbid": [],
       "hash": "5727384110982141012",
       "id": 681,
-      "name": "Shadow Temple Lower Pot 7",
+      "name": "Shadow Temple B3 Invisible Blades Pot 10",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9710,7 +9710,7 @@
       "forbid": [],
       "hash": "5735857708033803819",
       "id": 683,
-      "name": "Shadow Temple Lower Pot 1",
+      "name": "Shadow Temple B3 Guillotine Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9803,7 +9803,7 @@
       "forbid": [],
       "hash": "5781953901224064730",
       "id": 466,
-      "name": "Shadow Temple Lower Small Key Chest 1",
+      "name": "Shadow Temple B3 Falling Spikes Switch Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -10657,7 +10657,7 @@
       "forbid": [],
       "hash": "6352163088611595134",
       "id": 709,
-      "name": "Shadow Temple Lower Pot 5",
+      "name": "Shadow Temple B3 Invisible Blades Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10925,7 +10925,7 @@
       "forbid": [],
       "hash": "6544503533980361638",
       "id": 711,
-      "name": "Shadow Temple Lower Pot 17",
+      "name": "Shadow Temple B3 Freestanding Key Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10943,7 +10943,7 @@
       "forbid": [],
       "hash": "6564827077422769808",
       "id": 712,
-      "name": "Shadow Temple Lower Pot 23",
+      "name": "Shadow Temple B3 Wind Hint Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11049,7 +11049,7 @@
       "forbid": [],
       "hash": "6702955117999869897",
       "id": 715,
-      "name": "Shadow Temple Pot 15",
+      "name": "Shadow Temple B2 Early Silver Rupee Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11085,7 +11085,7 @@
       "forbid": [],
       "hash": "6776181446576910895",
       "id": 717,
-      "name": "Shadow Temple Pot 14",
+      "name": "Shadow Temple B1 Map Chest Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11315,7 +11315,7 @@
       "forbid": [],
       "hash": "6866982547773490759",
       "id": 719,
-      "name": "Shadow Temple Pot 12",
+      "name": "Shadow Temple B1 Whispering Walls Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12585,7 +12585,7 @@
       "forbid": [],
       "hash": "7543258766643332752",
       "id": 745,
-      "name": "Shadow Temple Pot 4",
+      "name": "Shadow Temple B1 Entrance Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12868,7 +12868,7 @@
       "forbid": [],
       "hash": "7775851373127171934",
       "id": 753,
-      "name": "Shadow Temple Lower Pot 11",
+      "name": "Shadow Temple B3 Invisible Blades Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13331,7 +13331,7 @@
       "forbid": [],
       "hash": "8173592441786734389",
       "id": 761,
-      "name": "Shadow Temple Pot 5",
+      "name": "Shadow Temple B1 Whispering Walls Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13953,7 +13953,7 @@
       "forbid": [],
       "hash": "8721287453021850502",
       "id": 58,
-      "name": "Shadow Temple Business Scrub",
+      "name": "Shadow Temple B3 Deku Scrub",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -14059,7 +14059,7 @@
       "forbid": [],
       "hash": "8781054380795091131",
       "id": 772,
-      "name": "Shadow Temple Lower Pot 37",
+      "name": "Shadow Temple B4 After Boat Upper Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14151,7 +14151,7 @@
       "forbid": [],
       "hash": "8823884712433934372",
       "id": 348,
-      "name": "Shadow Temple Lower Gold Skulltula Token 3",
+      "name": "Shadow Temple B4 GS Near Ship",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -14254,7 +14254,7 @@
       "forbid": [],
       "hash": "8858270325665149688",
       "id": 60,
-      "name": "Shadow Temple Lower Red Rupee (20) Chest 1",
+      "name": "Shadow Temple B3 Falling Spikes Lower Chest",
       "unprovable": false
     },
     {
@@ -14899,7 +14899,7 @@
       "forbid": [],
       "hash": "9112680507839779871",
       "id": 421,
-      "name": "Shadow Temple Bongo Bongo",
+      "name": "Shadow Temple B4 Bongo Bongo",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -15160,7 +15160,7 @@
       "forbid": [],
       "hash": "9221365632831348137",
       "id": 470,
-      "name": "Shadow Temple Lower Boss Key Chest",
+      "name": "Shadow Temple B4 Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -15196,7 +15196,7 @@
       "forbid": [],
       "hash": "9236688121471794419",
       "id": 791,
-      "name": "Shadow Temple Lower Pot 21",
+      "name": "Shadow Temple B3 Wind Tunnel Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15671,7 +15671,7 @@
       "forbid": [],
       "hash": "9528320623415061098",
       "id": 797,
-      "name": "Shadow Temple Lower Pot 29",
+      "name": "Shadow Temple B4 After Boat Lower Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16049,7 +16049,7 @@
       "forbid": [],
       "hash": "9711710493526840537",
       "id": 805,
-      "name": "Shadow Temple Lower Pot 25",
+      "name": "Shadow Temple B3 After Wind Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16212,7 +16212,7 @@
       "forbid": [],
       "hash": "9802947017180102035",
       "id": 808,
-      "name": "Shadow Temple Lower Pot 40",
+      "name": "Shadow Temple B4 Triple Giant Pot Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16325,7 +16325,7 @@
       "forbid": [],
       "hash": "9852624243105848451",
       "id": 69,
-      "name": "Shadow Temple Lower Magic Jar Chest",
+      "name": "Shadow Temple B4 Spike Walls Left Chest",
       "unprovable": false
     },
     {
@@ -16351,7 +16351,7 @@
       "forbid": [],
       "hash": "9863928399380026377",
       "id": 810,
-      "name": "Shadow Temple Lower Pot 19",
+      "name": "Shadow Temple B3 Wind Tunnel Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16444,7 +16444,7 @@
       "forbid": [],
       "hash": "9913774638860555567",
       "id": 812,
-      "name": "Shadow Temple Lower Pot 30",
+      "name": "Shadow Temple B4 After Boat Lower Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16666,7 +16666,7 @@
       "forbid": [],
       "hash": "10043160893858466207",
       "id": 814,
-      "name": "Shadow Temple Pot 8",
+      "name": "Shadow Temple B1 Whispering Walls Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16718,7 +16718,7 @@
       "forbid": [],
       "hash": "10054939734302812185",
       "id": 816,
-      "name": "Shadow Temple Lower Pot 9",
+      "name": "Shadow Temple B3 Invisible Blades Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17103,7 +17103,7 @@
       "forbid": [],
       "hash": "10246279987220488515",
       "id": 827,
-      "name": "Shadow Temple Lower Pot 13",
+      "name": "Shadow Temple B3 Falling Spikes Lower Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17193,7 +17193,7 @@
       "forbid": [],
       "hash": "10270336409167849808",
       "id": 360,
-      "name": "Shadow Temple Lower Gold Skulltula Token 4",
+      "name": "Shadow Temple B4 GS Triple Giant Pot",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -17229,7 +17229,7 @@
       "forbid": [],
       "hash": "10301361589593592700",
       "id": 830,
-      "name": "Shadow Temple Pot 7",
+      "name": "Shadow Temple B1 Whispering Walls Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17323,7 +17323,7 @@
       "forbid": [],
       "hash": "10334432357157409143",
       "id": 832,
-      "name": "Shadow Temple Flying Pot 1",
+      "name": "Shadow Temple B1 Whispering Walls Flying Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17359,7 +17359,7 @@
       "forbid": [],
       "hash": "10344372963276519235",
       "id": 73,
-      "name": "Shadow Temple Lower Red Rupee (20) Chest 2",
+      "name": "Shadow Temple B3 Invisible Blades Visible Chest",
       "unprovable": false
     },
     {
@@ -17374,7 +17374,7 @@
       "forbid": [],
       "hash": "10356635971059791941",
       "id": 833,
-      "name": "Shadow Temple Pot 11",
+      "name": "Shadow Temple B1 Whispering Walls Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17724,7 +17724,7 @@
       "forbid": [],
       "hash": "10622992497710988818",
       "id": 838,
-      "name": "Shadow Temple Lower Pot 43",
+      "name": "Shadow Temple B4 Invisible Floormaster Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18304,7 +18304,7 @@
       "forbid": [],
       "hash": "11024655001264732882",
       "id": 847,
-      "name": "Shadow Temple Lower Pot 46",
+      "name": "Shadow Temple B4 Near Boss Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18918,7 +18918,7 @@
       "forbid": [],
       "hash": "11384529499855811655",
       "id": 853,
-      "name": "Shadow Temple Flying Pot 2",
+      "name": "Shadow Temple B1 Beginning Flying Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19015,7 +19015,7 @@
       "forbid": [],
       "hash": "11474152021729303804",
       "id": 855,
-      "name": "Shadow Temple Lower Pot 2",
+      "name": "Shadow Temple B3 Guillotine Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19689,7 +19689,7 @@
       "forbid": [],
       "hash": "11721675795691289040",
       "id": 862,
-      "name": "Shadow Temple Lower Pot 28",
+      "name": "Shadow Temple B4 Before Boat Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20230,7 +20230,7 @@
       "forbid": [],
       "hash": "12144875447328979495",
       "id": 871,
-      "name": "Shadow Temple Lower Pot 18",
+      "name": "Shadow Temple B3 Freestanding Key Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20646,7 +20646,7 @@
       "forbid": [],
       "hash": "12345747231768877602",
       "id": 144,
-      "name": "Shadow Temple Lower Business Scrub Seed Chest",
+      "name": "Shadow Temple B3 Wind Hint Chest",
       "unprovable": false
     },
     {
@@ -20984,7 +20984,7 @@
       "forbid": [],
       "hash": "12562389953863361839",
       "id": 477,
-      "name": "Shadow Temple Small Key",
+      "name": "Shadow Temple B3 Freestanding Key",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -22154,7 +22154,7 @@
       "forbid": [],
       "hash": "13367491346939660535",
       "id": 902,
-      "name": "Shadow Temple Lower Flying Pot 2",
+      "name": "Shadow Temple B3 After Wind Flying Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22436,7 +22436,7 @@
       "forbid": [],
       "hash": "13528903653876646082",
       "id": 437,
-      "name": "Shadow Temple Map Chest",
+      "name": "Shadow Temple B1 Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -23270,7 +23270,7 @@
       "forbid": [],
       "hash": "14017012371096777227",
       "id": 920,
-      "name": "Shadow Temple Pot 17",
+      "name": "Shadow Temple B1 Beginning Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23632,7 +23632,7 @@
       "forbid": [],
       "hash": "14320599047535591653",
       "id": 932,
-      "name": "Shadow Temple Lower Pot 42",
+      "name": "Shadow Temple B4 Invisible Floormaster Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23919,7 +23919,7 @@
       "forbid": [],
       "hash": "14535080241831873137",
       "id": 103,
-      "name": "Shadow Temple Hover Boots Chest",
+      "name": "Shadow Temple B1 Hover Boots Chest",
       "unprovable": false
     },
     {
@@ -24846,7 +24846,7 @@
       "forbid": [],
       "hash": "15148554628675590606",
       "id": 389,
-      "name": "Shadow Temple Lower Gold Skulltula Token 1",
+      "name": "Shadow Temple B3 GS Falling Spikes Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24932,7 +24932,7 @@
       "forbid": [],
       "hash": "15223760367968746914",
       "id": 952,
-      "name": "Shadow Temple Lower Pot 15",
+      "name": "Shadow Temple B3 Falling Spikes Upper Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25237,7 +25237,7 @@
       "forbid": [],
       "hash": "15429078377557359609",
       "id": 957,
-      "name": "Shadow Temple Lower Pot 20",
+      "name": "Shadow Temple B3 Wind Tunnel Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25369,7 +25369,7 @@
       "forbid": [],
       "hash": "15564367841356014861",
       "id": 393,
-      "name": "Shadow Temple Lower Gold Skulltula Token 2",
+      "name": "Shadow Temple B3 GS Wind Tunnel",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25387,7 +25387,7 @@
       "forbid": [],
       "hash": "15593483770892955044",
       "id": 958,
-      "name": "Shadow Temple Flying Pot 3",
+      "name": "Shadow Temple B1 Beginning Flying Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25630,7 +25630,7 @@
       "forbid": [],
       "hash": "15785610174252975907",
       "id": 965,
-      "name": "Shadow Temple Lower Pot 16",
+      "name": "Shadow Temple B3 Falling Spikes Upper Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25909,7 +25909,7 @@
       "forbid": [],
       "hash": "15975907892717926899",
       "id": 972,
-      "name": "Shadow Temple Lower Pot 33",
+      "name": "Shadow Temple B4 Before Boat Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26061,7 +26061,7 @@
       "forbid": [],
       "hash": "16048804842009110150",
       "id": 976,
-      "name": "Shadow Temple Lower Pot 12",
+      "name": "Shadow Temple B3 Invisible Blades Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26643,7 +26643,7 @@
       "forbid": [],
       "hash": "16363220504982834002",
       "id": 989,
-      "name": "Shadow Temple Pot 18",
+      "name": "Shadow Temple B1 Beginning Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27481,7 +27481,7 @@
       "forbid": [],
       "hash": "16933078188088206331",
       "id": 399,
-      "name": "Shadow Temple Lower Gold Skulltula Token 5",
+      "name": "Shadow Temple B3 GS Invisible Blades Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -27752,7 +27752,7 @@
       "forbid": [],
       "hash": "17042617359037842076",
       "id": 1006,
-      "name": "Shadow Temple Pot 13",
+      "name": "Shadow Temple B1 Map Chest Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27770,7 +27770,7 @@
       "forbid": [],
       "hash": "17044246235202554271",
       "id": 1007,
-      "name": "Shadow Temple Lower Pot 35",
+      "name": "Shadow Temple B4 Before Boat Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28071,7 +28071,7 @@
       "forbid": [],
       "hash": "17234756865109480535",
       "id": 1012,
-      "name": "Shadow Temple Lower Pot 34",
+      "name": "Shadow Temple B4 Before Boat Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28701,7 +28701,7 @@
       "forbid": [],
       "hash": "17599164808183510748",
       "id": 414,
-      "name": "Shadow Temple Heart Container",
+      "name": "Shadow Temple B4 Bongo Bongo Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -28950,7 +28950,7 @@
       "forbid": [],
       "hash": "17689953228344661448",
       "id": 1029,
-      "name": "Shadow Temple Pot 3",
+      "name": "Shadow Temple B1 Entrance Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29137,7 +29137,7 @@
       "forbid": [],
       "hash": "17854956688468606247",
       "id": 1035,
-      "name": "Shadow Temple Pot 10",
+      "name": "Shadow Temple B1 Whispering Walls Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29214,7 +29214,7 @@
       "forbid": [],
       "hash": "17902550525792072472",
       "id": 490,
-      "name": "Shadow Temple Lower Small Key Chest 3",
+      "name": "Shadow Temple B4 Invisible Floormaster Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
