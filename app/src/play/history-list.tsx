@@ -7,7 +7,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useDeferredValue, useRef, useState } from "react";
 import type { Summary } from "@/bindings";
 import { CardHeader } from "@/components/card";
 import { CopySeed, SeedIcons } from "@/components/seed-icons";
@@ -171,6 +171,10 @@ const EMPTY: Record<HistoryFilter, string> = {
   starred: "No starred seeds yet.",
 };
 
+/** Rows the tab draws on the click itself. The rest of the page follows in
+ * the background, where it can't hold the click up. */
+const FIRST = 20;
+
 /** "N seeds", and "· M starred" when any are. */
 function counted(shown: Summary[]) {
   const n = shown.length;
@@ -185,6 +189,7 @@ export function HistoryList() {
   const [entries] = useSeeds.usePath("history.entries");
   const [filter, setFilter] = useUi.usePath("play.history");
   const [drawn = PAGE, setDrawn] = useShell.usePath("historyDrawn");
+  const drawnNow = useDeferredValue(drawn, Math.min(FIRST, drawn));
   const [selecting, setSelecting] = useState(false);
   const [sel, setSel] = useState<Selection>(NONE);
   const shown = entries.filter(HISTORY_SHOWS[filter]);
@@ -245,7 +250,7 @@ export function HistoryList() {
         </p>
       ) : (
         <ul className={cn("px-1 pb-1", divided)}>
-          {shown.slice(0, drawn).map((e) => (
+          {shown.slice(0, drawnNow).map((e) => (
             <HistoryRow
               key={e.id}
               entry={e}
