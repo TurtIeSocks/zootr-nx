@@ -533,6 +533,7 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
     out.extend(pickups::BOULDERS.checks(romfs)?);
     out.extend(pickups::RED_BOULDERS.checks(romfs)?);
     out.extend(pickups::SILVER_ROCKS.checks(romfs)?);
+    out.extend(pickups::GOLD_ROCKS.checks(romfs)?);
     let placed: BTreeSet<u64> = out.iter().map(|c| c.hash).collect();
     let pickups = placed_pickups(romfs)?;
     for (file, doc) in load_bancs(romfs, banc_files(romfs)?) {

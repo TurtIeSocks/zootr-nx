@@ -131,7 +131,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -206,7 +206,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -1074,7 +1074,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -1194,7 +1194,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -1212,7 +1212,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -1309,7 +1309,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -1691,7 +1691,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -2448,7 +2448,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -2502,7 +2502,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -2669,7 +2669,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -3045,7 +3045,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -4551,7 +4551,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -4797,7 +4797,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -5147,7 +5147,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -5253,7 +5253,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 303
           }
         }
       ],
@@ -6010,7 +6010,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -6252,7 +6252,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -6445,7 +6445,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -6851,7 +6851,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -6948,6 +6948,24 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 301
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "3853917559410573871",
+      "id": 1696,
+      "name": "Ganons Castle Fire Trial Gold Rock 1",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -7884,7 +7902,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -8164,7 +8182,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -8241,7 +8259,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 304
+            "ref": 305
           }
         },
         {
@@ -9063,7 +9081,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -9081,7 +9099,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 303
           }
         }
       ],
@@ -9279,7 +9297,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -9351,7 +9369,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -9814,7 +9832,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -10215,7 +10233,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -10269,7 +10287,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -11018,6 +11036,24 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 301
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "6251811700274725607",
+      "id": 1697,
+      "name": "Ganons Castle Fire Trial Gold Rock 2",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "death-mountain-trail-adult",
           "rule": {
             "all": [
@@ -11164,7 +11200,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 303
           }
         }
       ],
@@ -11258,7 +11294,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -11555,7 +11591,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 309
           }
         }
       ],
@@ -11573,7 +11609,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -11703,7 +11739,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -11739,7 +11775,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -11980,7 +12016,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -13219,7 +13255,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 305
+            "ref": 306
           }
         },
         {
@@ -13286,7 +13322,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -13616,7 +13652,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -13683,6 +13719,24 @@
       "unprovable": true,
       "when": {
         "setting": "pots"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 301
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "7808482170470849591",
+      "id": 1698,
+      "name": "Ganons Castle Light Trial Gold Rock",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -14119,6 +14173,24 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 301
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "8144266723486145695",
+      "id": 1699,
+      "name": "Ganons Castle Shadow Trial Gold Rock",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
+      }
+    },
+    {
+      "at": [
+        {
           "place": "kokiri-forest-adult",
           "rule": true
         },
@@ -14141,7 +14213,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -14475,7 +14547,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 304
+            "ref": 305
           }
         },
         {
@@ -14923,7 +14995,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -16114,7 +16186,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -16643,7 +16715,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -17039,7 +17111,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -17226,7 +17298,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -17383,7 +17455,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -17476,7 +17548,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -17698,7 +17770,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -17750,7 +17822,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -18099,7 +18171,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -18231,7 +18303,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -18325,7 +18397,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -18376,7 +18448,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -18708,7 +18780,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -19317,7 +19389,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -20011,7 +20083,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -20126,7 +20198,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -20498,7 +20570,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 305
+            "ref": 306
           }
         },
         {
@@ -20869,7 +20941,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -21410,7 +21482,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 309
           }
         }
       ],
@@ -21464,7 +21536,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 303
+            "ref": 304
           }
         },
         {
@@ -22211,7 +22283,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 309
           }
         }
       ],
@@ -22265,7 +22337,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 303
           }
         }
       ],
@@ -23435,7 +23507,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -24069,7 +24141,7 @@
           "rule": {
             "all": [
               {
-                "ref": 305
+                "ref": 306
               },
               {
                 "count": 1,
@@ -24118,6 +24190,37 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
+      }
+    },
+    {
+      "at": [
+        {
+          "place": "ganons-castle-adult",
+          "rule": {
+            "all": [
+              {
+                "count": 1,
+                "items": [
+                  "Golden Gauntlets"
+                ]
+              },
+              {
+                "count": 1,
+                "items": [
+                  "Golden Gauntlets"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "forbid": [],
+      "hash": "13713923972504494620",
+      "id": 1700,
+      "name": "OGC Gold Rock",
+      "unprovable": false,
+      "when": {
+        "setting": "rocks"
       }
     },
     {
@@ -24628,7 +24731,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -24990,7 +25093,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -26411,7 +26514,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -26752,7 +26855,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 310
           }
         }
       ],
@@ -26920,7 +27023,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -27198,7 +27301,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -27477,7 +27580,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -27629,7 +27732,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 308
           }
         }
       ],
@@ -28258,7 +28361,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -28431,7 +28534,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 303
           }
         }
       ],
@@ -29397,7 +29500,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -29415,7 +29518,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -29486,7 +29589,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 311
+            "ref": 312
           }
         }
       ],
@@ -29727,7 +29830,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 311
           }
         }
       ],
@@ -30628,7 +30731,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -30851,7 +30954,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 307
           }
         }
       ],
@@ -32935,7 +33038,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 309
           }
         }
       ],
@@ -33317,7 +33420,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 311
+            "ref": 312
           }
         }
       ],
@@ -34183,7 +34286,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 301
+            "ref": 302
           }
         }
       ],
@@ -35127,7 +35230,7 @@
     {
       "from": "inside-ganons-castle-adult",
       "rule": {
-        "ref": 301
+        "ref": 302
       },
       "to": "ganondorf-room-adult"
     },
@@ -41514,6 +41617,19 @@
     {
       "all": [
         {
+          "ref": 300
+        },
+        {
+          "count": 1,
+          "items": [
+            "Golden Gauntlets"
+          ]
+        }
+      ]
+    },
+    {
+      "all": [
+        {
           "ref": 298
         },
         {
@@ -41554,7 +41670,7 @@
     {
       "all": [
         {
-          "ref": 303
+          "ref": 304
         },
         {
           "count": 1,
@@ -41616,7 +41732,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 307
         },
         {
           "ref": 76
@@ -41626,7 +41742,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 307
         },
         {
           "ref": 78
@@ -41636,7 +41752,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 307
         },
         {
           "ref": 80
@@ -41646,7 +41762,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 307
         },
         {
           "ref": 82

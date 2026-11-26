@@ -29,23 +29,29 @@
 14427616187459203223 = "Ganons Castle Water Trial Pot 2"
 
 # Shadow Trial: the front chest, the Golden Gauntlets across the pit, the
-# pots by the Like Like, and the last room's pots.
+# pots by the Like Like, the gold rock by that chest (ours), and the last
+# room's pots.
 18277713685010400796 = "Ganons Castle Shadow Trial Front Chest"
 17657623307936361670 = "Ganons Castle Shadow Trial Golden Gauntlets Chest"
 3176226373531822041 = "Ganons Castle Shadow Trial Like Like Pot 1"
 11807736569286227819 = "Ganons Castle Shadow Trial Like Like Pot 2"
 1281722240804523266 = "Ganons Castle Shadow Trial Like Like Pot 3"
 15694138656577583423 = "Ganons Castle Shadow Trial Like Like Pot 4"
+8144266723486145695 = "Ganons Castle Shadow Trial Gold Rock"
 10882124901681441302 = "Ganons Castle Shadow Trial Pot 1"
 1589383710068100920 = "Ganons Castle Shadow Trial Pot 2"
 
-# Fire Trial: the last room's pots.
+# Fire Trial: the last room's pots, and two gold rocks (ours, as OoTR
+# has none), numbered west to east. The first stands over a silver rupee.
 17654863825837636295 = "Ganons Castle Fire Trial Pot 1"
 12505442962093959743 = "Ganons Castle Fire Trial Pot 2"
+3853917559410573871 = "Ganons Castle Fire Trial Gold Rock 1"
+6251811700274725607 = "Ganons Castle Fire Trial Gold Rock 2" # guess: by the shutter on the trial's hub side
 
 # Light Trial: the first room's six chests, three of them ice traps, and
 # the one the invisible enemies leave; the Lullaby room's two chests; the
-# boulder room; the last room's pots. The six stand two by three, Link
+# boulder room; the gold rock by the first room's door (ours); the last
+# room's pots. The six stand two by three, Link
 # entering from the hub facing west: first is nearest the door. The ice
 # traps' checkerboard matches OoTR's (First Right, Second Left, Third Right).
 1029712040059298120 = "Ganons Castle Light Trial First Left Chest"
@@ -55,6 +61,7 @@
 7461796063704896255 = "Ganons Castle Light Trial Third Left Chest"
 11406545451127340703 = "Ganons Castle Light Trial Third Right Chest"
 14962432460641118089 = "Ganons Castle Light Trial Invisible Enemies Chest"
+7808482170470849591 = "Ganons Castle Light Trial Gold Rock"
 4733634471038136588 = "Ganons Castle Light Trial Lullaby Chest"
 15320975652699461295 = "Ganons Castle Light Trial Invisible Chest" # guess: new chest, shown by the Lens in the Lullaby room
 5049143857891510188 = "Ganons Castle Light Trial Boulder Pot"

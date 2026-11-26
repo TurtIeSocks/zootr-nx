@@ -176,6 +176,7 @@ pub const OBJ_LIFT_ROCK_A_01: &Name = &n!(0x1d2fc9332cbb5a43);
 pub const OBJ_LIFT_ROCK_A_03: &Name = &n!(0x1d2fcb332cbb5da9);
 pub const OBJ_LIFT_ROCK_B_01: &Name = &n!(0xf464513e7794d28c);
 pub const OBJ_LIFT_ROCK_C_01: &Name = &n!(0x4aca1d4612fe9661);
+pub const OBJ_LIFT_ROCK_C_05: &Name = &n!(0x4aca214612fe9d2d);
 pub const OBJ_MAGIC_JAR_LARGE: &Name = &n!(0xc81eb8102dab81f3);
 pub const OBJ_MAGIC_JAR_SMALL: &Name = &n!(0x960f099fc9a09b6b);
 pub const OBJ_PLANT_A: &Name = &n!(0xe0b36210190ca060);

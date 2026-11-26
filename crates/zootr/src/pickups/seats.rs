@@ -5,7 +5,8 @@
 //! takes it (maintainer, 2026-11-25): a seat, a copy of the rock's
 //! placement under a fresh hash holding the item as a pickup lying loose
 //! does, inside the rock until it breaks or is lifted away. A boulder
-//! drops nothing.
+//! drops nothing. A gold rock has no key and is back after a map load,
+//! covering an untaken seat again.
 //!
 //! A stand-in seat is gone once taken by its own key, as a heart piece's
 //! is. A seat holding a plain pickup, which may come back, stands until
@@ -56,6 +57,19 @@ pub const SILVER_ROCKS: Kind = Kind {
     named: None,
 };
 
+/// The gold rocks, which take the Golden Gauntlets' lift grade: four inside
+/// Ganon's Castle and the pillar outside it. They have no key, so a lifted
+/// one is back after a map load, hiding an untaken item again until Link
+/// lifts it once more (rocks spec). None drops anything: each brings a
+/// Green Rupee, as a silver rock does.
+pub const GOLD_ROCKS: Kind = Kind {
+    actors: &[actor::OBJ_LIFT_ROCK_C_01, actor::OBJ_LIFT_ROCK_C_05],
+    item: Some(actor::OBJ_RUPEE_GREEN),
+    field: GYAML,
+    needs: Some("gold-gauntlets"),
+    named: None,
+};
+
 /// The rocks over grotto entrances, which stay vanilla: breaking or
 /// lifting one opens the hole under its seat, so Link reaching for the
 /// item falls in (maintainer, 2026-11-25, rocks spec). The boulders are
@@ -76,7 +90,7 @@ pub const OVER_GROTTOS: [u64; 11] = [
 ];
 
 /// The kinds whose item lies in a seat.
-const SEATED: [&Kind; 3] = [&BOULDERS, &RED_BOULDERS, &SILVER_ROCKS];
+const SEATED: [&Kind; 4] = [&BOULDERS, &RED_BOULDERS, &SILVER_ROCKS, &GOLD_ROCKS];
 
 /// The seated kinds whose pack drops something, which a dealt one stops.
 const DROPPING: [&Kind; 2] = [&BOULDERS, &RED_BOULDERS];

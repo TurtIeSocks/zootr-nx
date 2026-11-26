@@ -450,7 +450,7 @@ mod tests {
         assert_eq!(skulltulas.len(), 100);
         // 518 pots and 23 flying ones, 38 crates, 167 rocks, 160 shrubs and
         // 21 hives, then the Skulltulas, the 63 boulders and 42 silver rocks.
-        assert_eq!(holders.len(), 927 + 100 + 63 + 42);
+        assert_eq!(holders.len(), 927 + 100 + 63 + 42 + 5);
         let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
         let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
         assert_eq!(killed, skulltulas);
