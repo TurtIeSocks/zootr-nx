@@ -142,6 +142,7 @@ impl Tracker {
                     .iter()
                     .map(|t| (s.hash, Flag::Bool(murmur3(t.as_bytes()))))
             })
+            .chain(spots.iter().flat_map(|s| seat_keys(gd, s)))
             .collect();
         Ok(Self {
             flags,
@@ -268,6 +269,18 @@ pub fn in_save(save: &Save) -> impl Fn(Flag) -> bool + '_ {
             .is_some_and(|v| v != 0),
         Flag::Key(k) => keys.contains(&k),
     }
+}
+
+/// The keys of a boulder's seats (`pickups::seats`), which check it too.
+/// A shield Link already has is taken without its get, so neither the
+/// hook's flag nor the stand-in's taken Bool is set, but its key is
+/// (Mac, 2026-11-25).
+fn seat_keys<'a>(gd: &'a GameData, spot: &'a Spot) -> impl Iterator<Item = (u64, Flag)> + 'a {
+    let seated = crate::pickups::seats::places(&spot.holder);
+    (0..)
+        .map(move |k| crate::pickups::seats::seat(spot.hash, k))
+        .take_while(move |&h| seated && gd.has_key(h))
+        .map(move |h| (spot.hash, Flag::Key(h)))
 }
 
 #[cfg(test)]
@@ -524,6 +537,22 @@ mod tests {
         assert_eq!(flips.checked, [7]);
         let flips = t.change(&bool_(second, "true -> false"));
         assert_eq!(flips.unchecked, [7]);
+    }
+
+    #[test]
+    fn a_boulder_ticks_once_its_seat_is_taken_without_the_get() {
+        let Some(romfs) = dev_dump() else { return };
+        let boulder = &crate::pickups::BOULDERS.checks(&romfs).unwrap()[0];
+        let seat = crate::pickups::seats::seat(boulder.hash, 0);
+        let gd = GameData::load(&romfs).unwrap().with_key(seat);
+        let spot = Spot {
+            holder: boulder.holder.clone(),
+            ..spot(boulder.hash)
+        };
+        let mut t = Tracker::new(&gd, &[spot]).unwrap();
+        assert!(t.flags().any(|f| f == Flag::Key(seat)));
+        let flips = t.load(|f| f == Flag::Key(seat));
+        assert_eq!(flips.checked, [boulder.hash]);
     }
 
     #[test]

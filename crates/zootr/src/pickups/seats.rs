@@ -6,9 +6,9 @@
 //! item as a pickup lying loose does, inside the boulder until it breaks.
 //! The boulder drops nothing.
 //!
-//! A seat stands until its boulder's check is got (`picked::After::Seated`),
-//! and keeps a key like the boulder's, so a vanilla pickup there stays
-//! taken too.
+//! A stand-in seat is gone once taken by its own key, as a heart piece's
+//! is. A seat holding a plain pickup, which may come back, stands until
+//! its boulder's check is got (`picked::After::Seated`).
 
 use std::collections::HashMap;
 
@@ -90,7 +90,7 @@ pub fn no_drop(of: u64) -> String {
 pub struct Seats {
     /// Each seat, by the boulder it copies.
     pub pairs: Vec<(u64, u64)>,
-    /// The BoolExp each seat that shows no steps stands by, until its
+    /// The BoolExp each seat holding a plain pickup stands by, until its
     /// boulder's check is got. A step's seat stands by its step's gate
     /// (`pickups::steps`).
     gates: HashMap<u64, String>,
@@ -106,7 +106,10 @@ impl Seats {
         let boulders: Vec<ItemCheck> = checks.iter().filter(|c| holds(c)).cloned().collect();
         for m in moved(&boulders, drops, progressive) {
             seats.pairs.push((m.of, m.hash));
-            if m.step.is_none() {
+            // A built stand-in keeps a key that never resets, so it's gone
+            // once taken. Gated too, it went mid-get: the Mirror Shield's
+            // get holds it while its take sets the gate, and the get hung.
+            if m.step.is_none() && !m.built() {
                 seats.gates.insert(m.hash, crate::picked::got(m.of));
             }
         }
@@ -224,7 +227,7 @@ mod tests {
         assert!(presence_of(boulder).is_none());
         let table = dynamic(boulder).and_then(|d| str_field(d, field::DROP_DROP_TABLE.get()));
         assert_eq!(table, Some("None"));
-        // The seat lies where it stood, a stand-in standing until got.
+        // The seat lies where it stood, a stand-in standing until taken.
         assert!(
             str_field(lies, GYAML)
                 .unwrap()
@@ -237,8 +240,10 @@ mod tests {
         for key in [DYNAMIC, "Scale", "Bakeable"] {
             assert!(!lies.as_map().unwrap().contains_key(key), "{key}");
         }
-        let gate = presence_of(lies).unwrap();
-        assert_eq!((gate.flag, gate.negated), (picked::got(BOULDER), true));
+        assert!(
+            presence_of(lies).is_none(),
+            "a stand-in's key keeps it taken"
+        );
         // The hook ticks the boulder's flag at the seat alone.
         assert_eq!(spots.len(), 1);
         assert_eq!(spots[0].placed, seat(BOULDER, 0));
@@ -253,6 +258,9 @@ mod tests {
         let (root, _, _) = placed(BOULDER, &HashMap::new(), Lines::climbing());
         let lies = one(&root, seat(BOULDER, 0));
         assert_eq!(str_field(lies, GYAML), Some(actor::OBJ_RUPEE_GREEN.get()));
+        // A rupee comes back, so the seat stands until the check is got.
+        let gate = presence_of(lies).unwrap();
+        assert_eq!((gate.flag, gate.negated), (picked::got(BOULDER), true));
     }
 
     #[test]
