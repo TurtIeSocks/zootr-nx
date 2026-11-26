@@ -174,7 +174,7 @@ impl Book {
         self.need(&rule.expr, ctx)
     }
 
-    /// A check's name in the rule files, if it has an entry.
+    /// A check's draft name in the rule files, if it has one.
     pub fn name(hash: u64) -> Option<&'static str> {
         static NAMES: OnceLock<BTreeMap<u64, String>> = OnceLock::new();
         // The tests load every rule file, so an error here never ships.
@@ -183,7 +183,10 @@ impl Book {
                 .map(|b| b.checks.into_iter().map(|(h, e)| (h, e.name)).collect())
                 .unwrap_or_default()
         });
-        names.get(&hash).map(String::as_str)
+        names
+            .get(&hash)
+            .map(String::as_str)
+            .filter(|n| !n.is_empty())
     }
 
     /// The comment above a check's entry in its rule file, line by line,

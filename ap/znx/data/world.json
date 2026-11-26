@@ -127,7 +127,7 @@
       "forbid": [],
       "hash": "116284582719887989",
       "id": 500,
-      "name": "Water Temple Pot 9",
+      "name": "Water Temple B1 Behind Gate Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -323,7 +323,7 @@
       "forbid": [],
       "hash": "186694424287048567",
       "id": 310,
-      "name": "Water Temple Gold Skulltula Token 4",
+      "name": "Water Temple 1F GS Near Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -2309,7 +2309,7 @@
       "forbid": [],
       "hash": "1279554567131519582",
       "id": 542,
-      "name": "Water Temple Pot 6",
+      "name": "Water Temple 2F Lobby Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4365,7 +4365,7 @@
       "forbid": [],
       "hash": "2503861086004941173",
       "id": 453,
-      "name": "Water Temple Small Key Chest 2",
+      "name": "Water Temple 1F Torches Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -4782,7 +4782,7 @@
       "forbid": [],
       "hash": "2730270174636576878",
       "id": 587,
-      "name": "Water Temple Pot 8",
+      "name": "Water Temple B1 Behind Gate Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6055,7 +6055,7 @@
       "forbid": [],
       "hash": "3585686260179499649",
       "id": 620,
-      "name": "Water Temple Pot 3",
+      "name": "Water Temple 3F Lobby Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6073,7 +6073,7 @@
       "forbid": [],
       "hash": "3591228656871093720",
       "id": 621,
-      "name": "Water Temple Pot 24",
+      "name": "Water Temple 2F Behind Cracked Wall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6230,7 +6230,7 @@
       "forbid": [],
       "hash": "3693930347660122883",
       "id": 455,
-      "name": "Water Temple Small Key Chest 4",
+      "name": "Water Temple 1F Central Bow Target Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -6813,7 +6813,7 @@
       "forbid": [],
       "hash": "4025608826386451139",
       "id": 636,
-      "name": "Water Temple Pot 5",
+      "name": "Water Temple 2F Lobby Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7411,7 +7411,7 @@
       "forbid": [],
       "hash": "4399424945134189769",
       "id": 329,
-      "name": "Water Temple Gold Skulltula Token 5",
+      "name": "Water Temple 2F GS Behind Cracked Wall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -7569,7 +7569,7 @@
       "forbid": [],
       "hash": "4495046968780299020",
       "id": 647,
-      "name": "Water Temple Pot 11",
+      "name": "Water Temple 1F Near Compass Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7926,7 +7926,7 @@
       "forbid": [],
       "hash": "4630615646721664618",
       "id": 651,
-      "name": "Water Temple Pot 12",
+      "name": "Water Temple 1F Near Compass Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9393,7 +9393,7 @@
       "forbid": [],
       "hash": "5604234566446979847",
       "id": 679,
-      "name": "Water Temple Pot 10",
+      "name": "Water Temple B1 Behind Gate Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9871,7 +9871,7 @@
       "forbid": [],
       "hash": "5848096526143037248",
       "id": 687,
-      "name": "Water Temple Pot 2",
+      "name": "Water Temple 3F Lobby Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10545,7 +10545,7 @@
       "forbid": [],
       "hash": "6304980196399281219",
       "id": 704,
-      "name": "Water Temple Pot 21",
+      "name": "Water Temple 2F River Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11664,7 +11664,7 @@
       "forbid": [],
       "hash": "7109345210051555604",
       "id": 729,
-      "name": "Water Temple Pot 20",
+      "name": "Water Temple 2F River Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12051,7 +12051,7 @@
       "forbid": [],
       "hash": "7249585227432273089",
       "id": 737,
-      "name": "Water Temple Pot 16",
+      "name": "Water Temple 3F Tektite Hall Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12143,7 +12143,7 @@
       "forbid": [],
       "hash": "7321227760391395251",
       "id": 740,
-      "name": "Water Temple Pot 15",
+      "name": "Water Temple 3F Tektite Hall Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12179,7 +12179,7 @@
       "forbid": [],
       "hash": "7331502814510362649",
       "id": 742,
-      "name": "Water Temple Pot 14",
+      "name": "Water Temple 3F Tektite Hall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12308,7 +12308,7 @@
       "forbid": [],
       "hash": "7397402781751080416",
       "id": 743,
-      "name": "Water Temple Pot 4",
+      "name": "Water Temple 3F Lobby Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12950,7 +12950,7 @@
       "forbid": [],
       "hash": "7934783801419233385",
       "id": 756,
-      "name": "Water Temple Pot 19",
+      "name": "Water Temple 2F River Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15851,7 +15851,7 @@
       "forbid": [],
       "hash": "9614156843162683069",
       "id": 801,
-      "name": "Water Temple Pot 1",
+      "name": "Water Temple 3F Lobby Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17427,7 +17427,7 @@
       "forbid": [],
       "hash": "10378828369334876242",
       "id": 473,
-      "name": "Water Temple Boss Key Chest",
+      "name": "Water Temple 1F Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -19308,7 +19308,7 @@
       "forbid": [],
       "hash": "11571778270592589517",
       "id": 369,
-      "name": "Water Temple Gold Skulltula Token 1",
+      "name": "Water Temple 3F GS Central Pillar",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19598,7 +19598,7 @@
       "forbid": [],
       "hash": "11682974908842171598",
       "id": 83,
-      "name": "Water Temple Red Rupee (20) Chest",
+      "name": "Water Temple B1 Central Pillar Chest",
       "unprovable": false
     },
     {
@@ -20248,7 +20248,7 @@
       "forbid": [],
       "hash": "12146339761792216385",
       "id": 872,
-      "name": "Water Temple Pot 17",
+      "name": "Water Temple 2F Map Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20898,7 +20898,7 @@
       "forbid": [],
       "hash": "12534845042709325315",
       "id": 885,
-      "name": "Water Temple Pot 23",
+      "name": "Water Temple 2F Behind Cracked Wall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23112,7 +23112,7 @@
       "forbid": [],
       "hash": "13892637748591133371",
       "id": 918,
-      "name": "Water Temple Pot 13",
+      "name": "Water Temple 3F Tektite Hall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23755,7 +23755,7 @@
       "forbid": [],
       "hash": "14426685265732353862",
       "id": 413,
-      "name": "Water Temple Heart Container",
+      "name": "Water Temple 3F Morpha Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -25315,7 +25315,7 @@
       "forbid": [],
       "hash": "15506432733081566465",
       "id": 392,
-      "name": "Water Temple Gold Skulltula Token 3",
+      "name": "Water Temple 2F GS River",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -26133,7 +26133,7 @@
       "forbid": [],
       "hash": "16080263030858016933",
       "id": 424,
-      "name": "Water Temple Morpha",
+      "name": "Water Temple 3F Morpha",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -26242,7 +26242,7 @@
       "forbid": [],
       "hash": "16157272130665282352",
       "id": 397,
-      "name": "Water Temple Gold Skulltula Token 2",
+      "name": "Water Temple B1 GS Behind Gate",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -26625,7 +26625,7 @@
       "forbid": [],
       "hash": "16356631288008319500",
       "id": 988,
-      "name": "Water Temple Pot 7",
+      "name": "Water Temple B1 Behind Gate Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26682,7 +26682,7 @@
       "forbid": [],
       "hash": "16384925224245172970",
       "id": 443,
-      "name": "Water Temple Map Chest",
+      "name": "Water Temple 3F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -26774,7 +26774,7 @@
       "forbid": [],
       "hash": "16424266294822218796",
       "id": 444,
-      "name": "Water Temple Compass Chest",
+      "name": "Water Temple 1F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -26834,7 +26834,7 @@
       "forbid": [],
       "hash": "16490222392193949581",
       "id": 485,
-      "name": "Water Temple Small Key Chest 1",
+      "name": "Water Temple 2F Cracked Wall Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -27348,7 +27348,7 @@
       "forbid": [],
       "hash": "16885214594534747225",
       "id": 1000,
-      "name": "Water Temple Pot 22",
+      "name": "Water Temple 2F River Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29459,7 +29459,7 @@
       "forbid": [],
       "hash": "18059711820131847165",
       "id": 129,
-      "name": "Water Temple Longshot Chest",
+      "name": "Water Temple 3F Longshot Chest",
       "unprovable": false
     },
     {
@@ -29637,7 +29637,7 @@
       "forbid": [],
       "hash": "18099019250896853049",
       "id": 491,
-      "name": "Water Temple Small Key Chest 3",
+      "name": "Water Temple 1F Spike Pit Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -29893,7 +29893,7 @@
       "forbid": [],
       "hash": "18317670516128277611",
       "id": 1047,
-      "name": "Water Temple Pot 18",
+      "name": "Water Temple 2F Map Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
