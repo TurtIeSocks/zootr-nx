@@ -66,8 +66,12 @@ impl<'s> Counted<'s> {
                 ensure!(row.1 == actor, "{name} names two items");
                 row.0[n] += 1;
             }
+            // Added items follow the seed's own settings, not the twin's:
+            // a Magic Meter joins the pool for a progressive seed even with
+            // magic coming from the first magic item, so its row reads
+            // `progressive-items`.
             let added = &mut counted.added;
-            for actor in seed.dealt.added.iter().map(|a| names::same(a)) {
+            for actor in seeds[n].dealt.added.iter().map(|a| names::same(a)) {
                 let name = names::item(actor, false)?;
                 let at = match added.iter().position(|(n, _)| *n == name) {
                     Some(at) => at,

@@ -614,18 +614,32 @@ mod tests {
     fn gifts_hold_an_item_that_asks_only_when_they_give_by_level() {
         needs_names!();
         let (checks, none) = (with_scrubs(), Fixed::new());
+        let game = progressive(false, &[]);
         // A slot bottle's contents are rolled, so any bottle reads as one.
         let plain = |i: &str| match bottles::is_bottle(i) && i != item::BOTTLE_LETTER.get() {
             true => item::BOTTLE.to_string(),
             false => i.to_owned(),
         };
+        // The pool as this seed holds it: each check's item at the seed's
+        // line level, and each added item traded in for a rupee. With
+        // progressive items the meter stays in the magic line, so the
+        // Wisdom fountain's copy reads as one too.
+        let lines = progressive::Lines::of(&game);
         let mut pool: Vec<_> = checks
             .iter()
-            .map(|c| plain(progressive::Lines::default().first(pooled(c))))
+            .map(|c| plain(lines.first(pooled(c))))
             .collect();
+        for item in starter_bags::added(&game) {
+            if let Some(at) = starter_bags::JUNK
+                .iter()
+                .find_map(|j| pool.iter().position(|i| *i == j.get()))
+            {
+                pool[at] = item.to_owned();
+            }
+        }
         pool.sort();
         for seed in 0..200 {
-            let p = shuffle(&checks, seed, &none, &progressive(false, &[])).unwrap();
+            let p = shuffle(&checks, seed, &none, &game).unwrap();
             let mut dealt: Vec<_> = p.iter().map(|p| plain(p.item)).collect();
             dealt.sort();
             assert_eq!(dealt, pool);
