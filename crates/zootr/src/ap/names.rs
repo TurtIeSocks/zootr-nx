@@ -11,7 +11,7 @@ use crate::checks::ItemCheck;
 use crate::generate::Spot;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::progressive::{Level, Lines};
-use crate::{cows, gifts, goron_pot, ice_traps, pickups, places, scrubs, shops};
+use crate::{check_names, cows, gifts, goron_pot, ice_traps, pickups, places, scrubs, shops};
 
 /// Each area by its folder.
 const AREAS: &[(&Name, &str)] = &[
@@ -327,9 +327,10 @@ pub fn line(actor: &str) -> Result<Option<(&'static str, &'static str)>> {
     key.map(|k| Ok((item(k, true)?, k))).transpose()
 }
 
-/// Each check's location name, by hash: the area, then where (from
-/// `places::fill`), then the vanilla item, then the holder. Names two
-/// checks would share get where each stands, then a number.
+/// Each check's location name, by hash: its hand-written name
+/// (`check_names`), else the area, then where (from `places::fill`), then
+/// the vanilla item, then the holder. Names two checks would share get
+/// where each stands, then a number.
 pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, String>> {
     let mut spots = Vec::new();
     for c in checks {
@@ -346,7 +347,9 @@ pub fn locations(romfs: &Romfs, checks: &[ItemCheck]) -> Result<BTreeMap<u64, St
     let mut out = BTreeMap::new();
     for (c, s) in checks.iter().zip(&spots) {
         let area = area(&c.area)?;
-        let name = if scrubs::of(c).is_some() {
+        let name = if let Some(name) = check_names::of(c.hash) {
+            name.to_owned()
+        } else if scrubs::of(c).is_some() {
             match c.holder.split_once(", ") {
                 Some((_, what)) => format!("{area} Business Scrub ({})", title(what)),
                 None => format!("{area} Business Scrub"),

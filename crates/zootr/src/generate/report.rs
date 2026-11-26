@@ -32,7 +32,7 @@ pub struct Spot {
     /// seeds from before it was kept.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub place: String,
-    /// Its name in the rule files, shown before `place` (`places::fill`).
+    /// Its hand-written name (`check_names`), shown in place of `place`.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub custom: String,
     /// The playthrough round that collects it, from 1, for a check logic
@@ -97,8 +97,8 @@ impl Spot {
         }
     }
 
-    /// Its name in the rule files, else the place, else what it held in
-    /// the vanilla game.
+    /// Its hand-written name, else the place, else what it held in the
+    /// vanilla game.
     pub fn name(&self) -> &str {
         [&self.custom, &self.place, &self.chest_name]
             .into_iter()

@@ -27,6 +27,7 @@ mod bottles;
 mod bridge;
 pub mod build;
 mod carpenters;
+mod check_names;
 mod checks;
 mod chest_levels;
 mod chest_looks;

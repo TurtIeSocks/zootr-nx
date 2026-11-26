@@ -9,8 +9,10 @@ export const areaOf = (s: Spot) => s.area_name || s.area;
 
 /** A door by where it stands and the dungeon behind it in vanilla. */
 export const doorName = (d: Door) => `${d.area}, ${d.vanilla} door`;
-/** A spot's place by name, or its chest's, or its vanilla id. */
-export const placeOf = (s: Spot) => s.place || s.chest_name || s.vanilla;
+/** A spot's hand-written name, or its place, or its chest's, or its
+ * vanilla id. */
+export const placeOf = (s: Spot) =>
+  s.custom || s.place || s.chest_name || s.vanilla;
 /** What a spot holds, by name. */
 export const itemOf = (s: Spot) => s.item_name || s.item;
 /** Where a spot is: its area and place. */

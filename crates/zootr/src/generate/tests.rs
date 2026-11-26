@@ -393,7 +393,8 @@ fn shop_slots_are_checks_with_shopsanity_on() {
     .unwrap();
     let sold = shops(&report);
     assert_eq!(sold.len(), 32);
-    assert!(sold.iter().all(|s| s.name() == s.holder));
+    // Each reads as its hand-written name, else as its shop's own.
+    assert!((sold.iter()).all(|s| s.name() == crate::check_names::of(s.hash).unwrap_or(&s.holder)));
     let pack = |r: &str| dir.join("on/romfs/Pack/Actor").join(format!("{r}.pack.zs"));
     // A slot dealt a line's level shows each step with a stand-in of its
     // own (`shops::steps`).

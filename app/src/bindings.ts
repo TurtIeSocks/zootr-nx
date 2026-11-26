@@ -1133,7 +1133,7 @@ export type Spot = {
 	 *  seeds from before it was kept.
 	 */
 	place?: string,
-	/**  Its name in the rule files, shown before `place` (`places::fill`). */
+	/**  Its hand-written name (`check_names`), shown in place of `place`. */
 	custom?: string,
 	/**
 	 *  The playthrough round that collects it, from 1, for a check logic

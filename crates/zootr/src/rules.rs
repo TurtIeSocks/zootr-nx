@@ -186,6 +186,24 @@ impl Book {
         names.get(&hash).map(String::as_str)
     }
 
+    /// The comment above a check's entry in its rule file, line by line,
+    /// `#` kept: where it is and how its rule was read.
+    pub fn comment(hash: u64) -> Vec<&'static str> {
+        let wanted = format!("hash = {hash}");
+        for (_, text) in files::FILES {
+            let lines: Vec<&str> = text.lines().collect();
+            let Some(at) = lines.iter().position(|l| l.trim() == wanted) else {
+                continue;
+            };
+            let above = lines[..at].iter().rev();
+            let above = above.skip_while(|l| l.trim_start().starts_with("[["));
+            let mut out: Vec<&str> = above.take_while(|l| l.starts_with('#')).copied().collect();
+            out.reverse();
+            return out;
+        }
+        Vec::new()
+    }
+
     /// The hand-written rule for a check, if it has one.
     pub fn check(&self, hash: u64) -> Option<&CheckEntry> {
         self.checks.get(&hash)

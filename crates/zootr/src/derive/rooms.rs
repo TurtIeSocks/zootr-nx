@@ -57,6 +57,11 @@ static NAMES: LazyLock<BTreeMap<String, BTreeMap<u32, String>>> = LazyLock::new(
         .collect()
 });
 
+/// Room `room`'s name in the dungeon whose folder is `folder`.
+pub fn room_name(folder: &str, room: u32) -> Option<&'static str> {
+    NAMES.get(folder)?.get(&room).map(String::as_str)
+}
+
 /// The file in `logic/` the names come from, for the built-in files test.
 #[cfg(test)]
 pub(crate) const NAMES_FILE: &str = "room-names.toml";
