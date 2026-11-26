@@ -144,11 +144,17 @@ impl GauntletArgs {
     }
 }
 
-/// A limit in seconds: above 0 and finite, which a [`Duration`] can hold.
+/// The longest limit: a day, far past any load and well within a
+/// [`Duration`].
+const MOST_SECONDS: f32 = 86_400.0;
+
+/// A limit in seconds: above 0, up to [`MOST_SECONDS`].
 fn seconds(arg: &str) -> Result<f32, String> {
     match arg.parse::<f32>() {
-        Ok(s) if s > 0.0 && s.is_finite() => Ok(s),
-        _ => Err(format!("{arg} isn't a number of seconds above 0")),
+        Ok(s) if s > 0.0 && s <= MOST_SECONDS => Ok(s),
+        _ => Err(format!(
+            "{arg} isn't a number of seconds above 0, up to {MOST_SECONDS}"
+        )),
     }
 }
 
@@ -159,7 +165,7 @@ mod tests {
     #[test]
     fn a_limit_is_seconds_above_zero() {
         assert_eq!(seconds("2.5"), Ok(2.5));
-        for bad in ["0", "-1", "inf", "NaN", "two"] {
+        for bad in ["0", "-1", "inf", "NaN", "two", "1e30"] {
             assert!(seconds(bad).is_err(), "{bad}");
         }
     }

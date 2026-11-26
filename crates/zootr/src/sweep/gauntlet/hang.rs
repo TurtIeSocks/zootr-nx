@@ -90,7 +90,7 @@ fn is_black(png: &[u8]) -> Result<bool> {
 pub struct Watched {
     /// Seconds from the watch's start (just after the teleport) to its end.
     pub secs: f32,
-    /// The last frame taken, kept as evidence.
+    /// The last frame that came, kept as evidence.
     pub frame: Option<PathBuf>,
     /// How it hung, or `None` once Link stood settled.
     pub hang: Option<Hang>,
@@ -135,8 +135,11 @@ pub fn probe<M: Memory>(
         load: Duration::MAX,
         ..limits
     };
+    // From the first look, which a slow shot can make late.
     let window = limits.black.max(DEAD) + TICK * 2;
-    watch(dev, input, "", limits, frame, |_, _, at| at >= window).1
+    let mut first = None;
+    let done = move |_: &Watch, _: &mut _, at: Duration| at - *first.get_or_insert(at) >= window;
+    watch(dev, input, "", limits, frame, done).1
 }
 
 /// Look at the game every [`TICK`], a frame into `frame` each time, until
@@ -221,7 +224,8 @@ impl Watch {
         let secs = at.as_secs_f32();
         // Play, and an event on the map asked for, last only while every
         // look reaches its own branch: any other return ends them. A
-        // missing frame keeps play's clock but can't start it.
+        // missing frame or a failed read keeps their clocks but can't
+        // start them.
         let played = self.play.take();
         let evented = self.event.take();
         // Frames first: a black screen is a hang whether or not the game
@@ -255,6 +259,7 @@ impl Watch {
                 s
             }
             Err(e) => {
+                (self.play, self.event) = (played, evented);
                 let since = *self.unread.get_or_insert(at);
                 let failed = (at - since).as_secs_f32();
                 return (at - since >= DEAD).then(|| Hang::Unread {
@@ -466,6 +471,26 @@ mod tests {
             None
         );
         assert!(!w.talking(secs(6.5)));
+    }
+
+    #[test]
+    fn an_event_past_the_load_limit_hangs_and_a_failed_read_keeps_its_clock() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let event = || state("FakeMap", false, true);
+        assert_eq!(
+            w.tick(secs(0.0), &up, event(), Some(true), "FakeMap", LIMITS),
+            None
+        );
+        let fail = Err(anyhow::anyhow!("fake read failure"));
+        assert_eq!(
+            w.tick(secs(1.0), &up, fail, Some(true), "FakeMap", LIMITS),
+            None
+        );
+        // The event's clock ran from 0 s through the failed read.
+        assert!(w.talking(secs(2.0)));
+        let late = w.tick(secs(46.0), &up, event(), Some(true), "FakeMap", LIMITS);
+        assert!(matches!(late, Some(Hang::Event { .. })), "{late:?}");
     }
 
     #[test]
