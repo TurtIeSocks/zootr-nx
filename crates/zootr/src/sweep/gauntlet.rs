@@ -13,7 +13,7 @@ pub mod script;
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ounce_formats::Romfs;
 use serde_json::json;
 
@@ -96,6 +96,8 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     /// Run `g` and write its report. Returns the exit code
     /// [`report::render`] gives.
     pub fn gauntlet(&mut self, g: &Gauntlet) -> Result<i32> {
+        // Settling presses A through arrival text, and cells press buttons.
+        self.input.keys().context("the gauntlet presses buttons")?;
         std::fs::create_dir_all(&self.dir)?;
         let places = dev::places(self.romfs)?;
         let settings = settings()?;

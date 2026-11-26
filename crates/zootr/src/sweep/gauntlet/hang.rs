@@ -54,14 +54,15 @@ pub enum Hang {
     /// over many seconds mean slow shots: a game starved of its GPU (a
     /// model loaded beside it) loads slowly too.
     Black { secs: f32, frames: u32, map: String },
-    /// Still loading after the load limit: `secs` since the teleport.
+    /// Still loading after the load limit. `secs` here and below count
+    /// from the watch's start, just after the teleport answered.
     Loading { secs: f32, map: String },
     /// Settled on another map than the one asked for.
     WrongMap { map: String, want: String },
-    /// An event played through the load limit: `secs` since the teleport.
+    /// An event played through the load limit.
     Event { secs: f32, map: String },
     /// On the map asked for, never lit in play for [`SETTLED`] in a row by
-    /// [`SETTLED`] past the load limit: `secs` since the teleport.
+    /// [`SETTLED`] past the load limit.
     Unsettled { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
@@ -106,11 +107,14 @@ pub fn settle<M: Memory>(
     limits: Limits,
     frame: &Path,
 ) -> Watched {
-    let (at, hang) = watch(dev, input, want, limits, frame, |watch, input, at| {
-        if watch.talking(at) {
+    // A failed press needs no word here: the run checked the game takes
+    // keys, and shots share its control channel, so a dead one shows as
+    // Unread.
+    let (at, hang) = watch(dev, input, want, limits, frame, |seen, input, at| {
+        if seen.talking(at) {
             let _ = input.press("A");
         }
-        watch.settled(at)
+        seen.settled(at)
     });
     Watched {
         secs: at.as_secs_f32(),
@@ -122,7 +126,8 @@ pub fn settle<M: Memory>(
 /// After a cell that didn't give its item: whether the game hangs there,
 /// black, quit or unread, as it stands now. The window is long enough for
 /// a black that starts with it to show, not one that starts later. A stuck
-/// text box isn't a hang here: the cell's own verdict tells of it.
+/// text box isn't a hang here: the cell's own verdict tells of it. The
+/// frame at `frame` stays only with a hang, as its evidence.
 pub fn probe<M: Memory>(
     dev: &Dev<M>,
     input: &mut impl Input,
@@ -139,7 +144,11 @@ pub fn probe<M: Memory>(
     let window = limits.black.max(DEAD) + TICK * 2;
     let mut first = None;
     let done = move |_: &Watch, _: &mut _, at: Duration| at - *first.get_or_insert(at) >= window;
-    watch(dev, input, "", limits, frame, done).1
+    let hang = watch(dev, input, "", limits, frame, done).1;
+    if hang.is_none() {
+        _ = std::fs::remove_file(frame);
+    }
+    hang
 }
 
 /// Look at the game every [`TICK`], a frame into `frame` each time, until
@@ -155,7 +164,12 @@ fn watch<M: Memory, I: Input>(
     let start = Instant::now();
     let mut seen = Watch::default();
     loop {
-        let lit = seen.framed(shoot(input, frame));
+        // A game that quit gives no frame: tick names the crash at once
+        // rather than after a shot's whole timeout.
+        let lit = match input.running() {
+            true => seen.framed(shoot(input, frame)),
+            false => None,
+        };
         // After the shot: one that took its whole timeout to fail mustn't
         // count as that long without a frame.
         let at = start.elapsed();
@@ -357,6 +371,24 @@ mod tests {
         // A few stray pixels don't light a black frame.
         let stray = |x: u32, y: u32| if x < 4 && y < 4 { [255; 3] } else { [0; 3] };
         assert!(is_black(&frame(320, 180, stray)).unwrap());
+    }
+
+    #[test]
+    fn a_frame_is_black_up_to_its_lit_limit() {
+        // Grayscale, the arm without alpha: `n` lit pixels on the first rows.
+        let grey = |n: usize| {
+            let px: Vec<u8> = (0..320 * 180)
+                .map(|i| if i < n { 200 } else { 0 })
+                .collect();
+            let mut out = Vec::new();
+            let mut enc = png::Encoder::new(&mut out, 320, 180);
+            enc.set_color(png::ColorType::Grayscale);
+            enc.set_depth(png::BitDepth::Eight);
+            enc.write_header().unwrap().write_image_data(&px).unwrap();
+            out
+        };
+        assert!(is_black(&grey(LIT)).unwrap());
+        assert!(!is_black(&grey(LIT + 1)).unwrap());
     }
 
     /// An input that runs, or quit with a log line. Its frames are pure
