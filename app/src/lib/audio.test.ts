@@ -74,6 +74,7 @@ test("Shuffle all keeps track overrides", () => {
       ocarina: "shuffle",
       "voice-adult": "shuffle",
       "voice-child": "shuffle",
+      "npc-voice": "shuffle",
     },
     tracks: { market: "vanilla" },
   });
