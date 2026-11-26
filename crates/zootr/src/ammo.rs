@@ -1,4 +1,4 @@
-//! Resources a chest gives only once Link has what uses them.
+//! Resources a check gives only once Link has what uses them.
 
 use anyhow::Result;
 use ounce_formats::{ActorPack, BymlDoc, ModBuilder, Romfs};
@@ -12,7 +12,7 @@ use crate::standins::{Tables, actor_path, raw, write_clone};
 
 /// Each resource and what fires it. A starter bag's rows count only in a
 /// seed that shuffles the bag ([`need`]).
-pub const NEEDS: [(&Name, &Name); 11] = [
+pub const NEEDS: [(&Name, &Name); 12] = [
     (item::BOMB_BUNDLE_SMALL, item::BOMB_BAG_SMALL),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, item::RANGE_BOW),
     (actor::T_BOX_ARROW_BUNDLE_MEDIUM, item::RANGE_BOW),
@@ -24,6 +24,7 @@ pub const NEEDS: [(&Name, &Name); 11] = [
     (item::BOMBCHU_BUNDLE_SMALL, bombchu_bags::SMALL),
     (item::BOMBCHU_BUNDLE_MEDIUM, bombchu_bags::SMALL),
     (item::BOMBCHU_BUNDLE_LARGE, bombchu_bags::SMALL),
+    (actor::OBJ_BOMB, item::BOMB_BAG_SMALL),
 ];
 /// Given instead until then, as the Gerudo Training Ground's chests do.
 pub const WITHOUT: &Name = actor::T_BOX_RUPEE_RED;
