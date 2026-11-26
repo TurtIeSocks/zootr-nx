@@ -341,7 +341,7 @@
       "forbid": [],
       "hash": "190723038439219808",
       "id": 1257,
-      "name": "Bottom of the Well Lower Grass 1",
+      "name": "Bottom of the Well B2 Basement Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -497,7 +497,7 @@
       "forbid": [],
       "hash": "310141963798030249",
       "id": 506,
-      "name": "Bottom of the Well Pot 22",
+      "name": "Bottom of the Well B1 Left Side Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1007,7 +1007,7 @@
       "forbid": [],
       "hash": "631709185320708287",
       "id": 5,
-      "name": "Bottom of the Well Blue Rupee (5) Chest",
+      "name": "Bottom of the Well B1 Center Skulltula Chest",
       "unprovable": false
     },
     {
@@ -1399,7 +1399,7 @@
       "forbid": [],
       "hash": "874970148260328653",
       "id": 8,
-      "name": "Bottom of the Well Deku Shield Chest",
+      "name": "Bottom of the Well B1 Fire Keese Chest",
       "unprovable": false
     },
     {
@@ -2697,7 +2697,7 @@
       "forbid": [],
       "hash": "1484084316515022872",
       "id": 553,
-      "name": "Bottom of the Well Lower Pot 16",
+      "name": "Bottom of the Well B2 Basement Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3575,7 +3575,7 @@
       "forbid": [],
       "hash": "2004752143010431306",
       "id": 567,
-      "name": "Bottom of the Well Lower Pot 19",
+      "name": "Bottom of the Well B1 Before Dead Hand Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3766,7 +3766,7 @@
       "forbid": [],
       "hash": "2092886772595448761",
       "id": 571,
-      "name": "Bottom of the Well Pot 6",
+      "name": "Bottom of the Well B1 Center Skulltula Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4276,7 +4276,7 @@
       "forbid": [],
       "hash": "2443543311722520559",
       "id": 577,
-      "name": "Bottom of the Well Pot 5",
+      "name": "Bottom of the Well B1 Center Skulltula Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5135,7 +5135,7 @@
       "forbid": [],
       "hash": "2976328581859030383",
       "id": 595,
-      "name": "Bottom of the Well Lower Pot 21",
+      "name": "Bottom of the Well B1 Before Dead Hand Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5382,7 +5382,7 @@
       "forbid": [],
       "hash": "3141423279806923469",
       "id": 604,
-      "name": "Bottom of the Well Lower Pot 5",
+      "name": "Bottom of the Well B1 Underwater Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5578,7 +5578,7 @@
       "forbid": [],
       "hash": "3254903088755265820",
       "id": 1290,
-      "name": "Bottom of the Well Lower Grass 4",
+      "name": "Bottom of the Well B2 Basement Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5650,7 +5650,7 @@
       "forbid": [],
       "hash": "3307762411934841364",
       "id": 611,
-      "name": "Bottom of the Well Lower Pot 9",
+      "name": "Bottom of the Well B2 Dead Hand Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5850,7 +5850,7 @@
       "forbid": [],
       "hash": "3443746144208684083",
       "id": 615,
-      "name": "Bottom of the Well Pot 14",
+      "name": "Bottom of the Well B1 West Inner Room Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5939,7 +5939,7 @@
       "forbid": [],
       "hash": "3525219158873909075",
       "id": 616,
-      "name": "Bottom of the Well Pot 8",
+      "name": "Bottom of the Well B1 Left Side Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6269,7 +6269,7 @@
       "forbid": [],
       "hash": "3704217652444280802",
       "id": 625,
-      "name": "Bottom of the Well Pot 19",
+      "name": "Bottom of the Well B1 Like Like Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6475,7 +6475,7 @@
       "forbid": [],
       "hash": "3864926409096901848",
       "id": 1295,
-      "name": "Bottom of the Well Lower Grass 8",
+      "name": "Bottom of the Well B2 Basement Grass 10",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6532,7 +6532,7 @@
       "forbid": [],
       "hash": "3889761319471426870",
       "id": 327,
-      "name": "Bottom of the Well Gold Skulltula Token 3",
+      "name": "Bottom of the Well B1 GS Like Like Cage",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -6779,7 +6779,7 @@
       "forbid": [],
       "hash": "4004629137260820818",
       "id": 635,
-      "name": "Bottom of the Well Pot 7",
+      "name": "Bottom of the Well B1 Left Side Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8373,7 +8373,7 @@
       "forbid": [],
       "hash": "4922541437458008474",
       "id": 655,
-      "name": "Bottom of the Well Pot 18",
+      "name": "Bottom of the Well B1 Like Like Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8593,7 +8593,7 @@
       "forbid": [],
       "hash": "5061848338283631993",
       "id": 661,
-      "name": "Bottom of the Well Pot 16",
+      "name": "Bottom of the Well B1 West Inner Room Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8944,7 +8944,7 @@
       "forbid": [],
       "hash": "5265023541749704555",
       "id": 672,
-      "name": "Bottom of the Well Pot 23",
+      "name": "Bottom of the Well B1 Left Side Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9154,7 +9154,7 @@
       "forbid": [],
       "hash": "5429815628949128345",
       "id": 38,
-      "name": "Bottom of the Well Lower Blue Rupee (5) Chest 2",
+      "name": "Bottom of the Well B1 Underwater Front Chest",
       "unprovable": false
     },
     {
@@ -9785,7 +9785,7 @@
       "forbid": [],
       "hash": "5777989807578063864",
       "id": 684,
-      "name": "Bottom of the Well Pot 15",
+      "name": "Bottom of the Well B1 West Inner Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9954,7 +9954,7 @@
       "forbid": [],
       "hash": "5918144893760685177",
       "id": 691,
-      "name": "Bottom of the Well Lower Pot 1",
+      "name": "Bottom of the Well B1 Underwater Pot 8",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10091,7 +10091,7 @@
       "forbid": [],
       "hash": "5999281521813032298",
       "id": 694,
-      "name": "Bottom of the Well Lower Pot 20",
+      "name": "Bottom of the Well B1 Before Dead Hand Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10201,7 +10201,7 @@
       "forbid": [],
       "hash": "6064359710907908886",
       "id": 136,
-      "name": "Bottom of the Well Business Scrub Seed Chest",
+      "name": "Bottom of the Well B1 Past Dead Hand Chest",
       "unprovable": false
     },
     {
@@ -10457,7 +10457,7 @@
       "forbid": [],
       "hash": "6274265974981062696",
       "id": 1320,
-      "name": "Bottom of the Well Lower Grass 6",
+      "name": "Bottom of the Well B2 Basement Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10693,7 +10693,7 @@
       "forbid": [],
       "hash": "6392685632719229937",
       "id": 1323,
-      "name": "Bottom of the Well Lower Grass 9",
+      "name": "Bottom of the Well B2 Basement Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10907,7 +10907,7 @@
       "forbid": [],
       "hash": "6539220255102910600",
       "id": 710,
-      "name": "Bottom of the Well Lower Pot 10",
+      "name": "Bottom of the Well B2 Dead Hand Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11013,7 +11013,7 @@
       "forbid": [],
       "hash": "6677233868797591943",
       "id": 714,
-      "name": "Bottom of the Well Pot 12",
+      "name": "Bottom of the Well B1 Gibdo Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11297,7 +11297,7 @@
       "forbid": [],
       "hash": "6866564903669243591",
       "id": 1329,
-      "name": "Bottom of the Well Lower Grass 10",
+      "name": "Bottom of the Well B2 Basement Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -11572,7 +11572,7 @@
       "forbid": [],
       "hash": "7012036174293450012",
       "id": 724,
-      "name": "Bottom of the Well Pot 2",
+      "name": "Bottom of the Well B1 Back Center Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12448,7 +12448,7 @@
       "forbid": [],
       "hash": "7460556442932201772",
       "id": 341,
-      "name": "Bottom of the Well Gold Skulltula Token 2",
+      "name": "Bottom of the Well B1 GS West Inner Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12639,7 +12639,7 @@
       "forbid": [],
       "hash": "7569958918344529585",
       "id": 746,
-      "name": "Bottom of the Well Pot 17",
+      "name": "Bottom of the Well B1 Fire Keese Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13434,7 +13434,7 @@
       "forbid": [],
       "hash": "8241360954609403613",
       "id": 763,
-      "name": "Bottom of the Well Pot 10",
+      "name": "Bottom of the Well B1 Near Entrance Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13573,7 +13573,7 @@
       "forbid": [],
       "hash": "8397646530660039355",
       "id": 469,
-      "name": "Bottom of the Well Small Key Chest",
+      "name": "Bottom of the Well B1 Right Bottom Fake Wall Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -13737,7 +13737,7 @@
       "forbid": [],
       "hash": "8604373745978042051",
       "id": 768,
-      "name": "Bottom of the Well Lower Pot 3",
+      "name": "Bottom of the Well B1 Underwater Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13805,7 +13805,7 @@
       "forbid": [],
       "hash": "8650410172248468465",
       "id": 769,
-      "name": "Bottom of the Well Pot 13",
+      "name": "Bottom of the Well B1 Gibdo Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14448,7 +14448,7 @@
       "forbid": [],
       "hash": "8966676941469294681",
       "id": 778,
-      "name": "Bottom of the Well Lower Pot 15",
+      "name": "Bottom of the Well B2 Basement Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14466,7 +14466,7 @@
       "forbid": [],
       "hash": "8975637636514249074",
       "id": 61,
-      "name": "Bottom of the Well Red Rupee (20) Chest 2",
+      "name": "Bottom of the Well B1 Front Left Fake Wall Chest",
       "unprovable": false
     },
     {
@@ -14579,7 +14579,7 @@
       "forbid": [],
       "hash": "8990185526417596110",
       "id": 781,
-      "name": "Bottom of the Well Pot 21",
+      "name": "Bottom of the Well B1 Left Side Pot 7",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14684,7 +14684,7 @@
       "forbid": [],
       "hash": "9048011454024145970",
       "id": 784,
-      "name": "Bottom of the Well Pot 9",
+      "name": "Bottom of the Well B1 Left Side Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14881,7 +14881,7 @@
       "forbid": [],
       "hash": "9098987026005330221",
       "id": 787,
-      "name": "Bottom of the Well Lower Pot 6",
+      "name": "Bottom of the Well B1 Underwater Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15558,7 +15558,7 @@
       "forbid": [],
       "hash": "9466613428674883506",
       "id": 435,
-      "name": "Bottom of the Well Lower Map Chest",
+      "name": "Bottom of the Well B2 Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -16408,7 +16408,7 @@
       "forbid": [],
       "hash": "9892629541424148846",
       "id": 811,
-      "name": "Bottom of the Well Lower Pot 17",
+      "name": "Bottom of the Well B2 Basement Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17074,7 +17074,7 @@
       "forbid": [],
       "hash": "10235645789362510550",
       "id": 825,
-      "name": "Bottom of the Well Lower Pot 13",
+      "name": "Bottom of the Well B2 Basement Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17247,7 +17247,7 @@
       "forbid": [],
       "hash": "10321354188897701816",
       "id": 1350,
-      "name": "Bottom of the Well Lower Grass 5",
+      "name": "Bottom of the Well B2 Basement Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18096,7 +18096,7 @@
       "forbid": [],
       "hash": "10905582354954996284",
       "id": 78,
-      "name": "Bottom of the Well Red Rupee (20) Chest 1",
+      "name": "Bottom of the Well B1 Back Left Bombable Chest",
       "unprovable": false
     },
     {
@@ -18952,7 +18952,7 @@
       "forbid": [],
       "hash": "11422150025867601433",
       "id": 854,
-      "name": "Bottom of the Well Pot 1",
+      "name": "Bottom of the Well B1 Back Center Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19158,7 +19158,7 @@
       "forbid": [],
       "hash": "11499567238563790266",
       "id": 857,
-      "name": "Bottom of the Well Pot 20",
+      "name": "Bottom of the Well B1 Left Side Pot 6",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19424,7 +19424,7 @@
       "forbid": [],
       "hash": "11617818015699856357",
       "id": 1364,
-      "name": "Bottom of the Well Lower Grass 2",
+      "name": "Bottom of the Well B2 Basement Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19674,7 +19674,7 @@
       "forbid": [],
       "hash": "11718708984125260282",
       "id": 85,
-      "name": "Bottom of the Well Purple Rupee (50) Chest",
+      "name": "Bottom of the Well B1 Invisible Chest",
       "unprovable": false
     },
     {
@@ -19828,7 +19828,7 @@
       "forbid": [],
       "hash": "11915476117110695952",
       "id": 1367,
-      "name": "Bottom of the Well Lower Grass 3",
+      "name": "Bottom of the Well B2 Basement Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19895,7 +19895,7 @@
       "forbid": [],
       "hash": "11930162108790178481",
       "id": 865,
-      "name": "Bottom of the Well Lower Pot 4",
+      "name": "Bottom of the Well B1 Underwater Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20305,7 +20305,7 @@
       "forbid": [],
       "hash": "12165938013608963606",
       "id": 372,
-      "name": "Bottom of the Well Gold Skulltula Token 1",
+      "name": "Bottom of the Well B1 GS East Inner Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -21608,7 +21608,7 @@
       "forbid": [],
       "hash": "12988877782812797760",
       "id": 95,
-      "name": "Bottom of the Well Lower Blue Rupee (5) Chest 1",
+      "name": "Bottom of the Well B1 Underwater Right Chest",
       "unprovable": false
     },
     {
@@ -21776,7 +21776,7 @@
       "forbid": [],
       "hash": "13073030852500161257",
       "id": 893,
-      "name": "Bottom of the Well Lower Pot 14",
+      "name": "Bottom of the Well B2 Basement Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22319,7 +22319,7 @@
       "forbid": [],
       "hash": "13474828754365101442",
       "id": 905,
-      "name": "Bottom of the Well Lower Pot 2",
+      "name": "Bottom of the Well B1 Underwater Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22355,7 +22355,7 @@
       "forbid": [],
       "hash": "13501470156752591346",
       "id": 906,
-      "name": "Bottom of the Well Lower Pot 11",
+      "name": "Bottom of the Well B2 Basement Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22402,7 +22402,7 @@
       "forbid": [],
       "hash": "13514633590582184597",
       "id": 908,
-      "name": "Bottom of the Well Pot 11",
+      "name": "Bottom of the Well B1 Near Entrance Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23412,7 +23412,7 @@
       "forbid": [],
       "hash": "14099813182838914319",
       "id": 922,
-      "name": "Bottom of the Well Pot 3",
+      "name": "Bottom of the Well B1 West Inner Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24403,7 +24403,7 @@
       "forbid": [],
       "hash": "14911602953212243797",
       "id": 440,
-      "name": "Bottom of the Well Compass Chest",
+      "name": "Bottom of the Well B1 Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -25891,7 +25891,7 @@
       "forbid": [],
       "hash": "15945446340598299551",
       "id": 113,
-      "name": "Bottom of the Well Business Scrub",
+      "name": "Bottom of the Well B1 Deku Scrub",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -26030,7 +26030,7 @@
       "forbid": [],
       "hash": "16040130639953056224",
       "id": 975,
-      "name": "Bottom of the Well Lower Pot 8",
+      "name": "Bottom of the Well B1 Underwater Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26555,7 +26555,7 @@
       "forbid": [],
       "hash": "16329781527658340504",
       "id": 1405,
-      "name": "Bottom of the Well Lower Grass 7",
+      "name": "Bottom of the Well B2 Basement Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -27000,7 +27000,7 @@
       "forbid": [],
       "hash": "16654774376625985726",
       "id": 117,
-      "name": "Bottom of the Well Lower Lens of Truth Chest",
+      "name": "Bottom of the Well B2 Lens of Truth Chest",
       "unprovable": false
     },
     {
@@ -28136,7 +28136,7 @@
       "forbid": [],
       "hash": "17270686864803699583",
       "id": 1015,
-      "name": "Bottom of the Well Lower Pot 12",
+      "name": "Bottom of the Well B2 Basement Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28807,7 +28807,7 @@
       "forbid": [],
       "hash": "17649154319341333603",
       "id": 489,
-      "name": "Bottom of the Well Small Key",
+      "name": "Bottom of the Well B1 Freestanding Key",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -29065,7 +29065,7 @@
       "forbid": [],
       "hash": "17838185570985597937",
       "id": 1032,
-      "name": "Bottom of the Well Lower Pot 7",
+      "name": "Bottom of the Well B1 Underwater Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29772,7 +29772,7 @@
       "forbid": [],
       "hash": "18246106759865127065",
       "id": 1045,
-      "name": "Bottom of the Well Pot 4",
+      "name": "Bottom of the Well B1 West Inner Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29875,7 +29875,7 @@
       "forbid": [],
       "hash": "18305487040364591494",
       "id": 1046,
-      "name": "Bottom of the Well Lower Pot 18",
+      "name": "Bottom of the Well B1 Before Dead Hand Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
