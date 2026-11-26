@@ -225,6 +225,7 @@ pub const OBJ_SPIRIT_POE_FLAT_EVENT: &Name = &n!(0x3f3bfdf328a9d619);
 pub const OBJ_SPIRIT_POE_SHARP_EVENT: &Name = &n!(0x0e2b952baf12e3ac);
 pub const OBJ_STEP_SWITCH_A_01: &Name = &n!(0x4bbb35eab7bf0b65);
 pub const OBJ_SWITCH_HIT_A_05: &Name = &n!(0x6b48ceb1bc2420c2);
+pub const OBJ_TOKEN_GOLD: &Name = &n!(0x9625b88bad2b783f);
 pub const OBJ_TOKEN_GOLD_ANIMATION: &Name = &n!(0x0d4d35b910f28cee);
 pub const OBJ_TREE_A_02: &Name = &n!(0xb123291b825e8976);
 pub const OBJ_T_BOX_A: &Name = &n!(0xda2d9838f16a3656);

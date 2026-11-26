@@ -73,6 +73,7 @@ pub struct Steps {
     pub exps: Vec<(String, Vec<Op>)>,
     /// Whether a step stand-in is built, so the drop graph needs its branch.
     built: bool,
+    hovering: bool,
 }
 
 impl Steps {
@@ -89,8 +90,10 @@ impl Steps {
             named: HashMap::new(),
             exps: Vec::new(),
             built: false,
+            hovering: false,
         };
         for m in moved(checks, drops, progressive) {
+            steps.hovering |= m.hovering;
             let Some(step) = &m.step else {
                 continue;
             };
@@ -146,7 +149,7 @@ impl Steps {
     /// The shared pack's graphs: the take tick, and the drop graph's
     /// branch when a step stand-in needs it.
     pub fn write(&self, romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
-        super::shared::write(romfs, builder, self.built)
+        super::shared::write(romfs, builder, self.built, self.hovering)
     }
 }
 

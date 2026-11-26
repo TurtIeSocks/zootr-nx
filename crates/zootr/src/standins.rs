@@ -380,6 +380,17 @@ impl StandIn<'_> {
     }
 
     pub fn build(&self, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+        self.build_with_drop_ai(builder, tables, None)
+    }
+
+    /// A hovering pickup keeps the token's body and spin, and runs the
+    /// shared drop graph so a progressive reward can still expire.
+    pub(crate) fn build_with_drop_ai(
+        &self,
+        builder: &mut ModBuilder,
+        tables: &mut Tables,
+        drop_ai: Option<&ActorPack>,
+    ) -> Result<()> {
         let name = self.name;
         let (template, item) = (&self.template, &self.item);
         let template_actor = actor_path(&template.name);
@@ -388,6 +399,7 @@ impl StandIn<'_> {
             .actor_param()?
             .with_context(|| format!("the item has no {}", field::ACTOR_PARAM))?;
         let mut new_files = Vec::new();
+        let mut writer = template.writer();
 
         // What it gives: the item's own pouch content, naming the item.
         let item_pouch = path_of(item, POUCH)?;
@@ -422,11 +434,20 @@ impl StandIn<'_> {
         } else {
             Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?)
         };
-        if self.is_pickup() && self.falls()? {
-            self.lift(name, tables, &mut refs, &mut new_files)?;
+        if let Some(drop_ai) = drop_ai {
+            lend(&mut writer, &mut refs, field::AI_INFO_REF, drop_ai)?;
+            // Hovering drops skip the bound action, so they can keep the
+            // item's table without inheriting the template's bounce params.
+            if let Some(table) = component(&given, TABLE) {
+                refs.insert(TABLE.get().into(), Byml::String(table.into()));
+            }
+        } else {
+            if self.is_pickup() && self.falls()? {
+                self.lift(name, tables, &mut refs, &mut new_files)?;
+            }
+            let new_table = self.table(name, &like, &mut new_files)?;
+            refs.insert(TABLE.get().into(), reference(&new_table));
         }
-        let new_table = self.table(name, &like, &mut new_files)?;
-        refs.insert(TABLE.get().into(), reference(&new_table));
         actor.insert(COMPONENTS.into(), Byml::Map(refs));
         new_files.push(NewFile {
             path: actor_path(name),
@@ -443,7 +464,6 @@ impl StandIn<'_> {
 
         // The template's files, but its actor and pouch content, then the
         // item's, but its actors and pouch content.
-        let mut writer = template.writer();
         writer.remove_file(template_actor.as_str());
         writer.remove_file(path_of(template, POUCH)?.as_str());
         let shown = medallions::model_info(item)?;
@@ -470,6 +490,11 @@ impl StandIn<'_> {
         )?;
 
         tables.add(name, &template.name, &item.name, self.price)?;
+        if drop_ai.is_some() {
+            // The hovering body and the reward's own parameters are both
+            // loaded while the drop spawns.
+            tables.add_heaps(name, &template.name)?;
+        }
         match shelf {
             Some(animations) => tables.animate(name, animations),
             None => Ok(()),
