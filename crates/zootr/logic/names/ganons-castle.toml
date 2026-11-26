@@ -65,8 +65,8 @@
 # The tower: the Boss Key past the Iron Knuckles.
 17092385671602176550 = "Ganons Castle Tower Boss Key Chest"
 
-# Before Ganondorf: six pots each side. Each pot has a copy the map file
-# marks as the dream's, the remake's boss rush reusing the room.
+# Before Ganondorf: six pots each side. Their dream copies, placed only for
+# the boss rush that reuses the room, aren't checks (pickups::POTS).
 1256062463004045470 = "Ganons Castle Tower Pot 1"
 12010740629239674066 = "Ganons Castle Tower Pot 2"
 1055635021226486472 = "Ganons Castle Tower Pot 3"
@@ -79,15 +79,3 @@
 17841467755509540953 = "Ganons Castle Tower Pot 10"
 16388263394523613039 = "Ganons Castle Tower Pot 11"
 5141569671064688651 = "Ganons Castle Tower Pot 12"
-4938893066313137022 = "Ganons Castle Tower Boss Rush Pot 1" # guess: the dream copies, taken for the boss rush's
-10063112203762670352 = "Ganons Castle Tower Boss Rush Pot 2" # guess: the dream copies, taken for the boss rush's
-2912772990973191296 = "Ganons Castle Tower Boss Rush Pot 3" # guess: the dream copies, taken for the boss rush's
-17655972204814358216 = "Ganons Castle Tower Boss Rush Pot 4" # guess: the dream copies, taken for the boss rush's
-17668076197895283103 = "Ganons Castle Tower Boss Rush Pot 5" # guess: the dream copies, taken for the boss rush's
-10254414568728732748 = "Ganons Castle Tower Boss Rush Pot 6" # guess: the dream copies, taken for the boss rush's
-2505435043252537724 = "Ganons Castle Tower Boss Rush Pot 7" # guess: the dream copies, taken for the boss rush's
-10109473840124398829 = "Ganons Castle Tower Boss Rush Pot 8" # guess: the dream copies, taken for the boss rush's
-1233314011453258338 = "Ganons Castle Tower Boss Rush Pot 9" # guess: the dream copies, taken for the boss rush's
-10523991816115269598 = "Ganons Castle Tower Boss Rush Pot 10" # guess: the dream copies, taken for the boss rush's
-1859372618147755286 = "Ganons Castle Tower Boss Rush Pot 11" # guess: the dream copies, taken for the boss rush's
-16888833971533850732 = "Ganons Castle Tower Boss Rush Pot 12" # guess: the dream copies, taken for the boss rush's

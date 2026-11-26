@@ -2228,24 +2228,6 @@
     {
       "at": [
         {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "1233314011453258338",
-      "id": 538,
-      "name": "Ganons Castle Tower Boss Rush Pot 9",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "shadow-temple-adult",
           "rule": {
             "ref": 291
@@ -3321,24 +3303,6 @@
     {
       "at": [
         {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "1859372618147755286",
-      "id": 562,
-      "name": "Ganons Castle Tower Boss Rush Pot 11",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "dodongos-cavern-adult",
           "rule": {
             "ref": 202
@@ -4395,24 +4359,6 @@
     {
       "at": [
         {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "2505435043252537724",
-      "id": 579,
-      "name": "Ganons Castle Tower Boss Rush Pot 7",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -5061,24 +5007,6 @@
       "hash": "2912260394483772772",
       "id": 592,
       "name": "Market Guard House Child Pot 8",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "2912772990973191296",
-      "id": 593,
-      "name": "Ganons Castle Tower Boss Rush Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -8374,24 +8302,6 @@
       "hash": "4922541437458008474",
       "id": 655,
       "name": "Bottom of the Well B1 Like Like Pot 1",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "4938893066313137022",
-      "id": 656,
-      "name": "Ganons Castle Tower Boss Rush Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16743,24 +16653,6 @@
     {
       "at": [
         {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "10063112203762670352",
-      "id": 818,
-      "name": "Ganons Castle Tower Boss Rush Pot 2",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "zora-domain-adult",
           "rule": {
             "count": 1,
@@ -16819,24 +16711,6 @@
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "10109473840124398829",
-      "id": 819,
-      "name": "Ganons Castle Tower Boss Rush Pot 8",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
       }
     },
     {
@@ -17125,24 +16999,6 @@
       "unprovable": false,
       "when": {
         "setting": "loose-items"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "10254414568728732748",
-      "id": 828,
-      "name": "Ganons Castle Tower Boss Rush Pot 6",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
       }
     },
     {
@@ -17618,24 +17474,6 @@
       "unprovable": false,
       "when": {
         "setting": "keys=start"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "10523991816115269598",
-      "id": 837,
-      "name": "Ganons Castle Tower Boss Rush Pot 10",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
       }
     },
     {
@@ -27357,24 +27195,6 @@
     {
       "at": [
         {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "16888833971533850732",
-      "id": 1001,
-      "name": "Ganons Castle Tower Boss Rush Pot 12",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -28836,24 +28656,6 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "17655972204814358216",
-      "id": 1026,
-      "name": "Ganons Castle Tower Boss Rush Pot 4",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
             "any": [
               {
                 "ref": 117
@@ -28890,24 +28692,6 @@
       "id": 127,
       "name": "Ganons Castle Shadow Trial Golden Gauntlets Chest",
       "unprovable": false
-    },
-    {
-      "at": [
-        {
-          "place": "inside-ganons-castle-adult",
-          "rule": {
-            "ref": 282
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "17668076197895283103",
-      "id": 1027,
-      "name": "Ganons Castle Tower Boss Rush Pot 5",
-      "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
     },
     {
       "at": [
@@ -31028,6 +30812,17 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 282
+          }
+        }
+      ],
+      "name": "vanilla-10109473840124398829"
+    },
+    {
+      "at": [
+        {
           "place": "water-temple-adult",
           "rule": {
             "ref": 198
@@ -31136,6 +30931,17 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 282
+          }
+        }
+      ],
+      "name": "vanilla-1233314011453258338"
+    },
+    {
+      "at": [
+        {
           "place": "shadow-temple-adult",
           "rule": {
             "ref": 290
@@ -31183,6 +30989,15 @@
       "when": {
         "setting": "keys=vanilla"
       }
+    },
+    {
+      "at": [
+        {
+          "place": "ganondorf-room-adult",
+          "rule": true
+        }
+      ],
+      "name": "vanilla-13470335506895943486"
     },
     {
       "at": [
@@ -31591,6 +31406,17 @@
     {
       "at": [
         {
+          "place": "inside-ganons-castle-adult",
+          "rule": {
+            "ref": 282
+          }
+        }
+      ],
+      "name": "vanilla-17668076197895283103"
+    },
+    {
+      "at": [
+        {
           "place": "market-child",
           "rule": true
         }
@@ -31932,6 +31758,15 @@
     {
       "at": [
         {
+          "place": "ganondorf-room-adult",
+          "rule": true
+        }
+      ],
+      "name": "vanilla-4316212377750265553"
+    },
+    {
+      "at": [
+        {
           "place": "gerudo-training-ground-adult",
           "rule": {
             "ref": 206
@@ -32130,6 +31965,15 @@
         }
       ],
       "name": "vanilla-6849975515385934623"
+    },
+    {
+      "at": [
+        {
+          "place": "ganondorf-room-adult",
+          "rule": true
+        }
+      ],
+      "name": "vanilla-6855679749452423265"
     },
     {
       "at": [

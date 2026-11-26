@@ -453,7 +453,7 @@ fn pickups_are_checks_with_their_options_on() {
         &Run::silent(),
     )
     .unwrap();
-    assert_eq!(of(&report, &pickups::POTS).len(), 530);
+    assert_eq!(of(&report, &pickups::POTS).len(), 518);
     assert_eq!(of(&report, &pickups::FLYING_POTS).len(), 23);
     assert_eq!(of(&report, &pickups::CRATES).len(), 38);
     assert_eq!(of(&report, &pickups::ROCKS).len(), 167);

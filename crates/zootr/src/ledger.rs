@@ -28,12 +28,12 @@ pub const SCHEMA: u32 = 1;
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
     refused: 6,
-    left_out: 335,
+    left_out: 323,
 };
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
-const NOT_HOLDERS: [(&Name, Why); 22] = [
+const NOT_HOLDERS: [(&Name, Why); 23] = [
     // Furniture in the Iron Knuckle rooms, a tree and a cow bone.
     (actor::OBJ_IRON_KNUCKLE_PILLAR_A_01, Why::Scenery),
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
@@ -47,6 +47,9 @@ const NOT_HOLDERS: [(&Name, Why); 22] = [
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
     // The crates Link lifts: nothing breaks them (EIE row 17).
     (actor::OBJ_BROKEN_BOX_A_03, Why::Maintainer),
+    // The boss rush's copies of the pots before Ganondorf, in Ganon's
+    // Castle and the Dream World's stage: only the rush places them.
+    (actor::OBJ_POT_A_06_DREAM, Why::Maintainer),
     // Silver rupees, obstacles a room counts until its door opens: their
     // own spec is next (EIE row 19).
     (actor::OBJ_RUPEE_TOKEN_SILVER, Why::Eie { eie: 19 }),
