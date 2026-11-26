@@ -13,8 +13,11 @@ export const POOLS = [
   "npc-voice",
 ] as const satisfies readonly Pool[];
 
+/** A pool a seed can shuffle. */
+export type ShownPool = (typeof POOLS)[number];
+
 /** Each pool as the pane names it. */
-export const POOL_LABELS: Record<(typeof POOLS)[number], string> = {
+export const POOL_LABELS: Record<ShownPool, string> = {
   area: "Area",
   battle: "Battle",
   event: "Event",
