@@ -68,8 +68,20 @@ export CARGO_TERM_COLOR=never
 # every core.
 half=$(($(nproc) / 2))
 cores=$((slot * half))-$((slot * half + half - 1))
-cargo test -p zootr --lib --bins --tests --no-run > "$log" 2>&1 &&
-  taskset -c "$cores" cargo test -p zootr --lib --bins --tests >> "$log" 2>&1
+# A PR runs only the guards that keep the game's names out of this public
+# repo: a name merged to main is published. The whole suite runs on main
+# after the merge, and nightly. Over 300 PR runs it caught only two
+# problems the other jobs missed, one of them a name, while each PR waited
+# 11 to 14 minutes for it.
+targets=(--lib --bins --tests)
+filters=()
+if [ "${GITHUB_EVENT_NAME:-}" = pull_request ]; then
+  targets=(--lib)
+  filters=(-- known::guard ap::export::tests::the_export_spells_no_internal_id)
+  echo "a PR: only the name guards, the whole suite runs on main"
+fi
+cargo test -p zootr "${targets[@]}" --no-run > "$log" 2>&1 &&
+  taskset -c "$cores" cargo test -p zootr "${targets[@]}" "${filters[@]}" >> "$log" 2>&1
 status=$?
 
 grep -E '^test result:|^test .* \.\.\. FAILED$' "$log"

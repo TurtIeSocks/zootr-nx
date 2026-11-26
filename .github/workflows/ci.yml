@@ -78,7 +78,8 @@ jobs:
 
   # The tests that need the game dump, which skip themselves above. They run
   # on our own runner, which holds the dump. Never on a fork's code: this
-  # if: skips a fork's PR, and the runner refuses one anyway.
+  # if: skips a fork's PR, and the runner refuses one anyway. A PR runs only
+  # the name guards: the whole suite runs on main and nightly (dump-tests.sh).
   #
   # Nor on the release PR: its tree is main's plus a version bump and the
   # changelog, which main's own run already tests. Run on every merge, it
