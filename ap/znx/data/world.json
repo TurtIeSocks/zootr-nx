@@ -4386,7 +4386,7 @@
       "forbid": [],
       "hash": "2504273934093629549",
       "id": 323,
-      "name": "Hyrule Castle North Gold Skulltula Token",
+      "name": "HC GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -6457,7 +6457,7 @@
       "forbid": [],
       "hash": "3850073398103270554",
       "id": 629,
-      "name": "Hyrule Castle Northeast Pot 3",
+      "name": "HC Gate Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7774,7 +7774,7 @@
       "forbid": [],
       "hash": "4575241808838949671",
       "id": 154,
-      "name": "Hyrule Castle Zelda's Letter",
+      "name": "HC Zeldas Letter",
       "unprovable": false,
       "when": {
         "ref": 1
@@ -8479,7 +8479,7 @@
       "forbid": [],
       "hash": "4993011432510724566",
       "id": 657,
-      "name": "Hyrule Castle Northeast Pot 1",
+      "name": "HC Storms Grotto Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9227,7 +9227,7 @@
       "forbid": [],
       "hash": "5507607260679107783",
       "id": 1064,
-      "name": "Hyrule Castle North Crate 2",
+      "name": "HC Courtyard Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -9903,7 +9903,7 @@
       "forbid": [],
       "hash": "5862372604076992768",
       "id": 1066,
-      "name": "Hyrule Castle North Crate 1",
+      "name": "HC Courtyard Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -10183,7 +10183,7 @@
       "forbid": [],
       "hash": "6050451915923533728",
       "id": 696,
-      "name": "Hyrule Castle Northeast Pot 2",
+      "name": "HC Storms Grotto Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13232,7 +13232,7 @@
       "forbid": [],
       "hash": "8102167512715863528",
       "id": 164,
-      "name": "Hyrule Castle Great Fairy of Power",
+      "name": "HC Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -15054,7 +15054,7 @@
       "forbid": [],
       "hash": "9162653017526462607",
       "id": 351,
-      "name": "Hyrule Castle Northeast Gold Skulltula Token",
+      "name": "HC GS Storms Grotto",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15594,7 +15594,7 @@
       "forbid": [],
       "hash": "9485640170203711850",
       "id": 205,
-      "name": "Hyrule Castle Impa",
+      "name": "HC Song from Impa",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -16734,7 +16734,7 @@
       "forbid": [],
       "hash": "10059814395578920693",
       "id": 817,
-      "name": "Hyrule Castle Northeast Pot 4",
+      "name": "HC Gate Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17684,7 +17684,7 @@
       "forbid": [],
       "hash": "10551859442360452256",
       "id": 173,
-      "name": "Hyrule Castle Weird Egg",
+      "name": "HC Malon Egg",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -24127,7 +24127,7 @@
       "forbid": [],
       "hash": "14678650210325974267",
       "id": 943,
-      "name": "Hyrule Castle North Pot 2",
+      "name": "HC Castle Door Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28341,7 +28341,7 @@
       "forbid": [],
       "hash": "17403667611047276834",
       "id": 1021,
-      "name": "Hyrule Castle North Pot 1",
+      "name": "HC Castle Door Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
