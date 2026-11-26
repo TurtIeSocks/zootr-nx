@@ -182,7 +182,10 @@ fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     }
     let lit = (input.shot(&next))
         .and_then(|()| Ok(!is_black(&std::fs::read(&next)?)?))
-        .and_then(|lit| Ok(std::fs::rename(&next, to).map(|()| lit)?));
+        .and_then(|lit| {
+            std::fs::rename(&next, to)?;
+            Ok(lit)
+        });
     if lit.is_err() {
         _ = std::fs::remove_file(&next);
     }
