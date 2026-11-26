@@ -161,6 +161,10 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             placed.len(),
             refused.len()
         );
+        // A seed installed without the hold replaces another session's.
+        if self.turn_lost(g)? {
+            return Ok(Go::Stop);
+        }
         self.stop();
         let planned = night::pool(self.romfs, self.target, seed, (settings, &extras), places)?;
         let shots = self.dir.join(format!("round-{r:02}-{seed}"));
