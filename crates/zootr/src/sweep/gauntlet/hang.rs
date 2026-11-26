@@ -107,30 +107,16 @@ pub fn settle(
     limits: Limits,
     frame: &Path,
 ) -> Watched {
-    let start = Instant::now();
-    let mut watch = Watch::default();
-    loop {
-        let at = start.elapsed();
-        let lit = watch.framed(shoot(input, frame));
-        let state = dev.state();
-        if let Some(hang) = watch.tick(at, input, state, lit, want, limits) {
-            return Watched {
-                secs: at.as_secs_f32(),
-                frame: frame.exists().then(|| frame.to_owned()),
-                hang: Some(hang),
-            };
-        }
+    let (at, hang) = watch(dev, input, (want, limits), frame, |watch, input, at| {
         if watch.talking(at) {
             let _ = input.press("A");
         }
-        if watch.settled(at) {
-            return Watched {
-                secs: at.as_secs_f32(),
-                frame: None,
-                hang: None,
-            };
-        }
-        sleep(TICK);
+        watch.settled(at)
+    });
+    Watched {
+        secs: at.as_secs_f32(),
+        frame: frame.exists().then(|| frame.to_owned()),
+        hang,
     }
 }
 
@@ -145,17 +131,31 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
         ..limits
     };
     let window = limits.black.max(DEAD) + TICK * 2;
+    watch(dev, input, (&want, limits), frame, |_, _, at| at >= window).1
+}
+
+/// Look at the game every [`TICK`], a frame into `frame` each time, until
+/// a hang or until `done` says so. Gives when it stopped and the hang.
+fn watch<I: Input>(
+    dev: &Dev,
+    input: &mut I,
+    (want, limits): (&str, Limits),
+    frame: &Path,
+    mut done: impl FnMut(&Watch, &mut I, Duration) -> bool,
+) -> (Duration, Option<Hang>) {
     let start = Instant::now();
     let mut watch = Watch::default();
-    while start.elapsed() < window {
+    loop {
         let at = start.elapsed();
         let lit = watch.framed(shoot(input, frame));
-        if let Some(hang) = watch.tick(at, input, dev.state(), lit, &want, limits) {
-            return Some(hang);
+        if let Some(hang) = watch.tick(at, input, dev.state(), lit, want, limits) {
+            return (at, Some(hang));
+        }
+        if done(&watch, input, at) {
+            return (at, None);
         }
         sleep(TICK);
     }
-    None
 }
 
 /// A frame into `to`, and whether it's lit, with no older frame left at
@@ -261,8 +261,11 @@ impl Watch {
         }
         if state.event {
             self.play = None;
+            // Text on the way elsewhere isn't the arrival's: no A for it.
             if state.map == want {
                 self.event.get_or_insert(at);
+            } else {
+                self.event = None;
             }
             return past.then(|| Hang::Event { secs, map: map() });
         }
@@ -419,7 +422,7 @@ mod tests {
     fn an_event_on_the_map_asked_for_is_talked_through_after_two_seconds() {
         let mut w = Watch::default();
         let up = Up(true);
-        let mut look = |at, map| {
+        let look = |w: &mut Watch, at, map| {
             w.tick(
                 secs(at),
                 &up,
@@ -430,10 +433,13 @@ mod tests {
             )
         };
         // An event on the way, on another map, isn't talk.
-        assert_eq!(look(0.0, "FakeOther"), None);
-        assert_eq!(look(1.0, "FakeMap"), None);
+        assert_eq!(look(&mut w, 0.0, "FakeOther"), None);
+        assert_eq!(look(&mut w, 1.0, "FakeMap"), None);
         assert!(!w.talking(secs(2.0)));
         assert!(w.talking(secs(3.0)));
+        // Text on the way elsewhere afterwards ends it.
+        assert_eq!(look(&mut w, 3.4, "FakeOther"), None);
+        assert!(!w.talking(secs(3.4)));
     }
 
     #[test]
