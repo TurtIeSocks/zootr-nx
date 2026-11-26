@@ -379,6 +379,6 @@ pub(crate) mod tests {
             .inspect(|c| assert!(shuffleable(c, no()), "{} {}", c.file, c.hash))
             .map(|c| c.hash)
             .collect();
-        assert_eq!(owned.len(), 7);
+        assert_eq!(owned.len(), 8);
     }
 }

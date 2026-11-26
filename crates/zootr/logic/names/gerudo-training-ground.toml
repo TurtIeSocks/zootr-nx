@@ -3,9 +3,10 @@
 # Lens of Truth) and by vanilla item. The remake changed several items,
 # so the room and the way in decide, not the item.
 
-# Lobby: the right of its two chests, opened by the eye switch over the
-# door (Link enters facing north).
+# Lobby: its two chests (Link enters facing north). The right one opens by
+# the eye switch over the door.
 2436665354602612279 = "Gerudo Training Ground Lobby Right Chest"
+11182647876438515984 = "Gerudo Training Ground Lobby Left Chest"
 
 # The Stalfos sand room.
 13501407288943710656 = "Gerudo Training Ground Stalfos Chest"
@@ -18,6 +19,7 @@
 
 # The hammer room.
 4372363658229299619 = "Gerudo Training Ground Hammer Room Switch Chest"
+4961588221597286817 = "Gerudo Training Ground Hammer Room Clear Chest"
 
 # The Beamos and Dinolfos room.
 4709724720801091788 = "Gerudo Training Ground Beamos Chest"
