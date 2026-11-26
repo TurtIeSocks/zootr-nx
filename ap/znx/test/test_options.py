@@ -98,7 +98,7 @@ class TestEventWithNoWayInIsNotFree(ZnxTestBase):
         self.assertNotIn(self.EVENT["name"], names)
 
 
-RACE = "Gerudo Valley Running Man's Race"
+RACE = "GV Running Man Race"
 
 
 class TestRaceGiftFollowsTheCarpenters(ZnxTestBase):

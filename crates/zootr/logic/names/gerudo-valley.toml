@@ -1,0 +1,72 @@
+# Gerudo Valley. OoTR's name wherever the remake keeps the spot: matched
+# by position, the landmarks nearby, the rule comments and the remake
+# guides for the Gold Skulltulas and heart pieces. Hyrule Field is to the
+# east, the fortress to the west.
+#
+# The child and adult maps each hold their own copy of many pots, rocks
+# and chests, as separate checks. Where both ages have one at the same
+# spot, the name says which, as OoTR's Market Guard House Child Pot does.
+# Numbers count west to east within one spot.
+
+# The small log bridge on the Hyrule Field side: the child's Skulltula
+# under it and three rocks by it.
+15265071047503310220 = "GV GS Small Bridge"
+6693656883402690485 = "GV Near Small Bridge Child Rock 1"
+11208975108919442439 = "GV Near Small Bridge Child Rock 2"
+14087790011470090944 = "GV Near Small Bridge Child Rock 3"
+11999890871333516817 = "GV Near Small Bridge Adult Rock 1"
+3887186300719322791 = "GV Near Small Bridge Adult Rock 2"
+161402875664343852 = "GV Near Small Bridge Adult Rock 3"
+
+# Down by the river: the cow, the child's soft soil Skulltula, and the
+# heart piece behind the waterfall.
+9796879244811108931 = "GV Cow"
+8326970197618554626 = "GV GS Bean Patch"
+16129198288828948135 = "GV Waterfall Freestanding PoH"
+
+# The ledge across the river where OoTR's crate heart piece sat. The
+# remake puts a chest there instead.
+15856256242099990922 = "GV Cucco Ledge Chest" # guess: OoTR's crate heart piece ledge, reached by gliding with the cucco
+
+# The Octorok Grotto down in the river. OoTR's had rupees, the remake's
+# has a chest.
+6463521162691873710 = "GV Octorok Grotto Chest"
+
+# A rock at the fortress end of the big bridge.
+239101719535991464 = "GV Near Bridge Child Rock" # guess: named for the big bridge a few steps east
+4664881360046400269 = "GV Near Bridge Adult Rock" # guess: named for the big bridge a few steps east
+
+# The fortress side: OoTR's chest behind the rocks the Hammer breaks, and
+# the adult's Skulltula up the rock pillar north of it.
+13612880783193811229 = "GV Chest"
+11535915511003753934 = "GV GS Pillar" # guess: the guides' large stone arch, the rock column above the chest
+
+# The carpenters' tent: the adult's Skulltula behind it and three rocks
+# beside it.
+13584527502619061465 = "GV GS Behind Tent"
+2810966902921961370 = "GV Near Tent Child Rock 1"
+5968807343188866308 = "GV Near Tent Child Rock 2"
+8621559146002641352 = "GV Near Tent Child Rock 3"
+13616202327675692596 = "GV Near Tent Adult Rock 1"
+12925874919748100001 = "GV Near Tent Adult Rock 2"
+10113245881984180973 = "GV Near Tent Adult Rock 3"
+
+# The Storms Grotto by the tent. OoTR's had two scrubs. The remake's
+# has four pots, an open chest in the adult's map and an invisible chest
+# in each age's.
+9231973890535833762 = "GV Storms Grotto Child Pot 1"
+13179280208744162657 = "GV Storms Grotto Child Pot 2"
+946934829814115422 = "GV Storms Grotto Child Pot 3"
+14928885472468269852 = "GV Storms Grotto Child Pot 4"
+6896071498853277403 = "GV Storms Grotto Adult Pot 1"
+3407692112799570510 = "GV Storms Grotto Adult Pot 2"
+15334540056586068351 = "GV Storms Grotto Adult Pot 3"
+10851977283896645114 = "GV Storms Grotto Adult Pot 4"
+17750686910716887133 = "GV Storms Grotto Chest"
+6205043616869463865 = "GV Storms Grotto Child Invisible Chest"
+18413589940135955604 = "GV Storms Grotto Adult Invisible Chest"
+
+# People: the running man's race, once the carpenters are freed, and the
+# carpenter boss shown the Poacher's Saw.
+11582029116926037889 = "GV Running Man Race" # OoTR has no such check, so the name is ours
+7003280842759835681 = "GV Trade Saw" # guess: OoTR's list here has no trade checks, named as Ship of Harkinian names this one
