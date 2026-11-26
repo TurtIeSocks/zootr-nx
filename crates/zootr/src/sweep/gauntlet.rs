@@ -87,6 +87,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         let places = dev::places(self.romfs)?;
         let settings = settings()?;
         let cells = grid::filtered(g.run.cells(), &g.holders, &g.items)?;
+        let refused = refusals(self.romfs, &settings, &cells)?;
         let mut rounds = grid::rounds(&cells);
         // The tour runs on round 0's seed: a seed is needed even with no cells.
         if g.run.tours() && rounds.is_empty() {
@@ -100,8 +101,8 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             rounds.len()
         );
         for (r, cells) in rounds.iter().enumerate() {
-            let at = (r, seed + r as u64);
-            let went = self.gauntlet_round(g, at, cells, &settings, &places);
+            let at = (r, seed.wrapping_add(r as u64));
+            let went = self.gauntlet_round(g, at, split(cells, &refused), &settings, &places);
             match went {
                 Ok(Go::On) => {}
                 Ok(Go::Stop) => break,
@@ -117,32 +118,30 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             }
         }
         self.stop();
-        let rows = std::fs::read_to_string(self.results()).unwrap_or_default();
+        let rows = match std::fs::read_to_string(self.results()) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            rows => rows?,
+        };
         let (md, code) = report::render(&rows, &format!("{:?}, seed {seed}", g.run));
         std::fs::write(self.dir.join(REPORT), md)?;
         Ok(code)
     }
 
-    /// Round `r` on `seed`: its refused cells listed, the rest placed, the
-    /// tour first in round 0 when the run tours, then each cell.
+    /// Round `r` on `seed`: its refused cells listed, the `placed` ones
+    /// placed, the tour first in round 0 when the run tours, then each cell.
     fn gauntlet_round(
         &mut self,
         g: &Gauntlet,
         (r, seed): (usize, u64),
-        cells: &[Cell],
+        (placed, refused): (Vec<Cell>, Vec<&(Cell, String)>),
         settings: &Settings,
         places: &BTreeSet<Place>,
     ) -> Result<Go> {
         let rows = self.results();
-        let refused = refusals(self.romfs, settings, cells)?;
         for (c, why) in &refused {
             let row = json!({"gauntlet": row::REFUSED, "cell": c.name(), "round": r, "why": why});
             append(&rows, &row)?;
         }
-        let placed: Vec<Cell> = (cells.iter())
-            .filter(|c| !refused.iter().any(|(o, _)| o == *c))
-            .copied()
-            .collect();
         let extras = plando(&placed);
         eprintln!(
             "round {r}: seed {seed}, {} cells, {} refused",
@@ -214,7 +213,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             }
         };
         if let Some((hang, frame)) = &hang {
-            let _ = self.input.dump();
+            dump(&mut self.input);
             let row = json!({"gauntlet": row::HANG, "name": name, "hang": hang, "frame": frame});
             append(&self.results(), &row)?;
         }
@@ -265,7 +264,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             });
             append(&self.results(), &row)?;
             if watched.hang.is_some() {
-                let _ = self.input.dump();
+                dump(&mut self.input);
                 if g.fail_fast {
                     return Ok(Go::Stop);
                 }
@@ -289,7 +288,28 @@ fn tour_order(places: &BTreeSet<Place>) -> Vec<Place> {
     order
 }
 
+/// `cells` split into those to place and those of `refused`, with why.
+fn split<'a>(
+    cells: &[Cell],
+    refused: &'a [(Cell, String)],
+) -> (Vec<Cell>, Vec<&'a (Cell, String)>) {
+    let here: Vec<_> = refused.iter().filter(|(c, _)| cells.contains(c)).collect();
+    let placed = (cells.iter())
+        .filter(|c| !here.iter().any(|(o, _)| o == *c))
+        .copied()
+        .collect();
+    (placed, here)
+}
+
+/// The thread dump after a hang, or why there's none.
+fn dump(input: &mut impl Input) {
+    if let Err(e) = input.dump() {
+        eprintln!("no thread dump: {e:#}");
+    }
+}
+
 /// The plando that pins each of `cells`' items at its holder.
+/// [`grid::rounds`] keeps one cell a holder a round.
 fn plando(cells: &[Cell]) -> Extras {
     Extras {
         place: (cells.iter())
@@ -372,13 +392,11 @@ mod tests {
         for run in [Run::Holders, Run::Items] {
             let cells = run.cells();
             let refused = refusals(&romfs, &settings, &cells).unwrap();
-            let placed: Vec<Cell> = (cells.iter())
-                .filter(|c| !refused.iter().any(|(o, _)| o == *c))
-                .copied()
-                .collect();
-            let report = night::roll(&romfs, 1, &settings, &plando(&placed))(&dir);
+            let (placed, _) = split(&cells, &refused);
+            let out = dir.join(format!("{run:?}"));
+            let report = night::roll(&romfs, 1, &settings, &plando(&placed))(&out);
             report.unwrap_or_else(|e| panic!("{run:?}: {e:#}"));
         }
-        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

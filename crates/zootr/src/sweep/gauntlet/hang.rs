@@ -33,6 +33,10 @@ const DEAD: Duration = Duration::from_secs(5);
 /// A channel's level at or under which a pixel is black. Encoders leave
 /// pure black at 0 to 2, and a frame's darkest lit wall sits well above.
 const DARK: u8 = 24;
+/// How long an event plays on the map asked for before A presses
+/// through it.
+const TALK: Duration = Duration::from_secs(2);
+
 /// How many lit pixels a frame may have and still be black. The triforce
 /// covers thousands, even shrunk; a black frame has none.
 const LIT: usize = 64;
@@ -41,13 +45,13 @@ const LIT: usize = 64;
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
-    /// Pure black, no triforce, for `secs`.
+    /// Pure black, no triforce: `secs` of black, `map` the map read then.
     Black { secs: f32, map: String },
-    /// Still loading after the load limit.
+    /// Still loading after the load limit: `secs` since the teleport.
     Loading { secs: f32, map: String },
     /// Settled on another map than the one asked for.
     WrongMap { map: String, want: String },
-    /// An event played through the load limit.
+    /// An event played through the load limit: `secs` since the teleport.
     Event { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
@@ -57,7 +61,7 @@ pub enum Hang {
     Crashed { why: String },
 }
 
-/// Whether `png` is pure black: no more than [`LIT`] pixels with any
+/// Whether `png` is pure black: no more than [`LIT`] pixels with any colour
 /// channel over [`DARK`].
 pub fn black(png: &[u8]) -> Result<bool> {
     let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
@@ -102,7 +106,7 @@ pub fn settle(
     let mut watch = Watch::default();
     loop {
         let at = start.elapsed();
-        let lit = shoot(input, frame);
+        let lit = watch.framed(shoot(input, frame));
         let state = dev.state();
         if let Some(hang) = watch.tick(at, input, state, lit, want, limits) {
             return Watched {
@@ -110,6 +114,9 @@ pub fn settle(
                 frame: frame.exists().then(|| frame.to_owned()),
                 hang: Some(hang),
             };
+        }
+        if watch.talking(at) {
+            let _ = input.press("A");
         }
         if watch.settled(at) {
             return Watched {
@@ -137,7 +144,7 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
     let mut watch = Watch::default();
     while start.elapsed() < window {
         let at = start.elapsed();
-        let lit = shoot(input, frame);
+        let lit = watch.framed(shoot(input, frame));
         if let Some(hang) = watch.tick(at, input, dev.state(), lit, &want, limits) {
             return Some(hang);
         }
@@ -146,13 +153,16 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
     None
 }
 
-/// A frame into `to`, and whether it's lit. `None` when no frame came,
-/// with no older frame left at `to` to pass for it.
-fn shoot(input: &mut impl Input, to: &Path) -> Option<bool> {
-    let _ = std::fs::remove_file(to);
-    input.shot(to).ok()?;
-    let png = std::fs::read(to).ok()?;
-    black(&png).ok().map(|b| !b)
+/// A frame into `to`, and whether it's lit, with no older frame left at
+/// `to` to pass for it when none comes.
+fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
+    match std::fs::remove_file(to) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e)?,
+        _ => {}
+    }
+    input.shot(to)?;
+    let png = std::fs::read(to)?;
+    Ok(!black(&png)?)
 }
 
 /// What the watch has seen so far: when each sign began.
@@ -162,8 +172,12 @@ struct Watch {
     black: Option<Duration>,
     /// Since when no frame came.
     unframed: Option<Duration>,
+    /// Why the last frame didn't come.
+    no_frame: String,
     /// Since when reads of the game failed.
     unread: Option<Duration>,
+    /// Since when an event played on the map asked for.
+    event: Option<Duration>,
     /// Since when Link stood in play on a lit frame.
     play: Option<Duration>,
 }
@@ -214,7 +228,8 @@ impl Watch {
             return Some(Hang::Black { secs, map });
         }
         if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
-            let why = format!("no frame came for {:.1} s", (at - since).as_secs_f32());
+            let secs = (at - since).as_secs_f32();
+            let why = format!("no frame came for {secs:.1} s: {}", self.no_frame);
             return Some(Hang::Unread { why });
         }
         let past = at >= limits.load;
@@ -224,8 +239,12 @@ impl Watch {
         }
         if state.event {
             self.play = None;
+            if state.map == want {
+                self.event.get_or_insert(at);
+            }
             return past.then_some(Hang::Event { secs, map });
         }
+        self.event = None;
         if state.map != want {
             self.play = None;
             return past.then(|| Hang::WrongMap {
@@ -240,6 +259,18 @@ impl Watch {
             (None, _) => {}
         }
         None
+    }
+
+    /// A shot's outcome as [`Watch::tick`] takes it, keeping why it failed.
+    fn framed(&mut self, shot: Result<bool>) -> Option<bool> {
+        shot.map_err(|e| self.no_frame = format!("{e:#}")).ok()
+    }
+
+    /// Whether an event has played on the map asked for since [`TALK`]
+    /// before `at`: a text box an arrival opened (a fairy's grace), which
+    /// A closes.
+    fn talking(&self, at: Duration) -> bool {
+        self.event.is_some_and(|since| at - since >= TALK)
     }
 
     /// Whether Link has stood in play, lit, for [`SETTLED`] by `at`.
@@ -360,6 +391,27 @@ mod tests {
                 map: "FakeMap".into()
             })
         );
+    }
+
+    #[test]
+    fn an_event_on_the_map_asked_for_is_talked_through_after_two_seconds() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let mut look = |at, map| {
+            w.tick(
+                secs(at),
+                &up,
+                state(map, false, true),
+                Some(true),
+                "FakeMap",
+                LIMITS,
+            )
+        };
+        // An event on the way, on another map, isn't talk.
+        assert_eq!(look(0.0, "FakeOther"), None);
+        assert_eq!(look(1.0, "FakeMap"), None);
+        assert!(!w.talking(secs(2.0)));
+        assert!(w.talking(secs(3.0)));
     }
 
     #[test]
