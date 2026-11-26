@@ -11,6 +11,7 @@
 mod files;
 pub mod listen;
 mod pick;
+mod voice;
 mod write;
 
 use std::path::{Path, PathBuf};
@@ -19,8 +20,11 @@ use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
-pub use files::{BANKS, HELD, OCARINA, STREAMS, TABLE, TRACKS};
-pub use pick::{Audio, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve};
+pub use files::{BANKS, HELD, OCARINA, STREAMS, TABLE, TRACKS, VOICE_PACKS};
+pub use pick::{
+    Audio, CHAOS, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve,
+};
+pub use voice::FILES as VOICE_FILES;
 pub use write::write;
 
 /// Where a track's music plays from.
@@ -36,6 +40,10 @@ pub enum Via {
     /// variants. A slot's variants take the donor's in turn, within the
     /// user.
     Cue(&'static str),
+    /// An NPC voice type, named by its graph: every pack whose `VoiceParam`
+    /// names it takes the donor's type. Cutscene lines name their clips
+    /// and stay vanilla; an emotion the donor lacks is silent.
+    Voice,
 }
 
 /// A track's kind. Tracks shuffle only within their pool.
@@ -71,6 +79,9 @@ pub enum Pool {
     /// Child Link's voice.
     #[serde(rename = "voice-child")]
     VoiceChild,
+    /// The NPCs' voices, by voice type: grunts, laughs and calls.
+    #[serde(rename = "npc-voice")]
+    NpcVoice,
     /// The silences: never shuffled.
     Fixed,
 }
@@ -84,7 +95,12 @@ impl Pool {
             Pool::Fanfare => &[5.0, 12.0],
             // Lessons and the short songs, the longer songs, the warp songs.
             Pool::Ocarina => &[7.0, 14.0],
-            Pool::Area | Pool::Battle | Pool::VoiceAdult | Pool::VoiceChild | Pool::Fixed => &[],
+            Pool::Area
+            | Pool::Battle
+            | Pool::VoiceAdult
+            | Pool::VoiceChild
+            | Pool::NpcVoice
+            | Pool::Fixed => &[],
         }
     }
 
@@ -97,6 +113,7 @@ impl Pool {
             Pool::Ocarina => "ocarina",
             Pool::VoiceAdult => "voice-adult",
             Pool::VoiceChild => "voice-child",
+            Pool::NpcVoice => "npc-voice",
             Pool::Fixed => "fixed",
         }
     }
@@ -172,6 +189,22 @@ pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
         return Ok((name, data));
     }
     let romfs = crate::game::prepare(game, None, &crate::progress::Run::silent())?;
+    if let Some(t) = TRACKS
+        .iter()
+        .find(|t| t.via == Via::Voice && t.song == Some(name))
+    {
+        let path = voice::bank(t.graph, voice::ENGLISH);
+        let (_, data) = (crate::game::search(game, &path)?.into_iter())
+            .find(|(p, _)| *p == path)
+            .with_context(|| format!("no bank {path}"))?;
+        let bank = romfs.dicts().decompress(&path, &data)?;
+        let clip = ounce_formats::bars::bwav(&bank, name)?;
+        return Ok((
+            name,
+            clip.with_context(|| format!("{path} lacks {name}"))?
+                .to_vec(),
+        ));
+    }
     for bank in banks(&romfs, game)? {
         if let Some(data) = ounce_formats::bars::bwav(&bank, name)? {
             return Ok((name, data.to_vec()));
@@ -357,6 +390,9 @@ mod tests {
                 t.id
             );
         }
+        let (voices, called): (Vec<_>, Vec<_>) =
+            called.into_iter().partition(|t| t.via == Via::Voice);
+        voices_match_the_dump(&romfs, game, &voices);
         for t in called {
             let Via::Call(user) = t.via else {
                 unreachable!("{}", t.id)
@@ -398,6 +434,57 @@ mod tests {
             let looping = heads.iter().any(|h| h.loop_start.is_some());
             assert!((secs - t.secs).abs() < 0.01, "{}: {secs} s", t.id);
             assert_eq!(looping, t.looping, "{}", t.id);
+        }
+    }
+
+    /// Each voice track's clip is in its type's bank, as long as listed and
+    /// not looping, and each listed pack's param names its type. Every type
+    /// with a track is in the pack table, and only the two with cutscene
+    /// clips alone lack a track.
+    fn voices_match_the_dump(romfs: &Romfs, game: &Path, voices: &[&Track]) {
+        let mut banks = std::collections::BTreeMap::new();
+        crate::game::each_where(
+            game,
+            |p| {
+                voices
+                    .iter()
+                    .any(|t| voice::bank(t.graph, voice::ENGLISH) == p)
+            },
+            |path, data| {
+                banks.insert(path.clone(), romfs.dicts().decompress(&path, &data)?);
+                Ok(())
+            },
+        )
+        .unwrap();
+        for t in voices {
+            let bank = &banks[&voice::bank(t.graph, voice::ENGLISH)];
+            let song = t.song.unwrap();
+            let clip = ounce_formats::bars::bwav(bank, song).unwrap();
+            let head =
+                ounce_formats::bwav::header(clip.unwrap_or_else(|| panic!("{song}"))).unwrap();
+            assert!(
+                (head.seconds() - t.secs).abs() < 0.01,
+                "{}: {} s",
+                t.id,
+                head.seconds()
+            );
+            assert!(head.loop_start.is_none() && !t.looping, "{}", t.id);
+        }
+        let mut kinds: Vec<_> = VOICE_PACKS.iter().map(|(kind, ..)| *kind).collect();
+        kinds.dedup();
+        let mut tracked: Vec<_> = voices.iter().map(|t| t.graph).collect();
+        tracked.sort();
+        let untracked: Vec<_> = kinds.iter().filter(|k| !tracked.contains(k)).collect();
+        assert_eq!(untracked.len(), 2, "{untracked:?}");
+        assert!(tracked.iter().all(|t| kinds.contains(t)));
+        for (kind, pack, param) in &VOICE_PACKS {
+            let data = romfs.read(&ounce_formats::pack_file(pack)).unwrap();
+            let sarc = roead::sarc::Sarc::new(&data[..]).unwrap();
+            let member = format!("Component/VoiceParam/{param}.game__component__VoiceParam.bgyml");
+            let doc = BymlDoc::parse(sarc.get_data(&member).unwrap()).unwrap();
+            let map = doc.root.as_map().unwrap();
+            let hash = ounce_formats::murmur3(kind.as_bytes());
+            assert_eq!(map["NpcVoiceType"], Byml::U32(hash), "{pack}");
         }
     }
 }

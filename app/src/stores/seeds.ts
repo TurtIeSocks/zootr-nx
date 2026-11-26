@@ -395,10 +395,14 @@ export async function stopGenerate() {
 export const generateLog = () => call(commands.generateLog());
 /** Takes the mod off every target. */
 export const uninstall = () => run(() => call(commands.uninstall()));
-/** Deletes a history entry. */
-export const deleteSeed = (id: number) =>
-  run(() => call(commands.deleteSeed(id)));
-/** Deletes every entry but the installed one. */
+/** Deletes history entries, starred ones too, but never an installed one. */
+export const deleteSeeds = (ids: number[]) =>
+  run(() => call(commands.deleteSeeds(ids)));
+/** Stars history entries so trimming and Clear pass them by, or unstars
+ * them. */
+export const starSeeds = (ids: number[], starred: boolean) =>
+  run(() => call(commands.starSeeds(ids, starred)));
+/** Deletes every entry but the installed and starred ones. */
 export const clearHistory = () => run(() => call(commands.clearHistory()));
 /** Makes an entry's settings the current ones. `{ settings: {} }` puts
  * them back to the defaults. */

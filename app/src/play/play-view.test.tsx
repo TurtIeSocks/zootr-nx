@@ -326,7 +326,10 @@ test("the plando draft shows in the overview and opens from there", () => {
 });
 
 test("deleting a seed and clearing history each ask for a second click", async () => {
-  const del = vi.spyOn(commands, "deleteSeed").mockResolvedValue(ok);
+  const del = vi.spyOn(commands, "deleteSeeds").mockResolvedValue({
+    status: "ok",
+    data: 0,
+  });
   backend({
     installed: null,
     entries: [
@@ -344,12 +347,31 @@ test("deleting a seed and clearing history each ask for a second click", async (
   expect(del).not.toHaveBeenCalled();
   expect((first as HTMLElement).textContent).toBe("Really delete?");
   fireEvent.click(first as HTMLElement);
-  await waitFor(() => expect(del).toHaveBeenCalledWith(2));
+  await waitFor(() => expect(del).toHaveBeenCalledWith([2]));
   fireEvent.click(button("Clear"));
   expect(button("Really clear?")).toBeTruthy();
   // Moving away disarms it, even with no focus to lose.
   fireEvent.pointerLeave(button("Really clear?"));
   expect(button("Clear")).toBeTruthy();
+});
+
+test("starring a seed marks its row and the Starred filter shows only it", async () => {
+  const star = vi.spyOn(commands, "starSeeds").mockResolvedValue(ok);
+  const starred = { ...seed, id: 3, starred: true };
+  backend({ installed: null, entries: [starred, { ...seed, id: 4 }] });
+  show(null, {}, {}, [starred, { ...seed, id: 4 }]);
+  openTab("History");
+  expect(screen.getAllByLabelText("Starred")).toHaveLength(1);
+  fireEvent.click(button("Unstar seed"));
+  await waitFor(() => expect(star).toHaveBeenCalledWith([3], false));
+  fireEvent.click(button("Star seed"));
+  await waitFor(() => expect(star).toHaveBeenCalledWith([4], true));
+  const filters = screen.getByRole("group", { name: "Show" });
+  fireEvent.click(within(filters).getByRole("button", { name: "Starred" }));
+  expect(screen.getAllByRole("button", { name: /star seed$/i })).toHaveLength(
+    1,
+  );
+  expect(button("Unstar seed")).toBeTruthy();
 });
 
 test("a pasted share code goes to Generate whole, a seed as digits", async () => {

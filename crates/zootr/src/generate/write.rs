@@ -266,7 +266,7 @@ pub fn write_mod(
     bombs::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     // After ageless items, which add to the same sound users.
-    crate::audio::write(&mut builder, &new_game.audio)?;
+    crate::audio::write(&mut builder, &new_game.audio, new_game.seed)?;
     // Last: a feature copying a texture copies it as the dump has it.
     crate::colors::write(&mut builder, &new_game.colors)?;
     run.check()?;
@@ -465,6 +465,9 @@ impl<'a> Parts<'a> {
         let mut keyed = picked::pairs(&self.picked);
         keyed.extend(&self.steps.copies);
         gamedata::add_keys(root, &keyed)?;
+        if new_game.breakables_respawn {
+            gamedata::respawn_on_load(root)?;
+        }
         let fortress = new_game.fortress_keys.copies();
         for (copy, template, _) in &key_tints::made(new_game.keys.copies(), BOSS_COPIES, fortress) {
             let names = [copy.clone()];

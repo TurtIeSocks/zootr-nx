@@ -408,6 +408,12 @@ fn enhancement_defs() -> Vec<SettingDef> {
             "Gold Skulltulas by Day",
             "Gold Skulltulas that only come out at night show at any hour",
         ),
+        toggle(
+            BREAKABLES_RESPAWN,
+            place::GAMEPLAY,
+            "Breakables Respawn",
+            "Pots, crates, rocks, grass and beehives come back every time Link enters an area, as on the N64. Off, they come back on the game's own timer, about a quarter hour of play after Link first leaves the area",
+        ),
     ];
     defs.extend(both);
     defs

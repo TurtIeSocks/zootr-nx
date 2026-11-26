@@ -1,23 +1,25 @@
-//! Every seed the app generated, kept in `history.json` beside the config.
+//! Every seed the app generated, kept in the `history` folder beside the
+//! config ([`store`]).
+
+mod store;
+mod view;
+
+pub use view::{Summary, View, view};
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::time::SystemTime;
+use std::path::PathBuf;
 
 use crate::config::{Config, Target};
 use crate::game::Release;
-use crate::generate::{Extras, Report, Spot};
-use crate::icons::icons;
+use crate::generate::{Extras, Report};
+use crate::places;
 use crate::settings::{self, SHUFFLE_ITEMS, Settings, SettingsVersion};
-use crate::shuffle::Fixed;
-use crate::{places, share};
 use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
-/// Oldest entries past this are dropped.
-const KEEP: usize = 100;
+/// Oldest entries past this are dropped. Starred ones count toward it.
+const KEEP: usize = 1000;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct History {
@@ -44,6 +46,38 @@ pub struct History {
     /// brings them up to date.
     #[serde(default = "SettingsVersion::unwritten")]
     settings_version: SettingsVersion,
+    /// The folder it was loaded from and saves to. `None` for a history
+    /// only in memory, which can't be saved.
+    #[serde(skip)]
+    dir: Option<PathBuf>,
+    /// Reports not in their files yet: new seeds', and ones filled in
+    /// since loading. Saving writes them.
+    #[serde(skip)]
+    unsaved: BTreeMap<u32, Report>,
+}
+
+/// What lists and trimming read of a seed's report, kept in the index so
+/// they never open the report's file.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Brief {
+    pub seed: u64,
+    /// How many spots it has.
+    pub chests: u32,
+    /// How many of them hold another item than the vanilla game's.
+    pub changed: u32,
+    /// The build of the game it was made for.
+    pub release: Release,
+}
+
+impl From<&Report> for Brief {
+    fn from(r: &Report) -> Self {
+        Self {
+            seed: r.seed,
+            chests: r.spots.len() as u32,
+            changed: r.changed() as u32,
+            release: r.written.release,
+        }
+    }
 }
 
 /// A game's installed seed and when it went in, as [`History`] keeps them.
@@ -64,7 +98,8 @@ pub struct Entry {
     pub extras: Extras,
     #[serde(flatten)]
     pub label: Label,
-    pub report: Report,
+    /// Its report's head. The whole report is [`History::report`].
+    pub brief: Brief,
     /// The player's marks on the check tracker, by spot.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub marks: BTreeMap<u64, Mark>,
@@ -72,6 +107,9 @@ pub struct Entry {
     /// the report's entrances name them.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub picks: BTreeMap<String, String>,
+    /// The player keeps it: trimming and Clear pass it by.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub starred: bool,
 }
 
 impl Entry {
@@ -103,149 +141,39 @@ pub struct Label {
     pub note: String,
 }
 
-/// An entry without its spots, for lists.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-pub struct Summary {
-    pub id: u32,
-    time: u32,
-    seed: String,
-    /// Stand-ins for the seed, settings and extras together.
-    icons: Vec<String>,
-    /// The seed, settings and extras as one line to share.
-    share: String,
-    settings: Settings,
-    label: Label,
-    chests: u32,
-    changed: u32,
-    /// Built with a test setup: a spawn, items, flags or quest steps.
-    test: bool,
-    /// Built with a plando: items pinned to checks.
-    plando: bool,
-    /// The slot, for a seed opened from an Archipelago `.apznx`.
-    ap_slot: Option<String>,
-    /// The room's server, when the `.apznx` came from its room page.
-    ap_server: Option<String>,
-    /// The slot plays DeathLink.
-    death_link: bool,
-    /// The build of the game the seed was made for.
-    release: Release,
-    /// The colors as the Colors pane asked for them ([`Extras::asked`]).
-    colors: crate::colors::Draft,
-    /// The music as the Audio pane asked for it.
-    audio: crate::audio::Draft,
-    /// The plando: chest hash to the item it holds.
-    #[cfg_attr(feature = "specta", specta(type = BTreeMap<String, String>))]
-    place: Fixed,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "specta", derive(specta::Type))]
-pub struct View {
-    installed: Option<Summary>,
-    /// Newest first.
-    entries: Vec<Summary>,
-}
-
-impl From<&Entry> for Summary {
-    fn from(e: &Entry) -> Self {
-        let asked = e.extras.asked();
-        Self {
-            id: e.id,
-            time: e.time,
-            seed: e.report.seed.to_string(),
-            icons: icons(e.report.seed, &e.settings, &e.extras),
-            share: share::encode(e.report.seed, &e.settings, &e.extras),
-            settings: e.settings.clone(),
-            label: e.label.clone(),
-            chests: e.report.spots.len() as u32,
-            changed: e.report.changed() as u32,
-            test: !Extras {
-                place: Fixed::new(),
-                ap: None,
-                release: None,
-                ..e.extras.cosmetic_free()
-            }
-            .is_empty(),
-            plando: !e.extras.place.is_empty(),
-            ap_slot: e.extras.ap.as_ref().map(|a| a.slot.clone()),
-            ap_server: (e.extras.ap.as_ref())
-                .map(|a| a.server.clone())
-                .filter(|s| !s.is_empty()),
-            death_link: e.extras.ap.as_ref().is_some_and(|a| a.death_link),
-            release: e.report.written.release,
-            colors: asked.colors,
-            audio: asked.audio,
-            place: e.extras.place.clone(),
-        }
-    }
-}
-
-fn path() -> Result<PathBuf> {
-    Ok(Config::path()?.with_file_name("history.json"))
-}
-
-/// A file's modified time and length, or `None` when it's missing: what
-/// changes when it's written.
-type Stamp = Option<(SystemTime, u64)>;
-
-fn stamp(path: &Path) -> Result<Stamp> {
-    match std::fs::metadata(path) {
-        Ok(m) => Ok(Some((m.modified()?, m.len()))),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
-    }
-}
-
-/// The saved history's [`View`], parsed again only once the file changes.
-/// The file holds every seed's report, megabytes of JSON, and the app's
-/// seed list polls this every few seconds.
-pub fn view() -> Result<View> {
-    static KEPT: Mutex<Option<(Stamp, View)>> = Mutex::new(None);
-    kept(&KEPT, &path()?, || Ok(History::load()?.view()))
-}
-
-/// What `load` gives for `path`, kept in `slot` until `path` changes.
-fn kept<V: Clone>(
-    slot: &Mutex<Option<(Stamp, V)>>,
-    path: &Path,
-    load: impl FnOnce() -> Result<V>,
-) -> Result<V> {
-    let now = stamp(path)?;
-    let mut slot = slot.lock().unwrap();
-    if let Some((was, v)) = slot.as_ref()
-        && *was == now
-    {
-        return Ok(v.clone());
-    }
-    let v = load()?;
-    *slot = Some((now, v.clone()));
-    Ok(v)
-}
-
 impl History {
     pub fn load() -> Result<Self> {
-        let path = path()?;
+        Ok(Self {
+            game: crate::turn::slot(&Config::load_all()?.turn),
+            ..Self::load_from(store::dir()?)?
+        })
+    }
+
+    /// The history in `dir`, an old `history.json` beside it moved in
+    /// first.
+    fn load_from(dir: PathBuf) -> Result<Self> {
+        store::move_old(&dir)?;
+        let path = store::index(&dir);
         let history = match std::fs::read(&path) {
             Ok(b) => Self::parse(&b).with_context(|| format!("reading {}", path.display()))?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Self::default(),
             Err(e) => return Err(e).with_context(|| format!("reading {}", path.display())),
         };
         Ok(Self {
-            game: crate::turn::slot(&Config::load_all()?.turn),
+            dir: Some(dir),
             ..history
         })
     }
 
-    /// Saved history, brought up to date: readable chest names, older
-    /// settings, the old `vanilla` extra as Shuffle items off, and the
-    /// build each seed was made for kept in its extras ([`History::add`]).
+    /// Saved history, brought up to date: older settings, the old
+    /// `vanilla` extra as Shuffle items off, and the build each seed was
+    /// made for kept in its extras ([`History::add`]). Reports catch up
+    /// as they're read ([`store::read_report`]).
     fn parse(json: &[u8]) -> Result<Self> {
         let mut history: Self = serde_json::from_slice(json)?;
         let from = std::mem::take(&mut history.settings_version);
         for e in &mut history.entries {
-            e.report.spots.iter_mut().for_each(Spot::fill_names);
-            e.extras.release.get_or_insert(e.report.written.release);
+            e.extras.release.get_or_insert(e.brief.release);
             settings::upgrade(&mut e.settings, from);
             if std::mem::take(&mut e.extras.vanilla) {
                 e.settings.insert(SHUFFLE_ITEMS.into(), false.into());
@@ -254,10 +182,26 @@ impl History {
         Ok(history)
     }
 
+    /// Writes the new reports, then the index, then removes the reports
+    /// of seeds gone from it: an index never names a missing report.
     pub fn save(&self) -> Result<()> {
-        let path = path()?;
-        crate::known::keep(&path, &serde_json::to_vec(self)?)
-            .with_context(|| format!("writing {}", path.display()))
+        let dir = (self.dir.as_deref()).context("a history only in memory can't be saved")?;
+        let ids: Vec<u32> = self.entries.iter().map(|e| e.id).collect();
+        for (id, report) in self.unsaved.iter().filter(|(id, _)| ids.contains(id)) {
+            store::write_report(dir, *id, report)?;
+        }
+        store::write_index(dir, &serde_json::to_vec(self)?)?;
+        store::sweep(dir, &ids)
+    }
+
+    /// Seed `id`'s whole report, read from its file.
+    pub fn report(&self, id: u32) -> Result<Report> {
+        self.get(id)?;
+        if let Some(report) = self.unsaved.get(&id) {
+            return Ok(report.clone());
+        }
+        let dir = (self.dir.as_deref()).with_context(|| format!("seed {id} has no report"))?;
+        store::read_report(dir, id)
     }
 
     pub fn get(&self, id: u32) -> Result<&Entry> {
@@ -267,7 +211,7 @@ impl History {
             .with_context(|| format!("no history entry {id}"))
     }
 
-    /// Record a seed in `history.json`, as the installed one if `installed`.
+    /// Record a seed in the history, as the installed one if `installed`.
     pub fn record(
         settings: Settings,
         extras: Extras,
@@ -303,9 +247,19 @@ impl History {
         self.installed.into_iter().chain(slots)
     }
 
+    /// The installed seed's id, an error when none is installed.
+    fn installed_id(&self) -> Result<u32> {
+        self.installed().id.context("no seed is installed")
+    }
+
     /// The installed seed's entry, an error when none is installed.
     pub fn installed_entry(&self) -> Result<&Entry> {
-        self.get(self.installed().id.context("no seed is installed")?)
+        self.get(self.installed_id()?)
+    }
+
+    /// The installed seed's report, an error when none is installed.
+    pub fn installed_report(&self) -> Result<Report> {
+        self.report(self.installed_id()?)
     }
 
     /// Makes `id` the installed seed, or none for vanilla. Installing the
@@ -350,15 +304,17 @@ impl History {
             settings,
             extras,
             label,
-            report,
+            brief: Brief::from(&report),
             marks: BTreeMap::new(),
             picks: BTreeMap::new(),
+            starred: false,
         });
-        // The oldest go first, but never an installed one.
-        let installed: Vec<u32> = self.in_place().collect();
+        self.unsaved.insert(id, report);
+        // The oldest go first, but never a spared one or this one.
+        let kept: Vec<u32> = self.spared().chain([id]).collect();
         let mut excess = self.entries.len().saturating_sub(KEEP);
         self.entries.retain(|e| {
-            let drop = excess > 0 && !installed.contains(&e.id);
+            let drop = excess > 0 && !kept.contains(&e.id);
             excess -= usize::from(drop);
             !drop
         });
@@ -393,7 +349,10 @@ impl History {
 
     /// Places for a seed saved before they were kept.
     pub fn place(&mut self, id: u32, romfs: &Romfs) -> Result<()> {
-        places::fill(romfs, &mut self.get_mut(id)?.report.spots)
+        let mut report = self.report(id)?;
+        places::fill(romfs, &mut report.spots)?;
+        self.unsaved.insert(id, report);
+        Ok(())
     }
 
     /// Mark a spot, or clear its mark with `None`.
@@ -409,35 +368,70 @@ impl History {
     /// Guess the dungeon behind a seed's shuffled door, or clear the guess
     /// with `None`. Both are ids from the seed's entrances.
     pub fn pick(&mut self, id: u32, door: &str, dungeon: Option<&str>) -> Result<()> {
-        let entry = self.get_mut(id)?;
-        let known = |i: &str| entry.report.entrances.iter().any(|d| d.id == i);
+        let entrances = self.report(id)?.entrances;
+        let known = |i: &str| entrances.iter().any(|d| d.id == i);
         ensure!(known(door), "{door} isn't a shuffled door of seed {id}");
+        if let Some(d) = dungeon {
+            ensure!(known(d), "{d} isn't a shuffled dungeon of seed {id}");
+        }
+        let entry = self.get_mut(id)?;
         match dungeon {
-            Some(d) => {
-                ensure!(known(d), "{d} isn't a shuffled dungeon of seed {id}");
-                entry.picks.insert(door.into(), d.into())
-            }
+            Some(d) => entry.picks.insert(door.into(), d.into()),
             None => entry.picks.remove(door),
         };
         Ok(())
     }
 
     /// Forget one seed. Not an installed one, any game's.
-    pub fn remove(&mut self, id: u32) -> Result<()> {
+    /// Forget the seeds `ids`, starred ones too, but not an installed one
+    /// (any game's): how many it kept for being installed.
+    pub fn remove(&mut self, ids: &[u32]) -> Result<usize> {
+        for &id in ids {
+            self.get(id)?;
+        }
+        let installed: Vec<u32> = self.in_place().collect();
+        let kept = ids.iter().filter(|id| installed.contains(id)).count();
+        self.entries
+            .retain(|e| !ids.contains(&e.id) || installed.contains(&e.id));
+        Ok(kept)
+    }
+
+    /// Star the seeds `ids`, or unstar them. Refused whole when it would
+    /// star more than [`KEEP`].
+    pub fn star(&mut self, ids: &[u32], starred: bool) -> Result<()> {
+        for &id in ids {
+            self.get(id)?;
+        }
+        let after = (self.entries.iter())
+            .filter(|e| {
+                if ids.contains(&e.id) {
+                    starred
+                } else {
+                    e.starred
+                }
+            })
+            .count();
         ensure!(
-            !self.in_place().any(|i| i == id),
-            "The installed seed can't be deleted"
+            !starred || after <= KEEP,
+            "History keeps {KEEP} seeds: unstar one first"
         );
-        let before = self.entries.len();
-        self.entries.retain(|e| e.id != id);
-        ensure!(self.entries.len() < before, "no history entry {id}");
+        (self.entries.iter_mut())
+            .filter(|e| ids.contains(&e.id))
+            .for_each(|e| e.starred = starred);
         Ok(())
     }
 
-    /// Forget every seed but the installed ones, every game's.
+    /// The seeds trimming and Clear pass by: every game's installed one,
+    /// and the starred ones.
+    fn spared(&self) -> impl Iterator<Item = u32> + '_ {
+        let starred = self.entries.iter().filter(|e| e.starred).map(|e| e.id);
+        self.in_place().chain(starred)
+    }
+
+    /// Forget every seed but the spared ones ([`History::spared`]).
     pub fn clear(&mut self) {
-        let installed: Vec<u32> = self.in_place().collect();
-        self.entries.retain(|e| installed.contains(&e.id));
+        let kept: Vec<u32> = self.spared().collect();
+        self.entries.retain(|e| kept.contains(&e.id));
     }
 
     /// What to warn when `target`'s mod folder holds another seed than the
@@ -447,30 +441,22 @@ impl History {
     /// install, so it keeps whatever it held.
     pub fn foreign_mod(&self, target: &Target) -> Option<String> {
         let installed = self.installed_entry().ok()?;
-        if target.skips(installed.report.written.release).is_some() {
+        if target.skips(installed.brief.release).is_some() {
             return None;
         }
         let spoiler =
             std::fs::read_to_string(target.mod_dir.join(crate::generate::SPOILER)).ok()?;
         let seed = Report::spoiler_seed(&spoiler)?;
-        if seed == installed.report.seed {
+        if seed == installed.brief.seed {
             return None;
         }
         let there = (self.entries.iter().rev())
-            .find(|e| e.report.seed == seed)
+            .find(|e| e.brief.seed == seed)
             .map_or("a seed from elsewhere".into(), Entry::called);
         Some(format!(
             "The mod folder holds {there}, not {}. Install it again before playing.",
             installed.called()
         ))
-    }
-
-    pub fn view(&self) -> View {
-        let installed = self.installed().id.and_then(|id| self.get(id).ok());
-        View {
-            installed: installed.map(Summary::from),
-            entries: self.entries.iter().rev().map(Summary::from).collect(),
-        }
     }
 }
 
@@ -483,24 +469,6 @@ fn now() -> u32 {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    #[test]
-    fn a_kept_view_is_read_again_only_once_the_file_changes() {
-        let path = std::env::temp_dir().join(format!("zootr-kept-{}", std::process::id()));
-        std::fs::write(&path, "a").unwrap();
-        let (slot, loads) = (Mutex::new(None), Cell::new(0));
-        let load = || {
-            loads.set(loads.get() + 1);
-            Ok(loads.get())
-        };
-        assert_eq!(kept(&slot, &path, load).unwrap(), 1);
-        assert_eq!(kept(&slot, &path, load).unwrap(), 1);
-        std::fs::write(&path, "ab").unwrap();
-        assert_eq!(kept(&slot, &path, load).unwrap(), 2);
-        std::fs::remove_file(&path).unwrap();
-        assert_eq!(kept(&slot, &path, load).unwrap(), 3);
-        assert_eq!(kept(&slot, &path, load).unwrap(), 3);
-    }
-
     #[test]
     fn each_game_keeps_its_own_installed_seed() {
         let reload = |h: &History, game: Option<&str>| History {
@@ -525,7 +493,7 @@ pub(crate) mod tests {
         assert_eq!(reload(&two, Some("FakeHost-3")).installed().id, None);
         // Every game's installed seed is spared, whichever game asks.
         let mut own = reload(&two, None);
-        assert!(own.remove(2).is_err());
+        assert_eq!(own.remove(&[2]).unwrap(), 1, "kept, being installed");
         own.clear();
         assert_eq!(own.entries.iter().map(|e| e.id).collect::<Vec<_>>(), [1, 2]);
         // Taking a slot's seed off leaves the machine's own.
@@ -570,11 +538,9 @@ pub(crate) mod tests {
         assert_eq!(old.installed_at, None);
     }
 
-    use std::cell::Cell;
-
     use super::*;
-    use crate::generate::Written;
-    use crate::known::{actor, item};
+    use crate::generate::{Spot, Written};
+    use crate::known::actor;
 
     pub(crate) fn report(seed: u64) -> Report {
         Report {
@@ -601,76 +567,6 @@ pub(crate) mod tests {
                 release: Default::default(),
             },
         }
-    }
-
-    #[test]
-    fn a_plando_badges_apart_from_a_test_setup() {
-        let flags = |extras: Extras| {
-            let mut history = History::default();
-            history.add(Settings::new(), extras, Label::default(), report(1));
-            let s = Summary::from(&history.entries[0]);
-            (s.test, s.plando)
-        };
-        let place = Fixed::from([(1, item::HOOKSHOT.to_string())]);
-        let give = vec![item::BOMB.to_string()];
-        assert_eq!(flags(Extras::default()), (false, false));
-        let painted = Extras::default().styled(
-            crate::generate::Drafts {
-                colors: [(
-                    "hair".into(),
-                    crate::colors::Pick::Mode(crate::colors::Mode::Random),
-                )]
-                .into(),
-                ..Default::default()
-            },
-            1,
-        );
-        assert_eq!(
-            flags(painted.unwrap()),
-            (false, false),
-            "colors aren't a test"
-        );
-        let plando = Extras {
-            place: place.clone(),
-            ..Default::default()
-        };
-        assert_eq!(flags(plando), (false, true));
-        let both = Extras {
-            place,
-            give: give.clone(),
-            ..Default::default()
-        };
-        assert_eq!(flags(both), (true, true));
-        assert_eq!(
-            flags(Extras {
-                give,
-                ..Default::default()
-            }),
-            (true, false)
-        );
-    }
-
-    #[test]
-    fn an_ap_seed_carries_its_slot_and_death_link_and_isnt_a_test() {
-        let mut history = History::default();
-        let ap = crate::ap::ApSeed {
-            world_version: String::new(),
-            settings: Settings::new(),
-            seed: 1,
-            slot: "FakeSlot".into(),
-            player: 1,
-            server: "FakeRoom:38281".into(),
-            start: vec![],
-            death_link: true,
-            players: BTreeMap::new(),
-            placements: BTreeMap::new(),
-            hints: vec![],
-        };
-        history.add(Settings::new(), Extras::ap(ap), Label::default(), report(1));
-        let s = Summary::from(&history.entries[0]);
-        assert_eq!((s.test, s.ap_slot.as_deref()), (false, Some("FakeSlot")));
-        assert_eq!(s.ap_server.as_deref(), Some("FakeRoom:38281"));
-        assert!(s.death_link, "the slot's DeathLink");
     }
 
     #[test]
@@ -751,14 +647,41 @@ pub(crate) mod tests {
         assert_eq!(history.get(second).unwrap().extras, kept, "with its build");
         assert_eq!(history.installed, None);
         history.installed = Some(second);
-        let json = serde_json::to_vec(&history).unwrap();
-        assert_eq!(serde_json::from_slice::<History>(&json).unwrap(), history);
+        let dir = store::tests::temp("round-trip");
+        history.dir = Some(dir.clone());
+        history.save().unwrap();
+        let back = History::load_from(dir).unwrap();
+        assert_eq!(back.entries, history.entries);
+        assert_eq!(back.installed, history.installed);
+        assert_eq!(back.report(second).unwrap(), store::tests::filled(7));
         let view = history.view();
         assert_eq!(view.entries[0].seed, "7");
         assert_eq!(view.installed.unwrap().changed, 1);
         assert_eq!(view.entries[0].label.name, "Gifts");
         assert_eq!(view.entries[1].label, Label::default());
         assert_eq!((view.entries[0].test, view.entries[1].test), (true, false));
+    }
+
+    #[test]
+    fn saving_writes_new_reports_but_not_a_removed_seeds() {
+        let dir = store::tests::temp("save-reports");
+        let mut history = History::load_from(dir.clone()).unwrap();
+        for seed in [5, 6] {
+            history.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            );
+        }
+        history.remove(&[1]).unwrap();
+        history.save().unwrap();
+        assert!(!dir.join("reports/1.json.zst").exists());
+        assert!(dir.join("reports/2.json.zst").exists());
+        let back = History::load_from(dir).unwrap();
+        assert_eq!(back.report(2).unwrap().seed, 6);
+        assert!(back.report(1).is_err(), "gone with its entry");
+        assert!(History::default().save().is_err(), "only in memory");
     }
 
     #[test]
@@ -845,13 +768,52 @@ pub(crate) mod tests {
             );
         }
         history.installed = Some(2);
-        assert!(history.remove(2).is_err());
-        assert!(history.remove(9).is_err());
-        history.remove(1).unwrap();
+        assert!(history.remove(&[1, 9]).is_err(), "an unknown id");
+        assert_eq!(history.entries.len(), 4, "refused whole");
+        history.star(&[3], true).unwrap();
+        assert_eq!(history.remove(&[1, 2]).unwrap(), 1);
         let ids = |h: &History| h.entries.iter().map(|e| e.id).collect::<Vec<_>>();
         assert_eq!(ids(&history), [2, 3, 4]);
         history.clear();
+        assert_eq!(ids(&history), [2, 3], "Clear spares installed and starred");
+        assert_eq!(history.remove(&[3]).unwrap(), 0, "a starred one when asked");
         assert_eq!(ids(&history), [2]);
+    }
+
+    #[test]
+    fn stars_round_trip_and_stop_at_the_cap() {
+        let mut history = History::default();
+        for seed in 0..KEEP as u64 + 1 {
+            history.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            );
+        }
+        let json = serde_json::to_value(&history).unwrap();
+        assert!(
+            json["entries"][0].get("starred").is_none(),
+            "left out when off"
+        );
+        let all: Vec<u32> = history.entries.iter().map(|e| e.id).collect();
+        assert_eq!(all.len(), KEEP);
+        history.star(&all, true).unwrap();
+        let newest = (history.add(
+            Settings::new(),
+            Extras::default(),
+            Label::default(),
+            report(0),
+        ))
+        .id;
+        let err = history.star(&[newest], true).unwrap_err().to_string();
+        assert_eq!(err, format!("History keeps {KEEP} seeds: unstar one first"));
+        history.star(&all[1..2], false).unwrap();
+        history.star(&[newest], true).unwrap();
+        assert!(history.star(&[9999], true).is_err());
+        let back = History::parse(&serde_json::to_vec(&history).unwrap()).unwrap();
+        assert!(back.entries[0].starred && !back.entries[1].starred);
+        assert!(Summary::from(&back.entries[0]).starred);
     }
 
     #[test]
@@ -866,7 +828,7 @@ pub(crate) mod tests {
             );
         }
         assert_eq!(history.entries.len(), KEEP);
-        assert_eq!(history.entries[0].report.seed, 5);
+        assert_eq!(history.entries[0].brief.seed, 5);
     }
 
     #[test]
@@ -888,8 +850,42 @@ pub(crate) mod tests {
         }
         assert_eq!(history.entries.len(), KEEP);
         assert_eq!(history.entries[0].id, first);
-        assert_eq!(history.entries[1].report.seed, 7);
+        assert_eq!(history.entries[1].brief.seed, 7);
         assert!(history.view().installed.is_some());
+    }
+
+    #[test]
+    fn trimming_spares_starred_seeds_and_the_newest() {
+        let mut history = History::default();
+        let add = |h: &mut History, seed| {
+            (h.add(
+                Settings::new(),
+                Extras::default(),
+                Label::default(),
+                report(seed),
+            ))
+            .id
+        };
+        let first = add(&mut history, 0);
+        history.star(&[first], true).unwrap();
+        for seed in 1..=KEEP as u64 + 5 {
+            add(&mut history, seed);
+        }
+        assert_eq!(history.entries.len(), KEEP);
+        assert_eq!(history.entries[0].id, first, "starred");
+        // Every seed starred: a new one still goes in, and stays while newest.
+        let ids: Vec<u32> = history.entries.iter().map(|e| e.id).collect();
+        history.star(&ids, true).unwrap();
+        let newest = add(&mut history, 999);
+        assert_eq!(history.entries.len(), KEEP + 1);
+        assert_eq!(history.entries.last().unwrap().id, newest);
+        let next = add(&mut history, 1000);
+        assert_eq!(
+            history.entries.len(),
+            KEEP + 1,
+            "the last unstarred one went"
+        );
+        assert!(history.get(newest).is_err() && history.get(next).is_ok());
     }
 
     #[test]
