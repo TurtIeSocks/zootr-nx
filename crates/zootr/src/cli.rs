@@ -13,7 +13,7 @@ use ounce_formats::Romfs;
 use crate::config::Config;
 use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
+use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport};
 use play::{
     Shoot, Sweep, boot_command, drill, drill_report, gauntlet_run, look, photo, play, sweep,
     sweep_report,
@@ -23,6 +23,7 @@ use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
 use seed::{print_written, shuffle};
 use selftest::selftest;
+use sweep_args::{SweepArgs, SweepReport};
 use target::target_command;
 use turn::turn;
 
@@ -38,6 +39,7 @@ mod running;
 mod save;
 mod seed;
 mod selftest;
+mod sweep_args;
 mod target;
 mod turn;
 
@@ -264,7 +266,7 @@ pub fn run() -> Result<()> {
             stall,
             start,
         } => play(&romfs()?, &script, attach, stall, start),
-        Command::Sweep {
+        Command::Sweep(SweepArgs {
             report:
                 Some(SweepReport::Report {
                     out,
@@ -273,11 +275,11 @@ pub fn run() -> Result<()> {
                     drills,
                 }),
             ..
-        } => {
+        }) => {
             dump()?;
             sweep_report(&out, from, to, &drills)
         }
-        Command::Sweep {
+        Command::Sweep(SweepArgs {
             out: Some(out),
             rounds,
             limit,
@@ -288,7 +290,7 @@ pub fn run() -> Result<()> {
             sides,
             judge,
             ..
-        } => {
+        }) => {
             let (romfs, path) = dump()?;
             let night = Sweep {
                 rounds,
@@ -316,36 +318,12 @@ pub fn run() -> Result<()> {
             let (romfs, path) = dump()?;
             drill(&romfs, &path, judge, out, skill, name.as_deref(), repeat)
         }
-        Command::Gauntlet {
-            run,
-            holders,
-            items,
-            places,
-            fail_fast,
-            black_limit,
-            load_limit,
-            seed,
-            out,
-            pristine,
-            sides,
-        } => {
+        Command::Gauntlet(args) => {
             let (romfs, path) = dump()?;
-            let g = crate::sweep::gauntlet::Gauntlet {
-                run,
-                holders,
-                items,
-                places,
-                fail_fast,
-                limits: crate::sweep::gauntlet::hang::Limits {
-                    black: std::time::Duration::from_secs_f32(black_limit),
-                    load: std::time::Duration::from_secs_f32(load_limit),
-                },
-                seed,
-                turn: None,
-            };
-            gauntlet_run(&romfs, &path, g, out, (pristine, sides))
+            let (g, out, saves) = args.gauntlet();
+            gauntlet_run(&romfs, &path, g, out, saves)
         }
-        Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
+        Command::Sweep(_) | Command::Drill { .. } => bail!("--out is required"),
     }
 }
 

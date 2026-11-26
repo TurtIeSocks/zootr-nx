@@ -8,6 +8,7 @@ use clap::{Args, Parser, Subcommand};
 
 use super::dev_args::{DevCommand, MemCommand};
 use super::logic_args::LogicCommand;
+use super::sweep_args::{GauntletArgs, SweepArgs};
 use crate::config::Config;
 use crate::progress::{About, Run};
 use crate::settings::Settings;
@@ -95,28 +96,6 @@ pub(super) struct JudgeArgs {
     /// start.
     #[arg(long)]
     pub(super) pristine: Option<PathBuf>,
-}
-
-/// `sweep report`.
-#[derive(Subcommand)]
-pub(super) enum SweepReport {
-    /// Tally a sweep's rows by holder kind and verdict, and its failures by
-    /// how the walk and use ended.
-    Report {
-        /// A night's folder, or a folder of nights.
-        #[arg(long)]
-        out: PathBuf,
-        /// From this round on.
-        #[arg(long)]
-        from: Option<u64>,
-        /// Up to this round.
-        #[arg(long)]
-        to: Option<u64>,
-        /// A ladder's folder, once for each machine. Its proven skills turn
-        /// a "nothing" that leans on an unproven one into "unproven".
-        #[arg(long)]
-        drills: Vec<PathBuf>,
-    },
 }
 
 /// `drill report`.
@@ -343,91 +322,14 @@ pub(super) enum Command {
         args_conflicts_with_subcommands = true,
         subcommand_negates_reqs = true
     )]
-    Sweep {
-        #[command(subcommand)]
-        report: Option<SweepReport>,
-        /// The night's folder.
-        #[arg(long, required = true)]
-        out: Option<PathBuf>,
-        /// Rounds to run, 0 for no end.
-        #[arg(long, default_value_t = 1)]
-        rounds: usize,
-        /// Spots a round at most, for a short run.
-        #[arg(long)]
-        limit: Option<usize>,
-        /// Every round in the settings mix whose name starts with this,
-        /// like `everything`, instead of each mix in turn.
-        #[arg(long)]
-        mix: Option<String>,
-        /// Only the spots whose name, holder or seed item holds this, like
-        /// `Cow`, for a run that tries one fix. Commas join parts that
-        /// must all match: `Pot,Melody` is a pot holding a song.
-        #[arg(long)]
-        only: Option<String>,
-        /// Every round on this seed, as a night's round named it
-        /// (`round-011-412851`), to see a failure again.
-        #[arg(long)]
-        seed: Option<u64>,
-        /// Step aside between spots whenever someone waits for this game
-        /// in the turn queue, keeping the round's place in
-        /// `<out>/resume.json`. Run again, it waits for the game, then
-        /// finishes that round.
-        #[arg(long = "yield", value_name = "GAME")]
-        yield_to: Option<String>,
-        /// A photo pass's `photos.jsonl`: each holder is used from the side
-        /// it was framed from first, until a night learns a better one.
-        #[arg(long, value_name = "FILE")]
-        sides: Option<PathBuf>,
-        #[command(flatten)]
-        judge: JudgeArgs,
-    },
+    Sweep(SweepArgs),
     /// Load every place and try every item kind at every holder kind, on
     /// seeds with every check kind shuffled, failing on a hung load (2 s of
     /// pure black, the triforce gone), a crash, a stall or a wrong item. No
     /// vision model. Writes `<out>/results.jsonl` and `<out>/report.md`,
     /// and exits 0 when all passed, 1 on any failure, 2 when the harness
     /// broke or a holder kind has no trigger yet.
-    Gauntlet {
-        /// What to run: `places` is the tour alone, `holders` and `items`
-        /// one row or column of the grid, `quick` and `full` the tour and
-        /// the grid.
-        #[arg(value_enum)]
-        run: crate::sweep::gauntlet::grid::Run,
-        /// Only this holder kind, like `pot`. Repeatable.
-        #[arg(long = "holder")]
-        holders: Vec<String>,
-        /// Only this item kind, like `song`. Repeatable.
-        #[arg(long = "item")]
-        items: Vec<String>,
-        /// Tour only the places whose `MAP/SPOT` holds this, like a map's
-        /// name, to see a hung load again. Repeatable.
-        #[arg(long = "place")]
-        places: Vec<String>,
-        /// Stop at the first failure.
-        #[arg(long)]
-        fail_fast: bool,
-        /// Seconds of pure black, the triforce gone, that make a hang.
-        #[arg(long, default_value_t = 2.0)]
-        black_limit: f32,
-        /// Seconds a load may take before it's a hang.
-        #[arg(long, default_value_t = 45.0)]
-        load_limit: f32,
-        /// The first round's seed, to repeat a run.
-        #[arg(long)]
-        seed: Option<u64>,
-        /// The run's folder. Defaults to `gauntlet/<time>-<run>/` beside
-        /// the app's live logs.
-        #[arg(long)]
-        out: Option<PathBuf>,
-        /// A save folder each start loads instead of a new file: on a
-        /// target with no `{save}` line, a kept new file.
-        #[arg(long)]
-        pristine: Option<PathBuf>,
-        /// A photo pass's `photos.jsonl`, for the side each holder is used
-        /// from first.
-        #[arg(long, value_name = "FILE")]
-        sides: Option<PathBuf>,
-    },
+    Gauntlet(GauntletArgs),
     /// Run the harness ladder's drills: small play tasks with a known
     /// answer, through the sweep's own code, on a seed that shuffles
     /// nothing. Rows go to `<out>/drills.jsonl`.
