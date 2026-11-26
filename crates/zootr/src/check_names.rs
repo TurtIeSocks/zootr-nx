@@ -19,6 +19,10 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../logic/names/death-mountain-trail.toml"),
     ),
     (
+        "desert-colossus.toml",
+        include_str!("../logic/names/desert-colossus.toml"),
+    ),
+    (
         "gerudo-valley.toml",
         include_str!("../logic/names/gerudo-valley.toml"),
     ),

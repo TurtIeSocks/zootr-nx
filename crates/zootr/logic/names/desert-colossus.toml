@@ -1,0 +1,67 @@
+# Desert Colossus. OoTR's name wherever the remake keeps the spot:
+# matched by position, the arrival points nearby, the rule comments and
+# the remake guides for the Gold Skulltulas and heart pieces.
+#
+# The child and adult maps each hold their own copy of the rocks, as
+# separate checks, so their names say which age's they are, as OoTR's
+# Market Guard House Child Pot does. Numbers count west to east within
+# one spot.
+
+# The Spirit Temple's front: Sheik, the child's soft soil Skulltula by
+# the steps, and the heart piece on the ledge above the soil.
+17185284981648881289 = "Colossus Sheik at Colossus"
+234735562946824289 = "Colossus GS Bean Patch"
+10592092054086534681 = "Colossus Freestanding PoH"
+
+# The chests on the statue's two hands, OoTR's Spirit Temple Silver
+# Gauntlets and Mirror Shield chests. Outside the temple here, they take
+# the area's prefix.
+2490063409521505179 = "Colossus Silver Gauntlets Chest"
+10012167258643363548 = "Colossus Mirror Shield Chest"
+
+# The adult's two Skulltulas: one on the northwest ledge the bean plant
+# passes, where the Guays circle, one on the cliff by the sand fall east
+# of the temple. Neither has OoTR's tree beside it.
+15057756765324812936 = "Colossus GS Hill" # guess: the ledge reached by bean plant or Longshot, as OoTR's Hill one is
+11160993739666517210 = "Colossus GS Sandfall" # guess: stands in for OoTR's Tree one, with no tree near it
+
+# Six rocks in a row east of that ledge.
+9098182495644025696 = "Colossus Near Hill Child Rock 1" # guess: named for the Skulltula ledge just west
+17758323757509734186 = "Colossus Near Hill Child Rock 2" # guess: named for the Skulltula ledge just west
+17030155793043366699 = "Colossus Near Hill Child Rock 3" # guess: named for the Skulltula ledge just west
+3794108288976088388 = "Colossus Near Hill Child Rock 4" # guess: named for the Skulltula ledge just west
+1846829036121299313 = "Colossus Near Hill Child Rock 5" # guess: named for the Skulltula ledge just west
+18192086157806368451 = "Colossus Near Hill Child Rock 6" # guess: named for the Skulltula ledge just west
+11645809275165132302 = "Colossus Near Hill Adult Rock 1" # guess: named for the Skulltula ledge just west
+3996706393667627088 = "Colossus Near Hill Adult Rock 2" # guess: named for the Skulltula ledge just west
+2257375462346864447 = "Colossus Near Hill Adult Rock 3" # guess: named for the Skulltula ledge just west
+7189120978405291373 = "Colossus Near Hill Adult Rock 4" # guess: named for the Skulltula ledge just west
+3891886645242384925 = "Colossus Near Hill Adult Rock 5" # guess: named for the Skulltula ledge just west
+3421274023671655352 = "Colossus Near Hill Adult Rock 6" # guess: named for the Skulltula ledge just west
+
+# The grotto under the rock only the Silver Gauntlets lift. OoTR's had
+# two scrubs. The remake's has a Beamos, Skullwalltulas and a chest.
+1186167733408299582 = "Colossus Grotto Chest"
+
+# Seven rocks with rupees under them, on a low ledge in the south.
+12414690125675705208 = "Colossus Ledge Child Rock 1" # guess: a low ledge with no better landmark
+352697202323389437 = "Colossus Ledge Child Rock 2" # guess: a low ledge with no better landmark
+15615314528351978483 = "Colossus Ledge Child Rock 3" # guess: a low ledge with no better landmark
+17604351797179232812 = "Colossus Ledge Child Rock 4" # guess: a low ledge with no better landmark
+18089518693918851857 = "Colossus Ledge Child Rock 5" # guess: a low ledge with no better landmark
+16808421367294770117 = "Colossus Ledge Child Rock 6" # guess: a low ledge with no better landmark
+2465861655194430312 = "Colossus Ledge Child Rock 7" # guess: a low ledge with no better landmark
+9203224707045543681 = "Colossus Ledge Adult Rock 1" # guess: a low ledge with no better landmark
+4108432179731449070 = "Colossus Ledge Adult Rock 2" # guess: a low ledge with no better landmark
+17813319975073074839 = "Colossus Ledge Adult Rock 3" # guess: a low ledge with no better landmark
+14514022023330510682 = "Colossus Ledge Adult Rock 4" # guess: a low ledge with no better landmark
+3068749159060442969 = "Colossus Ledge Adult Rock 5" # guess: a low ledge with no better landmark
+2046759311695128505 = "Colossus Ledge Adult Rock 6" # guess: a low ledge with no better landmark
+6141646481426607938 = "Colossus Ledge Adult Rock 7" # guess: a low ledge with no better landmark
+
+# A lone rock east of the temple.
+3151283906786313067 = "Colossus East Child Rock" # guess: no landmark near it
+8801611424590464863 = "Colossus East Adult Rock" # guess: no landmark near it
+
+# The Great Fairy's fountain.
+7117313034680832833 = "Colossus Great Fairy Reward"

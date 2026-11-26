@@ -461,7 +461,7 @@
       "forbid": [],
       "hash": "234735562946824289",
       "id": 312,
-      "name": "Desert Colossus West Gold Skulltula Token",
+      "name": "Colossus GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -646,7 +646,7 @@
       "forbid": [],
       "hash": "352697202323389437",
       "id": 1093,
-      "name": "Desert Colossus South Rock 12",
+      "name": "Colossus Ledge Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -2079,7 +2079,7 @@
       "forbid": [],
       "hash": "1186167733408299582",
       "id": 12,
-      "name": "Desert Colossus Northwest Purple Rupee (50) Chest",
+      "name": "Colossus Grotto Chest",
       "unprovable": false
     },
     {
@@ -3312,7 +3312,7 @@
       "forbid": [],
       "hash": "1846829036121299313",
       "id": 1098,
-      "name": "Desert Colossus Northwest Rock 8",
+      "name": "Colossus Near Hill Child Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -3696,7 +3696,7 @@
       "forbid": [],
       "hash": "2046759311695128505",
       "id": 1101,
-      "name": "Desert Colossus South Rock 3",
+      "name": "Colossus Ledge Adult Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4090,7 +4090,7 @@
       "forbid": [],
       "hash": "2257375462346864447",
       "id": 1104,
-      "name": "Desert Colossus Northwest Rock 1",
+      "name": "Colossus Near Hill Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4294,7 +4294,7 @@
       "forbid": [],
       "hash": "2465861655194430312",
       "id": 1106,
-      "name": "Desert Colossus South Rock 10",
+      "name": "Colossus Ledge Child Rock 7",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -4334,7 +4334,7 @@
       "forbid": [],
       "hash": "2490063409521505179",
       "id": 17,
-      "name": "Desert Colossus West Silver Gauntlets Chest",
+      "name": "Colossus Silver Gauntlets Chest",
       "unprovable": false
     },
     {
@@ -5229,7 +5229,7 @@
       "forbid": [],
       "hash": "3068749159060442969",
       "id": 1112,
-      "name": "Desert Colossus South Rock 13",
+      "name": "Colossus Ledge Adult Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5400,7 +5400,7 @@
       "forbid": [],
       "hash": "3151283906786313067",
       "id": 1113,
-      "name": "Desert Colossus Southeast Rock 2",
+      "name": "Colossus East Child Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5796,7 +5796,7 @@
       "forbid": [],
       "hash": "3421274023671655352",
       "id": 1115,
-      "name": "Desert Colossus Northwest Rock 3",
+      "name": "Colossus Near Hill Adult Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6389,7 +6389,7 @@
       "forbid": [],
       "hash": "3794108288976088388",
       "id": 1116,
-      "name": "Desert Colossus Northwest Rock 6",
+      "name": "Colossus Near Hill Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6550,7 +6550,7 @@
       "forbid": [],
       "hash": "3891886645242384925",
       "id": 1120,
-      "name": "Desert Colossus Northwest Rock 7",
+      "name": "Colossus Near Hill Adult Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6761,7 +6761,7 @@
       "forbid": [],
       "hash": "3996706393667627088",
       "id": 1122,
-      "name": "Desert Colossus Northwest Rock 11",
+      "name": "Colossus Near Hill Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6891,7 +6891,7 @@
       "forbid": [],
       "hash": "4108432179731449070",
       "id": 1123,
-      "name": "Desert Colossus South Rock 11",
+      "name": "Colossus Ledge Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10286,7 +10286,7 @@
       "forbid": [],
       "hash": "6141646481426607938",
       "id": 1145,
-      "name": "Desert Colossus South Rock 9",
+      "name": "Colossus Ledge Adult Rock 7",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -11715,7 +11715,7 @@
       "forbid": [],
       "hash": "7117313034680832833",
       "id": 157,
-      "name": "Desert Colossus Great Fairy of Nayru",
+      "name": "Colossus Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -11833,7 +11833,7 @@
       "forbid": [],
       "hash": "7189120978405291373",
       "id": 1150,
-      "name": "Desert Colossus Northwest Rock 5",
+      "name": "Colossus Near Hill Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14093,7 +14093,7 @@
       "forbid": [],
       "hash": "8801611424590464863",
       "id": 1165,
-      "name": "Desert Colossus Southeast Rock 1",
+      "name": "Colossus East Adult Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -14863,7 +14863,7 @@
       "forbid": [],
       "hash": "9098182495644025696",
       "id": 1169,
-      "name": "Desert Colossus Northwest Rock 10",
+      "name": "Colossus Near Hill Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -15142,7 +15142,7 @@
       "forbid": [],
       "hash": "9203224707045543681",
       "id": 1171,
-      "name": "Desert Colossus South Rock 5",
+      "name": "Colossus Ledge Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -16615,7 +16615,7 @@
       "forbid": [],
       "hash": "10012167258643363548",
       "id": 72,
-      "name": "Desert Colossus West Mirror Shield Chest",
+      "name": "Colossus Mirror Shield Chest",
       "unprovable": false
     },
     {
@@ -17706,7 +17706,7 @@
       "forbid": [],
       "hash": "10592092054086534681",
       "id": 294,
-      "name": "Desert Colossus Piece of Heart",
+      "name": "Colossus Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -18594,7 +18594,7 @@
       "forbid": [],
       "hash": "11160993739666517210",
       "id": 365,
-      "name": "Desert Colossus Northeast Gold Skulltula Token",
+      "name": "Colossus GS Sandfall",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19541,7 +19541,7 @@
       "forbid": [],
       "hash": "11645809275165132302",
       "id": 1186,
-      "name": "Desert Colossus Northwest Rock 9",
+      "name": "Colossus Near Hill Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20744,7 +20744,7 @@
       "forbid": [],
       "hash": "12414690125675705208",
       "id": 1196,
-      "name": "Desert Colossus South Rock 6",
+      "name": "Colossus Ledge Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23890,7 +23890,7 @@
       "forbid": [],
       "hash": "14514022023330510682",
       "id": 1216,
-      "name": "Desert Colossus South Rock 7",
+      "name": "Colossus Ledge Adult Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24698,7 +24698,7 @@
       "forbid": [],
       "hash": "15057756765324812936",
       "id": 387,
-      "name": "Desert Colossus Northwest Gold Skulltula Token",
+      "name": "Colossus GS Hill",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25405,7 +25405,7 @@
       "forbid": [],
       "hash": "15615314528351978483",
       "id": 1227,
-      "name": "Desert Colossus South Rock 2",
+      "name": "Colossus Ledge Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27265,7 +27265,7 @@
       "forbid": [],
       "hash": "16808421367294770117",
       "id": 1235,
-      "name": "Desert Colossus South Rock 4",
+      "name": "Colossus Ledge Child Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -27695,7 +27695,7 @@
       "forbid": [],
       "hash": "17030155793043366699",
       "id": 1239,
-      "name": "Desert Colossus Northwest Rock 2",
+      "name": "Colossus Near Hill Child Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28003,7 +28003,7 @@
       "forbid": [],
       "hash": "17185284981648881289",
       "id": 207,
-      "name": "Desert Colossus Sheik",
+      "name": "Colossus Sheik at Colossus",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -28719,7 +28719,7 @@
       "forbid": [],
       "hash": "17604351797179232812",
       "id": 1243,
-      "name": "Desert Colossus South Rock 8",
+      "name": "Colossus Ledge Child Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28989,7 +28989,7 @@
       "forbid": [],
       "hash": "17758323757509734186",
       "id": 1245,
-      "name": "Desert Colossus Northwest Rock 12",
+      "name": "Colossus Near Hill Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29036,7 +29036,7 @@
       "forbid": [],
       "hash": "17813319975073074839",
       "id": 1246,
-      "name": "Desert Colossus South Rock 1",
+      "name": "Colossus Ledge Adult Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29619,7 +29619,7 @@
       "forbid": [],
       "hash": "18089518693918851857",
       "id": 1250,
-      "name": "Desert Colossus South Rock 14",
+      "name": "Colossus Ledge Child Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29736,7 +29736,7 @@
       "forbid": [],
       "hash": "18192086157806368451",
       "id": 1252,
-      "name": "Desert Colossus Northwest Rock 4",
+      "name": "Colossus Near Hill Child Rock 6",
       "unprovable": false,
       "when": {
         "setting": "rocks"
