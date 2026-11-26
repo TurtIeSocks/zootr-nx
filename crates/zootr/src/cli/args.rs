@@ -13,7 +13,7 @@ use crate::progress::{About, Run};
 use crate::settings::Settings;
 use crate::sweep::drills::Skill;
 use crate::vision::{Api, Effort};
-use crate::{checks, generate, presets, savefile, settings};
+use crate::{checks, generate, presets, savefile};
 
 pub(super) use super::new_game::NewGame;
 pub(crate) use super::new_game::{favorite, setting};
@@ -587,8 +587,8 @@ pub(super) struct Shuffle {
     /// number: `HASH.Translate.1+=0.2` lifts it 0.2. Repeatable.
     #[arg(long, value_name = "HASH.PATH=VALUE", value_parser = field)]
     field: Vec<String>,
-    /// Shuffle nothing: only `--place` changes chests. The default, unless
-    /// a favorite shuffles.
+    /// Shuffle nothing: only `--place` changes chests. For the harness:
+    /// every check keeps its own item.
     #[arg(long)]
     vanilla: bool,
     /// Pin a dungeon door, as `DOOR=DUNGEON` by each one's dungeon, e.g.
@@ -843,11 +843,7 @@ fn is_mod_dir<'a>(dir: &Path, mods: impl IntoIterator<Item = &'a Path>) -> bool 
 
 impl Shuffle {
     pub(super) fn settings(&self) -> Settings {
-        let mut settings = self.new_game.settings();
-        if self.vanilla {
-            settings.insert(settings::SHUFFLE_ITEMS.into(), false.into());
-        }
-        settings
+        self.new_game.settings()
     }
 
     /// The colors asked for, Random not drawn yet: the file's, then each
@@ -891,6 +887,7 @@ impl Shuffle {
             fields: self.field.clone(),
             doors: self.door.clone(),
             release: self.release,
+            vanilla: self.vanilla,
             ..Default::default()
         }
     }
@@ -900,6 +897,7 @@ impl Shuffle {
 mod tests {
     use super::*;
     use crate::known::{field, flow, item};
+    use crate::settings;
     use crate::starting;
 
     #[test]

@@ -13,7 +13,7 @@ use crate::config::{Config, Target};
 use crate::game::Release;
 use crate::generate::{Extras, Report};
 use crate::places;
-use crate::settings::{self, SHUFFLE_ITEMS, Settings, SettingsVersion};
+use crate::settings::{self, Settings, SettingsVersion};
 use anyhow::{Context, Result, ensure};
 use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
@@ -165,19 +165,16 @@ impl History {
         })
     }
 
-    /// Saved history, brought up to date: older settings, the old
-    /// `vanilla` extra as Shuffle items off, and the build each seed was
-    /// made for kept in its extras ([`History::add`]). Reports catch up
-    /// as they're read ([`store::read_report`]).
+    /// Saved history, brought up to date: older settings, Shuffle items
+    /// off as the `vanilla` extra, and the build each seed was made for
+    /// kept in its extras ([`History::add`]). Reports catch up as they're
+    /// read ([`store::read_report`]).
     fn parse(json: &[u8]) -> Result<Self> {
         let mut history: Self = serde_json::from_slice(json)?;
         let from = std::mem::take(&mut history.settings_version);
         for e in &mut history.entries {
             e.extras.release.get_or_insert(e.brief.release);
-            settings::upgrade(&mut e.settings, from);
-            if std::mem::take(&mut e.extras.vanilla) {
-                e.settings.insert(SHUFFLE_ITEMS.into(), false.into());
-            }
+            e.extras.vanilla |= settings::upgrade(&mut e.settings, from);
         }
         Ok(history)
     }
@@ -898,30 +895,40 @@ pub(crate) mod tests {
             report(7),
         );
         let mut json = serde_json::to_value(&history).unwrap();
-        assert_eq!(json["settings_version"], 2);
+        assert_eq!(json["settings_version"], 3);
         let current = History::parse(json.to_string().as_bytes()).unwrap();
         assert_eq!(current.entries[0].settings, Settings::new());
         json.as_object_mut().unwrap().remove("settings_version");
         let old = History::parse(json.to_string().as_bytes()).unwrap();
         let want = crate::settings::favorites::randomizer();
         assert_eq!(old.entries[0].settings, want);
+        assert!(!old.entries[0].extras.vanilla);
     }
 
     #[test]
-    fn the_old_vanilla_extra_becomes_a_setting() {
+    fn seeds_that_shuffled_nothing_keep_their_items() {
         let mut history = History::default();
-        history.add(
-            Settings::new(),
-            Extras::default(),
-            Label::default(),
-            report(7),
-        );
-        let mut json = serde_json::to_value(&history).unwrap();
-        json["entries"][0]["extras"] = serde_json::json!({ "vanilla": true });
+        let extras = Extras {
+            vanilla: true,
+            ..Default::default()
+        };
+        history.add(Settings::new(), extras, Label::default(), report(7));
+        let json = serde_json::to_value(&history).unwrap();
         let e = &History::parse(json.to_string().as_bytes()).unwrap().entries[0];
-        assert_eq!(e.settings[SHUFFLE_ITEMS], false);
+        assert!(e.extras.vanilla, "the extra round-trips");
         assert_eq!(e.extras.release, Some(Release::V111), "its build kept");
-        assert!(!e.extras.vanilla);
+        // Saved while Shuffle items was a setting, off by default (#531).
+        let parsed = |entry: serde_json::Value| {
+            let mut json = json.clone();
+            json["settings_version"] = 2.into();
+            json["entries"][0]["extras"] = serde_json::json!({});
+            json["entries"][0]["settings"] = entry;
+            let e = History::parse(json.to_string().as_bytes()).unwrap().entries[0].clone();
+            assert!(!e.settings.contains_key("shuffle-items"));
+            e.extras.vanilla
+        };
+        assert!(parsed(serde_json::json!({ "chests": true })));
+        assert!(!parsed(serde_json::json!({ "shuffle-items": true })));
     }
 
     #[test]

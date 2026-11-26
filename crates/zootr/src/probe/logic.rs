@@ -240,7 +240,7 @@ pub(super) fn seeds(
     base.extend(settings.iter().cloned());
     let new_game = NewGame::from_settings(&base, &[])?;
     if !new_game.fills() {
-        println!("no fill runs: shuffle-items or logic is off, so a seed places items without one");
+        println!("no fill runs: logic is off, so a seed places items without one");
         return Ok(());
     }
     let checks = crate::checks::dealt(romfs, &new_game)?;

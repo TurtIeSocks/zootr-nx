@@ -13,10 +13,13 @@ pub struct NewGame {
     pub chest_size: ChestSize,
     /// A chest's look says what it holds (`chest_looks`).
     pub chest_looks: bool,
-    /// Leave every check's item where it is.
+    /// Leave every check's item where it is: the CLI's `--vanilla`, and
+    /// seeds from when Shuffle items was a setting.
     pub vanilla: bool,
     /// Leave each chest's item where it is, and shuffle the other checks.
     pub keep_chests: bool,
+    /// Leave Saria's and Zelda's ocarinas where they are: NPC Gifts off.
+    pub keep_gifts: bool,
     /// What the Inventory panel's grid starts Link holding.
     pub start: starting::Start,
     /// Upgrade chests give their line's levels in order.
@@ -170,12 +173,6 @@ impl NewGame {
             .map(|p| p.name.to_owned())
             .collect();
         let keys = chosen::<DungeonKeys>(settings, KEYS);
-        if keys.copies() && !on(SHUFFLE_ITEMS) {
-            bail!(
-                "{} needs items shuffled: keys take the place of key chests' items",
-                keys.label()
-            );
-        }
         let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
         let gerudo_fortress = chosen::<GerudoFortress>(settings, GERUDO_FORTRESS);
         let bridge = chosen::<Bridge>(settings, BRIDGE);
@@ -218,8 +215,9 @@ impl NewGame {
             chest_size: chosen(settings, CHEST_SIZE),
             chest_looks: on(CHEST_LOOKS),
             ice_traps: chosen(settings, ICE_TRAPS),
-            vanilla: !on(SHUFFLE_ITEMS),
+            vanilla: false,
             keep_chests: !on(CHESTS),
+            keep_gifts: !on(NPC_GIFTS),
             start,
             progressive: on(PROGRESSIVE),
             open_door: chosen::<DoorOfTime>(settings, DOOR_OF_TIME) == DoorOfTime::Open,
@@ -445,12 +443,12 @@ mod tests {
     use crate::known::flag;
     use crate::presets::ADULT_DEKU_TREE;
 
-    /// Since every setting defaults to vanilla, a default seed places
-    /// every item where it always is, and only shuffled items fill.
+    /// Every seed fills with logic unless logic is off. A default seed has
+    /// no check to fill, so every item stays where it always is.
     #[test]
-    fn only_shuffled_items_with_logic_fill() {
+    fn every_seed_fills_unless_logic_is_off() {
         let of = |settings: &Settings| NewGame::from_settings(settings, &[]).unwrap().fills();
-        assert!(!of(&Settings::new()));
+        assert!(of(&Settings::new()));
         let mut randomizer = super::super::favorites::randomizer();
         assert!(of(&randomizer));
         randomizer.insert(LOGIC.into(), choice_id(Logic::NoLogic).into());
@@ -510,8 +508,9 @@ mod tests {
                 skips: Skips::default(),
                 chest_size: ChestSize::Vanilla,
                 chest_looks: false,
-                vanilla: true,
+                vanilla: false,
                 keep_chests: true,
+                keep_gifts: true,
                 start: starting::Start::of(&starting::DEFAULT),
                 progressive: false,
                 open_door: false,
@@ -568,6 +567,15 @@ mod tests {
         );
     }
 
+    /// #531: Chests alone shuffled nothing, as a hidden Shuffle items
+    /// defaulted off and kept every item in place.
+    #[test]
+    fn chests_alone_shuffle_the_chests() {
+        let chests = Settings::from([(CHESTS.into(), true.into())]);
+        let game = NewGame::from_settings(&chests, &[]).unwrap();
+        assert!(!game.vanilla && !game.keep_chests && game.fills());
+    }
+
     #[test]
     fn toggles_map_to_preset_edits() {
         let settings = Settings::from([
@@ -579,7 +587,6 @@ mod tests {
                 starting::SETTING.into(),
                 serde_json::json!({ "bomb-bag": 1, "kokiri-sword": 1, "rupees": 50 }),
             ),
-            (SHUFFLE_ITEMS.into(), false.into()),
             (PROGRESSIVE.into(), false.into()),
         ]);
         let game = NewGame::from_settings(&settings, &["A=1".into()]).unwrap();
@@ -589,7 +596,7 @@ mod tests {
         assert_eq!(game.defaults, defaults);
         assert!(game.skips.is_empty());
         assert_eq!(game.start.0.len(), 3);
-        assert!(game.vanilla && !game.progressive);
+        assert!(!game.vanilla && !game.progressive);
     }
 
     /// The defaults `settings` add over a new game's own.
@@ -694,9 +701,9 @@ mod tests {
         let game = NewGame::from_settings(&settings, &[]).unwrap();
         assert_eq!(game.keys, DungeonKeys::Rings);
         assert!(!game.defaults.iter().any(|d| d.contains("DungeonInfo")));
-        let mut vanilla = settings.clone();
-        vanilla.insert(SHUFFLE_ITEMS.into(), false.into());
-        assert!(NewGame::from_settings(&vanilla, &[]).is_err());
+        let singles = Settings::from([(KEYS.into(), "singles".into())]);
+        let game = NewGame::from_settings(&singles, &[]).unwrap();
+        assert_eq!(game.keys, DungeonKeys::Singles);
         let def = schema().into_iter().find(|d| d.id == KEYS).unwrap();
         let Kind::Choice {
             default, options, ..

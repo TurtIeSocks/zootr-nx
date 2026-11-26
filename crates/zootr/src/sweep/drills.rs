@@ -12,8 +12,9 @@ use super::judge::Judge;
 use super::night::{self, Night, Round};
 use super::plan::Planned;
 use crate::dev;
+use crate::generate::Extras;
 use crate::play::Input;
-use crate::settings::{self, Settings};
+use crate::settings::Settings;
 
 /// What a drill proves the harness can do.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, ValueEnum)]
@@ -134,12 +135,18 @@ const SEED: u64 = 1;
 /// The file each drill run's row goes to, in the ladder's folder.
 pub const ROWS: &str = "drills.jsonl";
 
-/// The ladder's settings: the sweep's mix with every holder kind on, with
-/// nothing shuffled, so each kind is planned and keeps its own item.
+/// The ladder's settings: the sweep's mix with every holder kind on.
 pub fn settings() -> Result<Settings> {
-    let (_, mut settings) = night::mix(night::pinned("everything")?);
-    settings.insert(settings::SHUFFLE_ITEMS.into(), false.into());
-    Ok(settings)
+    Ok(night::mix(night::pinned("everything")?).1)
+}
+
+/// The ladder's extras: nothing shuffled, so each kind is planned and
+/// keeps its own item.
+fn extras() -> Extras {
+    Extras {
+        vanilla: true,
+        ..Default::default()
+    }
 }
 
 /// The drills `skill` and `name` pick: all of them with neither. `name`
@@ -184,7 +191,13 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     ) -> Result<()> {
         std::fs::create_dir_all(&self.dir)?;
         let places = dev::places(self.romfs)?;
-        let planned = night::pool(self.romfs, self.target, SEED, &settings()?, &places)?;
+        let planned = night::pool(
+            self.romfs,
+            self.target,
+            SEED,
+            (&settings()?, &extras()),
+            &places,
+        )?;
         let drills = matched(drills, &planned)?;
         let rows = self.dir.join(ROWS);
         let first = night::next_round(&std::fs::read_to_string(&rows).unwrap_or_default());

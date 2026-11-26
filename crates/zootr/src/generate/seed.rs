@@ -319,6 +319,7 @@ fn new_game(settings: &Settings, extras: &Extras, seed: u64) -> Result<NewGame> 
         random_age,
         colors: extras.colors.clone(),
         audio: extras.audio.clone(),
+        vanilla: extras.vanilla,
         ..NewGame::from_settings(&settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());

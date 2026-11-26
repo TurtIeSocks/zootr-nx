@@ -215,10 +215,19 @@ impl<'a> Dealer<'a, '_> {
         let (new_game, open) = (self.new_game, self.open);
         let placed_at = |hash: &u64| self.fixed.contains_key(hash) || pins.contains(hash);
         // With chests kept, a gift that may not hold its own item keeps it
-        // too: only chests could take it off its hands.
+        // too: only chests could take it off its hands. The minigame prize
+        // chests follow Chests, and the gifts no setting deals (Saria's and
+        // Zelda's ocarinas) follow NPC Gifts, so with every kind off nothing
+        // moves (#531).
         let keeps = |c: &'a ItemCheck| {
             let held = allowed(c, self.level(pooled(c)), new_game.progressive);
-            new_game.keep_chests && (!gifts::is_gift(c) || !held) && !placed_at(&c.hash)
+            let chest_kept = new_game.keep_chests && (!gifts::is_gift(c) || !held);
+            let own = match gifts::of(c) {
+                _ if gifts::is_prize(c) => new_game.keep_chests,
+                Some(g) if g.setting.is_none() => new_game.keep_gifts || chest_kept,
+                _ => chest_kept,
+            };
+            own && !placed_at(&c.hash)
         };
         // Kept checks hold their own item, placed like plando's.
         let (kept, chests): (Vec<_>, Vec<_>) =

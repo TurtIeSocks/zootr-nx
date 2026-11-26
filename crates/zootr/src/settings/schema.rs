@@ -122,16 +122,10 @@ fn check_defs() -> Vec<SettingDef> {
             IceTraps::label,
         ),
         toggle(
-            SHUFFLE_ITEMS,
-            place::CHECKS,
-            "Shuffle Items",
-            "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
-        ),
-        toggle(
             CHESTS,
             place::CHECKS,
             "Chests",
-            "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
+            "Each chest is a check, Dampe's race and the Treasure Chest Game's prize included. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
         ),
         toggle(
             SCRUBS,
