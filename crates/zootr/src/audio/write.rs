@@ -2,7 +2,8 @@
 //! its new song and its user given the song's call. An ocarina slot's call
 //! is repointed at another call of its user. A call swapped across users
 //! played silence both ways live, so a call track only trades within its
-//! user.
+//! user. An NPC voice slot takes the donor's voice type, or in chaos each
+//! of its lines a clip of the same emotion ([`super::voice`]).
 
 use std::collections::BTreeMap;
 
@@ -12,11 +13,23 @@ use ounce_formats::{
     xlink_copy_call,
 };
 
-use super::{Audio, HELD, TABLE, Track, Via, track};
+use super::{Audio, CHAOS, HELD, TABLE, Track, Via, track, voice};
 use crate::ageless_items::SOUNDS;
 
 /// Play each slot's new song. Writes nothing for a seed in vanilla music.
-pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
+/// `seed` draws the voice chaos.
+pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
+    let (voice, audio): (Audio, Audio) = (audio.clone().into_iter())
+        .partition(|(slot, _)| track(slot).is_ok_and(|t| t.via == Via::Voice));
+    let (mut trades, mut chaos) = (vec![], vec![]);
+    for (slot, donor) in &voice {
+        match donor == CHAOS {
+            true => chaos.push(track(slot)?),
+            false => trades.push((track(slot)?, track(donor)?)),
+        }
+    }
+    voice::trade(builder, &trades)?;
+    voice::chaos(builder, &chaos, seed)?;
     if audio.is_empty() {
         return Ok(());
     }
@@ -30,7 +43,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
         .map(|(name, graph)| Ok((name.to_string(), user(graph)?)))
         .collect::<Result<BTreeMap<_, _>>>()?;
     let (mut repoints, mut table) = (vec![], false);
-    for (slot, donor) in audio {
+    for (slot, donor) in &audio {
         let (slot, donor) = (track(slot)?, track(donor)?);
         let song = (donor.song).with_context(|| format!("{} gives no song", donor.id))?;
         match (slot.via, donor.via) {
@@ -186,7 +199,7 @@ mod tests {
             ("kokiri-forest".into(), "goron-city".into()),
             ("item-get-small".into(), "medal-get".into()),
         ]);
-        write(&mut builder, &audio).unwrap();
+        write(&mut builder, &audio, 0).unwrap();
         builder.finish().unwrap();
         let doc = BymlDoc::parse(&crate::game::read_built(&romfs, &dir, TABLE)).unwrap();
         let slink = crate::game::read_built(&romfs, &dir, SOUNDS);
@@ -221,7 +234,7 @@ mod tests {
             ("played-eponas-song".into(), "played-suns-song".into()),
             ("played-suns-song".into(), "played-eponas-song".into()),
         ]);
-        write(&mut builder, &audio).unwrap();
+        write(&mut builder, &audio, 0).unwrap();
         builder.finish().unwrap();
         let built = crate::game::read_built(&romfs, &dir, SOUNDS);
         let wrote_table = dir.join("romfs").join(TABLE).exists();
@@ -251,7 +264,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-voice-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let audio = Audio::from([("child-sword-light".into(), "child-death".into())]);
-        write(&mut builder, &audio).unwrap();
+        write(&mut builder, &audio, 0).unwrap();
         builder.finish().unwrap();
         let built = crate::game::read_built(&romfs, &dir, SOUNDS);
         std::fs::remove_dir_all(dir).unwrap();
@@ -281,11 +294,13 @@ mod tests {
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         let mut refused = |slot: &str, donor: &str| {
             let audio = Audio::from([(slot.into(), donor.into())]);
-            write(&mut builder, &audio).is_err()
+            write(&mut builder, &audio, 0).is_err()
         };
         assert!(refused("drugstore", "played-eponas-song"));
         assert!(refused("played-eponas-song", "drugstore"));
         assert!(refused("child-sword-light", "adult-death"));
+        assert!(refused("npc-navi", "drugstore"));
+        assert!(refused("drugstore", "npc-navi"));
         std::fs::remove_dir_all(dir).ok();
     }
 }

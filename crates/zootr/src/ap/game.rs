@@ -61,7 +61,7 @@ pub fn installed(romfs: &Romfs, gd: Arc<GameData>, target: Target) -> Result<Ins
     seed.check_version()?;
     Ok(Installed {
         book: Book::new(romfs, seed)?,
-        game: Live::new(target, gd, &entry.report.spots)?,
+        game: Live::new(target, gd, &history.installed_report()?.spots)?,
         slot: seed.slot.clone(),
     })
 }

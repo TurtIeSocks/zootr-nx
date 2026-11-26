@@ -1,6 +1,10 @@
 import { SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
+import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { useArmed } from "@/play/use-armed";
 
 /** Props for {@link ListRow}. */
@@ -17,18 +21,43 @@ export interface ListRowProps {
   mark?: ReactNode;
   /** Shown over the row's end on hover or focus, so they take no room. */
   actions: ReactNode;
+  /** Makes it pickable: a checkbox takes the lead's place, and a click
+   * anywhere on the row picks it, `range` with shift held. */
+  select?: { label: string; on: boolean; toggle: (range: boolean) => void };
 }
 
 /** A row of History or Favorites: a name over a quiet line, with its
- * actions a hover away. */
-export function ListRow({ id, lead, name, meta, mark, actions }: ListRowProps) {
+ * actions a hover away. Off screen, it skips layout. */
+export function ListRow({
+  id,
+  lead,
+  name,
+  meta,
+  mark,
+  actions,
+  select,
+}: ListRowProps) {
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the checkbox inside is the keyboard's way to pick it
     <li
       id={id}
       data-reveal={id ? true : undefined}
-      className="group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) focus-within:bg-surface-hover hover:bg-surface-hover"
+      onClick={select && ((e) => select.toggle(e.shiftKey))}
+      className={cn(
+        "group/row relative flex min-h-14 items-center gap-3 rounded-md px-3 py-2 transition-colors duration-(--duration-fast) [contain-intrinsic-size:auto_3.5rem] [content-visibility:auto] focus-within:bg-surface-hover hover:bg-surface-hover",
+        select && "cursor-pointer select-none",
+      )}
     >
-      {lead}
+      {select ? (
+        <Checkbox
+          aria-label={select.label}
+          checked={select.on}
+          // The row's click picks it, keys included: the box only shows it.
+          onClick={(e) => e.preventDefault()}
+        />
+      ) : (
+        lead
+      )}
       <div className="min-w-0 flex-1">
         {name}
         <div className="mt-0.5 flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-ink-faint text-xs">
@@ -75,6 +104,41 @@ export function UseSettings({ differs, tip, onUse }: UseSettingsProps) {
     >
       <SlidersHorizontal />
     </TipButton>
+  );
+}
+
+/** Props for {@link ConfirmText}. */
+export interface ConfirmTextProps {
+  /** What it says until clicked. */
+  label: string;
+  tip: string;
+  /** What it says once armed, waiting for the second click. */
+  confirm: string;
+  disabled?: boolean;
+  onConfirm: () => void;
+}
+
+/** A text button that acts on a second click, saying `confirm` between. */
+export function ConfirmText({
+  label,
+  tip,
+  confirm,
+  disabled,
+  onConfirm,
+}: ConfirmTextProps) {
+  const { armed, ...handlers } = useArmed(onConfirm);
+  return (
+    // A disabled button gets no pointer events: the wrap keeps its tip.
+    <Tip tip={tip} wrap={disabled}>
+      <Button
+        variant={armed ? "destructive" : "ghost"}
+        size="sm"
+        disabled={disabled}
+        {...handlers}
+      >
+        {armed ? confirm : label}
+      </Button>
+    </Tip>
   );
 }
 

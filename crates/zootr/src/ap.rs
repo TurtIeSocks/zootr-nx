@@ -98,6 +98,7 @@ pub const OPTIONS: &[&str] = &[
     "king-zora-moved",
     "adult-jabu-jabu",
     "day-skulltulas",
+    "breakables-respawn",
     "scrub-price",
     "quiet-enemies",
     "menus",
