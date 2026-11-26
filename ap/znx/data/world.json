@@ -62,7 +62,7 @@
       "forbid": [],
       "hash": "97733905166195279",
       "id": 1255,
-      "name": "Deku Tree Lower Grass 19",
+      "name": "Deku Tree B2 Boss Room Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -205,7 +205,7 @@
       "forbid": [],
       "hash": "160199974268797383",
       "id": 1435,
-      "name": "Deku Tree Lower Green Rupee (1) 2",
+      "name": "Deku Tree B2 Scrub Brothers Green Rupee",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -533,7 +533,7 @@
       "forbid": [],
       "hash": "317932415623775006",
       "id": 1258,
-      "name": "Deku Tree Grass 5",
+      "name": "Deku Tree 2F Slingshot Room Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1181,7 +1181,7 @@
       "forbid": [],
       "hash": "729508615351641392",
       "id": 1439,
-      "name": "Deku Tree Lower Recovery Heart 4",
+      "name": "Deku Tree B2 Basement Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -1268,7 +1268,7 @@
       "forbid": [],
       "hash": "821372075822700622",
       "id": 6,
-      "name": "Deku Tree Upper Fairy Slingshot Chest",
+      "name": "Deku Tree 2F Slingshot Chest",
       "unprovable": false
     },
     {
@@ -3258,7 +3258,7 @@
       "forbid": [],
       "hash": "1816878459590690022",
       "id": 1275,
-      "name": "Deku Tree Upper Grass 2",
+      "name": "Deku Tree 3F Compass Room Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3454,7 +3454,7 @@
       "forbid": [],
       "hash": "1922216023914752593",
       "id": 1450,
-      "name": "Deku Tree Upper Recovery Heart 3",
+      "name": "Deku Tree 3F Upper Lobby Recovery Heart 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -3539,7 +3539,7 @@
       "forbid": [],
       "hash": "1977371275298064713",
       "id": 1276,
-      "name": "Deku Tree Upper Grass 1",
+      "name": "Deku Tree 3F Compass Room Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4054,7 +4054,7 @@
       "forbid": [],
       "hash": "2222711177065858733",
       "id": 1455,
-      "name": "Deku Tree Lower Recovery Heart 2",
+      "name": "Deku Tree B2 Basement Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -4510,7 +4510,7 @@
       "forbid": [],
       "hash": "2540384747854371104",
       "id": 1280,
-      "name": "Deku Tree Lower Grass 5",
+      "name": "Deku Tree B1 Push Block Room Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4894,7 +4894,7 @@
       "forbid": [],
       "hash": "2794401671936016215",
       "id": 1285,
-      "name": "Deku Tree Lower Grass 18",
+      "name": "Deku Tree B2 Boss Room Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5724,7 +5724,7 @@
       "forbid": [],
       "hash": "3341493256150380219",
       "id": 1291,
-      "name": "Deku Tree Grass 2",
+      "name": "Deku Tree 1F Lobby Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -5868,7 +5868,7 @@
       "forbid": [],
       "hash": "3473330859120899719",
       "id": 1292,
-      "name": "Deku Tree Grass 6",
+      "name": "Deku Tree 2F Slingshot Room Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -6849,7 +6849,7 @@
       "forbid": [],
       "hash": "4077483205678899114",
       "id": 1298,
-      "name": "Deku Tree Lower Grass 1",
+      "name": "Deku Tree B1 Basement Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7868,7 +7868,7 @@
       "forbid": [],
       "hash": "4622654469035644255",
       "id": 1302,
-      "name": "Deku Tree Lower Grass 8",
+      "name": "Deku Tree B1 Larva Room Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7908,7 +7908,7 @@
       "forbid": [],
       "hash": "4629107463458964273",
       "id": 1303,
-      "name": "Deku Tree Lower Grass 17",
+      "name": "Deku Tree B2 Boss Room Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9965,7 +9965,7 @@
       "forbid": [],
       "hash": "5920725837809443985",
       "id": 1484,
-      "name": "Deku Tree Lower Recovery Heart 1",
+      "name": "Deku Tree B1 Basement Scrub Recovery Heart",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -10268,7 +10268,7 @@
       "forbid": [],
       "hash": "6108036589892819583",
       "id": 1319,
-      "name": "Deku Tree Lower Grass 2",
+      "name": "Deku Tree B1 Basement Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10493,7 +10493,7 @@
       "forbid": [],
       "hash": "6283235374766662242",
       "id": 1321,
-      "name": "Deku Tree Lower Grass 15",
+      "name": "Deku Tree B2 Boss Room Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10722,7 +10722,7 @@
       "forbid": [],
       "hash": "6421784517512490450",
       "id": 1324,
-      "name": "Deku Tree Lower Grass 7",
+      "name": "Deku Tree B1 Larva Room Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -12422,7 +12422,7 @@
       "forbid": [],
       "hash": "7457705918063319421",
       "id": 1334,
-      "name": "Deku Tree Lower Grass 9",
+      "name": "Deku Tree B2 Scrub Brothers Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -13017,7 +13017,7 @@
       "forbid": [],
       "hash": "7976713952680358969",
       "id": 420,
-      "name": "Deku Tree Queen Gohma",
+      "name": "Deku Tree B2 Queen Gohma",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -13719,7 +13719,7 @@
       "forbid": [],
       "hash": "8579518566955184384",
       "id": 433,
-      "name": "Deku Tree Map Chest",
+      "name": "Deku Tree 2F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -13787,7 +13787,7 @@
       "forbid": [],
       "hash": "8632533875205065781",
       "id": 1498,
-      "name": "Deku Tree Recovery Heart",
+      "name": "Deku Tree 2F Scrub Near Slingshot Room Recovery Heart",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -14695,7 +14695,7 @@
       "forbid": [],
       "hash": "9056903661273588275",
       "id": 1504,
-      "name": "Deku Tree Lower Recovery Heart 5",
+      "name": "Deku Tree B2 Scrub Brothers Recovery Heart",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -15270,7 +15270,7 @@
       "forbid": [],
       "hash": "9284193025315608699",
       "id": 434,
-      "name": "Deku Tree Upper Compass Chest",
+      "name": "Deku Tree 3F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -15412,7 +15412,7 @@
       "forbid": [],
       "hash": "9391308054738304433",
       "id": 1509,
-      "name": "Deku Tree Green Rupee (1)",
+      "name": "Deku Tree 2F Scrub Near Slingshot Room Green Rupee",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -16597,7 +16597,7 @@
       "forbid": [],
       "hash": "9991051747036366069",
       "id": 1348,
-      "name": "Deku Tree Lower Grass 11",
+      "name": "Deku Tree B2 Scrub Brothers Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -17341,7 +17341,7 @@
       "forbid": [],
       "hash": "10336513835630620955",
       "id": 1351,
-      "name": "Deku Tree Grass 3",
+      "name": "Deku Tree 1F Lobby Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -17438,7 +17438,7 @@
       "forbid": [],
       "hash": "10420058391592786882",
       "id": 1522,
-      "name": "Deku Tree Lower Green Rupee (1) 1",
+      "name": "Deku Tree B1 Basement Scrub Green Rupee",
       "unprovable": true,
       "when": {
         "setting": "loose-items"
@@ -18129,7 +18129,7 @@
       "forbid": [],
       "hash": "10930275110907912056",
       "id": 1353,
-      "name": "Deku Tree Lower Grass 4",
+      "name": "Deku Tree B1 Basement Scrub Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -18876,7 +18876,7 @@
       "forbid": [],
       "hash": "11368028582977069031",
       "id": 81,
-      "name": "Deku Tree Upper Deku Nuts (3) Chest 2",
+      "name": "Deku Tree 3F Compass Room Side Chest",
       "unprovable": false
     },
     {
@@ -20483,7 +20483,7 @@
       "forbid": [],
       "hash": "12259396602144487886",
       "id": 1370,
-      "name": "Deku Tree Lower Grass 3",
+      "name": "Deku Tree B1 Basement Scrub Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -20932,7 +20932,7 @@
       "forbid": [],
       "hash": "12536486041203664147",
       "id": 1372,
-      "name": "Deku Tree Grass 7",
+      "name": "Deku Tree 2F Slingshot Room Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21166,7 +21166,7 @@
       "forbid": [],
       "hash": "12690895733615844950",
       "id": 1375,
-      "name": "Deku Tree Grass 4",
+      "name": "Deku Tree 2F Slingshot Room Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -21411,7 +21411,7 @@
       "forbid": [],
       "hash": "12889104996486369065",
       "id": 91,
-      "name": "Deku Tree Lower Deku Sticks (3) Chest",
+      "name": "Deku Tree B1 Basement Chest",
       "unprovable": false
     },
     {
@@ -21675,7 +21675,7 @@
       "forbid": [],
       "hash": "13027331340815880287",
       "id": 96,
-      "name": "Deku Tree Upper Deku Nuts (3) Chest 1",
+      "name": "Deku Tree 2F Slingshot Room Side Chest",
       "unprovable": false
     },
     {
@@ -22272,7 +22272,7 @@
       "forbid": [],
       "hash": "13412951694392781478",
       "id": 1383,
-      "name": "Deku Tree Lower Grass 14",
+      "name": "Deku Tree B2 Boss Room Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22640,7 +22640,7 @@
       "forbid": [],
       "hash": "13609975487234437568",
       "id": 378,
-      "name": "Deku Tree Upper Gold Skulltula Token",
+      "name": "Deku Tree 3F GS Compass Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23094,7 +23094,7 @@
       "forbid": [],
       "hash": "13873141578313882881",
       "id": 1384,
-      "name": "Deku Tree Lower Grass 10",
+      "name": "Deku Tree B2 Scrub Brothers Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -25333,7 +25333,7 @@
       "forbid": [],
       "hash": "15513822668871942093",
       "id": 1396,
-      "name": "Deku Tree Lower Grass 12",
+      "name": "Deku Tree B2 Boss Room Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -25994,7 +25994,7 @@
       "forbid": [],
       "hash": "16002722698574188382",
       "id": 1398,
-      "name": "Deku Tree Grass 1",
+      "name": "Deku Tree 1F Lobby Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26157,7 +26157,7 @@
       "forbid": [],
       "hash": "16101480770659370603",
       "id": 396,
-      "name": "Deku Tree Lower Gold Skulltula Token 2",
+      "name": "Deku Tree B1 GS Basement Vines",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -26273,7 +26273,7 @@
       "forbid": [],
       "hash": "16164791133086825945",
       "id": 1556,
-      "name": "Deku Tree Upper Recovery Heart 1",
+      "name": "Deku Tree 3F Upper Lobby Recovery Heart 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -26519,7 +26519,7 @@
       "forbid": [],
       "hash": "16322427109872094443",
       "id": 1404,
-      "name": "Deku Tree Lower Grass 13",
+      "name": "Deku Tree B2 Boss Room Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26607,7 +26607,7 @@
       "forbid": [],
       "hash": "16355617740219907263",
       "id": 1557,
-      "name": "Deku Tree Upper Recovery Heart 2",
+      "name": "Deku Tree 3F Upper Lobby Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -26852,7 +26852,7 @@
       "forbid": [],
       "hash": "16523077681389688437",
       "id": 1406,
-      "name": "Deku Tree Lower Grass 6",
+      "name": "Deku Tree B1 Push Block Room Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26899,7 +26899,7 @@
       "forbid": [],
       "hash": "16597323285320397604",
       "id": 1559,
-      "name": "Deku Tree Lower Recovery Heart 3",
+      "name": "Deku Tree B2 Basement Recovery Heart 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28533,7 +28533,7 @@
       "forbid": [],
       "hash": "17501688996789643983",
       "id": 403,
-      "name": "Deku Tree Lower Gold Skulltula Token 3",
+      "name": "Deku Tree B1 GS Basement Back Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -29274,7 +29274,7 @@
       "forbid": [],
       "hash": "17948245526767051747",
       "id": 416,
-      "name": "Deku Tree Heart Container",
+      "name": "Deku Tree B2 Queen Gohma Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -29551,7 +29551,7 @@
       "forbid": [],
       "hash": "18075358844331090388",
       "id": 407,
-      "name": "Deku Tree Lower Gold Skulltula Token 1",
+      "name": "Deku Tree B1 GS Basement Gate",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -29718,7 +29718,7 @@
       "forbid": [],
       "hash": "18176645256741116364",
       "id": 1411,
-      "name": "Deku Tree Lower Grass 16",
+      "name": "Deku Tree B2 Boss Room Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
