@@ -13,11 +13,11 @@
 234735562946824289 = "Colossus GS Bean Patch"
 10592092054086534681 = "Colossus Freestanding PoH"
 
-# The chests on the statue's two hands, OoTR's Spirit Temple Silver
-# Gauntlets and Mirror Shield chests. Outside the temple here, they take
-# the area's prefix.
-2490063409521505179 = "Colossus Silver Gauntlets Chest"
-10012167258643363548 = "Colossus Mirror Shield Chest"
+# The chests on the statue's two hands. The remake's Colossus map holds
+# them, but they belong to the temple: OoTR's names, with no floor, as the
+# dungeon map doesn't show them (maintainer, 2026-11-25).
+2490063409521505179 = "Spirit Temple Silver Gauntlets Chest"
+10012167258643363548 = "Spirit Temple Mirror Shield Chest"
 
 # The adult's two Skulltulas: one on the northwest ledge the bean plant
 # passes, where the Guays circle, one on the cliff by the sand fall east
