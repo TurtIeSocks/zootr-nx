@@ -4746,7 +4746,7 @@
       "forbid": [],
       "hash": "2709540841225524749",
       "id": 585,
-      "name": "Haunted Wasteland North Pot 2",
+      "name": "Wasteland Near GS Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4876,7 +4876,7 @@
       "forbid": [],
       "hash": "2769366735314972197",
       "id": 589,
-      "name": "Haunted Wasteland North Pot 4",
+      "name": "Wasteland Near GS Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7535,7 +7535,7 @@
       "forbid": [],
       "hash": "4476280516446896621",
       "id": 646,
-      "name": "Haunted Wasteland North Pot 5",
+      "name": "Wasteland Near GS Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9125,7 +9125,7 @@
       "forbid": [],
       "hash": "5411720365708262050",
       "id": 675,
-      "name": "Haunted Wasteland North Pot 7",
+      "name": "Wasteland Near GS Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9997,7 +9997,7 @@
       "forbid": [],
       "hash": "5947730631239458151",
       "id": 692,
-      "name": "Haunted Wasteland North Pot 3",
+      "name": "Wasteland Near GS Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12663,7 +12663,7 @@
       "forbid": [],
       "hash": "7610536230682784975",
       "id": 747,
-      "name": "Haunted Wasteland North Pot 1",
+      "name": "Wasteland Near GS Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14175,7 +14175,7 @@
       "forbid": [],
       "hash": "8825521833684392638",
       "id": 139,
-      "name": "Haunted Wasteland North Business Scrub Seed Chest",
+      "name": "Wasteland Chest",
       "unprovable": false
     },
     {
@@ -21193,7 +21193,7 @@
       "forbid": [],
       "hash": "12727181966767362695",
       "id": 1077,
-      "name": "Haunted Wasteland West Crate 1",
+      "name": "Wasteland Near Colossus Adult Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -23614,7 +23614,7 @@
       "forbid": [],
       "hash": "14313291033423603590",
       "id": 931,
-      "name": "Haunted Wasteland North Pot 8",
+      "name": "Wasteland Near GS Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24385,7 +24385,7 @@
       "forbid": [],
       "hash": "14910672274965350769",
       "id": 386,
-      "name": "Haunted Wasteland Gold Skulltula Token",
+      "name": "Wasteland GS",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24914,7 +24914,7 @@
       "forbid": [],
       "hash": "15199213860662802000",
       "id": 951,
-      "name": "Haunted Wasteland North Pot 6",
+      "name": "Wasteland Near GS Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27734,7 +27734,7 @@
       "forbid": [],
       "hash": "17038515111946271548",
       "id": 221,
-      "name": "Haunted Wasteland Carpet Merchant",
+      "name": "Wasteland Bombchu Salesman",
       "unprovable": false,
       "when": {
         "setting": "merchants"
@@ -27823,7 +27823,7 @@
       "forbid": [],
       "hash": "17072091790119450948",
       "id": 1086,
-      "name": "Haunted Wasteland West Crate 2",
+      "name": "Wasteland Near Colossus Child Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
