@@ -52,7 +52,7 @@ pub mod scene;
 pub mod shape;
 pub mod shove;
 #[cfg(test)]
-mod sim;
+pub(crate) mod sim;
 pub mod sink;
 pub mod terrain;
 pub mod trace;

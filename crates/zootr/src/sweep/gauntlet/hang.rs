@@ -12,6 +12,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::dev::{Dev, State};
+use crate::live::Memory;
 use crate::play::Input;
 
 /// How long each sign may last before it's a hang.
@@ -97,10 +98,10 @@ pub struct Watched {
 }
 
 /// Watch the game after a teleport to `want` until Link stands on it in
-/// play, the screen lit, for [`SETTLED`], or until a hang. Frames go to
-/// `frame`, the newest kept.
-pub fn settle(
-    dev: &Dev,
+/// play, the screen lit, for [`SETTLED`], or until a hang, pressing A
+/// through arrival text. Frames go to `frame`, the newest kept.
+pub fn settle<M: Memory>(
+    dev: &Dev<M>,
     input: &mut impl Input,
     want: &str,
     limits: Limits,
@@ -123,7 +124,12 @@ pub fn settle(
 /// black, quit or unread, as it stands now. The window is long enough for
 /// a black that starts with it to show, not one that starts later. A stuck
 /// text box isn't a hang here: the cell's own verdict tells of it.
-pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) -> Option<Hang> {
+pub fn probe<M: Memory>(
+    dev: &Dev<M>,
+    input: &mut impl Input,
+    limits: Limits,
+    frame: &Path,
+) -> Option<Hang> {
     let want = dev.state().map(|s| s.map).unwrap_or_default();
     // Never past the load limit: only black, quit and unread can show.
     let limits = Limits {
@@ -136,8 +142,8 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
 
 /// Look at the game every [`TICK`], a frame into `frame` each time, until
 /// a hang or until `done` says so. Gives when it stopped and the hang.
-fn watch<I: Input>(
-    dev: &Dev,
+fn watch<M: Memory, I: Input>(
+    dev: &Dev<M>,
     input: &mut I,
     want: &str,
     limits: Limits,
@@ -147,8 +153,10 @@ fn watch<I: Input>(
     let start = Instant::now();
     let mut seen = Watch::default();
     loop {
-        let at = start.elapsed();
         let lit = seen.framed(shoot(input, frame));
+        // After the shot: one that took its whole timeout to fail mustn't
+        // count as that long without a frame.
+        let at = start.elapsed();
         if let Some(hang) = seen.tick(at, input, dev.state(), lit, want, limits) {
             return (at, Some(hang));
         }
@@ -353,8 +361,9 @@ mod tests {
         fn stick(&mut self, _: &str, _: u64) -> Result<()> {
             Ok(())
         }
-        fn shot(&mut self, _: &Path) -> Result<()> {
-            Ok(())
+        /// A pure black frame.
+        fn shot(&mut self, to: &Path) -> Result<()> {
+            Ok(std::fs::write(to, frame(16, 16, |_, _| [0; 3]))?)
         }
         fn crash(&self) -> Option<String> {
             (!self.0).then(|| "exit 139".into())
@@ -378,6 +387,19 @@ mod tests {
 
     fn secs(s: f32) -> Duration {
         Duration::from_secs_f32(s)
+    }
+
+    #[test]
+    fn a_probe_of_a_black_game_hangs_and_keeps_its_frame() {
+        let dir = std::env::temp_dir().join(format!("zootr-hang-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let shot = dir.join("hang.png");
+        // A game whose reads all fail and whose frames are all black: the
+        // black shows at 2 s, before the reads' 5 s.
+        let hang = probe(&crate::nav::sim::dev(), &mut Up(true), LIMITS, &shot);
+        assert!(matches!(hang, Some(Hang::Black { .. })), "{hang:?}");
+        assert!(shot.exists());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
@@ -494,7 +516,7 @@ mod tests {
     }
 
     #[test]
-    fn a_probe_with_no_load_limit_never_overflows() {
+    fn a_watch_with_no_load_limit_never_overflows() {
         let mut w = Watch::default();
         let none = Limits {
             load: Duration::MAX,
@@ -537,19 +559,19 @@ mod tests {
     fn no_frame_never_settles_and_hangs_after_five_seconds() {
         let mut w = Watch::default();
         let up = Up(true);
-        let mut look = |at| {
-            w.tick(
-                secs(at),
-                &up,
-                state("FakeMap", false, false),
-                None,
-                "FakeMap",
-                LIMITS,
-            )
+        let look = |w: &mut Watch, at| {
+            let lit = w.framed(Err(anyhow::anyhow!("fake shot failure")));
+            let state = state("FakeMap", false, false);
+            w.tick(secs(at), &up, state, lit, "FakeMap", LIMITS)
         };
-        assert_eq!(look(0.0), None);
-        assert_eq!(look(4.0), None);
-        assert!(matches!(look(5.0), Some(Hang::Unread { why }) if why.contains("no frame")));
+        assert_eq!(look(&mut w, 0.0), None);
+        assert_eq!(look(&mut w, 4.0), None);
+        let hang = look(&mut w, 5.0);
+        let why = |w: &str| w.contains("no frame") && w.contains("fake shot failure");
+        assert!(
+            matches!(&hang, Some(Hang::Unread { why: w }) if why(w)),
+            "{hang:?}"
+        );
         assert!(!w.settled(secs(5.0)));
     }
 
