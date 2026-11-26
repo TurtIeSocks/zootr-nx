@@ -969,7 +969,7 @@ mod tests {
             item(4961588221597286817),
             Some(actor::T_BOX_ARROW_BUNDLE_MEDIUM.to_string())
         );
-        assert!(!checks.iter().any(|c| c.holder == &**actor::OBJ_T_BOX_A_04));
+        assert!(!checks.iter().any(|c| c.holder == **actor::OBJ_T_BOX_A_04));
     }
 
     #[test]
