@@ -57,7 +57,7 @@ pub enum Hang {
     /// An event played through the load limit: `secs` since the teleport.
     Event { secs: f32, map: String },
     /// On the map asked for, never lit in play for [`SETTLED`] in a row by
-    /// the load limit: `secs` since the teleport.
+    /// [`SETTLED`] past the load limit: `secs` since the teleport.
     Unsettled { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
@@ -123,8 +123,9 @@ pub fn settle(
     }
 }
 
-/// After a cell that didn't give its item: whether the game hung there,
-/// black, quit or unread, watched long enough for each to show. A stuck
+/// After a cell that didn't give its item: whether the game hangs there,
+/// black, quit or unread, as it stands now. The window is long enough for
+/// a black that starts with it to show, not one that starts later. A stuck
 /// text box isn't a hang here: the cell's own verdict tells of it.
 pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) -> Option<Hang> {
     let want = dev.state().map(|s| s.map).unwrap_or_default();
@@ -148,14 +149,14 @@ fn watch<I: Input>(
     mut done: impl FnMut(&Watch, &mut I, Duration) -> bool,
 ) -> (Duration, Option<Hang>) {
     let start = Instant::now();
-    let mut watch = Watch::default();
+    let mut seen = Watch::default();
     loop {
         let at = start.elapsed();
-        let lit = watch.framed(shoot(input, frame));
-        if let Some(hang) = watch.tick(at, input, dev.state(), lit, want, limits) {
+        let lit = seen.framed(shoot(input, frame));
+        if let Some(hang) = seen.tick(at, input, dev.state(), lit, want, limits) {
             return (at, Some(hang));
         }
-        if done(&watch, input, at) {
+        if done(&seen, input, at) {
             return (at, None);
         }
         sleep(TICK);
@@ -259,16 +260,13 @@ impl Watch {
             self.play = None;
             return past.then(|| Hang::Loading { secs, map: map() });
         }
-        if state.event {
+        if state.event && state.map == want {
             self.play = None;
-            // Text on the way elsewhere isn't the arrival's: no A for it.
-            if state.map == want {
-                self.event.get_or_insert(at);
-            } else {
-                self.event = None;
-            }
+            self.event.get_or_insert(at);
             return past.then(|| Hang::Event { secs, map: map() });
         }
+        // Text on the way elsewhere isn't the arrival's: no A for it, and
+        // past the limit it's a mis-arrival, with the map wanted.
         self.event = None;
         if state.map != want {
             self.play = None;
@@ -511,6 +509,9 @@ mod tests {
             w.tick(secs(9.0), &up, state(), Some(false), "FakeMap", none),
             None
         );
+        // Lit again at the end of time: still no sum past MAX.
+        let end = Duration::MAX - Duration::from_secs(1);
+        assert_eq!(w.tick(end, &up, state(), Some(true), "FakeMap", none), None);
     }
 
     #[test]
@@ -607,6 +608,16 @@ mod tests {
             LIMITS,
         );
         assert!(matches!(wrong, Some(Hang::WrongMap { .. })));
+        let mut w = Watch::default();
+        let text_there = w.tick(
+            secs(46.0),
+            &up,
+            state("FakeOther", false, true),
+            Some(true),
+            "FakeMap",
+            LIMITS,
+        );
+        assert!(matches!(text_there, Some(Hang::WrongMap { .. })));
         let mut w = Watch::default();
         let quit = w.tick(
             secs(1.0),
