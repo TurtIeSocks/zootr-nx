@@ -171,7 +171,8 @@ fn watch<M: Memory, I: Input>(
 
 /// A frame into `to`, and whether it's lit. It's taken beside `to` and
 /// moved there only once it came: an older frame can't pass for a new
-/// one, and a failed shot leaves the last good frame as evidence.
+/// one, and a failed shot leaves the last good frame as evidence and no
+/// half-written one beside it.
 fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     let next = to.with_extension("next.png");
     if let Err(e) = std::fs::remove_file(&next)
@@ -179,10 +180,12 @@ fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     {
         return Err(e.into());
     }
-    input.shot(&next)?;
-    let lit = !is_black(&std::fs::read(&next)?)?;
-    std::fs::rename(&next, to)?;
-    Ok(lit)
+    let lit = (input.shot(&next)).and_then(|()| Ok(!is_black(&std::fs::read(&next)?)?));
+    match lit {
+        Ok(_) => std::fs::rename(&next, to)?,
+        Err(_) => _ = std::fs::remove_file(&next),
+    }
+    lit
 }
 
 /// What the watch has seen so far: when each sign began.
@@ -352,12 +355,23 @@ mod tests {
         assert!(is_black(&frame(320, 180, stray)).unwrap());
     }
 
-    /// An input that runs, or quit with a log line.
-    struct Up(bool);
+    /// An input that runs, or quit with a log line. Its frames are pure
+    /// black, or torn: not a PNG.
+    #[derive(Clone, Copy)]
+    struct Up {
+        running: bool,
+        torn: bool,
+    }
+
+    /// An input that runs, its frames black.
+    const UP: Up = Up {
+        running: true,
+        torn: false,
+    };
 
     impl Input for Up {
         fn running(&self) -> bool {
-            self.0
+            self.running
         }
         fn launch(&mut self, _: Option<&Path>) -> Result<()> {
             Ok(())
@@ -371,12 +385,15 @@ mod tests {
         fn stick(&mut self, _: &str, _: u64) -> Result<()> {
             Ok(())
         }
-        /// A pure black frame.
         fn shot(&mut self, to: &Path) -> Result<()> {
-            Ok(std::fs::write(to, frame(16, 16, |_, _| [0; 3]))?)
+            let png = match self.torn {
+                true => b"torn".to_vec(),
+                false => frame(16, 16, |_, _| [0; 3]),
+            };
+            Ok(std::fs::write(to, png)?)
         }
         fn crash(&self) -> Option<String> {
-            (!self.0).then(|| "exit 139".into())
+            (!self.running).then(|| "exit 139".into())
         }
     }
 
@@ -406,16 +423,32 @@ mod tests {
         let shot = dir.join("hang.png");
         // A game whose reads all fail and whose frames are all black: the
         // black shows at 2 s, before the reads' 5 s.
-        let hang = probe(&crate::nav::sim::dev(), &mut Up(true), LIMITS, &shot);
+        let hang = probe(&crate::nav::sim::dev(), &mut { UP }, LIMITS, &shot);
         assert!(matches!(hang, Some(Hang::Black { .. })), "{hang:?}");
         assert!(shot.exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
+    fn a_shot_that_fails_keeps_the_last_frame_and_leaves_no_other() {
+        let dir = std::env::temp_dir().join(format!("zootr-shoot-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let to = dir.join("frame.png");
+        assert!(!shoot(&mut { UP }, &to).unwrap());
+        assert!(shoot(&mut Up { torn: true, ..UP }, &to).is_err());
+        assert!(is_black(&std::fs::read(&to).unwrap()).unwrap());
+        let left: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect();
+        assert_eq!(left, ["frame.png"]);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
     fn two_seconds_of_black_hang_even_while_loading() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let look = |w: &mut Watch, at, lit| {
             w.tick(
                 secs(at),
@@ -444,7 +477,7 @@ mod tests {
     #[test]
     fn an_event_on_the_map_asked_for_is_talked_through_after_two_seconds() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let look = |w: &mut Watch, at, map| {
             w.tick(
                 secs(at),
@@ -476,7 +509,7 @@ mod tests {
     #[test]
     fn an_event_past_the_load_limit_hangs_and_a_failed_read_keeps_its_clock() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let event = || state("FakeMap", false, true);
         assert_eq!(
             w.tick(secs(0.0), &up, event(), Some(true), "FakeMap", LIMITS),
@@ -496,7 +529,7 @@ mod tests {
     #[test]
     fn a_black_screen_hangs_even_when_reads_fail() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let fail = || Err(anyhow::anyhow!("fake read failure"));
         assert_eq!(
             w.tick(secs(0.0), &up, fail(), Some(false), "FakeMap", LIMITS),
@@ -509,7 +542,7 @@ mod tests {
     #[test]
     fn a_missing_frame_neither_starts_nor_ends_play_and_flicker_never_settles() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let look = |w: &mut Watch, at, lit| {
             let state = state("FakeMap", false, false);
             w.tick(secs(at), &up, state, lit, "FakeMap", LIMITS)
@@ -552,7 +585,7 @@ mod tests {
             load: Duration::MAX,
             ..LIMITS
         };
-        let up = Up(true);
+        let up = UP;
         let state = || state("FakeMap", false, false);
         assert_eq!(
             w.tick(secs(0.0), &up, state(), Some(true), "FakeMap", none),
@@ -588,7 +621,7 @@ mod tests {
     #[test]
     fn no_frame_never_settles_and_hangs_after_five_seconds() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let look = |w: &mut Watch, at| {
             let lit = w.framed(Err(anyhow::anyhow!("fake shot failure")));
             let state = state("FakeMap", false, false);
@@ -608,7 +641,7 @@ mod tests {
     #[test]
     fn black_that_lights_again_is_a_normal_load() {
         let mut w = Watch::default();
-        let up = Up(true);
+        let up = UP;
         let mut look = |at, loading, lit| {
             w.tick(
                 secs(at),
@@ -640,7 +673,7 @@ mod tests {
 
     #[test]
     fn a_load_past_its_limit_a_wrong_map_and_a_quit_hang() {
-        let up = Up(true);
+        let up = UP;
         let mut w = Watch::default();
         let late = w.tick(
             secs(46.0),
@@ -674,7 +707,10 @@ mod tests {
         let mut w = Watch::default();
         let quit = w.tick(
             secs(1.0),
-            &Up(false),
+            &Up {
+                running: false,
+                ..UP
+            },
             state("FakeMap", false, false),
             Some(true),
             "FakeMap",
@@ -690,7 +726,7 @@ mod tests {
 
     #[test]
     fn reads_failing_five_seconds_hang() {
-        let up = Up(true);
+        let up = UP;
         let mut w = Watch::default();
         let fail = || Err(anyhow::anyhow!("no answer"));
         assert_eq!(
