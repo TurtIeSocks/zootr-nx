@@ -399,7 +399,7 @@ fn reinstall(
     restyle: bool,
 ) -> anyhow::Result<()> {
     let entry = History::load()?.get(id)?.clone();
-    let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
+    let (seed, settings, mut extras) = (entry.brief.seed, entry.settings, entry.extras);
     if restyle {
         extras = extras.styled(Config::load()?.drafts(), seed)?;
     }
@@ -452,17 +452,26 @@ async fn history() -> Res<View> {
     blocking(history::view).await
 }
 
-/// Change history and save it.
-fn edit_history(f: impl FnOnce(&mut History) -> anyhow::Result<()>) -> Res<()> {
+/// Change history and save it, giving what the change gave.
+fn edit_history<T>(f: impl FnOnce(&mut History) -> anyhow::Result<T>) -> Res<T> {
     let mut history = History::load().map_err(text)?;
-    f(&mut history).map_err(text)?;
-    history.save().map_err(text)
+    let done = f(&mut history).map_err(text)?;
+    history.save().map_err(text)?;
+    Ok(done)
 }
 
+/// Delete seeds, starred ones too: how many it kept for being installed.
 #[tauri::command]
 #[specta::specta]
-fn delete_seed(id: u32) -> Res<()> {
-    edit_history(|h| h.remove(id))
+fn delete_seeds(ids: Vec<u32>) -> Res<u32> {
+    edit_history(|h| Ok(h.remove(&ids)? as u32))
+}
+
+/// Star seeds so trimming and Clear pass them by, or unstar them.
+#[tauri::command]
+#[specta::specta]
+fn star_seeds(ids: Vec<u32>, starred: bool) -> Res<()> {
+    edit_history(|h| h.star(&ids, starred))
 }
 
 /// Name a seed and note what it's for.
@@ -472,7 +481,7 @@ fn label_seed(id: u32, label: Label) -> Res<()> {
     edit_history(|h| h.relabel(id, label))
 }
 
-/// Delete every seed but the installed one.
+/// Delete every seed but the installed and starred ones.
 #[tauri::command]
 #[specta::specta]
 fn clear_history() -> Res<()> {
@@ -496,13 +505,13 @@ struct Spoiler {
 #[specta::specta]
 fn spoiler(id: u32) -> Res<Spoiler> {
     let history = History::load().map_err(text)?;
-    let report = &history.get(id).map_err(text)?.report;
+    let report = history.report(id).map_err(text)?;
     Ok(Spoiler {
-        spots: report.spots.clone(),
-        events: report.events.clone(),
-        unprovable: report.unprovable.clone(),
-        start: report.start.clone(),
-        entrances: report.entrances.clone(),
+        spots: report.spots,
+        events: report.events,
+        unprovable: report.unprovable,
+        start: report.start,
+        entrances: report.entrances,
     })
 }
 
@@ -653,7 +662,8 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             generating::generate_log,
             uninstall,
             history,
-            delete_seed,
+            delete_seeds,
+            star_seeds,
             label_seed,
             clear_history,
             spoiler,

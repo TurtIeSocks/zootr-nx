@@ -43,6 +43,32 @@ pub fn add_keys(root: &mut Byml, twins: &[(u64, u64)]) -> Result<usize> {
     Ok(n)
 }
 
+/// The reset type of a breakable's key (pot, crate, rock, grass, hive):
+/// kept in the save, cleared by its area's own countdown (bit 64).
+/// `docs/research/tracker-flags.md` §16.
+const BREAKABLE: i64 = 88;
+/// The reset bit that clears a key on every map load, as a shop shelf's.
+const ON_LOAD: i64 = 1;
+
+/// Make every breakable's key clear on each map load as well, so broken
+/// pots, crates, rocks, grass and hives come back whenever Link enters an
+/// area. Run after [`add_keys`], so twins' keys change too. Returns how
+/// many it changed.
+pub fn respawn_on_load(root: &mut Byml) -> Result<usize> {
+    let mut n = 0;
+    for entry in table(root, KEYED)? {
+        let entry = entry.as_mut_map()?;
+        let Some(reset) = entry.get_mut(&**field::RESET_TYPE_VALUE) else {
+            continue;
+        };
+        if int(reset).ok() == Some(BREAKABLE) {
+            *reset = typed(Some(reset), (BREAKABLE | ON_LOAD) as u32)?;
+            n += 1;
+        }
+    }
+    Ok(n)
+}
+
 /// [`add_bools`] for the `Int` table, defaulting to 0. Each copies the first
 /// Int kept in the save the way Link's rupees and keys are.
 pub fn add_ints(root: &mut Byml, names: &[String]) -> Result<()> {
@@ -503,14 +529,14 @@ fn table<'a>(root: &'a mut Byml, kind: &str) -> Result<&'a mut Vec<Byml>> {
         .as_mut_array()?)
 }
 
-/// `hash` as the same integer type as `like`.
-fn typed(like: Option<&Byml>, hash: u32) -> Result<Byml> {
+/// `n` (a hash, a reset type) as the same integer type as `like`.
+fn typed(like: Option<&Byml>, n: u32) -> Result<Byml> {
     Ok(match like {
-        Some(Byml::U32(_)) => Byml::U32(hash),
-        Some(Byml::I32(_)) => Byml::I32(hash as i32),
-        Some(Byml::U64(_)) => Byml::U64(hash.into()),
-        Some(Byml::I64(_)) => Byml::I64(hash.into()),
-        other => bail!("a hash is {other:?}"),
+        Some(Byml::U32(_)) => Byml::U32(n),
+        Some(Byml::I32(_)) => Byml::I32(n as i32),
+        Some(Byml::U64(_)) => Byml::U64(n.into()),
+        Some(Byml::I64(_)) => Byml::I64(n.into()),
+        other => bail!("an integer field is {other:?}"),
     })
 }
 
@@ -550,6 +576,41 @@ mod tests {
         assert_eq!(Byml::Map(held), copy);
         assert!(!hashes.contains(&5));
         assert!(add_keys(&mut doc.root, &twins).is_err());
+    }
+
+    #[test]
+    fn breakables_and_their_twins_respawn_on_load() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let mut doc = BymlDoc::parse(&romfs.read(PATH).unwrap()).unwrap();
+        let resets = |root: &mut Byml| -> Vec<(u64, i64)> {
+            (table(root, KEYED).unwrap().iter())
+                .map(|e| {
+                    let e = e.as_map().unwrap();
+                    let reset = int(&e[&**field::RESET_TYPE_VALUE]).unwrap();
+                    (e["Hash"].as_int::<u64>().unwrap(), reset)
+                })
+                .collect()
+        };
+        // A rock's key, and its twin's copy of it.
+        let (rock, twin) = (6429280567576879719, 1 << 62);
+        add_keys(&mut doc.root, &[(rock, twin)]).unwrap();
+        let was = resets(&mut doc.root);
+        let breakables = was.iter().filter(|(_, r)| *r == BREAKABLE).count();
+        assert!(breakables > 2000);
+        assert_eq!(respawn_on_load(&mut doc.root).unwrap(), breakables);
+        let now = resets(&mut doc.root);
+        for ((hash, before), (_, after)) in was.iter().zip(&now) {
+            let want = if *before == BREAKABLE {
+                BREAKABLE | ON_LOAD
+            } else {
+                *before
+            };
+            assert_eq!(*after, want, "{hash}");
+        }
+        let of = |h: u64| now.iter().find(|(x, _)| *x == h).unwrap().1;
+        assert_eq!((of(rock), of(twin)), (89, 89));
     }
 
     #[test]

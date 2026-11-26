@@ -50,6 +50,7 @@ pub fn files() -> impl Iterator<Item = &'static str> {
         .chain(crate::chest_looks::FILES)
         .chain(crate::colors::files())
         .chain([crate::audio::TABLE])
+        .chain(crate::audio::VOICE_FILES.iter().map(String::as_str))
         .filter(move |f| seen.insert(*f))
 }
 

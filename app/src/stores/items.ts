@@ -91,16 +91,26 @@ function showArt(gameArt: boolean) {
     });
 }
 
-/** Takes the backend's whole state. */
+/** Takes the backend's whole state. The first one clears why loading
+ * failed before it. */
 function put({ cells, options, game_art }: ItemsState) {
   useItems.setState((s) => ({
     ...s,
     loaded: true,
     cells,
     options: fullOptions(options),
+    error: s.loaded ? s.error : undefined,
   }));
   showArt(game_art);
 }
+
+/** Loads the backend's state, unless an event brought it first. The tab
+ * calls it again while nothing has loaded, so a failed load at startup
+ * doesn't stick. */
+export const load = () =>
+  call(commands.itemsState())
+    .then((s) => useItems.getState().loaded || put(s))
+    .catch(fail);
 
 /** Listens for the backend's state and loads it. Each state says whether
  * to build the dump's icons. */
@@ -110,9 +120,7 @@ const started = once(async () => {
   const unlisten = await events.itemsEvent.listen(({ payload }) =>
     put(payload),
   );
-  call(commands.itemsState())
-    .then((s) => useItems.getState().loaded || put(s))
-    .catch(fail);
+  void load();
   return unlisten;
 });
 

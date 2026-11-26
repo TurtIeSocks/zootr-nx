@@ -53,6 +53,8 @@ const backend = {
   build: (): Promise<unknown> => backend.icons,
   /** Why popping out fails, if it does. */
   popOutFail: undefined as string | undefined,
+  /** Why loading the state fails, if it does. */
+  loadFail: undefined as string | undefined,
   send(payload: ItemsState) {
     act(() => {
       for (const l of backend.listeners) l({ payload });
@@ -75,7 +77,12 @@ vi.mock("@/bindings", () => ({
     },
   },
   commands: {
-    itemsState: () => Promise.resolve({ status: "ok", data: backend.state }),
+    itemsState: () =>
+      Promise.resolve(
+        backend.loadFail
+          ? { status: "error", error: backend.loadFail }
+          : { status: "ok", data: backend.state },
+      ),
     itemsOptions: (o: TrackerOptions) => itemsOptions(o),
     itemsPopOut: () =>
       Promise.resolve(
@@ -117,6 +124,20 @@ afterEach(() => {
   Object.assign(backend, was);
   backend.listeners = [];
   backend.popOutFail = undefined;
+  backend.loadFail = undefined;
+});
+
+test("opening the tab loads again after a failed load at startup", async () => {
+  useItems.setState({ loaded: false, error: undefined });
+  backend.loadFail = "renaming history.json";
+  void init();
+  await waitFor(() =>
+    expect(useItems.getState().error).toBe("renaming history.json"),
+  );
+  backend.loadFail = undefined;
+  render(<ItemsView />);
+  expect(await screen.findByRole("region", { name: "Inventory" })).toBeTruthy();
+  expect(screen.queryByText("renaming history.json")).toBeNull();
 });
 
 test("hidden sections stay hidden", async () => {

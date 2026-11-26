@@ -10,6 +10,7 @@ export const POOLS = [
   "ocarina",
   "voice-adult",
   "voice-child",
+  "npc-voice",
 ] as const satisfies readonly Pool[];
 
 /** Each pool as the pane names it. */
@@ -21,6 +22,7 @@ export const POOL_LABELS: Record<(typeof POOLS)[number], string> = {
   ocarina: "Ocarina",
   "voice-adult": "Adult voice",
   "voice-child": "Child voice",
+  "npc-voice": "NPC voices",
 };
 
 /** A track override's value for "keep this one vanilla", as the backend

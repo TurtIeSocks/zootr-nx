@@ -80,6 +80,7 @@ ganons-trials = "all-six"
 king-zora-moved = true
 adult-jabu-jabu = "always"
 day-skulltulas = true
+breakables-respawn = true
 scrub-price = "90"
 quiet-enemies = true
 menus = true
