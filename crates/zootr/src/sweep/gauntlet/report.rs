@@ -138,8 +138,6 @@ fn read(rows: &str) -> Read {
                 });
                 seen.outcome = Outcome::Fail(hang_words(&row["hang"]));
                 seen.evidence.extend(frame);
-                seen.evidence
-                    .extend(row["dump"].as_str().map(str::to_owned));
             }
             row::REFUSED => _ = out.cells.insert(name, seen_of(Outcome::Refused(why))),
             row::UNPLANNED => _ = out.cells.insert(name, seen_of(Outcome::Harness(why))),

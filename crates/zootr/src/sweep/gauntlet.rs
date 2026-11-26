@@ -56,7 +56,7 @@ pub fn settings() -> Result<Settings> {
     let (_, mut s) = night::mix(night::pinned("everything")?);
     s.insert(settings::KEYS.into(), "singles".into());
     s.insert(settings::ICE_TRAPS.into(), "some".into());
-    for on in [
+    for id in [
         settings::SHUFFLE_ITEMS,
         // Keys one by one take the place of the key chests' rupees.
         settings::CHESTS,
@@ -67,7 +67,7 @@ pub fn settings() -> Result<Settings> {
         settings::RUNNING_RACE,
         settings::MASTER_SWORD,
     ] {
-        s.insert(on.into(), true.into());
+        s.insert(id.into(), true.into());
     }
     Ok(s)
 }
@@ -101,9 +101,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             rounds.len()
         );
         for (r, cells) in rounds.iter().enumerate() {
-            let at = (r, seed.wrapping_add(r as u64));
-            let went = self.gauntlet_round(g, at, split(cells, &refused), &settings, &places);
-            match went {
+            let round = (r, seed.wrapping_add(r as u64));
+            let ran = self.gauntlet_round(g, round, split(cells, &refused), &settings, &places);
+            match ran {
                 Ok(Go::On) => {}
                 Ok(Go::Stop) => break,
                 Err(e) => {
@@ -171,7 +171,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         let known = self.known();
         for c in &placed {
             let name = c.name();
-            let Some(p) = planned.iter().find(|p| p.spot.hash == c.holder) else {
+            let Some(spot) = planned.iter().find(|p| p.spot.hash == c.holder) else {
                 let why = format!("the seed plans no spot at holder {}", c.holder);
                 append(
                     &rows,
@@ -183,7 +183,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 "gauntlet": row::CELL, "cell": name,
                 "holder_kind": HOLDERS[c.holder_kind].name, "item_kind": ITEMS[c.item_kind].name,
             });
-            let first = night::at_known(p, &known);
+            let first = night::at_known(spot, &known);
             let verdict = self.spot(&live.dev, &at, &first, &name, &tag)?;
             if self.after_cell(g, &mut live, &verdict, c, &shots)? == Go::Stop {
                 return Ok(Go::Stop);
@@ -293,12 +293,12 @@ fn split<'a>(
     cells: &[Cell],
     refused: &'a [(Cell, String)],
 ) -> (Vec<Cell>, Vec<&'a (Cell, String)>) {
-    let here: Vec<_> = refused.iter().filter(|(c, _)| cells.contains(c)).collect();
+    let refused_here: Vec<_> = refused.iter().filter(|(c, _)| cells.contains(c)).collect();
     let placed = (cells.iter())
-        .filter(|c| !here.iter().any(|(o, _)| o == *c))
+        .filter(|c| !refused_here.iter().any(|(o, _)| o == *c))
         .copied()
         .collect();
-    (placed, here)
+    (placed, refused_here)
 }
 
 /// The thread dump after a hang, or why there's none.
@@ -327,7 +327,7 @@ fn refusals(romfs: &Romfs, settings: &Settings, cells: &[Cell]) -> Result<Vec<(C
     let mut out = vec![];
     for c in cells {
         let item = ITEMS[c.item_kind].item();
-        let why = match dealt.iter().find(|d| d.hash == c.holder) {
+        let why = match dealt.iter().find(|check| check.hash == c.holder) {
             None => Some(format!(
                 "holder {} isn't a check with these settings",
                 c.holder
@@ -358,6 +358,25 @@ mod tests {
         .into();
         let order: Vec<String> = tour_order(&places).iter().map(|p| p.map.clone()).collect();
         assert_eq!(order, ["FakeHill_Child", "FakeHill_Adult", "FakeDungeon"]);
+    }
+
+    #[test]
+    fn a_round_places_its_cells_but_the_refused_ones() {
+        let cells = Run::Holders.cells();
+        let refused = vec![
+            (cells[1], "fake refusal".to_string()),
+            (Run::Items.cells()[5], "x".into()),
+        ];
+        let (placed, refused_here) = split(&cells, &refused);
+        assert_eq!(placed.len(), cells.len() - 1);
+        assert!(!placed.contains(&cells[1]));
+        assert_eq!(refused_here, [&refused[0]]);
+        let extras = plando(&placed);
+        assert_eq!(extras.place.len(), placed.len());
+        assert_eq!(
+            extras.place[&cells[0].holder],
+            ITEMS[cells[0].item_kind].item()
+        );
     }
 
     #[test]

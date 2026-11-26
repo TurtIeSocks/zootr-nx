@@ -53,6 +53,9 @@ pub enum Hang {
     WrongMap { map: String, want: String },
     /// An event played through the load limit: `secs` since the teleport.
     Event { secs: f32, map: String },
+    /// On the map asked for, never lit in play for 3 s in a row by the
+    /// load limit: `secs` since the teleport.
+    Unsettled { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
     /// Reads of the game failed, or no frame came, for 5 s.
@@ -157,7 +160,7 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
 /// `to` to pass for it when none comes.
 fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
     match std::fs::remove_file(to) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e)?,
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
         _ => {}
     }
     input.shot(to)?;
@@ -178,6 +181,8 @@ struct Watch {
     unread: Option<Duration>,
     /// Since when an event played on the map asked for.
     event: Option<Duration>,
+    /// The map the last read named.
+    map: String,
     /// Since when Link stood in play on a lit frame.
     play: Option<Duration>,
 }
@@ -198,6 +203,36 @@ impl Watch {
             return Some(Hang::Crashed { why });
         }
         let secs = at.as_secs_f32();
+        // Frames first: a black screen is a hang whether or not the game
+        // still answers reads. A missing frame neither starts nor ends the
+        // black.
+        match lit {
+            Some(false) => _ = self.black.get_or_insert(at),
+            Some(true) => self.black = None,
+            None => {}
+        }
+        match lit {
+            Some(_) => self.unframed = None,
+            None => _ = self.unframed.get_or_insert(at),
+        }
+        // Play needs a lit frame on every look since it began.
+        match lit {
+            Some(true) => {}
+            _ => self.play = None,
+        }
+        if let Ok(s) = &state {
+            self.map.clone_from(&s.map);
+        }
+        if let Some(since) = self.black.filter(|since| at - *since >= limits.black) {
+            let secs = (at - since).as_secs_f32();
+            let map = self.map.clone();
+            return Some(Hang::Black { secs, map });
+        }
+        if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
+            let secs = (at - since).as_secs_f32();
+            let why = format!("no frame came for {secs:.1} s: {}", self.no_frame);
+            return Some(Hang::Unread { why });
+        }
         let state = match state {
             Ok(s) => {
                 self.unread = None;
@@ -211,54 +246,33 @@ impl Watch {
                 });
             }
         };
-        let map = state.map.clone();
-        // A missing frame neither starts nor ends the black, and never
-        // counts as lit.
-        match lit {
-            Some(false) => _ = self.black.get_or_insert(at),
-            Some(true) => self.black = None,
-            None => {}
-        }
-        match lit {
-            Some(_) => self.unframed = None,
-            None => _ = self.unframed.get_or_insert(at),
-        }
-        if let Some(since) = self.black.filter(|since| at - *since >= limits.black) {
-            let secs = (at - since).as_secs_f32();
-            return Some(Hang::Black { secs, map });
-        }
-        if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
-            let secs = (at - since).as_secs_f32();
-            let why = format!("no frame came for {secs:.1} s: {}", self.no_frame);
-            return Some(Hang::Unread { why });
-        }
         let past = at >= limits.load;
+        let map = || state.map.clone();
         if state.loading {
             self.play = None;
-            return past.then_some(Hang::Loading { secs, map });
+            return past.then(|| Hang::Loading { secs, map: map() });
         }
         if state.event {
             self.play = None;
             if state.map == want {
                 self.event.get_or_insert(at);
             }
-            return past.then_some(Hang::Event { secs, map });
+            return past.then(|| Hang::Event { secs, map: map() });
         }
         self.event = None;
         if state.map != want {
             self.play = None;
             return past.then(|| Hang::WrongMap {
-                map,
+                map: map(),
                 want: want.into(),
             });
         }
-        match (lit, self.black) {
-            (Some(true), None) => _ = self.play.get_or_insert(at),
-            (Some(true), Some(_)) | (Some(false), _) => self.play = None,
-            // No frame: play neither starts nor ends.
-            (None, _) => {}
+        if lit == Some(true) {
+            self.play.get_or_insert(at);
         }
-        None
+        // Settled by now, or never: a screen that keeps flickering dark.
+        let unsettled = at >= limits.load + SETTLED && !self.settled(at);
+        unsettled.then(|| Hang::Unsettled { secs, map: map() })
     }
 
     /// A shot's outcome as [`Watch::tick`] takes it, keeping why it failed.
@@ -412,6 +426,69 @@ mod tests {
         assert_eq!(look(1.0, "FakeMap"), None);
         assert!(!w.talking(secs(2.0)));
         assert!(w.talking(secs(3.0)));
+    }
+
+    #[test]
+    fn a_black_screen_hangs_even_when_reads_fail() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let fail = || Err(anyhow::anyhow!("fake read failure"));
+        assert_eq!(
+            w.tick(secs(0.0), &up, fail(), Some(false), "FakeMap", LIMITS),
+            None
+        );
+        let hang = w.tick(secs(2.0), &up, fail(), Some(false), "FakeMap", LIMITS);
+        assert!(matches!(hang, Some(Hang::Black { .. })), "{hang:?}");
+    }
+
+    #[test]
+    fn a_missing_frame_restarts_play_and_flicker_never_settles() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let mut look = |at, lit| {
+            w.tick(
+                secs(at),
+                &up,
+                state("FakeMap", false, false),
+                lit,
+                "FakeMap",
+                LIMITS,
+            )
+        };
+        assert_eq!(look(0.0, Some(true)), None);
+        assert_eq!(look(1.0, None), None);
+        assert_eq!(look(2.0, Some(true)), None);
+        assert!(!w.settled(secs(3.5)));
+        // Lit and black in turn, each under the black limit, to the end.
+        let mut w = Watch::default();
+        let mut hang = None;
+        for i in 0..100 {
+            let at = i as f32;
+            hang = w.tick(
+                secs(at),
+                &up,
+                state("FakeMap", false, false),
+                Some(i % 2 == 0),
+                "FakeMap",
+                LIMITS,
+            );
+            if hang.is_some() {
+                assert_eq!(at, 48.0);
+                break;
+            }
+        }
+        assert!(matches!(hang, Some(Hang::Unsettled { .. })), "{hang:?}");
+    }
+
+    #[test]
+    fn an_rgba_frame_ignores_its_alpha() {
+        let mut out = Vec::new();
+        let mut enc = png::Encoder::new(&mut out, 16, 16);
+        enc.set_color(png::ColorType::Rgba);
+        enc.set_depth(png::BitDepth::Eight);
+        let px = [0u8, 0, 0, 255].repeat(256);
+        enc.write_header().unwrap().write_image_data(&px).unwrap();
+        assert!(black(&out).unwrap());
     }
 
     #[test]
