@@ -15,6 +15,7 @@ import type { PaletteItem } from "@/components/palette/palette";
 import { GROUP_HELP, TOPICS, type Topic } from "@/help/topics";
 import { nameOf } from "@/lib/format";
 import { hasAll, words } from "@/lib/matching";
+import { HISTORY_SHOWS } from "@/play/history-filter";
 import { APP_FIELDS } from "@/settings/app-fields";
 import { untested } from "@/settings/setting";
 import { ADVANCED_FIELDS, FIELDS, shown } from "@/settings/targets-draft";
@@ -32,7 +33,7 @@ import {
   tabLabel,
 } from "@/shell/nav";
 import { go, type Place } from "@/stores/shell";
-import { type Found, type HistoryFilter, useUi } from "@/stores/ui";
+import { type Found, useUi } from "@/stores/ui";
 
 /** The search's groups, in the order they list. */
 export const GROUPS = [
@@ -212,12 +213,12 @@ export function settings(schema: SettingDef[], devTools: boolean): Hit[] {
   ];
 }
 
-/** Opens History with `id` showing, then reveals its row. */
-function openSeed(id: number, filter: HistoryFilter, ap: boolean) {
-  if (filter !== "all" && (filter === "archipelago") !== ap)
+/** Opens History with `entry` showing, then reveals its row. */
+function openSeed(entry: Summary) {
+  if (!HISTORY_SHOWS[useUi.getPath("play.history")](entry))
     useUi.setPath("play.history", "all");
   go({ tab: "Play", folder: "history" });
-  reveal(rowId.seed(id));
+  reveal(rowId.seed(entry.id));
 }
 
 /** Every seed in History, by its name and note. */
@@ -230,7 +231,7 @@ export function seeds(entries: Summary[]): Hit[] {
       title: nameOf(e) || `Seed ${e.seed}`,
       icon: History,
       body: [`#${e.id}`, e.label.note].filter(Boolean).join(" · "),
-      run: () => openSeed(e.id, useUi.getPath("play.history"), !!e.ap_slot),
+      run: () => openSeed(e),
     }),
   );
 }
