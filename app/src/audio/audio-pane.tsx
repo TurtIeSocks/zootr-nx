@@ -2,7 +2,6 @@ import {
   Clapperboard,
   Loader2,
   Map as MapIcon,
-  MessageCircle,
   Mic,
   Music,
   Music2,
@@ -33,6 +32,7 @@ import {
   length,
   POOL_LABELS,
   poolMode,
+  type ShownPool,
   setPool,
   setTrack,
   shuffleAll,
@@ -50,18 +50,28 @@ import { PageHeader } from "@/shell/page-header";
 import { useConfig } from "@/stores/config";
 import { usePlayer } from "./use-player";
 
-const POOL_TABS = (
-  [
-    { id: "area", icon: MapIcon },
-    { id: "battle", icon: Swords },
-    { id: "event", icon: Clapperboard },
-    { id: "fanfare", icon: Music },
-    { id: "ocarina", icon: Music2 },
-    { id: "voice-adult", icon: Mic },
-    { id: "voice-child", icon: Mic },
-    { id: "npc-voice", icon: MessageCircle },
-  ] satisfies { id: Pool; icon: typeof Music }[]
-).map((p) => ({ ...p, label: POOL_LABELS[p.id] }));
+/** The pools the Voices tab stacks, each with its own mode. */
+const VOICE_POOLS = [
+  "voice-adult",
+  "voice-child",
+  "npc-voice",
+] as const satisfies ShownPool[];
+
+/** A folder tab: a music pool, or every voice pool together. */
+type PoolTab = Exclude<ShownPool, (typeof VOICE_POOLS)[number]> | "voices";
+
+const POOL_TABS: { id: PoolTab; label: string; icon: typeof Music }[] = [
+  ...(
+    [
+      { id: "area", icon: MapIcon },
+      { id: "battle", icon: Swords },
+      { id: "event", icon: Clapperboard },
+      { id: "fanfare", icon: Music },
+      { id: "ocarina", icon: Music2 },
+    ] satisfies { id: PoolTab; icon: typeof Music }[]
+  ).map((p) => ({ ...p, label: POOL_LABELS[p.id] })),
+  { id: "voices", label: "Voices", icon: Mic },
+];
 
 const POOL_MODES: { id: PoolMode; label: string }[] = [
   { id: "vanilla", label: "Vanilla" },
@@ -152,29 +162,15 @@ function Actions() {
 
 /** The tracks by pool, each pool's mode on top. */
 function Pools({ tracks, error }: ReturnType<typeof useCatalog>) {
-  const [draft] = useConfig.usePath("config.audio");
   const [art] = useConfig.usePath("config.game_assets");
   const [game] = useConfig.usePath("config.game");
-  const [pool, setPoolTab] = useState<Pool>("area");
-  const store = useSaveConfig();
-  const { busy } = useRequest();
+  const [tab, setTab] = useState<PoolTab>("area");
   const player = usePlayer();
   const listen = art && game !== null;
-  const mode = poolMode(draft, pool);
+  const pools: readonly ShownPool[] = tab === "voices" ? VOICE_POOLS : [tab];
 
   const panel = (
     <div className="flex flex-col gap-3 p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="font-medium text-sm">Pool mode</span>
-        <Segmented
-          options={modesOf(pool)}
-          value={mode}
-          onValueChange={(m) => store(setPool(pool, m))}
-          disabled={busy}
-          aria-label={`${pool} pool mode`}
-        />
-        <span className="text-ink-muted text-xs">{POOL_HINTS[mode]}</span>
-      </div>
       {listen ? (
         player.error && <p className="text-danger text-xs">{player.error}</p>
       ) : (
@@ -182,6 +178,62 @@ function Pools({ tracks, error }: ReturnType<typeof useCatalog>) {
           Turn on game assets in Settings to listen to each song.
         </p>
       )}
+      <div className="flex flex-col gap-6">
+        {pools.map((pool) => (
+          <PoolSection
+            key={pool}
+            pool={pool}
+            heading={pools.length > 1}
+            tracks={tracks}
+            player={listen ? player : null}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  if (error) return <p className="text-danger text-sm">{error}</p>;
+  return (
+    <FolderTabs
+      label="Music pools"
+      value={tab}
+      onValueChange={setTab}
+      tabs={POOL_TABS.map((p) => ({ ...p, panel }))}
+    />
+  );
+}
+
+/** Props for {@link PoolSection}. */
+interface PoolSectionProps {
+  pool: ShownPool;
+  /** Name the pool above its mode: the Voices tab stacks three. */
+  heading: boolean;
+  tracks: TrackView[];
+  player: ReturnType<typeof usePlayer> | null;
+}
+
+/** One pool: its mode, then its tracks. */
+function PoolSection({ pool, heading, tracks, player }: PoolSectionProps) {
+  const [draft] = useConfig.usePath("config.audio");
+  const store = useSaveConfig();
+  const { busy } = useRequest();
+  const mode = poolMode(draft, pool);
+  return (
+    <section className="flex flex-col gap-3">
+      {heading && (
+        <h3 className="font-semibold text-sm">{POOL_LABELS[pool]}</h3>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-medium text-sm">Pool mode</span>
+        <Segmented
+          options={modesOf(pool)}
+          value={mode}
+          onValueChange={(m) => store(setPool(pool, m))}
+          disabled={busy}
+          aria-label={`${POOL_LABELS[pool]} pool mode`}
+        />
+        <span className="text-ink-muted text-xs">{POOL_HINTS[mode]}</span>
+      </div>
       <ul className="flex flex-col divide-y divide-line">
         {tracks
           .filter((t) => t.pool === pool)
@@ -191,21 +243,11 @@ function Pools({ tracks, error }: ReturnType<typeof useCatalog>) {
               track={t}
               catalog={tracks}
               draft={draft}
-              player={listen ? player : null}
+              player={player}
             />
           ))}
       </ul>
-    </div>
-  );
-
-  if (error) return <p className="text-danger text-sm">{error}</p>;
-  return (
-    <FolderTabs
-      label="Music pools"
-      value={pool}
-      onValueChange={setPoolTab}
-      tabs={POOL_TABS.map((p) => ({ ...p, panel }))}
-    />
+    </section>
   );
 }
 
