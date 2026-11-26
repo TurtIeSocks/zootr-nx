@@ -3,6 +3,13 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.16.2] - 2026-11-26
+
+### Fixed
+
+- Answer the Yes/No Quiet Navi steps over
+- Drop the hidden Shuffle items switch, so Chests shuffles chests (#531)
+
 ## [0.16.1] - 2026-11-26
 
 ### Fixed
