@@ -680,7 +680,7 @@
       "forbid": [],
       "hash": "363703302462445921",
       "id": 509,
-      "name": "Ice Cavern Pot 11",
+      "name": "Ice Cavern Near End Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2183,7 +2183,7 @@
       "forbid": [],
       "hash": "1221457217093522685",
       "id": 196,
-      "name": "Ice Cavern Sheik",
+      "name": "Ice Cavern Sheik in Ice Cavern",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -2201,7 +2201,7 @@
       "forbid": [],
       "hash": "1222751158157747144",
       "id": 536,
-      "name": "Ice Cavern Pot 5",
+      "name": "Ice Cavern Hall Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2593,7 +2593,7 @@
       "forbid": [],
       "hash": "1432738477026131973",
       "id": 551,
-      "name": "Ice Cavern Pot 4",
+      "name": "Ice Cavern Hall Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2921,7 +2921,7 @@
       "forbid": [],
       "hash": "1612219105489330028",
       "id": 320,
-      "name": "Ice Cavern Gold Skulltula Token 2",
+      "name": "Ice Cavern GS Heart Piece Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -4474,7 +4474,7 @@
       "forbid": [],
       "hash": "2531238234557984984",
       "id": 581,
-      "name": "Ice Cavern Flying Pot 2",
+      "name": "Ice Cavern Spinning Blade Flying Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5096,7 +5096,7 @@
       "forbid": [],
       "hash": "2926506116712030829",
       "id": 594,
-      "name": "Ice Cavern Pot 13",
+      "name": "Ice Cavern Back Exit Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5331,7 +5331,7 @@
       "forbid": [],
       "hash": "3105481948394149361",
       "id": 603,
-      "name": "Ice Cavern Pot 6",
+      "name": "Ice Cavern Map Room Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5973,7 +5973,7 @@
       "forbid": [],
       "hash": "3530383460685013192",
       "id": 618,
-      "name": "Ice Cavern Pot 12",
+      "name": "Ice Cavern Back Exit Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -6965,7 +6965,7 @@
       "forbid": [],
       "hash": "4128092231168513176",
       "id": 28,
-      "name": "Ice Cavern Red Rupee (20) Chest",
+      "name": "Ice Cavern Push Block Room Chest",
       "unprovable": false
     },
     {
@@ -10639,7 +10639,7 @@
       "forbid": [],
       "hash": "6330430963809465220",
       "id": 708,
-      "name": "Ice Cavern Pot 3",
+      "name": "Ice Cavern Freezard Corridor Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11815,7 +11815,7 @@
       "forbid": [],
       "hash": "7165255787572043804",
       "id": 339,
-      "name": "Ice Cavern Gold Skulltula Token 1",
+      "name": "Ice Cavern GS Spinning Scythe Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -12681,7 +12681,7 @@
       "forbid": [],
       "hash": "7618173156337128046",
       "id": 748,
-      "name": "Ice Cavern Pot 7",
+      "name": "Ice Cavern Map Room Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12751,7 +12751,7 @@
       "forbid": [],
       "hash": "7652943025384915608",
       "id": 751,
-      "name": "Ice Cavern Pot 10",
+      "name": "Ice Cavern Near End Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15973,7 +15973,7 @@
       "forbid": [],
       "hash": "9643663083142689369",
       "id": 804,
-      "name": "Ice Cavern Upper Pot 1",
+      "name": "Ice Cavern Map Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -19140,7 +19140,7 @@
       "forbid": [],
       "hash": "11498802739257120175",
       "id": 436,
-      "name": "Ice Cavern Upper Map Chest",
+      "name": "Ice Cavern Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -22472,7 +22472,7 @@
       "forbid": [],
       "hash": "13545259034644162992",
       "id": 910,
-      "name": "Ice Cavern Pot 1",
+      "name": "Ice Cavern Entrance Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24283,7 +24283,7 @@
       "forbid": [],
       "hash": "14822647495538506998",
       "id": 385,
-      "name": "Ice Cavern Gold Skulltula Token 3",
+      "name": "Ice Cavern GS Push Block Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24569,7 +24569,7 @@
       "forbid": [],
       "hash": "15011057361189787608",
       "id": 948,
-      "name": "Ice Cavern Pot 8",
+      "name": "Ice Cavern Compass Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25562,7 +25562,7 @@
       "forbid": [],
       "hash": "15712947819189423505",
       "id": 963,
-      "name": "Ice Cavern Pot 2",
+      "name": "Ice Cavern Freezard Corridor Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -25965,7 +25965,7 @@
       "forbid": [],
       "hash": "15995328541699816119",
       "id": 973,
-      "name": "Ice Cavern Upper Pot 2",
+      "name": "Ice Cavern Map Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -27299,7 +27299,7 @@
       "forbid": [],
       "hash": "16857043952557702868",
       "id": 999,
-      "name": "Ice Cavern Flying Pot 1",
+      "name": "Ice Cavern Spinning Blade Flying Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28212,7 +28212,7 @@
       "forbid": [],
       "hash": "17314383705983097019",
       "id": 1017,
-      "name": "Ice Cavern Pot 9",
+      "name": "Ice Cavern Compass Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
