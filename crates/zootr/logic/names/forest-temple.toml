@@ -1,0 +1,90 @@
+# Forest Temple. OoTR's name wherever the remake keeps the spot: matched
+# by each check's room, its rule and the item the vanilla game puts there.
+# Pots go by room in OoTR's room words, numbered west to east. The lobby's
+# pots split left and right as OoTR's do, facing north from the entrance.
+#
+# Every name carries its map floor after "Forest Temple", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# The first room, with the vines and the Skulltula on its wall.
+1171460703078800858 = "Forest Temple 1F First Room Chest"
+11081821111317815057 = "Forest Temple 1F GS First Room"
+
+# The lobby (OoTR's Center Room): three pots each side of the entrance
+# door, and the Skulltula on the wall.
+139743615625578751 = "Forest Temple 1F Center Room Left Pot 1"
+9600596241209359414 = "Forest Temple 1F Center Room Left Pot 2"
+8229370832781285891 = "Forest Temple 1F Center Room Left Pot 3"
+16714728970292620430 = "Forest Temple 1F Center Room Right Pot 1"
+12190827011300834192 = "Forest Temple 1F Center Room Right Pot 2"
+16258156194217221025 = "Forest Temple 1F Center Room Right Pot 3"
+17612196129225973969 = "Forest Temple 1F GS Lobby"
+
+# North of the lobby, the first Stalfos room. OoTR has one pot here; the
+# remake has two.
+14776684749746592758 = "Forest Temple 1F First Stalfos Chest"
+8740962919121236974 = "Forest Temple 1F Lower Stalfos Pot 1"
+2723241463527082223 = "Forest Temple 1F Lower Stalfos Pot 2"
+
+# West of the lobby, the hall out to the west courtyard: pots the remake
+# added, so no OoTR name.
+14169869109292081997 = "Forest Temple 1F Level Island Courtyard Hall Pot 1" # guess: remake's pots, named for the courtyard the hall leads to
+3947004986900705772 = "Forest Temple 1F Level Island Courtyard Hall Pot 2" # guess: as above
+5080915951880062416 = "Forest Temple 1F Level Island Courtyard Hall Pot 3" # guess: as above
+
+# The block push room: the chest behind the eye switch, and the Boss Key
+# past the straightened corridor.
+15920957434854338961 = "Forest Temple 2F Eye Switch Chest"
+5306318520835485827 = "Forest Temple 3F Boss Key Chest"
+
+# The west courtyard (OoTR's Level Island Courtyard) and the Floormaster
+# room off its upper ledge.
+10970805784153267902 = "Forest Temple 2F GS Level Island Courtyard"
+7535137041266964235 = "Forest Temple 1F Floormaster Chest"
+
+# The east courtyard (OoTR's Raised Island Courtyard) and the map room
+# with the Blue Bubble.
+2014780391754316762 = "Forest Temple 1F GS Raised Island Courtyard"
+3174893090599461927 = "Forest Temple 1F Map Chest"
+
+# The well. OoTR has two freestanding hearts down here; the remake has
+# two pots beside the chest.
+6449977980406424425 = "Forest Temple B1 Well Chest"
+6916546705775293667 = "Forest Temple B1 Well Pot 1"
+9611679337718327541 = "Forest Temple B1 Well Pot 2"
+
+# Upstairs: the red Poe, the Bow room over the first Stalfos room, and
+# the blue Poe. One Bow room pot comes back where the first one stood.
+3433400840978782007 = "Forest Temple 2F Red Poe Chest"
+11082303891540711688 = "Forest Temple 2F Bow Chest"
+13098892055243633233 = "Forest Temple 2F Upper Stalfos Pot 1"
+18069611988256927347 = "Forest Temple 2F Upper Stalfos Pot 2" # guess: a respawning pot on the same spot as Pot 1
+11701653450964348630 = "Forest Temple 2F Upper Stalfos Pot 3"
+6298504646306157744 = "Forest Temple 2F Upper Stalfos Pot 4"
+2110020506516121812 = "Forest Temple 2F Upper Stalfos Pot 5"
+6948525240950728236 = "Forest Temple 2F Blue Poe Chest"
+14344239269960841819 = "Forest Temple 2F Blue Poe Room Pot 1"
+12084337161955511012 = "Forest Temple 2F Blue Poe Room Pot 2"
+4243968346728704417 = "Forest Temple 2F Blue Poe Room Pot 3"
+
+# East side, high up: the eye switch room past the twisted corridor, then
+# the green Poe room below the falling ceiling.
+10045766070541814618 = "Forest Temple 3F Frozen Eye Switch Room Pot 1" # guess: the two pot room on OoTR's route to the falling ceiling
+14386060266040640728 = "Forest Temple 3F Frozen Eye Switch Room Pot 2" # guess: as above
+16313270500968203353 = "Forest Temple 1F Green Poe Room Pot 1"
+204034068196251074 = "Forest Temple 1F Green Poe Room Pot 2"
+
+# The basement under the lobby, open once all four Poes fall.
+9038700938965170329 = "Forest Temple B2 Basement Chest"
+3072474196008424241 = "Forest Temple B2 GS Basement"
+845052341770025044 = "Forest Temple B2 Basement Pot 1"
+17869964928823963066 = "Forest Temple B2 Basement Pot 2"
+15881257994982213730 = "Forest Temple B2 Basement Pot 3"
+8451893348143348779 = "Forest Temple B2 Basement Pot 4"
+
+# The boss.
+16950648795519753327 = "Forest Temple B2 Phantom Ganon"
+18379569660496940670 = "Forest Temple B2 Phantom Ganon Heart"
