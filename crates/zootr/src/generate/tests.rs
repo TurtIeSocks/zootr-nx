@@ -18,6 +18,7 @@ use crate::{
 };
 
 mod copies;
+mod game_data;
 
 /// A test's own scratch folder, emptied when made and gone when dropped
 /// (after a failed assert too), so no two tests share one or leave it.

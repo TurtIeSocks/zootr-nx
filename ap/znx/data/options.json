@@ -602,6 +602,13 @@
     "label": "Gold Skulltulas by Day"
   },
   {
+    "default": false,
+    "description": "Pots, crates, rocks, grass and beehives come back every time Link enters an area, as on the N64. Off, they come back on the game's own timer, about a quarter hour of play after Link first leaves the area",
+    "id": "breakables-respawn",
+    "kind": "toggle",
+    "label": "Breakables Respawn"
+  },
+  {
     "default": "40",
     "description": "What every Business Scrub asks for its check, with Business scrubs on",
     "id": "scrub-price",
