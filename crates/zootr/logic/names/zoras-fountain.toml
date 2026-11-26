@@ -52,5 +52,14 @@
 12389449717548603491 = "ZF Hidden Cave Adult Pot 1"
 11141668837643914565 = "ZF Hidden Cave Adult Pot 2"
 
+# The three silver rocks, in each age map. Ours,
+# as OoTR has none. Numbered west to east.
+7870652284690645781 = "ZF Child Silver Rock 1"
+4117475603241592218 = "ZF Child Silver Rock 2"
+17232595302518493540 = "ZF Child Silver Rock 3"
+11141853402576759431 = "ZF Adult Silver Rock 1"
+15546380048732510520 = "ZF Adult Silver Rock 2"
+8128099944573471538 = "ZF Adult Silver Rock 3"
+
 # The Great Fairy's fountain.
 3291474312194526326 = "ZF Great Fairy Reward"
