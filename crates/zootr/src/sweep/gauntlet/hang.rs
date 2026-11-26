@@ -345,11 +345,16 @@ mod tests {
                 px.extend(paint(x, y));
             }
         }
+        png(w, h, png::ColorType::Rgb, &px)
+    }
+
+    /// An 8-bit PNG of `px`, `colour` samples to a pixel.
+    fn png(w: u32, h: u32, colour: png::ColorType, px: &[u8]) -> Vec<u8> {
         let mut out = Vec::new();
         let mut enc = png::Encoder::new(&mut out, w, h);
-        enc.set_color(png::ColorType::Rgb);
+        enc.set_color(colour);
         enc.set_depth(png::BitDepth::Eight);
-        enc.write_header().unwrap().write_image_data(&px).unwrap();
+        enc.write_header().unwrap().write_image_data(px).unwrap();
         out
     }
 
@@ -380,12 +385,7 @@ mod tests {
             let px: Vec<u8> = (0..320 * 180)
                 .map(|i| if i < n { 200 } else { 0 })
                 .collect();
-            let mut out = Vec::new();
-            let mut enc = png::Encoder::new(&mut out, 320, 180);
-            enc.set_color(png::ColorType::Grayscale);
-            enc.set_depth(png::BitDepth::Eight);
-            enc.write_header().unwrap().write_image_data(&px).unwrap();
-            out
+            png(320, 180, png::ColorType::Grayscale, &px)
         };
         assert!(is_black(&grey(LIT)).unwrap());
         assert!(!is_black(&grey(LIT + 1)).unwrap());
@@ -638,16 +638,9 @@ mod tests {
 
     #[test]
     fn a_frame_with_alpha_ignores_it() {
-        let png = |colour, px: &[u8]| {
-            let mut out = Vec::new();
-            let mut enc = png::Encoder::new(&mut out, 16, 16);
-            enc.set_color(colour);
-            enc.set_depth(png::BitDepth::Eight);
-            enc.write_header().unwrap().write_image_data(px).unwrap();
-            out
-        };
-        let rgba = |grey| png(png::ColorType::Rgba, &[grey, grey, grey, 255].repeat(256));
-        let grey_alpha = |grey| png(png::ColorType::GrayscaleAlpha, &[grey, 255].repeat(256));
+        let small = |colour, px: &[u8]| png(16, 16, colour, px);
+        let rgba = |grey| small(png::ColorType::Rgba, &[grey, grey, grey, 255].repeat(256));
+        let grey_alpha = |grey| small(png::ColorType::GrayscaleAlpha, &[grey, 255].repeat(256));
         assert!(is_black(&rgba(0)).unwrap());
         assert!(!is_black(&rgba(200)).unwrap());
         assert!(is_black(&grey_alpha(0)).unwrap());
