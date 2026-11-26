@@ -95,10 +95,10 @@ pub(super) struct GauntletArgs {
     #[arg(long)]
     pub(super) fail_fast: bool,
     /// Seconds of pure black, the triforce gone, that make a hang.
-    #[arg(long, default_value_t = 2.0)]
+    #[arg(long, default_value_t = 2.0, value_parser = seconds)]
     pub(super) black_limit: f32,
     /// Seconds a load may take before it's a hang.
-    #[arg(long, default_value_t = 45.0)]
+    #[arg(long, default_value_t = 45.0, value_parser = seconds)]
     pub(super) load_limit: f32,
     /// The first round's seed, to repeat a run.
     #[arg(long)]
@@ -141,5 +141,26 @@ impl GauntletArgs {
             turn: None,
         };
         (g, self.out, (self.pristine, self.sides))
+    }
+}
+
+/// A limit in seconds: above 0 and finite, which a [`Duration`] can hold.
+fn seconds(arg: &str) -> Result<f32, String> {
+    match arg.parse::<f32>() {
+        Ok(s) if s > 0.0 && s.is_finite() => Ok(s),
+        _ => Err(format!("{arg} isn't a number of seconds above 0")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::seconds;
+
+    #[test]
+    fn a_limit_is_seconds_above_zero() {
+        assert_eq!(seconds("2.5"), Ok(2.5));
+        for bad in ["0", "-1", "inf", "NaN", "two"] {
+            assert!(seconds(bad).is_err(), "{bad}");
+        }
     }
 }

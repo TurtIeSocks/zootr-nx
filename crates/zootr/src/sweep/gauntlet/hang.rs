@@ -42,7 +42,7 @@ const DARK: u8 = 24;
 const TALK: Duration = Duration::from_secs(2);
 
 /// How many lit pixels a frame may have and still be black. The triforce
-/// covers thousands, even shrunk; a black frame has none.
+/// covers thousands; a black frame has none.
 const LIT: usize = 64;
 
 /// How a hang showed.
@@ -81,10 +81,9 @@ fn is_black(png: &[u8]) -> Result<bool> {
         png::ColorType::Rgba | png::ColorType::GrayscaleAlpha => samples - 1,
         _ => samples,
     };
-    let lit = (buf[..info.buffer_size()].chunks_exact(samples))
-        .filter(|px| px[..colours].iter().any(|&c| c > DARK))
-        .count();
-    Ok(lit <= LIT)
+    let mut lit = (buf[..info.buffer_size()].chunks_exact(samples))
+        .filter(|px| px[..colours].iter().any(|&c| c > DARK));
+    Ok(lit.nth(LIT).is_none())
 }
 
 /// How a watched load went.
@@ -130,14 +129,14 @@ pub fn probe<M: Memory>(
     limits: Limits,
     frame: &Path,
 ) -> Option<Hang> {
-    let want = dev.state().map(|s| s.map).unwrap_or_default();
-    // Never past the load limit: only black, quit and unread can show.
+    // Never past the load limit: only black, quit and unread can show, so
+    // no map is wanted.
     let limits = Limits {
         load: Duration::MAX,
         ..limits
     };
     let window = limits.black.max(DEAD) + TICK * 2;
-    watch(dev, input, &want, limits, frame, |_, _, at| at >= window).1
+    watch(dev, input, "", limits, frame, |_, _, at| at >= window).1
 }
 
 /// Look at the game every [`TICK`], a frame into `frame` each time, until
@@ -167,17 +166,20 @@ fn watch<M: Memory, I: Input>(
     }
 }
 
-/// A frame into `to`, and whether it's lit, with no older frame left at
-/// `to` to pass for it when none comes.
+/// A frame into `to`, and whether it's lit. It's taken beside `to` and
+/// moved there only once it came: an older frame can't pass for a new
+/// one, and a failed shot leaves the last good frame as evidence.
 fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
-    if let Err(e) = std::fs::remove_file(to)
+    let next = to.with_extension("next.png");
+    if let Err(e) = std::fs::remove_file(&next)
         && e.kind() != std::io::ErrorKind::NotFound
     {
         return Err(e.into());
     }
-    input.shot(to)?;
-    let png = std::fs::read(to)?;
-    Ok(!is_black(&png)?)
+    input.shot(&next)?;
+    let lit = !is_black(&std::fs::read(&next)?)?;
+    std::fs::rename(&next, to)?;
+    Ok(lit)
 }
 
 /// What the watch has seen so far: when each sign began.
@@ -218,7 +220,8 @@ impl Watch {
         }
         let secs = at.as_secs_f32();
         // Play, and an event on the map asked for, last only while every
-        // look reaches its own branch: any other return ends them.
+        // look reaches its own branch: any other return ends them. A
+        // missing frame keeps play's clock but can't start it.
         let played = self.play.take();
         let evented = self.event.take();
         // Frames first: a black screen is a hang whether or not the game
@@ -276,9 +279,11 @@ impl Watch {
                 want: want.into(),
             });
         }
-        if lit == Some(true) {
-            self.play = Some(played.unwrap_or(at));
-        }
+        self.play = match lit {
+            Some(true) => Some(played.unwrap_or(at)),
+            Some(false) => None,
+            None => played,
+        };
         // Settled by now, or never: a screen that keeps flickering dark.
         let unsettled = at >= limits.load.saturating_add(SETTLED) && !self.settled(at);
         unsettled.then(|| Hang::Unsettled { secs, map: here() })
@@ -477,23 +482,23 @@ mod tests {
     }
 
     #[test]
-    fn a_missing_frame_restarts_play_and_flicker_never_settles() {
+    fn a_missing_frame_neither_starts_nor_ends_play_and_flicker_never_settles() {
         let mut w = Watch::default();
         let up = Up(true);
-        let mut look = |at, lit| {
-            w.tick(
-                secs(at),
-                &up,
-                state("FakeMap", false, false),
-                lit,
-                "FakeMap",
-                LIMITS,
-            )
+        let look = |w: &mut Watch, at, lit| {
+            let state = state("FakeMap", false, false);
+            w.tick(secs(at), &up, state, lit, "FakeMap", LIMITS)
         };
-        assert_eq!(look(0.0, Some(true)), None);
-        assert_eq!(look(1.0, None), None);
-        assert_eq!(look(2.0, Some(true)), None);
-        assert!(!w.settled(secs(3.5)));
+        // A shot that failed mid-play keeps the clock from 0 s.
+        assert_eq!(look(&mut w, 0.0, Some(true)), None);
+        assert_eq!(look(&mut w, 1.0, None), None);
+        assert_eq!(look(&mut w, 2.0, Some(true)), None);
+        assert!(w.settled(secs(3.0)));
+        // Missing frames alone never start it.
+        let mut w = Watch::default();
+        assert_eq!(look(&mut w, 0.0, None), None);
+        assert_eq!(look(&mut w, 1.0, None), None);
+        assert!(!w.settled(secs(4.0)));
         // Lit and black in turn, each under the black limit, to the end.
         let mut w = Watch::default();
         let mut hang = None;
