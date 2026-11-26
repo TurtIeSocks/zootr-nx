@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use crate::dev::Dev;
+use crate::dev::{Dev, State};
 use crate::play::Input;
 
 /// How long each sign may last before it's a hang.
@@ -27,7 +27,8 @@ pub struct Limits {
 const SETTLED: Duration = Duration::from_secs(3);
 /// How often a frame is taken and the game read.
 const TICK: Duration = Duration::from_millis(400);
-/// How long reads may fail in a row before the game counts as hung.
+/// How long reads may fail, or frames not come, in a row before the game
+/// counts as hung.
 const DEAD: Duration = Duration::from_secs(5);
 
 /// A channel's level at or under which a pixel is black. Encoders leave
@@ -46,7 +47,7 @@ const LIT: usize = 64;
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
     /// Pure black, no triforce: `secs` of black over `frames` frames, `map`
-    /// the map read then. Few frames over many seconds mean slow shots: a
+    /// the last map read (a hung game may answer none after it). Few frames over many seconds mean slow shots: a
     /// game starved of its GPU (a model loaded beside it) loads slowly too.
     Black { secs: f32, frames: u32, map: String },
     /// Still loading after the load limit: `secs` since the teleport.
@@ -55,12 +56,12 @@ pub enum Hang {
     WrongMap { map: String, want: String },
     /// An event played through the load limit: `secs` since the teleport.
     Event { secs: f32, map: String },
-    /// On the map asked for, never lit in play for 3 s in a row by the
-    /// load limit: `secs` since the teleport.
+    /// On the map asked for, never lit in play for [`SETTLED`] in a row by
+    /// the load limit: `secs` since the teleport.
     Unsettled { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
-    /// Reads of the game failed, or no frame came, for 5 s.
+    /// Reads of the game failed, or no frame came, for [`DEAD`].
     Unread { why: String },
     /// The game quit: what its log says ended it.
     Crashed { why: String },
@@ -68,7 +69,7 @@ pub enum Hang {
 
 /// Whether `png` is pure black: no more than [`LIT`] pixels with any colour
 /// channel over [`DARK`].
-pub fn black(png: &[u8]) -> Result<bool> {
+fn black(png: &[u8]) -> Result<bool> {
     let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
     decoder.set_transformations(png::Transformations::normalize_to_color8());
     let mut reader = decoder.read_info()?;
@@ -91,9 +92,11 @@ pub fn black(png: &[u8]) -> Result<bool> {
 
 /// How a watched load went.
 pub struct Watched {
+    /// Seconds from the watch's start (just after the teleport) to its end.
     pub secs: f32,
     /// The last frame taken, kept as evidence.
     pub frame: Option<PathBuf>,
+    /// How it hung, or `None` once Link stood settled.
     pub hang: Option<Hang>,
 }
 
@@ -107,7 +110,7 @@ pub fn settle(
     limits: Limits,
     frame: &Path,
 ) -> Watched {
-    let (at, hang) = watch(dev, input, (want, limits), frame, |watch, input, at| {
+    let (at, hang) = watch(dev, input, want, limits, frame, |watch, input, at| {
         if watch.talking(at) {
             let _ = input.press("A");
         }
@@ -131,7 +134,7 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
         ..limits
     };
     let window = limits.black.max(DEAD) + TICK * 2;
-    watch(dev, input, (&want, limits), frame, |_, _, at| at >= window).1
+    watch(dev, input, &want, limits, frame, |_, _, at| at >= window).1
 }
 
 /// Look at the game every [`TICK`], a frame into `frame` each time, until
@@ -139,7 +142,8 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
 fn watch<I: Input>(
     dev: &Dev,
     input: &mut I,
-    (want, limits): (&str, Limits),
+    want: &str,
+    limits: Limits,
     frame: &Path,
     mut done: impl FnMut(&Watch, &mut I, Duration) -> bool,
 ) -> (Duration, Option<Hang>) {
@@ -161,9 +165,10 @@ fn watch<I: Input>(
 /// A frame into `to`, and whether it's lit, with no older frame left at
 /// `to` to pass for it when none comes.
 fn shoot(input: &mut impl Input, to: &Path) -> Result<bool> {
-    match std::fs::remove_file(to) {
-        Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
-        _ => {}
+    if let Err(e) = std::fs::remove_file(to)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(e.into());
     }
     input.shot(to)?;
     let png = std::fs::read(to)?;
@@ -197,7 +202,7 @@ impl Watch {
         &mut self,
         at: Duration,
         input: &impl Input,
-        state: Result<crate::dev::State>,
+        state: Result<State>,
         lit: Option<bool>,
         want: &str,
         limits: Limits,
@@ -301,7 +306,7 @@ impl Watch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dev::{State, Switches};
+    use crate::dev::Switches;
 
     fn frame(w: u32, h: u32, paint: impl Fn(u32, u32) -> [u8; 3]) -> Vec<u8> {
         let mut px = Vec::with_capacity((w * h * 3) as usize);
