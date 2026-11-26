@@ -57,6 +57,8 @@ pub fn settings() -> Result<Settings> {
     s.insert(settings::ICE_TRAPS.into(), "some".into());
     for on in [
         settings::SHUFFLE_ITEMS,
+        // Keys one by one take the place of the key chests' rupees.
+        settings::CHESTS,
         settings::PROGRESSIVE,
         settings::LOOSE_ITEMS,
         settings::SHUFFLE_MASKS,
@@ -140,12 +142,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             .filter(|c| !refused.iter().any(|(o, _)| o == *c))
             .copied()
             .collect();
-        let extras = Extras {
-            place: (placed.iter())
-                .map(|c| (c.holder, ITEMS[c.item_kind].item()))
-                .collect(),
-            ..Extras::default()
-        };
+        let extras = plando(&placed);
         eprintln!(
             "round {r}: seed {seed}, {} cells, {} refused",
             placed.len(),
@@ -291,6 +288,16 @@ fn tour_order(places: &BTreeSet<Place>) -> Vec<Place> {
     order
 }
 
+/// The plando that pins each of `cells`' items at its holder.
+fn plando(cells: &[Cell]) -> Extras {
+    Extras {
+        place: (cells.iter())
+            .map(|c| (c.holder, ITEMS[c.item_kind].item()))
+            .collect(),
+        ..Extras::default()
+    }
+}
+
 /// Each of `cells` the shuffle refuses with `settings`, and why: an EIE
 /// narrowing, or a holder that isn't a check with them.
 fn refusals(romfs: &Romfs, settings: &Settings, cells: &[Cell]) -> Result<Vec<(Cell, String)>> {
@@ -350,5 +357,27 @@ mod tests {
             items.is_empty(),
             "a small chest takes every item: {items:?}"
         );
+    }
+
+    /// The full grid's first round and `items` cover every holder kind and
+    /// every item kind; all 20 rounds generate too, in 5 minutes.
+    #[test]
+    fn the_first_round_and_the_items_round_generate() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let settings = settings().unwrap();
+        let dir = std::env::temp_dir().join(format!("zootr-gauntlet-{}", std::process::id()));
+        for run in [Run::Holders, Run::Items] {
+            let cells = run.cells();
+            let refused = refusals(&romfs, &settings, &cells).unwrap();
+            let placed: Vec<Cell> = (cells.iter())
+                .filter(|c| !refused.iter().any(|(o, _)| o == *c))
+                .copied()
+                .collect();
+            let report = night::roll(&romfs, 1, &settings, &plando(&placed))(&dir);
+            report.unwrap_or_else(|e| panic!("{run:?}: {e:#}"));
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

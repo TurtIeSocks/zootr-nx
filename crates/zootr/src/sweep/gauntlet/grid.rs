@@ -306,7 +306,10 @@ pub fn rounds(cells: &[Cell]) -> Vec<Vec<Cell>> {
     ordered.sort_by_key(|c| ((c.item_kind + n - c.holder_kind % n) % n, c.holder_kind));
     let mut out: Vec<Vec<Cell>> = vec![];
     for c in ordered {
-        match out.iter_mut().find(|r| r.iter().all(|o| o.holder != c.holder)) {
+        match out
+            .iter_mut()
+            .find(|r| r.iter().all(|o| o.holder != c.holder))
+        {
             Some(round) => round.push(c),
             None => out.push(vec![c]),
         }
