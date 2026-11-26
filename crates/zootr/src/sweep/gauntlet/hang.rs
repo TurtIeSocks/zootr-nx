@@ -49,8 +49,9 @@ const LIT: usize = 64;
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
     /// Pure black, no triforce: `secs` of black over `frames` frames, `map`
-    /// the last map read (a hung game may answer none after it). Few frames over many seconds mean slow shots: a
-    /// game starved of its GPU (a model loaded beside it) loads slowly too.
+    /// the last map read (a hung game may answer none after it). Few frames
+    /// over many seconds mean slow shots: a game starved of its GPU (a
+    /// model loaded beside it) loads slowly too.
     Black { secs: f32, frames: u32, map: String },
     /// Still loading after the load limit: `secs` since the teleport.
     Loading { secs: f32, map: String },
@@ -208,9 +209,10 @@ impl Watch {
             return Some(Hang::Crashed { why });
         }
         let secs = at.as_secs_f32();
-        // Play needs every look since it began to reach the end of this
-        // one, lit: any return before then ends it.
+        // Play, and an event on the map asked for, last only while every
+        // look reaches its own branch: any other return ends them.
         let played = self.play.take();
+        let evented = self.event.take();
         // Frames first: a black screen is a hang whether or not the game
         // still answers reads. A missing frame neither starts nor ends the
         // black.
@@ -255,12 +257,11 @@ impl Watch {
             return past.then(|| Hang::Loading { secs, map: here() });
         }
         if state.event && state.map == want {
-            self.event.get_or_insert(at);
+            self.event = Some(evented.unwrap_or(at));
             return past.then(|| Hang::Event { secs, map: here() });
         }
         // Text on the way elsewhere isn't the arrival's: no A for it, and
         // past the limit it's a mis-arrival, with the map wanted.
-        self.event = None;
         if state.map != want {
             return past.then(|| Hang::WrongMap {
                 map: here(),
@@ -430,6 +431,14 @@ mod tests {
         // Text on the way elsewhere afterwards ends it.
         assert_eq!(look(&mut w, 3.4, "FakeOther"), None);
         assert!(!w.talking(secs(3.4)));
+        // So does a load on the map asked for.
+        assert_eq!(look(&mut w, 4.0, "FakeMap"), None);
+        let load = state("FakeMap", true, false);
+        assert_eq!(
+            w.tick(secs(6.5), &up, load, Some(true), "FakeMap", LIMITS),
+            None
+        );
+        assert!(!w.talking(secs(6.5)));
     }
 
     #[test]
