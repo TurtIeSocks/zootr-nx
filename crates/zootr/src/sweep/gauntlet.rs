@@ -48,6 +48,16 @@ pub struct Gauntlet {
     /// The first round's seed, each next round's one more. `None` for one
     /// from the clock.
     pub seed: Option<u64>,
+    /// The turn the run holds ([`crate::turn::harness`]): once it's lost,
+    /// the run stops before touching the game again. `None` in tests.
+    pub turn: Option<std::sync::mpsc::Receiver<()>>,
+}
+
+impl Gauntlet {
+    /// Whether the run has lost its game's turn.
+    fn lost(&self) -> bool {
+        self.turn.as_ref().is_some_and(crate::turn::lost)
+    }
 }
 
 /// The file the report goes to, beside the rows.
@@ -161,7 +171,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 return Ok(Go::Stop);
             }
             // The cells start clean, on a new game of their own.
-            live = self.start()?;
+            if !placed.is_empty() {
+                live = self.start()?;
+            }
         }
         let at = Round {
             round: r,
@@ -173,6 +185,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         };
         let known = self.known();
         for c in &placed {
+            if self.turn_lost(g)? {
+                return Ok(Go::Stop);
+            }
             let name = c.name();
             let Some(spot) = planned.iter().find(|p| p.spot.hash == c.holder) else {
                 let why = format!("the seed plans no spot at holder {}", c.holder);
@@ -229,6 +244,20 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         Ok(Go::On)
     }
 
+    /// Whether `g` has lost its game's turn, recorded as an error when so.
+    fn turn_lost(&self, g: &Gauntlet) -> Result<bool> {
+        if !g.lost() {
+            return Ok(false);
+        }
+        let error = "the game's turn was lost: stopped before touching it again";
+        eprintln!("{error}");
+        append(
+            &self.results(),
+            &json!({"gauntlet": row::ERROR, "error": error}),
+        )?;
+        Ok(true)
+    }
+
     /// Teleport to every place in turn and watch each load: child places,
     /// then adult, then those of no age, so Link changes age once.
     fn tour(
@@ -240,6 +269,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     ) -> Result<Go> {
         let order = tour_order(places, &g.places);
         for (i, place) in order.iter().enumerate() {
+            if self.turn_lost(g)? {
+                return Ok(Go::Stop);
+            }
             let name = format!("{}/{}", place.map, place.spot);
             let frame = shots.join(format!("place-{}.png", slug(&name)));
             let started = std::time::Instant::now();
@@ -372,6 +404,29 @@ mod tests {
         let only = tour_order(&places, &["Hill_A".into()]);
         assert_eq!(only.len(), 1);
         assert_eq!(only[0].map, "FakeHill_Adult");
+    }
+
+    #[test]
+    fn a_run_whose_renewals_stopped_has_lost_its_turn() {
+        let g = |turn| Gauntlet {
+            run: Run::Places,
+            holders: vec![],
+            items: vec![],
+            places: vec![],
+            fail_fast: false,
+            limits: Limits {
+                black: std::time::Duration::from_secs(2),
+                load: std::time::Duration::from_secs(45),
+            },
+            seed: None,
+            turn,
+        };
+        assert!(!g(None).lost());
+        let (keep, turn) = std::sync::mpsc::channel();
+        let held = g(Some(turn));
+        assert!(!held.lost());
+        drop(keep);
+        assert!(held.lost());
     }
 
     #[test]

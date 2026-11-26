@@ -341,6 +341,7 @@ pub fn run() -> Result<()> {
                     load: std::time::Duration::from_secs_f32(load_limit),
                 },
                 seed,
+                turn: None,
             };
             gauntlet_run(&romfs, &path, g, out, (pristine, sides))
         }
