@@ -139,7 +139,7 @@ pub fn write(
         }
     }
     // A boulder's item lies in its seat, so the boulder drops nothing.
-    let boulders: BTreeSet<u64> = (checks.iter().filter(|c| seats::holds(c)))
+    let boulders: BTreeSet<u64> = (checks.iter().filter(|c| seats::drops(c)))
         .map(|c| c.hash)
         .collect();
     fields.extend(boulders.into_iter().map(seats::no_drop));

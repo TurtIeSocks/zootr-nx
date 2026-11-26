@@ -35,7 +35,7 @@ pub mod taken;
 
 use drops::own_drop;
 pub use moves::{moved, stand_ins, tabled, write};
-pub use seats::{BOULDERS, RED_BOULDERS};
+pub use seats::{BOULDERS, RED_BOULDERS, SILVER_ROCKS};
 
 /// One kind of placed holder.
 #[derive(PartialEq)]
@@ -129,8 +129,8 @@ pub const CRATES: Kind = Kind {
 };
 
 /// Small rocks Link lifts and throws, both of the light grade. The boulders
-/// are [`BOULDERS`] and [`RED_BOULDERS`]. The rocks that need gauntlets
-/// wait for their stage (rocks spec).
+/// are [`BOULDERS`] and [`RED_BOULDERS`], the heavy rocks
+/// [`SILVER_ROCKS`]. The gold rocks wait for their stage (rocks spec).
 pub const ROCKS: Kind = Kind {
     actors: &[actor::OBJ_LIFT_ROCK_A_01, actor::OBJ_LIFT_ROCK_A_03],
     item: None,
@@ -270,7 +270,7 @@ pub fn broken(holder: &str) -> bool {
     any_holds(&BREAKABLE, holder)
 }
 
-const KINDS: [&Kind; 16] = [
+const KINDS: [&Kind; 17] = [
     &FREESTANDING,
     &SKULLTULAS,
     &BOSS_HEARTS,
@@ -287,6 +287,7 @@ const KINDS: [&Kind; 16] = [
     &LOOSE,
     &BOULDERS,
     &RED_BOULDERS,
+    &SILVER_ROCKS,
 ];
 
 /// What a thief's key check is held by, in the spoiler.
@@ -405,6 +406,7 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
         (new_game.rocks, &ROCKS),
         (new_game.rocks, &BOULDERS),
         (new_game.rocks, &RED_BOULDERS),
+        (new_game.rocks, &SILVER_ROCKS),
         (new_game.grass, &GRASS),
         (new_game.hives, &HIVES),
         (new_game.fortress_keys.moved(), &FORTRESS_KEYS),
@@ -534,6 +536,7 @@ mod tests {
             (&LOOSE, 140),
             (&BOULDERS, 40),
             (&RED_BOULDERS, 30),
+            (&SILVER_ROCKS, 46),
         ] {
             let checks = kind.checks(&romfs).unwrap();
             let hashes: BTreeSet<u64> = checks.iter().map(|c| c.hash).collect();

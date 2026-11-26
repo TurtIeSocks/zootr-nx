@@ -1,10 +1,11 @@
-//! Boulders' checks. A broken boulder is gone for good (its key never
-//! resets), so its item can't be its drop: a drop can roll off a ledge or
-//! into lava, and nothing is left to break again. The item lies where the
-//! boulder stood instead, until Link takes it (maintainer, 2026-11-25): a
-//! seat, a copy of the boulder's placement under a fresh hash holding the
-//! item as a pickup lying loose does, inside the boulder until it breaks.
-//! The boulder drops nothing.
+//! Boulders' and heavy rocks' checks. A broken boulder or a thrown rock
+//! is gone for good (its key never resets), so its item can't be its
+//! drop: a drop can roll off a ledge or into lava, and nothing is left to
+//! break again. The item lies where the rock stood instead, until Link
+//! takes it (maintainer, 2026-11-25): a seat, a copy of the rock's
+//! placement under a fresh hash holding the item as a pickup lying loose
+//! does, inside the rock until it breaks or is lifted away. A boulder
+//! drops nothing.
 //!
 //! A stand-in seat is gone once taken by its own key, as a heart piece's
 //! is. A seat holding a plain pickup, which may come back, stands until
@@ -44,11 +45,23 @@ pub const RED_BOULDERS: Kind = Kind {
     named: None,
 };
 
-/// The boulders over grotto entrances, which stay vanilla: breaking one
-/// opens the hole under its seat, so Link reaching for the item falls in
-/// (maintainer, 2026-11-25, rocks spec). They're the boulders whose
-/// placement names the empty table.
-pub const OVER_GROTTOS: [u64; 7] = [
+/// The silver rocks, which take the Silver Gauntlets' lift grade. None
+/// drops anything, so each brings a Green Rupee to the pool, as a boulder
+/// does.
+pub const SILVER_ROCKS: Kind = Kind {
+    actors: &[actor::OBJ_LIFT_ROCK_B_01],
+    item: Some(actor::OBJ_RUPEE_GREEN),
+    field: GYAML,
+    needs: Some("silver-gauntlets"),
+    named: None,
+};
+
+/// The rocks over grotto entrances, which stay vanilla: breaking or
+/// lifting one opens the hole under its seat, so Link reaching for the
+/// item falls in (maintainer, 2026-11-25, rocks spec). The boulders are
+/// the ones whose placement names the empty table; the silver rocks are
+/// Desert Colossus's and Gerudo Valley's, in each age's map.
+pub const OVER_GROTTOS: [u64; 11] = [
     5524931827254348969,
     11477097298279134715,
     8580335210618464267,
@@ -56,10 +69,17 @@ pub const OVER_GROTTOS: [u64; 7] = [
     12960902182455217518,
     5207698098030997501,
     16547116969322393756,
+    10395622039634609957,
+    12476546951712559797,
+    15973093482153030029,
+    8414723300021904225,
 ];
 
 /// The kinds whose item lies in a seat.
-const SEATED: [&Kind; 2] = [&BOULDERS, &RED_BOULDERS];
+const SEATED: [&Kind; 3] = [&BOULDERS, &RED_BOULDERS, &SILVER_ROCKS];
+
+/// The seated kinds whose pack drops something, which a dealt one stops.
+const DROPPING: [&Kind; 2] = [&BOULDERS, &RED_BOULDERS];
 
 /// Where seats start among a placement's copies: well past any step's.
 const SEAT: usize = 1 << 16;
@@ -69,9 +89,14 @@ pub fn places(holder: &str) -> bool {
     SEATED.iter().any(|k| k.places(holder))
 }
 
-/// Whether `check` is a boulder's.
+/// Whether `check` is a boulder's or a heavy rock's.
 pub fn holds(check: &ItemCheck) -> bool {
     places(&check.holder)
+}
+
+/// Whether `check` is a boulder's, whose drop a dealt one stops.
+pub fn drops(check: &ItemCheck) -> bool {
+    DROPPING.iter().any(|k| k.holds(check))
 }
 
 /// Where step `k` of the item of the boulder placed as `of` lies.
@@ -171,6 +196,9 @@ mod tests {
     /// A red boulder only the child's Death Mountain Crater places. Most
     /// of the crater's stand in both ages' maps under one hash.
     const CHILD_RED: u64 = 15044423826661592135;
+    /// A silver rock in the child's and the adult's Goron City maze.
+    const CHILD_SILVER: u64 = 14579027738236428127;
+    const ADULT_SILVER: u64 = 7587980043199731531;
 
     /// The boulder placed as `hash`, dealt `drops`, with every edit the
     /// seed makes to its map: the map, and the hook's spots in it.
@@ -294,8 +322,8 @@ mod tests {
         assert!(no_drop(NO_TABLE).ends_with("Drop__DropTable=None"));
     }
 
-    /// A boulder asks its tool, and a red boulder only a child's map
-    /// places can't be broken while the hammer is an adult's.
+    /// A boulder asks its tool, and a red boulder or silver rock only a
+    /// child's map places can't be got while its tool is an adult's.
     #[test]
     fn a_boulder_asks_its_tool_and_a_childs_red_boulder_is_never() {
         let Some(romfs) = dev_dump() else { return };
@@ -310,12 +338,16 @@ mod tests {
         let world = crate::logic::World::build(&romfs, &book, &ctx, &checks).unwrap();
         assert!(world.never(CHILD_RED));
         assert!(!world.never(BOULDER));
+        // So with a silver rock: only the adult lifts one, for now.
+        assert!(world.never(CHILD_SILVER));
+        assert!(!world.never(ADULT_SILVER));
     }
 
-    /// The boulders over grottos are the ones naming the empty table, each
-    /// standing on a grotto's entrance, and none is dealt.
+    /// The rocks over grottos are the seated ones standing on a grotto's
+    /// entrance, a boulder among them exactly when it names the empty
+    /// table, and none is dealt.
     #[test]
-    fn the_boulders_over_grottos_are_the_ones_naming_no_table() {
+    fn the_rocks_over_grottos_stand_on_grotto_entrances() {
         let Some(romfs) = dev_dump() else { return };
         let holes = [
             actor::LOOK_ATTENTION_ACTOR_HIDING_HOLE_ENTRANCE,
@@ -325,28 +357,29 @@ mod tests {
         for kind in SEATED {
             for check in kind.checks(&romfs).unwrap() {
                 let doc = checks::load_banc(&romfs, &check.file).unwrap();
-                let boulder = one(&doc.root, check.hash);
-                let table =
-                    dynamic(boulder).and_then(|d| str_field(d, field::DROP_DROP_TABLE.get()));
-                if table != Some("None") {
-                    continue;
+                let rock = one(&doc.root, check.hash);
+                let at = checks::vec3(rock, TRANSLATE).unwrap();
+                // A map's grotto holes may stand in its other file.
+                let files = [
+                    check.file.replace("_Dynamic", "_Static"),
+                    check.file.replace("_Static", "_Dynamic"),
+                ];
+                let over = (files.iter())
+                    .map(|f| checks::load_banc(&romfs, f).unwrap())
+                    .any(|other| {
+                        (checks::actors(&other.root).unwrap().iter())
+                            .filter(|a| holes.iter().any(|h| str_field(a, GYAML) == Some(h.get())))
+                            .filter_map(|a| checks::vec3(a, TRANSLATE))
+                            .any(|h| (0..3).map(|i| (h[i] - at[i]).powi(2)).sum::<f32>() < 1.0)
+                    });
+                if DROPPING.contains(&kind) {
+                    let table =
+                        dynamic(rock).and_then(|d| str_field(d, field::DROP_DROP_TABLE.get()));
+                    assert_eq!(over, table == Some("None"), "{}", check.hash);
                 }
-                let at = checks::vec3(boulder, TRANSLATE).unwrap();
-                // A map's grotto holes stand in its other file.
-                let other = check.file.replace("_Static", "_Dynamic");
-                let other = checks::load_banc(&romfs, &other).unwrap();
-                let over = [&doc.root, &other.root]
-                    .into_iter()
-                    .flat_map(|root| checks::actors(root).unwrap())
-                    .filter(|a| holes.iter().any(|h| str_field(a, GYAML) == Some(h.get())))
-                    .filter_map(|a| checks::vec3(a, TRANSLATE))
-                    .any(|h| (0..3).map(|i| (h[i] - at[i]).powi(2)).sum::<f32>() < 1.0);
-                assert!(
-                    over,
-                    "{} names no table but stands on no grotto",
-                    check.hash
-                );
-                found.push(check.hash);
+                if over {
+                    found.push(check.hash);
+                }
             }
         }
         found.sort_unstable();

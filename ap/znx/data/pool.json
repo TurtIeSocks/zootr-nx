@@ -6830,7 +6830,7 @@
       }
     },
     {
-      "count": 23,
+      "count": 35,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6851,7 +6851,68 @@
       "when": {
         "any": [
           {
-            "setting": "loose-items"
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 23,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 7,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           },
           {
             "all": [
@@ -6869,6 +6930,16 @@
                 "setting": "pots"
               },
               {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
                 "setting": "rocks"
               }
             ]
@@ -6877,13 +6948,30 @@
       }
     },
     {
-      "count": 5,
+      "count": 2,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
         "any": [
           {
-            "setting": "loose-items"
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           },
           {
             "all": [
@@ -6917,159 +7005,10 @@
           {
             "all": [
               {
-                "setting": "crates"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
                 "setting": "pots"
               },
               {
                 "setting": "rocks"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 20,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "rocks"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 7,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "crates"
-              },
-              {
-                "setting": "rocks"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 5,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 7,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "loose-items"
               }
             ]
           },
@@ -7091,6 +7030,67 @@
     },
     {
       "count": 23,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 7,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 35,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
