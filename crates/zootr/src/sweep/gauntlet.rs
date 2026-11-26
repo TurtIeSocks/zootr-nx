@@ -40,6 +40,7 @@ pub struct Gauntlet {
     pub items: Vec<String>,
     /// Stop at the first failure.
     pub fail_fast: bool,
+    /// How long a black screen or a load may last.
     pub limits: Limits,
     /// The first round's seed, each next round's one more. `None` for one
     /// from the clock.
@@ -175,7 +176,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 let why = format!("the seed plans no spot at holder {}", c.holder);
                 append(
                     &rows,
-                    &json!({"gauntlet": row::UNPLANNED, "cell": name, "why": why}),
+                    &json!({"gauntlet": row::UNPLANNED, "cell": name, "round": r, "why": why}),
                 )?;
                 continue;
             };
@@ -203,7 +204,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         shots: &Path,
     ) -> Result<Go> {
         let name = c.name();
-        let trap = ITEMS[c.item_kind].name == "ice-trap";
+        let trap = ITEMS[c.item_kind].name == grid::ICE_TRAP;
         let outcome = report::outcome(&serde_json::to_value(verdict)?, trap);
         let hang = match outcome {
             report::Outcome::Pass | report::Outcome::NoTrigger(_) => None,

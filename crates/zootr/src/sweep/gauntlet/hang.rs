@@ -41,7 +41,7 @@ const LIT: usize = 64;
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
-    /// Pure black, no triforce, this long.
+    /// Pure black, no triforce, for `secs`.
     Black { secs: f32, map: String },
     /// Still loading after the load limit.
     Loading { secs: f32, map: String },
@@ -51,7 +51,7 @@ pub enum Hang {
     Event { secs: f32, map: String },
     /// The game refused the teleport, or never answered it.
     Refused { why: String },
-    /// Reads of the game failed this long.
+    /// Reads of the game failed, or no frame came, for 5 s.
     Unread { why: String },
     /// The game quit: what its log says ended it.
     Crashed { why: String },
@@ -146,8 +146,10 @@ pub fn probe(dev: &Dev, input: &mut impl Input, limits: Limits, frame: &Path) ->
     None
 }
 
-/// A frame into `to`, and whether it's lit. `None` when no frame came.
+/// A frame into `to`, and whether it's lit. `None` when no frame came,
+/// with no older frame left at `to` to pass for it.
 fn shoot(input: &mut impl Input, to: &Path) -> Option<bool> {
+    let _ = std::fs::remove_file(to);
     input.shot(to).ok()?;
     let png = std::fs::read(to).ok()?;
     black(&png).ok().map(|b| !b)
@@ -156,8 +158,13 @@ fn shoot(input: &mut impl Input, to: &Path) -> Option<bool> {
 /// What the watch has seen so far: when each sign began.
 #[derive(Default)]
 struct Watch {
+    /// Since when every frame was black.
     black: Option<Duration>,
+    /// Since when no frame came.
+    unframed: Option<Duration>,
+    /// Since when reads of the game failed.
     unread: Option<Duration>,
+    /// Since when Link stood in play on a lit frame.
     play: Option<Duration>,
 }
 
@@ -191,14 +198,24 @@ impl Watch {
             }
         };
         let map = state.map.clone();
-        // A missing frame neither starts nor ends the black.
+        // A missing frame neither starts nor ends the black, and never
+        // counts as lit.
         match lit {
             Some(false) => _ = self.black.get_or_insert(at),
             Some(true) => self.black = None,
             None => {}
         }
-        if self.black.is_some_and(|since| at - since >= limits.black) {
+        match lit {
+            Some(_) => self.unframed = None,
+            None => _ = self.unframed.get_or_insert(at),
+        }
+        if let Some(since) = self.black.filter(|since| at - *since >= limits.black) {
+            let secs = (at - since).as_secs_f32();
             return Some(Hang::Black { secs, map });
+        }
+        if let Some(since) = self.unframed.filter(|since| at - *since >= DEAD) {
+            let why = format!("no frame came for {:.1} s", (at - since).as_secs_f32());
+            return Some(Hang::Unread { why });
         }
         let past = at >= limits.load;
         if state.loading {
@@ -216,9 +233,11 @@ impl Watch {
                 want: want.into(),
             });
         }
-        match self.black {
-            Some(_) => self.play = None,
-            None => _ = self.play.get_or_insert(at),
+        match (lit, self.black) {
+            (Some(true), None) => _ = self.play.get_or_insert(at),
+            (Some(true), Some(_)) | (Some(false), _) => self.play = None,
+            // No frame: play neither starts nor ends.
+            (None, _) => {}
         }
         None
     }
@@ -333,10 +352,34 @@ mod tests {
         assert_eq!(look(&mut w, 1.0, Some(false)), None);
         // A missing frame doesn't end the black.
         assert_eq!(look(&mut w, 2.0, None), None);
-        assert!(matches!(
+        // The black began at 1 s: it's been black 2 s, not 3.
+        assert_eq!(
             look(&mut w, 3.0, Some(false)),
-            Some(Hang::Black { .. })
-        ));
+            Some(Hang::Black {
+                secs: 2.0,
+                map: "FakeMap".into()
+            })
+        );
+    }
+
+    #[test]
+    fn no_frame_never_settles_and_hangs_after_five_seconds() {
+        let mut w = Watch::default();
+        let up = Up(true);
+        let mut look = |at| {
+            w.tick(
+                secs(at),
+                &up,
+                state("FakeMap", false, false),
+                None,
+                "FakeMap",
+                LIMITS,
+            )
+        };
+        assert_eq!(look(0.0), None);
+        assert_eq!(look(4.0), None);
+        assert!(matches!(look(5.0), Some(Hang::Unread { why }) if why.contains("no frame")));
+        assert!(!w.settled(secs(5.0)));
     }
 
     #[test]

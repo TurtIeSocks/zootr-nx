@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 
 use serde_json::Value;
 
-use super::grid::{HOLDERS, ITEMS};
+use super::grid::{self, HOLDERS, ITEMS};
 use super::script::GAVE_UP;
 use crate::ice_traps;
 use crate::sweep::report::verdicts;
@@ -50,7 +50,7 @@ impl Outcome {
 
 /// A cell's sweep row as an outcome.
 fn swept(row: &Value) -> Outcome {
-    outcome(&row["swept"]["verdict"], row["item_kind"] == "ice-trap")
+    outcome(&row["swept"]["verdict"], row["item_kind"] == grid::ICE_TRAP)
 }
 
 /// A verdict, as it serializes, as an outcome. A `trap` cell passes when
@@ -96,10 +96,11 @@ struct Read {
 
 fn read(rows: &str) -> Read {
     let mut out = Read::default();
-    for row in rows
-        .lines()
-        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
-    {
+    for line in rows.lines().filter(|l| !l.trim().is_empty()) {
+        let Ok(row) = serde_json::from_str::<Value>(line) else {
+            out.errors.push(format!("an unreadable row: {line}"));
+            continue;
+        };
         let kind = row["gauntlet"].as_str().unwrap_or_default();
         let name = (row["name"].as_str().or(row["cell"].as_str()))
             .unwrap_or_default()
@@ -145,7 +146,9 @@ fn read(rows: &str) -> Read {
             row::ERROR => out
                 .errors
                 .push(row["error"].as_str().unwrap_or_default().into()),
-            _ => {}
+            // The sweep's own rows (its spot rows sit in the cell rows).
+            "" => {}
+            other => out.errors.push(format!("a row of no known kind {other:?}")),
         }
     }
     out
@@ -210,8 +213,11 @@ pub fn render(rows: &str, run: &str) -> (String, i32) {
         Outcome::Harness(w) => Some(w),
         _ => None,
     });
-    for e in &read.errors {
-        let _ = writeln!(md, "- round error: {e}");
+    if !read.errors.is_empty() {
+        let _ = writeln!(md, "\n## Errors\n");
+        for e in &read.errors {
+            let _ = writeln!(md, "- {e}");
+        }
     }
     section(&mut md, "No trigger yet", |o| match o {
         Outcome::NoTrigger(w) => Some(w),
@@ -290,6 +296,23 @@ mod tests {
             json!({"verdict": "wrong_item", "why": "IsGet.Item_Fake"}),
         )]);
         assert_eq!(render(&rows, "fake").1, 1);
+    }
+
+    #[test]
+    fn round_errors_unplanned_cells_and_bad_rows_break_the_harness() {
+        for row in [
+            json!({"gauntlet": "error", "round": 0, "error": "too few key chests"}).to_string(),
+            json!({"gauntlet": "unplanned", "cell": "pot × song", "why": "no spot"}).to_string(),
+            json!({"gauntlet": "fake kind"}).to_string(),
+            "{not json".into(),
+        ] {
+            let (md, code) = render(&format!("{row}\n"), "fake");
+            assert_eq!(code, 2, "{md}");
+        }
+        let rows =
+            lines(&[json!({"gauntlet": "error", "round": 0, "error": "too few key chests"})]);
+        let (md, _) = render(&rows, "fake");
+        assert!(md.contains("## Errors\n\n- too few key chests"), "{md}");
     }
 
     #[test]

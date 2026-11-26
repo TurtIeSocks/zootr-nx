@@ -87,7 +87,7 @@ pub const HOLDERS: [HolderKind; 23] = [
 
 /// The small chests `items` puts one item kind each in: the 20 the nights
 /// passed most, none ever failing.
-pub const SMALL_CHESTS: [u64; 20] = [
+pub const SMALL_CHESTS: [u64; ITEMS.len()] = [
     18277713685010400796,
     14404733996390762670,
     11929552275106311978,
@@ -193,7 +193,7 @@ pub const ITEMS: [ItemKind; 20] = [
     kind("bombchus", Group::Filler, false, || {
         item::BOMBCHU_BUNDLE_SMALL.to_string()
     }),
-    kind("ice-trap", Group::Filler, true, || {
+    kind(ICE_TRAP, Group::Filler, true, || {
         ice_traps::POOLED.to_string()
     }),
 ];
@@ -256,7 +256,8 @@ impl Run {
             Run::Quick => (every().filter(|&(_, i)| ITEMS[i].quick))
                 .map(|(h, i)| Cell::at(h, i))
                 .collect(),
-            // The full grid's first round: holder kind h holds item kind h.
+            // The full grid's first round: holder kind h holds item kind
+            // h mod 20.
             Run::Holders => (0..HOLDERS.len())
                 .map(|h| Cell::at(h, h % ITEMS.len()))
                 .collect(),
@@ -269,6 +270,9 @@ impl Run {
         }
     }
 }
+
+/// The ice trap's item kind: it passes when its get names its disguise.
+pub const ICE_TRAP: &str = "ice-trap";
 
 /// [`HOLDERS`]' small chest, which `items` fills.
 const SMALL_CHEST: usize = 0;
