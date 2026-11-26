@@ -320,6 +320,7 @@ pub fn run() -> Result<()> {
             run,
             holders,
             items,
+            places,
             fail_fast,
             black_limit,
             load_limit,
@@ -333,6 +334,7 @@ pub fn run() -> Result<()> {
                 run,
                 holders,
                 items,
+                places,
                 fail_fast,
                 limits: crate::sweep::gauntlet::hang::Limits {
                     black: std::time::Duration::from_secs_f32(black_limit),

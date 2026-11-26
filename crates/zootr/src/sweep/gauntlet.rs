@@ -38,6 +38,9 @@ pub struct Gauntlet {
     pub holders: Vec<String>,
     /// Only these item kinds, all with none.
     pub items: Vec<String>,
+    /// Tour only the places whose `MAP/SPOT` holds one of these, all with
+    /// none.
+    pub places: Vec<String>,
     /// Stop at the first failure.
     pub fail_fast: bool,
     /// How long a black screen or a load may last.
@@ -236,7 +239,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         places: &BTreeSet<Place>,
         shots: &Path,
     ) -> Result<Go> {
-        let order = tour_order(places);
+        let order = tour_order(places, &g.places);
         for (i, place) in order.iter().enumerate() {
             let name = format!("{}/{}", place.map, place.spot);
             let frame = shots.join(format!("place-{}.png", slug(&name)));
@@ -275,15 +278,20 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 }
 
-/// Places in tour order: child maps, then adult, then maps of no age, each
-/// group in name order.
-fn tour_order(places: &BTreeSet<Place>) -> Vec<Place> {
+/// The places whose name holds one of `only` (all with none), in tour
+/// order: child maps, then adult, then maps of no age, each group in name
+/// order.
+fn tour_order(places: &BTreeSet<Place>, only: &[String]) -> Vec<Place> {
     let rank = |p: &Place| match p.child() {
         Some(true) => 0,
         Some(false) => 1,
         None => 2,
     };
-    let mut order: Vec<Place> = places.iter().cloned().collect();
+    let kept = |p: &&Place| {
+        let name = format!("{}/{}", p.map, p.spot);
+        only.is_empty() || only.iter().any(|o| name.contains(o.as_str()))
+    };
+    let mut order: Vec<Place> = places.iter().filter(kept).cloned().collect();
     order.sort_by_key(|p| rank(p));
     order
 }
@@ -356,8 +364,13 @@ mod tests {
         ]
         .map(place)
         .into();
-        let order: Vec<String> = tour_order(&places).iter().map(|p| p.map.clone()).collect();
+        let order: Vec<String> = (tour_order(&places, &[]).iter())
+            .map(|p| p.map.clone())
+            .collect();
         assert_eq!(order, ["FakeHill_Child", "FakeHill_Adult", "FakeDungeon"]);
+        let only = tour_order(&places, &["Hill_A".into()]);
+        assert_eq!(only.len(), 1);
+        assert_eq!(only[0].map, "FakeHill_Adult");
     }
 
     #[test]

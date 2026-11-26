@@ -399,6 +399,10 @@ pub(super) enum Command {
         /// Only this item kind, like `song`. Repeatable.
         #[arg(long = "item")]
         items: Vec<String>,
+        /// Tour only the places whose `MAP/SPOT` holds this, like a map's
+        /// name, to see a hung load again. Repeatable.
+        #[arg(long = "place")]
+        places: Vec<String>,
         /// Stop at the first failure.
         #[arg(long)]
         fail_fast: bool,
