@@ -360,7 +360,7 @@ pub fn drop(item: &str, lines: Lines) -> Drop {
 /// The drops a mod has to write, shuffled or not: chests whose item
 /// changed, whose drop swaps, or whose vanilla swap needs clearing.
 pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> HashMap<u64, Drop> {
-    let entry = |c: &ItemCheck, item: &str| {
+    let entry = |c: &ItemCheck, item: &str, placed: bool| {
         let d = if !gifts::is_gift(c) {
             drop(item, lines)
         } else if gifts::is_prize(c) {
@@ -370,11 +370,16 @@ pub fn drops(checks: &[ItemCheck], placements: &[Placement], lines: Lines) -> Ha
             // The deal keeps swaps off gifts.
             Drop::from(item.to_owned())
         };
-        let changed = d.swap.is_some() || item != c.item || c.substitute.is_some();
+        // A placed trap chest turns plain even holding its own Red Rupee:
+        // left a trap, it would break and never give the check.
+        let trap = placed && c.holder == **crate::checks::TRAP_CHEST;
+        let changed = d.swap.is_some() || item != c.item || c.substitute.is_some() || trap;
         changed.then_some((c.hash, d))
     };
-    let unmoved = checks.iter().filter_map(|c| entry(c, &c.item));
-    let placed = placements.iter().filter_map(|p| entry(p.check, p.item));
+    let unmoved = checks.iter().filter_map(|c| entry(c, &c.item, false));
+    let placed = placements
+        .iter()
+        .filter_map(|p| entry(p.check, p.item, true));
     // Placements come last so they win.
     unmoved.chain(placed).collect()
 }
@@ -636,6 +641,22 @@ mod tests {
     fn line(i: usize) -> [(&'static str, &'static str); 2] {
         let [(a, b), (c, d)] = <[_; 2]>::try_from(progressive::LINES[i]).unwrap();
         [(a.get(), b.get()), (c.get(), d.get())]
+    }
+
+    #[test]
+    fn a_placed_trap_chest_is_dealt_even_holding_its_own_item() {
+        let trap = ItemCheck {
+            holder: crate::checks::TRAP_CHEST.to_string(),
+            ..chest(1, "Item_A")
+        };
+        let placed = [Placement {
+            check: &trap,
+            item: "Item_A",
+        }];
+        let d = drops(std::slice::from_ref(&trap), &placed, Lines::default());
+        assert_eq!(d.get(&1).map(|d| d.item.as_str()), Some("Item_A"));
+        // Unplaced (chests left vanilla), it stays the trap.
+        assert!(drops(std::slice::from_ref(&trap), &[], Lines::default()).is_empty());
     }
 
     #[test]
