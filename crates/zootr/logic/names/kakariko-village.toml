@@ -1,0 +1,128 @@
+# Kakariko Village. OoTR's name wherever the remake keeps the spot.
+#
+# The remake keeps three copies of the village, each with its own pots,
+# grass and beehives: the child village, the adult village, and the
+# burned village the adult sees once the Forest, Fire and Water sages are
+# done. Each copy's name says which, before the kind ("Child Pot 1",
+# "Adult Pot 1", "Burned Pot 1"), as OoTR's Market Guard House pots do.
+# Numbered west to east.
+
+# The gold Skulltulas, all OoTR's, matched by the remake guides
+7677963516305772491 = "Kak GS Tree"
+11629189455828560791 = "Kak GS Near Gate Guard"
+15118290503807073158 = "Kak GS Watchtower"
+15314554401574296838 = "Kak GS Skulltula House"
+14107117960174262321 = "Kak GS House Under Construction"
+3310819903461047792 = "Kak GS Above Impas House"
+
+# Heart pieces, chests and the cow
+17926402522258180222 = "Kak Impas House Freestanding PoH" # guess: beside the cow, as in OoTR, though one guide puts it on the roof
+13389209437182306002 = "Kak Windmill Freestanding PoH"
+3581309213670406493 = "Kak Impas House Cow"
+12902291359202819102 = "Kak Open Grotto Chest" # guess: the open grotto between the potion shop and Granny, adult only here
+11929552275106311978 = "Kak Windmill Adult Chest"
+13080955777249750889 = "Kak Windmill Burned Chest"
+
+# Pots by the potion shop door: OoTR has three, the remake two
+3252450751793784313 = "Kak Near Potion Shop Child Pot 1"
+6195808453148783180 = "Kak Near Potion Shop Child Pot 2"
+4262639976510329423 = "Kak Near Potion Shop Adult Pot 1"
+7120300037202526714 = "Kak Near Potion Shop Adult Pot 2"
+5365536334971735242 = "Kak Near Potion Shop Burned Pot 1"
+1155385119688866072 = "Kak Near Potion Shop Burned Pot 2"
+
+# Pots by Granny's Odd Medicine building, two as in OoTR
+10165937155993394562 = "Kak Near Odd Medicine Building Child Pot 1"
+35339038829944767 = "Kak Near Odd Medicine Building Child Pot 2"
+6663933541925368008 = "Kak Near Odd Medicine Building Adult Pot 1"
+14889198299869016305 = "Kak Near Odd Medicine Building Adult Pot 2"
+3081295406367672138 = "Kak Near Odd Medicine Building Burned Pot 1"
+13635177047804265751 = "Kak Near Odd Medicine Building Burned Pot 2"
+
+# Pots in front of Impa's house, four on the raised stones and one
+# beside the fence: OoTR has three
+17991454493447452409 = "Kak Near Impas House Child Pot 1" # guess: OoTR has three, the remake five
+14122332566338914320 = "Kak Near Impas House Child Pot 2" # guess: OoTR has three, the remake five
+18078110404684471865 = "Kak Near Impas House Child Pot 3" # guess: OoTR has three, the remake five
+3252807497395580785 = "Kak Near Impas House Child Pot 4" # guess: OoTR has three, the remake five
+700577879275312973 = "Kak Near Impas House Child Pot 5" # guess: OoTR has three, the remake five
+17332353328325691959 = "Kak Near Impas House Adult Pot 1" # guess: OoTR has three, the remake five
+10132571390884605046 = "Kak Near Impas House Adult Pot 2" # guess: OoTR has three, the remake five
+17417703929745359430 = "Kak Near Impas House Adult Pot 3" # guess: OoTR has three, the remake five
+2664667477796335039 = "Kak Near Impas House Adult Pot 4" # guess: OoTR has three, the remake five
+14020355262484604054 = "Kak Near Impas House Adult Pot 5" # guess: OoTR has three, the remake five
+9430625341946461210 = "Kak Near Impas House Burned Pot 1" # guess: OoTR has three, the remake five
+16338658219881018069 = "Kak Near Impas House Burned Pot 2" # guess: OoTR has three, the remake five
+9498246738218276037 = "Kak Near Impas House Burned Pot 3" # guess: OoTR has three, the remake five
+6202340199554483612 = "Kak Near Impas House Burned Pot 4" # guess: OoTR has three, the remake five
+13040976737240109424 = "Kak Near Impas House Burned Pot 5" # guess: OoTR has three, the remake five
+
+# A pot by the gate guard's fire at the Death Mountain gate
+8015913209367877534 = "Kak Near Gate Guard Child Pot" # guess: maybe one of OoTR Near Guards House pots
+7213843677856822468 = "Kak Near Gate Guard Adult Pot" # guess: maybe one of OoTR Near Guards House pots
+1619904051930079553 = "Kak Near Gate Guard Burned Pot" # guess: maybe one of OoTR Near Guards House pots
+
+# Grass by Impa's garden, and a crate by the windmill door. Not in OoTR.
+4733558664880481899 = "Kak Near Impas House Child Grass"
+601921676218178237 = "Kak Near Impas House Adult Grass"
+16610069774496468056 = "Kak Near Impas House Burned Grass"
+610633925189690236 = "Kak Near Windmill Crate"
+
+# Beehives in the covered grotto by the House of Skulltula. Not in OoTR.
+630435123241072803 = "Kak Skulltula House Grotto Child Beehive 1"
+13688624943009703242 = "Kak Skulltula House Grotto Child Beehive 2"
+14822820938445509245 = "Kak Skulltula House Grotto Child Beehive 3"
+6909031777249284340 = "Kak Skulltula House Grotto Child Beehive 4"
+15036633555144416666 = "Kak Skulltula House Grotto Child Beehive 5"
+16372087067032602965 = "Kak Skulltula House Grotto Child Beehive 6"
+15621232994617920561 = "Kak Skulltula House Grotto Child Beehive 7"
+15194145214241428457 = "Kak Skulltula House Grotto Adult Beehive 1"
+10145298046756223872 = "Kak Skulltula House Grotto Adult Beehive 2"
+313487388078450371 = "Kak Skulltula House Grotto Adult Beehive 3"
+7122842226382586963 = "Kak Skulltula House Grotto Adult Beehive 4"
+11490165347466345300 = "Kak Skulltula House Grotto Adult Beehive 5"
+16799768758395032082 = "Kak Skulltula House Grotto Adult Beehive 6"
+1653162402693744760 = "Kak Skulltula House Grotto Adult Beehive 7"
+13581472975735926379 = "Kak Skulltula House Grotto Burned Beehive 1"
+18024025553142632322 = "Kak Skulltula House Grotto Burned Beehive 2"
+6233273780664277824 = "Kak Skulltula House Grotto Burned Beehive 3"
+1202776697094645489 = "Kak Skulltula House Grotto Burned Beehive 4"
+17138417389390636986 = "Kak Skulltula House Grotto Burned Beehive 5"
+11170096559973302143 = "Kak Skulltula House Grotto Burned Beehive 6"
+4974669760799564503 = "Kak Skulltula House Grotto Burned Beehive 7"
+
+# People
+15692166203658509037 = "Kak Anju as Child"
+4829374028878320404 = "Kak Anju as Adult"
+9780435211847824593 = "Kak Man on Roof"
+887949387241974339 = "Kak Shooting Gallery Reward"
+4624030970593856299 = "Kak Song from Windmill"
+9447699849637278794 = "Kak Sheik in Kakariko"
+5600989862490052494 = "Kak Trade Pocket Cucco"
+3994987831222113762 = "Kak Trade Odd Mushroom"
+
+# House of Skulltula rewards; OoTR stops at 50
+9060474567289915003 = "Kak 10 Gold Skulltula Reward"
+909723496375037131 = "Kak 20 Gold Skulltula Reward"
+16284910007420782019 = "Kak 30 Gold Skulltula Reward"
+4405219083245412012 = "Kak 40 Gold Skulltula Reward"
+11445577403649451289 = "Kak 50 Gold Skulltula Reward"
+4522352553331655338 = "Kak 100 Gold Skulltula Reward"
+
+# Bazaar and Potion Shop, by shelf slot as OoTR counts them
+6472964510849521373 = "Kak Bazaar Item 1"
+10770932550933339193 = "Kak Bazaar Item 2"
+9329787277345810673 = "Kak Bazaar Item 3"
+7242922901245289051 = "Kak Bazaar Item 4"
+17252547494024141430 = "Kak Bazaar Item 5"
+11066753475037239452 = "Kak Bazaar Item 6"
+16693599174313571081 = "Kak Bazaar Item 7"
+15323969315798721959 = "Kak Bazaar Item 8"
+12023735427638332018 = "Kak Potion Shop Item 1"
+11639399395084703081 = "Kak Potion Shop Item 2"
+3063235766944682979 = "Kak Potion Shop Item 3"
+9419965511399476345 = "Kak Potion Shop Item 4"
+13090519859098389042 = "Kak Potion Shop Item 5"
+8914926333771357265 = "Kak Potion Shop Item 6"
+14573579641810810967 = "Kak Potion Shop Item 7"
+1034471250009702566 = "Kak Potion Shop Item 8"

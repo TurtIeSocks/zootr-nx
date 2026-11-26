@@ -28,7 +28,7 @@
       "forbid": [],
       "hash": "35339038829944767",
       "id": 496,
-      "name": "Kakariko Village East Pot 3",
+      "name": "Kak Near Odd Medicine Building Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -515,7 +515,7 @@
       "forbid": [],
       "hash": "313487388078450371",
       "id": 1414,
-      "name": "Kakariko Village East Beehive 19",
+      "name": "Kak Skulltula House Grotto Adult Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -918,7 +918,7 @@
       "forbid": [],
       "hash": "601921676218178237",
       "id": 1261,
-      "name": "Kakariko Village Southeast Grass 2",
+      "name": "Kak Near Impas House Adult Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -934,7 +934,7 @@
       "forbid": [],
       "hash": "610633925189690236",
       "id": 1049,
-      "name": "Kakariko Village Crate",
+      "name": "Kak Near Windmill Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -973,7 +973,7 @@
       "forbid": [],
       "hash": "630435123241072803",
       "id": 1415,
-      "name": "Kakariko Village East Beehive 14",
+      "name": "Kak Skulltula House Grotto Child Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -1101,7 +1101,7 @@
       "forbid": [],
       "hash": "700577879275312973",
       "id": 520,
-      "name": "Kakariko Village Southeast Pot 1",
+      "name": "Kak Near Impas House Child Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -1436,7 +1436,7 @@
       "forbid": [],
       "hash": "887949387241974339",
       "id": 147,
-      "name": "Kakariko Village Shooting Gallery",
+      "name": "Kak Shooting Gallery Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -1457,7 +1457,7 @@
       "forbid": [],
       "hash": "909723496375037131",
       "id": 148,
-      "name": "Kakariko Village House of Skulltula: 20",
+      "name": "Kak 20 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -1700,7 +1700,7 @@
       "forbid": [],
       "hash": "1034471250009702566",
       "id": 279,
-      "name": "Kakariko Village Potion Shop 8",
+      "name": "Kak Potion Shop Item 8",
       "unprovable": false,
       "when": {
         "ref": 2
@@ -1841,7 +1841,7 @@
       "forbid": [],
       "hash": "1155385119688866072",
       "id": 534,
-      "name": "Kakariko Village Northeast Pot 5",
+      "name": "Kak Near Potion Shop Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2094,7 +2094,7 @@
       "forbid": [],
       "hash": "1202776697094645489",
       "id": 1416,
-      "name": "Kakariko Village East Beehive 3",
+      "name": "Kak Skulltula House Grotto Burned Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -2955,7 +2955,7 @@
       "forbid": [],
       "hash": "1619904051930079553",
       "id": 559,
-      "name": "Kakariko Village North Pot 2",
+      "name": "Kak Near Gate Guard Burned Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3007,7 +3007,7 @@
       "forbid": [],
       "hash": "1653162402693744760",
       "id": 1417,
-      "name": "Kakariko Village East Beehive 7",
+      "name": "Kak Skulltula House Grotto Adult Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -4690,7 +4690,7 @@
       "forbid": [],
       "hash": "2664667477796335039",
       "id": 584,
-      "name": "Kakariko Village Southeast Pot 6",
+      "name": "Kak Near Impas House Adult Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5211,7 +5211,7 @@
       "forbid": [],
       "hash": "3063235766944682979",
       "id": 225,
-      "name": "Kakariko Village Potion Shop 3",
+      "name": "Kak Potion Shop Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -5281,7 +5281,7 @@
       "forbid": [],
       "hash": "3081295406367672138",
       "id": 600,
-      "name": "Kakariko Village East Pot 2",
+      "name": "Kak Near Odd Medicine Building Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5544,7 +5544,7 @@
       "forbid": [],
       "hash": "3252450751793784313",
       "id": 608,
-      "name": "Kakariko Village Northeast Pot 3",
+      "name": "Kak Near Potion Shop Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5560,7 +5560,7 @@
       "forbid": [],
       "hash": "3252807497395580785",
       "id": 609,
-      "name": "Kakariko Village Southeast Pot 4",
+      "name": "Kak Near Impas House Child Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -5682,7 +5682,7 @@
       "forbid": [],
       "hash": "3310819903461047792",
       "id": 326,
-      "name": "Kakariko Village Southeast Gold Skulltula Token",
+      "name": "Kak GS Above Impas House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -6037,7 +6037,7 @@
       "forbid": [],
       "hash": "3581309213670406493",
       "id": 303,
-      "name": "Kakariko Village Cow",
+      "name": "Kak Impas House Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -6743,7 +6743,7 @@
       "forbid": [],
       "hash": "3994987831222113762",
       "id": 211,
-      "name": "Kakariko Village Granny: Odd Mushroom",
+      "name": "Kak Trade Odd Mushroom",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -7160,7 +7160,7 @@
       "forbid": [],
       "hash": "4262639976510329423",
       "id": 640,
-      "name": "Kakariko Village Northeast Pot 1",
+      "name": "Kak Near Potion Shop Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -7453,7 +7453,7 @@
       "forbid": [],
       "hash": "4405219083245412012",
       "id": 153,
-      "name": "Kakariko Village House of Skulltula: 40",
+      "name": "Kak 40 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -7648,7 +7648,7 @@
       "forbid": [],
       "hash": "4522352553331655338",
       "id": 208,
-      "name": "Kakariko Village House of Skulltula: 100",
+      "name": "Kak 100 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "all": [
@@ -7890,7 +7890,7 @@
       "forbid": [],
       "hash": "4624030970593856299",
       "id": 200,
-      "name": "Kakariko Village Windmill Man",
+      "name": "Kak Song from Windmill",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -8056,7 +8056,7 @@
       "forbid": [],
       "hash": "4733558664880481899",
       "id": 1304,
-      "name": "Kakariko Village Southeast Grass 3",
+      "name": "Kak Near Impas House Child Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8298,7 +8298,7 @@
       "forbid": [],
       "hash": "4829374028878320404",
       "id": 212,
-      "name": "Kakariko Village Anju as Adult",
+      "name": "Kak Anju as Adult",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -8463,7 +8463,7 @@
       "forbid": [],
       "hash": "4974669760799564503",
       "id": 1418,
-      "name": "Kakariko Village East Beehive 9",
+      "name": "Kak Skulltula House Grotto Burned Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -9081,7 +9081,7 @@
       "forbid": [],
       "hash": "5365536334971735242",
       "id": 674,
-      "name": "Kakariko Village Northeast Pot 2",
+      "name": "Kak Near Potion Shop Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -9375,7 +9375,7 @@
       "forbid": [],
       "hash": "5600989862490052494",
       "id": 214,
-      "name": "Kakariko Village Talon: Pocket Cucco",
+      "name": "Kak Trade Pocket Cucco",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -10336,7 +10336,7 @@
       "forbid": [],
       "hash": "6195808453148783180",
       "id": 699,
-      "name": "Kakariko Village Northeast Pot 6",
+      "name": "Kak Near Potion Shop Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10352,7 +10352,7 @@
       "forbid": [],
       "hash": "6202340199554483612",
       "id": 700,
-      "name": "Kakariko Village Southeast Pot 5",
+      "name": "Kak Near Impas House Burned Pot 4",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10401,7 +10401,7 @@
       "forbid": [],
       "hash": "6233273780664277824",
       "id": 1419,
-      "name": "Kakariko Village East Beehive 21",
+      "name": "Kak Skulltula House Grotto Burned Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -10871,7 +10871,7 @@
       "forbid": [],
       "hash": "6472964510849521373",
       "id": 227,
-      "name": "Kakariko Village Bazaar 1",
+      "name": "Kak Bazaar Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -10979,7 +10979,7 @@
       "forbid": [],
       "hash": "6663933541925368008",
       "id": 713,
-      "name": "Kakariko Village East Pot 5",
+      "name": "Kak Near Odd Medicine Building Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11420,7 +11420,7 @@
       "forbid": [],
       "hash": "6909031777249284340",
       "id": 1420,
-      "name": "Kakariko Village East Beehive 2",
+      "name": "Kak Skulltula House Grotto Child Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -11731,7 +11731,7 @@
       "forbid": [],
       "hash": "7120300037202526714",
       "id": 730,
-      "name": "Kakariko Village Northeast Pot 4",
+      "name": "Kak Near Potion Shop Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11749,7 +11749,7 @@
       "forbid": [],
       "hash": "7122842226382586963",
       "id": 1421,
-      "name": "Kakariko Village East Beehive 1",
+      "name": "Kak Skulltula House Grotto Adult Beehive 4",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -11874,7 +11874,7 @@
       "forbid": [],
       "hash": "7213843677856822468",
       "id": 732,
-      "name": "Kakariko Village North Pot 1",
+      "name": "Kak Near Gate Guard Adult Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -11974,7 +11974,7 @@
       "forbid": [],
       "hash": "7242922901245289051",
       "id": 230,
-      "name": "Kakariko Village Bazaar 4",
+      "name": "Kak Bazaar Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -12772,7 +12772,7 @@
       "forbid": [],
       "hash": "7677963516305772491",
       "id": 342,
-      "name": "Kakariko Village Northeast Gold Skulltula Token 2",
+      "name": "Kak GS Tree",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -13070,7 +13070,7 @@
       "forbid": [],
       "hash": "8015913209367877534",
       "id": 758,
-      "name": "Kakariko Village North Pot 3",
+      "name": "Kak Near Gate Guard Child Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -14323,7 +14323,7 @@
       "forbid": [],
       "hash": "8914926333771357265",
       "id": 266,
-      "name": "Kakariko Village Potion Shop 6",
+      "name": "Kak Potion Shop Item 6",
       "unprovable": false,
       "when": {
         "ref": 44
@@ -14734,7 +14734,7 @@
       "forbid": [],
       "hash": "9060474567289915003",
       "id": 166,
-      "name": "Kakariko Village House of Skulltula: 10",
+      "name": "Kak 10 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -15322,7 +15322,7 @@
       "forbid": [],
       "hash": "9329787277345810673",
       "id": 234,
-      "name": "Kakariko Village Bazaar 3",
+      "name": "Kak Bazaar Item 3",
       "unprovable": false,
       "when": {
         "ref": 74
@@ -15454,7 +15454,7 @@
       "forbid": [],
       "hash": "9419965511399476345",
       "id": 235,
-      "name": "Kakariko Village Potion Shop 4",
+      "name": "Kak Potion Shop Item 4",
       "unprovable": false,
       "when": {
         "ref": 62
@@ -15470,7 +15470,7 @@
       "forbid": [],
       "hash": "9430625341946461210",
       "id": 794,
-      "name": "Kakariko Village Southeast Pot 14",
+      "name": "Kak Near Impas House Burned Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -15522,7 +15522,7 @@
       "forbid": [],
       "hash": "9447699849637278794",
       "id": 204,
-      "name": "Kakariko Village Sheik",
+      "name": "Kak Sheik in Kakariko",
       "unprovable": false,
       "when": {
         "setting": "songs"
@@ -15635,7 +15635,7 @@
       "forbid": [],
       "hash": "9498246738218276037",
       "id": 796,
-      "name": "Kakariko Village Southeast Pot 8",
+      "name": "Kak Near Impas House Burned Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16176,7 +16176,7 @@
       "forbid": [],
       "hash": "9780435211847824593",
       "id": 169,
-      "name": "Kakariko Village Man on the Roof",
+      "name": "Kak Man on Roof",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -16934,7 +16934,7 @@
       "forbid": [],
       "hash": "10132571390884605046",
       "id": 820,
-      "name": "Kakariko Village Southeast Pot 10",
+      "name": "Kak Near Impas House Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -16952,7 +16952,7 @@
       "forbid": [],
       "hash": "10145298046756223872",
       "id": 1422,
-      "name": "Kakariko Village East Beehive 4",
+      "name": "Kak Skulltula House Grotto Adult Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -16986,7 +16986,7 @@
       "forbid": [],
       "hash": "10165937155993394562",
       "id": 822,
-      "name": "Kakariko Village East Pot 1",
+      "name": "Kak Near Odd Medicine Building Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17908,7 +17908,7 @@
       "forbid": [],
       "hash": "10770932550933339193",
       "id": 240,
-      "name": "Kakariko Village Bazaar 2",
+      "name": "Kak Bazaar Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -18336,7 +18336,7 @@
       "forbid": [],
       "hash": "11066753475037239452",
       "id": 268,
-      "name": "Kakariko Village Bazaar 6",
+      "name": "Kak Bazaar Item 6",
       "unprovable": true,
       "when": {
         "ref": 44
@@ -18648,7 +18648,7 @@
       "forbid": [],
       "hash": "11170096559973302143",
       "id": 1423,
-      "name": "Kakariko Village East Beehive 18",
+      "name": "Kak Skulltula House Grotto Burned Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -18973,7 +18973,7 @@
       "forbid": [],
       "hash": "11445577403649451289",
       "id": 179,
-      "name": "Kakariko Village House of Skulltula: 50",
+      "name": "Kak 50 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -19122,7 +19122,7 @@
       "forbid": [],
       "hash": "11490165347466345300",
       "id": 1424,
-      "name": "Kakariko Village East Beehive 10",
+      "name": "Kak Skulltula House Grotto Adult Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -19445,7 +19445,7 @@
       "forbid": [],
       "hash": "11629189455828560791",
       "id": 370,
-      "name": "Kakariko Village North Gold Skulltula Token",
+      "name": "Kak GS Near Gate Guard",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -19523,7 +19523,7 @@
       "forbid": [],
       "hash": "11639399395084703081",
       "id": 242,
-      "name": "Kakariko Village Potion Shop 2",
+      "name": "Kak Potion Shop Item 2",
       "unprovable": false,
       "when": {
         "ref": 95
@@ -19880,7 +19880,7 @@
       "forbid": [],
       "hash": "11929552275106311978",
       "id": 86,
-      "name": "Kakariko Village East Purple Rupee (50) Chest 1",
+      "name": "Kak Windmill Adult Chest",
       "unprovable": false
     },
     {
@@ -20011,7 +20011,7 @@
       "forbid": [],
       "hash": "12023735427638332018",
       "id": 243,
-      "name": "Kakariko Village Potion Shop 1",
+      "name": "Kak Potion Shop Item 1",
       "unprovable": false,
       "when": {
         "setting": "shopsanity"
@@ -21450,7 +21450,7 @@
       "forbid": [],
       "hash": "12902291359202819102",
       "id": 93,
-      "name": "Kakariko Village Northeast Blue Rupee (5) Chest",
+      "name": "Kak Open Grotto Chest",
       "unprovable": false
     },
     {
@@ -21758,7 +21758,7 @@
       "forbid": [],
       "hash": "13040976737240109424",
       "id": 892,
-      "name": "Kakariko Village Southeast Pot 2",
+      "name": "Kak Near Impas House Burned Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21792,7 +21792,7 @@
       "forbid": [],
       "hash": "13080955777249750889",
       "id": 97,
-      "name": "Kakariko Village East Purple Rupee (50) Chest 2",
+      "name": "Kak Windmill Burned Chest",
       "unprovable": false
     },
     {
@@ -21809,7 +21809,7 @@
       "forbid": [],
       "hash": "13090519859098389042",
       "id": 260,
-      "name": "Kakariko Village Potion Shop 5",
+      "name": "Kak Potion Shop Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -22214,7 +22214,7 @@
       "forbid": [],
       "hash": "13389209437182306002",
       "id": 297,
-      "name": "Kakariko Village East Piece of Heart",
+      "name": "Kak Windmill Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -22528,7 +22528,7 @@
       "forbid": [],
       "hash": "13581472975735926379",
       "id": 1425,
-      "name": "Kakariko Village East Beehive 15",
+      "name": "Kak Skulltula House Grotto Burned Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -22705,7 +22705,7 @@
       "forbid": [],
       "hash": "13635177047804265751",
       "id": 913,
-      "name": "Kakariko Village East Pot 4",
+      "name": "Kak Near Odd Medicine Building Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -22726,7 +22726,7 @@
       "forbid": [],
       "hash": "13688624943009703242",
       "id": 1426,
-      "name": "Kakariko Village East Beehive 5",
+      "name": "Kak Skulltula House Grotto Child Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -23286,7 +23286,7 @@
       "forbid": [],
       "hash": "14020355262484604054",
       "id": 921,
-      "name": "Kakariko Village Southeast Pot 3",
+      "name": "Kak Near Impas House Adult Pot 5",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23433,7 +23433,7 @@
       "forbid": [],
       "hash": "14107117960174262321",
       "id": 382,
-      "name": "Kakariko Village East Gold Skulltula Token 1",
+      "name": "Kak GS House Under Construction",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -23449,7 +23449,7 @@
       "forbid": [],
       "hash": "14122332566338914320",
       "id": 923,
-      "name": "Kakariko Village Southeast Pot 12",
+      "name": "Kak Near Impas House Child Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23954,7 +23954,7 @@
       "forbid": [],
       "hash": "14573579641810810967",
       "id": 277,
-      "name": "Kakariko Village Potion Shop 7",
+      "name": "Kak Potion Shop Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -24304,7 +24304,7 @@
       "forbid": [],
       "hash": "14822820938445509245",
       "id": 1427,
-      "name": "Kakariko Village East Beehive 20",
+      "name": "Kak Skulltula House Grotto Child Beehive 3",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -24354,7 +24354,7 @@
       "forbid": [],
       "hash": "14889198299869016305",
       "id": 945,
-      "name": "Kakariko Village East Pot 6",
+      "name": "Kak Near Odd Medicine Building Adult Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -24629,7 +24629,7 @@
       "forbid": [],
       "hash": "15036633555144416666",
       "id": 1428,
-      "name": "Kakariko Village East Beehive 11",
+      "name": "Kak Skulltula House Grotto Child Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -24786,7 +24786,7 @@
       "forbid": [],
       "hash": "15118290503807073158",
       "id": 388,
-      "name": "Kakariko Village Northeast Gold Skulltula Token 1",
+      "name": "Kak GS Watchtower",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -24898,7 +24898,7 @@
       "forbid": [],
       "hash": "15194145214241428457",
       "id": 1429,
-      "name": "Kakariko Village East Beehive 13",
+      "name": "Kak Skulltula House Grotto Adult Beehive 1",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -25069,7 +25069,7 @@
       "forbid": [],
       "hash": "15314554401574296838",
       "id": 391,
-      "name": "Kakariko Village East Gold Skulltula Token 2",
+      "name": "Kak GS Skulltula House",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -25119,7 +25119,7 @@
       "forbid": [],
       "hash": "15323969315798721959",
       "id": 286,
-      "name": "Kakariko Village Bazaar 8",
+      "name": "Kak Bazaar Item 8",
       "unprovable": true,
       "when": {
         "ref": 2
@@ -25426,7 +25426,7 @@
       "forbid": [],
       "hash": "15621232994617920561",
       "id": 1430,
-      "name": "Kakariko Village East Beehive 8",
+      "name": "Kak Skulltula House Grotto Child Beehive 7",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -25526,7 +25526,7 @@
       "forbid": [],
       "hash": "15692166203658509037",
       "id": 188,
-      "name": "Kakariko Village Anju",
+      "name": "Kak Anju as Child",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -26483,7 +26483,7 @@
       "forbid": [],
       "hash": "16284910007420782019",
       "id": 189,
-      "name": "Kakariko Village House of Skulltula: 30",
+      "name": "Kak 30 Gold Skulltula Reward",
       "unprovable": true,
       "when": {
         "setting": "npc-gifts"
@@ -26571,7 +26571,7 @@
       "forbid": [],
       "hash": "16338658219881018069",
       "id": 987,
-      "name": "Kakariko Village Southeast Pot 11",
+      "name": "Kak Near Impas House Burned Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26664,7 +26664,7 @@
       "forbid": [],
       "hash": "16372087067032602965",
       "id": 1431,
-      "name": "Kakariko Village East Beehive 17",
+      "name": "Kak Skulltula House Grotto Child Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -26933,7 +26933,7 @@
       "forbid": [],
       "hash": "16610069774496468056",
       "id": 1407,
-      "name": "Kakariko Village Southeast Grass 1",
+      "name": "Kak Near Impas House Burned Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -27077,7 +27077,7 @@
       "forbid": [],
       "hash": "16693599174313571081",
       "id": 278,
-      "name": "Kakariko Village Bazaar 7",
+      "name": "Kak Bazaar Item 7",
       "unprovable": false,
       "when": {
         "ref": 19
@@ -27231,7 +27231,7 @@
       "forbid": [],
       "hash": "16799768758395032082",
       "id": 1432,
-      "name": "Kakariko Village East Beehive 16",
+      "name": "Kak Skulltula House Grotto Adult Beehive 6",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -27888,7 +27888,7 @@
       "forbid": [],
       "hash": "17138417389390636986",
       "id": 1433,
-      "name": "Kakariko Village East Beehive 12",
+      "name": "Kak Skulltula House Grotto Burned Beehive 5",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -28102,7 +28102,7 @@
       "forbid": [],
       "hash": "17252547494024141430",
       "id": 262,
-      "name": "Kakariko Village Bazaar 5",
+      "name": "Kak Bazaar Item 5",
       "unprovable": false,
       "when": {
         "ref": 51
@@ -28252,7 +28252,7 @@
       "forbid": [],
       "hash": "17332353328325691959",
       "id": 1018,
-      "name": "Kakariko Village Southeast Pot 13",
+      "name": "Kak Near Impas House Adult Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -28381,7 +28381,7 @@
       "forbid": [],
       "hash": "17417703929745359430",
       "id": 1022,
-      "name": "Kakariko Village Southeast Pot 7",
+      "name": "Kak Near Impas House Adult Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29238,7 +29238,7 @@
       "forbid": [],
       "hash": "17926402522258180222",
       "id": 301,
-      "name": "Kakariko Village Southeast Piece of Heart",
+      "name": "Kak Impas House Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -29324,7 +29324,7 @@
       "forbid": [],
       "hash": "17991454493447452409",
       "id": 1039,
-      "name": "Kakariko Village Southeast Pot 15",
+      "name": "Kak Near Impas House Child Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29410,7 +29410,7 @@
       "forbid": [],
       "hash": "18024025553142632322",
       "id": 1434,
-      "name": "Kakariko Village East Beehive 6",
+      "name": "Kak Skulltula House Grotto Burned Beehive 2",
       "unprovable": false,
       "when": {
         "setting": "hives"
@@ -29567,7 +29567,7 @@
       "forbid": [],
       "hash": "18078110404684471865",
       "id": 1044,
-      "name": "Kakariko Village Southeast Pot 9",
+      "name": "Kak Near Impas House Child Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
