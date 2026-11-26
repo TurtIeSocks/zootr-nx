@@ -399,7 +399,7 @@ fn reinstall(
     restyle: bool,
 ) -> anyhow::Result<()> {
     let entry = History::load()?.get(id)?.clone();
-    let (seed, settings, mut extras) = (entry.report.seed, entry.settings, entry.extras);
+    let (seed, settings, mut extras) = (entry.brief.seed, entry.settings, entry.extras);
     if restyle {
         extras = extras.styled(Config::load()?.drafts(), seed)?;
     }
@@ -496,13 +496,13 @@ struct Spoiler {
 #[specta::specta]
 fn spoiler(id: u32) -> Res<Spoiler> {
     let history = History::load().map_err(text)?;
-    let report = &history.get(id).map_err(text)?.report;
+    let report = history.report(id).map_err(text)?;
     Ok(Spoiler {
-        spots: report.spots.clone(),
-        events: report.events.clone(),
-        unprovable: report.unprovable.clone(),
-        start: report.start.clone(),
-        entrances: report.entrances.clone(),
+        spots: report.spots,
+        events: report.events,
+        unprovable: report.unprovable,
+        start: report.start,
+        entrances: report.entrances,
     })
 }
 
