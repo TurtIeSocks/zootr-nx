@@ -947,7 +947,12 @@ export type PoolMode =
 /**  A permutation within each band: every song plays somewhere. */
 "shuffle" | 
 /**  Each slot draws any song in its band, repeats allowed. */
-"random";
+"random" | 
+/**
+ *  NPC voices only: each voice type keeps its lines, each line a clip
+ *  of the same emotion from any type's.
+ */
+"chaos";
 
 export type Rebuild = {
 	/**  What rebuilds the game, as arguments. `{game}` becomes the game dump. */
