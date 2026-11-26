@@ -9200,30 +9200,6 @@
       }
     },
     {
-      "at": [
-        {
-          "place": "lost-woods-adult",
-          "rule": {
-            "ref": 216
-          }
-        },
-        {
-          "place": "lost-woods-child",
-          "rule": {
-            "ref": 197
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "5207698098030997501",
-      "id": 1602,
-      "name": "LW Boulder 1",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
       "at": [],
       "forbid": [],
       "hash": "5214952873966346016",
@@ -9622,30 +9598,6 @@
       "unprovable": false,
       "when": {
         "setting": "crates"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "death-mountain-crater-adult",
-          "rule": {
-            "ref": 240
-          }
-        },
-        {
-          "place": "death-mountain-crater-child",
-          "rule": {
-            "ref": 197
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "5524931827254348969",
-      "id": 1604,
-      "name": "DMC Upper Grotto Boulder",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -14327,30 +14279,6 @@
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "death-mountain-trail-adult",
-          "rule": {
-            "ref": 232
-          }
-        },
-        {
-          "place": "death-mountain-trail-child",
-          "rule": {
-            "ref": 220
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "8580335210618464267",
-      "id": 1613,
-      "name": "DMT Above Signposts Boulder 2",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -19911,24 +19839,6 @@
     {
       "at": [
         {
-          "place": "death-mountain-crater-adult",
-          "rule": {
-            "ref": 183
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "11477097298279134715",
-      "id": 1628,
-      "name": "DMC Near GC Red Boulder",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "zora-domain-adult-alternative-adult",
           "rule": {
             "count": 1,
@@ -22486,30 +22396,6 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "lost-woods-adult",
-          "rule": {
-            "ref": 216
-          }
-        },
-        {
-          "place": "lost-woods-child",
-          "rule": {
-            "ref": 197
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "12960902182455217518",
-      "id": 1632,
-      "name": "LW Boulder 2",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -26539,30 +26425,6 @@
     {
       "at": [
         {
-          "place": "hyrule-field-adult",
-          "rule": {
-            "ref": 295
-          }
-        },
-        {
-          "place": "hyrule-field-child",
-          "rule": {
-            "ref": 268
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "15605814217953065995",
-      "id": 1643,
-      "name": "HF Cow Grotto Boulder",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "desert-colossus-child",
           "rule": {
             "ref": 115
@@ -28083,30 +27945,6 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "zora-river-adult",
-          "rule": {
-            "ref": 216
-          }
-        },
-        {
-          "place": "zora-river-child",
-          "rule": {
-            "ref": 197
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "16547116969322393756",
-      "id": 1647,
-      "name": "ZR Near Fairy Grotto Boulder",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {

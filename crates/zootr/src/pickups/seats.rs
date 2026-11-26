@@ -23,7 +23,10 @@ use crate::shows::{copy_hash, rehash};
 /// The boulders bombs or the hammer break. Each drops a Green Rupee from
 /// its pack's table, unless its placement names none.
 pub const BOULDERS: Kind = Kind {
-    actors: &[actor::OBJ_BROKEN_ROCK_A_01, actor::OBJ_GORON_BROKEN_ROCK_A_01],
+    actors: &[
+        actor::OBJ_BROKEN_ROCK_A_01,
+        actor::OBJ_GORON_BROKEN_ROCK_A_01,
+    ],
     item: Some(actor::OBJ_RUPEE_GREEN),
     field: GYAML,
     needs: Some("break-boulder"),
@@ -40,6 +43,20 @@ pub const RED_BOULDERS: Kind = Kind {
     needs: Some("hammer"),
     named: None,
 };
+
+/// The boulders over grotto entrances, which stay vanilla: breaking one
+/// opens the hole under its seat, so Link reaching for the item falls in
+/// (maintainer, 2026-11-25, rocks spec). They're the boulders whose
+/// placement names the empty table.
+pub const OVER_GROTTOS: [u64; 7] = [
+    5524931827254348969,
+    11477097298279134715,
+    8580335210618464267,
+    15605814217953065995,
+    12960902182455217518,
+    5207698098030997501,
+    16547116969322393756,
+];
 
 /// The kinds whose item lies in a seat.
 const SEATED: [&Kind; 2] = [&BOULDERS, &RED_BOULDERS];
@@ -146,9 +163,8 @@ mod tests {
 
     /// A boulder in the adult Goron City.
     const BOULDER: u64 = 3009822989781876601;
-    /// A Death Mountain Crater boulder both ages' maps place, naming no
-    /// drop table.
-    const NO_TABLE: u64 = 5524931827254348969;
+    /// A Death Mountain Crater boulder over a grotto, naming no drop table.
+    const NO_TABLE: u64 = OVER_GROTTOS[0];
     /// A red boulder only the child's Death Mountain Crater places. Most
     /// of the crater's stand in both ages' maps under one hash.
     const CHILD_RED: u64 = 15044423826661592135;
@@ -181,7 +197,9 @@ mod tests {
     /// The one placement `hash` in `root`.
     fn one(root: &Byml, hash: u64) -> &Byml {
         let mut found = (checks::actors(root).unwrap().iter()).filter(|a| hash_of(a) == Some(hash));
-        let a = found.next().unwrap_or_else(|| panic!("no placement {hash}"));
+        let a = found
+            .next()
+            .unwrap_or_else(|| panic!("no placement {hash}"));
         assert!(found.next().is_none(), "{hash} placed twice");
         a
     }
@@ -199,13 +217,23 @@ mod tests {
         let (root, spots, _) = placed(BOULDER, &drops, Lines::climbing());
         let (boulder, lies) = (one(&root, BOULDER), one(&root, seat(BOULDER, 0)));
         // The boulder stays itself, minus its drop.
-        assert_eq!(str_field(boulder, GYAML), Some(actor::OBJ_BROKEN_ROCK_A_01.get()));
+        assert_eq!(
+            str_field(boulder, GYAML),
+            Some(actor::OBJ_BROKEN_ROCK_A_01.get())
+        );
         assert!(presence_of(boulder).is_none());
         let table = dynamic(boulder).and_then(|d| str_field(d, field::DROP_DROP_TABLE.get()));
         assert_eq!(table, Some("None"));
         // The seat lies where it stood, a stand-in standing until got.
-        assert!(str_field(lies, GYAML).unwrap().starts_with(super::super::NEW));
-        assert_eq!(lies.as_map().unwrap()[TRANSLATE], boulder.as_map().unwrap()[TRANSLATE]);
+        assert!(
+            str_field(lies, GYAML)
+                .unwrap()
+                .starts_with(super::super::NEW)
+        );
+        assert_eq!(
+            lies.as_map().unwrap()[TRANSLATE],
+            boulder.as_map().unwrap()[TRANSLATE]
+        );
         for key in [DYNAMIC, "Scale", "Bakeable"] {
             assert!(!lies.as_map().unwrap().contains_key(key), "{key}");
         }
@@ -251,7 +279,10 @@ mod tests {
         let check = checks.iter().find(|c| c.hash == NO_TABLE).unwrap();
         let doc = checks::load_banc(&romfs, &check.file).unwrap();
         let table = dynamic(one(&doc.root, NO_TABLE)).unwrap();
-        assert_eq!(table.as_map().unwrap()[field::DROP_DROP_TABLE.get()], Byml::String("None".into()));
+        assert_eq!(
+            table.as_map().unwrap()[field::DROP_DROP_TABLE.get()],
+            Byml::String("None".into())
+        );
         assert!(no_drop(NO_TABLE).ends_with("Drop__DropTable=None"));
     }
 
@@ -271,6 +302,58 @@ mod tests {
         let world = crate::logic::World::build(&romfs, &book, &ctx, &checks).unwrap();
         assert!(world.never(CHILD_RED));
         assert!(!world.never(BOULDER));
-        assert!(!world.never(NO_TABLE));
+    }
+
+    /// The boulders over grottos are the ones naming the empty table, each
+    /// standing on a grotto's entrance, and none is dealt.
+    #[test]
+    fn the_boulders_over_grottos_are_the_ones_naming_no_table() {
+        let Some(romfs) = dev_dump() else { return };
+        let holes = [
+            actor::LOOK_ATTENTION_ACTOR_HIDING_HOLE_ENTRANCE,
+            actor::FLD_OBJ_AIR_WALL_HIDING_HOLE_COVER,
+        ];
+        let mut found = Vec::new();
+        for kind in SEATED {
+            for check in kind.checks(&romfs).unwrap() {
+                let doc = checks::load_banc(&romfs, &check.file).unwrap();
+                let boulder = one(&doc.root, check.hash);
+                let table =
+                    dynamic(boulder).and_then(|d| str_field(d, field::DROP_DROP_TABLE.get()));
+                if table != Some("None") {
+                    continue;
+                }
+                let at = checks::vec3(boulder, TRANSLATE).unwrap();
+                // A map's grotto holes stand in its other file.
+                let other = check.file.replace("_Static", "_Dynamic");
+                let other = checks::load_banc(&romfs, &other).unwrap();
+                let over = [&doc.root, &other.root]
+                    .into_iter()
+                    .flat_map(|root| checks::actors(root).unwrap())
+                    .filter(|a| holes.iter().any(|h| str_field(a, GYAML) == Some(h.get())))
+                    .filter_map(|a| checks::vec3(a, TRANSLATE))
+                    .any(|h| (0..3).map(|i| (h[i] - at[i]).powi(2)).sum::<f32>() < 1.0);
+                assert!(
+                    over,
+                    "{} names no table but stands on no grotto",
+                    check.hash
+                );
+                found.push(check.hash);
+            }
+        }
+        found.sort_unstable();
+        found.dedup();
+        let mut want = OVER_GROTTOS.to_vec();
+        want.sort_unstable();
+        assert_eq!(found, want);
+        let dealt = checks::dealt(
+            &romfs,
+            &NewGame {
+                rocks: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(dealt.iter().all(|c| !OVER_GROTTOS.contains(&c.hash)));
     }
 }
