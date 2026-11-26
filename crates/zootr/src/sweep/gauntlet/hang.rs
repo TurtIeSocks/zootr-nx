@@ -243,26 +243,27 @@ impl Watch {
             }
             Err(e) => {
                 let since = *self.unread.get_or_insert(at);
+                let failed = (at - since).as_secs_f32();
                 return (at - since >= DEAD).then(|| Hang::Unread {
-                    why: format!("{e:#}"),
+                    why: format!("reads failed for {failed:.1} s: {e:#}"),
                 });
             }
         };
         let past = at >= limits.load;
-        let map = || state.map.clone();
+        let here = || state.map.clone();
         if state.loading {
-            return past.then(|| Hang::Loading { secs, map: map() });
+            return past.then(|| Hang::Loading { secs, map: here() });
         }
         if state.event && state.map == want {
             self.event.get_or_insert(at);
-            return past.then(|| Hang::Event { secs, map: map() });
+            return past.then(|| Hang::Event { secs, map: here() });
         }
         // Text on the way elsewhere isn't the arrival's: no A for it, and
         // past the limit it's a mis-arrival, with the map wanted.
         self.event = None;
         if state.map != want {
             return past.then(|| Hang::WrongMap {
-                map: map(),
+                map: here(),
                 want: want.into(),
             });
         }
@@ -271,7 +272,7 @@ impl Watch {
         }
         // Settled by now, or never: a screen that keeps flickering dark.
         let unsettled = at >= limits.load.saturating_add(SETTLED) && !self.settled(at);
-        unsettled.then(|| Hang::Unsettled { secs, map: map() })
+        unsettled.then(|| Hang::Unsettled { secs, map: here() })
     }
 
     /// A shot's outcome as [`Watch::tick`] takes it, keeping why it failed.
@@ -355,7 +356,7 @@ mod tests {
             Ok(())
         }
         fn crash(&self) -> Option<String> {
-            Some("exit 139".into())
+            (!self.0).then(|| "exit 139".into())
         }
     }
 
