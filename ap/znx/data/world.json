@@ -569,7 +569,7 @@
       "forbid": [],
       "hash": "327492638871129940",
       "id": 1092,
-      "name": "Death Mountain Trail East Rock 1",
+      "name": "DMT Near Signposts Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -628,7 +628,7 @@
       "forbid": [],
       "hash": "351345377871782696",
       "id": 314,
-      "name": "Death Mountain Trail West Gold Skulltula Token",
+      "name": "DMT GS Near Kak",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -1161,7 +1161,7 @@
       "forbid": [],
       "hash": "715147239509454487",
       "id": 287,
-      "name": "Death Mountain Trail Piece of Heart",
+      "name": "DMT Freestanding PoH",
       "unprovable": false,
       "when": {
         "setting": "freestanding"
@@ -1283,7 +1283,7 @@
       "forbid": [],
       "hash": "832677387023638406",
       "id": 317,
-      "name": "Death Mountain Trail North Gold Skulltula Token 1",
+      "name": "DMT GS Falling Rocks Path",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -1592,7 +1592,7 @@
       "forbid": [],
       "hash": "991975198297951915",
       "id": 1441,
-      "name": "Death Mountain Trail Red Rupee (20)",
+      "name": "DMT Dodongo Grotto Red Rupee",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -2158,7 +2158,7 @@
       "forbid": [],
       "hash": "1215836471142643217",
       "id": 209,
-      "name": "Death Mountain Trail Biggoron: Broken Sword",
+      "name": "DMT Trade Broken Sword",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -5002,7 +5002,7 @@
       "forbid": [],
       "hash": "2851507096200394201",
       "id": 1111,
-      "name": "Death Mountain Trail Northwest Rock 4",
+      "name": "DMT Near Dodongos Cavern Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -5632,7 +5632,7 @@
       "forbid": [],
       "hash": "3302088556978088009",
       "id": 1114,
-      "name": "Death Mountain Trail North Rock 6",
+      "name": "DMT Above Signposts Rock 3",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -6425,7 +6425,7 @@
       "forbid": [],
       "hash": "3834806024043284116",
       "id": 1118,
-      "name": "Death Mountain Trail North Rock 4",
+      "name": "DMT Above Signposts Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -8152,7 +8152,7 @@
       "forbid": [],
       "hash": "4790064441201624663",
       "id": 1305,
-      "name": "Death Mountain Trail North Grass 2",
+      "name": "DMT Cow Grotto Child Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8521,7 +8521,7 @@
       "forbid": [],
       "hash": "5008999164523690598",
       "id": 1478,
-      "name": "Death Mountain Trail North Green Rupee (1) 1",
+      "name": "DMT Dodongo Grotto Green Rupee 3",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -9607,7 +9607,7 @@
       "forbid": [],
       "hash": "5670786033047026238",
       "id": 1137,
-      "name": "Death Mountain Trail East Rock 3",
+      "name": "DMT Near Signposts Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10232,7 +10232,7 @@
       "forbid": [],
       "hash": "6087670250388905572",
       "id": 1143,
-      "name": "Death Mountain Trail North Rock 9",
+      "name": "DMT Above Signposts Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -10439,7 +10439,7 @@
       "forbid": [],
       "hash": "6253945510651149508",
       "id": 306,
-      "name": "Death Mountain Trail Grotto Cow",
+      "name": "DMT Cow Grotto Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -10603,7 +10603,7 @@
       "forbid": [],
       "hash": "6307624256587354938",
       "id": 1487,
-      "name": "Death Mountain Trail North Green Rupee (1) 2",
+      "name": "DMT Dodongo Grotto Green Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -13681,7 +13681,7 @@
       "forbid": [],
       "hash": "8480443483483791996",
       "id": 216,
-      "name": "Death Mountain Trail Biggoron: Eye Drops",
+      "name": "DMT Trade Eyedrops",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -16258,7 +16258,7 @@
       "forbid": [],
       "hash": "9809508929088891725",
       "id": 141,
-      "name": "Death Mountain Trail South Business Scrub Seed Chest",
+      "name": "DMT Chest",
       "unprovable": false
     },
     {
@@ -16543,7 +16543,7 @@
       "forbid": [],
       "hash": "9972535766636368278",
       "id": 1517,
-      "name": "Death Mountain Trail North Blue Rupee (5) 2",
+      "name": "DMT Dodongo Grotto Blue Rupee 1",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -17022,7 +17022,7 @@
       "forbid": [],
       "hash": "10198943489153675532",
       "id": 171,
-      "name": "Death Mountain Trail Great Fairy of Din",
+      "name": "DMT Great Fairy Reward",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -18372,7 +18372,7 @@
       "forbid": [],
       "hash": "11074416093858939225",
       "id": 1181,
-      "name": "Death Mountain Trail North Rock 7",
+      "name": "DMT Above Signposts Rock 4",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -18505,7 +18505,7 @@
       "forbid": [],
       "hash": "11138816988756551783",
       "id": 1182,
-      "name": "Death Mountain Trail North Rock 8",
+      "name": "DMT Above Signposts Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -19776,7 +19776,7 @@
       "forbid": [],
       "hash": "11830620217139163618",
       "id": 1366,
-      "name": "Death Mountain Trail North Grass 1",
+      "name": "DMT Cow Grotto Adult Grass",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -19794,7 +19794,7 @@
       "forbid": [],
       "hash": "11840734680907699074",
       "id": 1188,
-      "name": "Death Mountain Trail East Rock 4",
+      "name": "DMT Near Signposts Child Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20409,7 +20409,7 @@
       "forbid": [],
       "hash": "12245920151873026789",
       "id": 1194,
-      "name": "Death Mountain Trail Northwest Rock 1",
+      "name": "DMT Near Dodongos Cavern Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -20846,7 +20846,7 @@
       "forbid": [],
       "hash": "12472730518306029279",
       "id": 1538,
-      "name": "Death Mountain Trail North Blue Rupee (5) 1",
+      "name": "DMT Dodongo Grotto Blue Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -22564,7 +22564,7 @@
       "forbid": [],
       "hash": "13595148908038154752",
       "id": 1207,
-      "name": "Death Mountain Trail North Rock 2",
+      "name": "DMT Summit Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -22959,7 +22959,7 @@
       "forbid": [],
       "hash": "13787606981173272160",
       "id": 1210,
-      "name": "Death Mountain Trail North Rock 5",
+      "name": "DMT Above Signposts Rock 5",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -23200,7 +23200,7 @@
       "forbid": [],
       "hash": "13948143684682776614",
       "id": 1213,
-      "name": "Death Mountain Trail Northwest Rock 3",
+      "name": "DMT Near Dodongos Cavern Adult Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24478,7 +24478,7 @@
       "forbid": [],
       "hash": "14939062091580693841",
       "id": 1221,
-      "name": "Death Mountain Trail Northwest Rock 2",
+      "name": "DMT Near Dodongos Cavern Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24608,7 +24608,7 @@
       "forbid": [],
       "hash": "15028130154350955098",
       "id": 1222,
-      "name": "Death Mountain Trail North Rock 3",
+      "name": "DMT Above Dodongos Cavern Rock",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -28176,7 +28176,7 @@
       "forbid": [],
       "hash": "17286901874670360605",
       "id": 1569,
-      "name": "Death Mountain Trail North Green Rupee (1) 3",
+      "name": "DMT Dodongo Grotto Green Rupee 2",
       "unprovable": false,
       "when": {
         "setting": "loose-items"
@@ -28410,7 +28410,7 @@
       "forbid": [],
       "hash": "17425319789138387506",
       "id": 402,
-      "name": "Death Mountain Trail Northwest Gold Skulltula Token",
+      "name": "DMT GS Bean Patch",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -28683,7 +28683,7 @@
       "forbid": [],
       "hash": "17580352713807808478",
       "id": 191,
-      "name": "Death Mountain Trail Biggoron",
+      "name": "DMT Biggoron",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -28921,7 +28921,7 @@
       "forbid": [],
       "hash": "17669199296215821346",
       "id": 405,
-      "name": "Death Mountain Trail North Gold Skulltula Token 2",
+      "name": "DMT GS Above Dodongos Cavern",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -29492,7 +29492,7 @@
       "forbid": [],
       "hash": "18073597818631342065",
       "id": 1249,
-      "name": "Death Mountain Trail North Rock 1",
+      "name": "DMT Summit Rock 1",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -29911,7 +29911,7 @@
       "forbid": [],
       "hash": "18346525865052973000",
       "id": 1253,
-      "name": "Death Mountain Trail East Rock 2",
+      "name": "DMT Near Signposts Child Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
