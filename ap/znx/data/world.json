@@ -73,7 +73,7 @@
       "forbid": [],
       "hash": "103563951645462556",
       "id": 498,
-      "name": "Spirit Temple Pot 6",
+      "name": "Spirit Temple 1F Lobby Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -604,7 +604,7 @@
       "forbid": [],
       "hash": "342314669160649648",
       "id": 507,
-      "name": "Spirit Temple Upper Pot 17",
+      "name": "Spirit Temple 3F Near Boss Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -691,7 +691,7 @@
       "forbid": [],
       "hash": "418728388637525878",
       "id": 510,
-      "name": "Spirit Temple Flying Pot 4",
+      "name": "Spirit Temple 1F Lobby Flying Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -850,7 +850,7 @@
       "forbid": [],
       "hash": "572318066319489127",
       "id": 418,
-      "name": "Spirit Temple Twinrova",
+      "name": "Spirit Temple 3F Twinrova",
       "unprovable": false,
       "when": {
         "setting": "dungeon-rewards"
@@ -1051,7 +1051,7 @@
       "forbid": [],
       "hash": "679707632344397059",
       "id": 518,
-      "name": "Spirit Temple Upper Pot 9",
+      "name": "Spirit Temple 3F Four Armos Room Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -1214,7 +1214,7 @@
       "forbid": [],
       "hash": "778407491583679134",
       "id": 522,
-      "name": "Spirit Temple Upper Pot 1",
+      "name": "Spirit Temple 3F Central Chamber Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -1366,7 +1366,7 @@
       "forbid": [],
       "hash": "858005297737691317",
       "id": 524,
-      "name": "Spirit Temple Upper Pot 16",
+      "name": "Spirit Temple 3F Near Boss Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -1468,7 +1468,7 @@
       "forbid": [],
       "hash": "936538740926387889",
       "id": 525,
-      "name": "Spirit Temple Upper Flying Pot 4",
+      "name": "Spirit Temple 4F Big Mirror Flying Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -2557,7 +2557,7 @@
       "forbid": [],
       "hash": "1405280773320432496",
       "id": 550,
-      "name": "Spirit Temple Upper Pot 6",
+      "name": "Spirit Temple 3F Hall After Sun Block Room Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -2735,7 +2735,7 @@
       "forbid": [],
       "hash": "1501288453962537671",
       "id": 13,
-      "name": "Spirit Temple Upper Bombchus (5) Chest",
+      "name": "Spirit Temple 2F Child Climb North Chest",
       "unprovable": false
     },
     {
@@ -3956,7 +3956,7 @@
       "forbid": [],
       "hash": "2203243501006528435",
       "id": 452,
-      "name": "Spirit Temple Upper Small Key Chest 1",
+      "name": "Spirit Temple 2F Statue Room Hand Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -4161,7 +4161,7 @@
       "forbid": [],
       "hash": "2307858130780472122",
       "id": 575,
-      "name": "Spirit Temple Upper Pot 11",
+      "name": "Spirit Temple 3F Four Armos Room Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -5173,7 +5173,7 @@
       "forbid": [],
       "hash": "3030155917724115111",
       "id": 598,
-      "name": "Spirit Temple Pot 8",
+      "name": "Spirit Temple 1F Lobby Pot 8",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -6136,7 +6136,7 @@
       "forbid": [],
       "hash": "3626249741709483919",
       "id": 624,
-      "name": "Spirit Temple Upper Flying Pot 3",
+      "name": "Spirit Temple 4F Big Mirror Flying Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -6561,7 +6561,7 @@
       "forbid": [],
       "hash": "3892291898975768871",
       "id": 630,
-      "name": "Spirit Temple Pot 5",
+      "name": "Spirit Temple 1F Lobby Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -6590,7 +6590,7 @@
       "forbid": [],
       "hash": "3921371032252202099",
       "id": 631,
-      "name": "Spirit Temple Flying Pot 3",
+      "name": "Spirit Temple 1F Lobby Flying Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -7178,7 +7178,7 @@
       "forbid": [],
       "hash": "4277978357934400600",
       "id": 458,
-      "name": "Spirit Temple Small Key Chest 2",
+      "name": "Spirit Temple 1F Early Adult Right Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -7200,7 +7200,7 @@
       "forbid": [],
       "hash": "4299081678185954776",
       "id": 641,
-      "name": "Spirit Temple Upper Pot 2",
+      "name": "Spirit Temple 3F Central Chamber Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -7357,7 +7357,7 @@
       "forbid": [],
       "hash": "4371345945889970610",
       "id": 643,
-      "name": "Spirit Temple Upper Flying Pot 1",
+      "name": "Spirit Temple 2F Central Chamber Flying Pot",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -7598,7 +7598,7 @@
       "forbid": [],
       "hash": "4515702891486979263",
       "id": 648,
-      "name": "Spirit Temple Pot 9",
+      "name": "Spirit Temple 1F Child Anubis Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -8040,7 +8040,7 @@
       "forbid": [],
       "hash": "4720088048159616469",
       "id": 410,
-      "name": "Spirit Temple Heart Container",
+      "name": "Spirit Temple 3F Twinrova Heart",
       "unprovable": false,
       "when": {
         "setting": "boss-hearts"
@@ -8629,7 +8629,7 @@
       "forbid": [],
       "hash": "5086449036385341804",
       "id": 331,
-      "name": "Spirit Temple Upper Gold Skulltula Token 2",
+      "name": "Spirit Temple 3F GS Lobby",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -8848,7 +8848,7 @@
       "forbid": [],
       "hash": "5214952873966346016",
       "id": 670,
-      "name": "Spirit Temple Flying Pot 6",
+      "name": "Spirit Temple 1F Child Bridge Flying Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -8998,7 +8998,7 @@
       "forbid": [],
       "hash": "5309180490719879013",
       "id": 36,
-      "name": "Spirit Temple Deku Shield Chest",
+      "name": "Spirit Temple 1F Child Bridge Chest",
       "unprovable": false
     },
     {
@@ -9136,7 +9136,7 @@
       "forbid": [],
       "hash": "5414501860520810340",
       "id": 676,
-      "name": "Spirit Temple Upper Flying Pot 5",
+      "name": "Spirit Temple 4F Big Mirror Flying Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9656,7 +9656,7 @@
       "forbid": [],
       "hash": "5703423643219134246",
       "id": 465,
-      "name": "Spirit Temple Small Key Chest 1",
+      "name": "Spirit Temple 1F Child Early Torches Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -9914,7 +9914,7 @@
       "forbid": [],
       "hash": "5871571106450718234",
       "id": 688,
-      "name": "Spirit Temple Pot 7",
+      "name": "Spirit Temple 1F Lobby Pot 7",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9925,7 +9925,7 @@
       "forbid": [],
       "hash": "5889917625901158911",
       "id": 689,
-      "name": "Spirit Temple Pot 11",
+      "name": "Spirit Temple 1F Child Anubis Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -9936,7 +9936,7 @@
       "forbid": [],
       "hash": "5898541057490100836",
       "id": 690,
-      "name": "Spirit Temple Upper Pot 13",
+      "name": "Spirit Temple 4F Shifting Wall Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -12879,7 +12879,7 @@
       "forbid": [],
       "hash": "7796220661333936673",
       "id": 754,
-      "name": "Spirit Temple Upper Pot 10",
+      "name": "Spirit Temple 3F Four Armos Room Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -12961,7 +12961,7 @@
       "forbid": [],
       "hash": "7951190351490769890",
       "id": 757,
-      "name": "Spirit Temple Upper Pot 4",
+      "name": "Spirit Temple 2F Central Chamber Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -13275,7 +13275,7 @@
       "forbid": [],
       "hash": "8120267919866495114",
       "id": 343,
-      "name": "Spirit Temple Gold Skulltula Token 2",
+      "name": "Spirit Temple 1F GS Boulder Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -14745,7 +14745,7 @@
       "forbid": [],
       "hash": "9063034506877571508",
       "id": 785,
-      "name": "Spirit Temple Upper Pot 8",
+      "name": "Spirit Temple 3F Anubis Room Pot",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -14987,7 +14987,7 @@
       "forbid": [],
       "hash": "9143177002861777924",
       "id": 64,
-      "name": "Spirit Temple Upper Red Rupee (20) Chest 1",
+      "name": "Spirit Temple 3F Hallway Right Invisible Chest",
       "unprovable": false
     },
     {
@@ -16333,7 +16333,7 @@
       "forbid": [],
       "hash": "9856880919248647941",
       "id": 809,
-      "name": "Spirit Temple Pot 3",
+      "name": "Spirit Temple 1F Lobby Pot 6",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -16918,7 +16918,7 @@
       "forbid": [],
       "hash": "10127391959410674946",
       "id": 359,
-      "name": "Spirit Temple Upper Gold Skulltula Token 3",
+      "name": "Spirit Temple 3F GS Hall After Sun Block Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -17085,7 +17085,7 @@
       "forbid": [],
       "hash": "10240421721149013838",
       "id": 826,
-      "name": "Spirit Temple Flying Pot 2",
+      "name": "Spirit Temple 1F Lobby Flying Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -17660,7 +17660,7 @@
       "forbid": [],
       "hash": "10530233152473742636",
       "id": 361,
-      "name": "Spirit Temple Gold Skulltula Token 1",
+      "name": "Spirit Temple 1F GS Metal Fence",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -17844,7 +17844,7 @@
       "forbid": [],
       "hash": "10709279745659693627",
       "id": 840,
-      "name": "Spirit Temple Upper Pot 15",
+      "name": "Spirit Temple 3F Near Boss Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -17888,7 +17888,7 @@
       "forbid": [],
       "hash": "10768155177622331490",
       "id": 841,
-      "name": "Spirit Temple Pot 10",
+      "name": "Spirit Temple 1F Child Anubis Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -18884,7 +18884,7 @@
       "forbid": [],
       "hash": "11376619372284527696",
       "id": 851,
-      "name": "Spirit Temple Upper Pot 3",
+      "name": "Spirit Temple 2F Central Chamber Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -20047,7 +20047,7 @@
       "forbid": [],
       "hash": "12042193296697281461",
       "id": 476,
-      "name": "Spirit Temple Upper Small Key Chest 3",
+      "name": "Spirit Temple 3F Near Four Armos Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -21177,7 +21177,7 @@
       "forbid": [],
       "hash": "12710212233257432556",
       "id": 889,
-      "name": "Spirit Temple Upper Pot 12",
+      "name": "Spirit Temple 4F Shifting Wall Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -21222,7 +21222,7 @@
       "forbid": [],
       "hash": "12733538611681391289",
       "id": 890,
-      "name": "Spirit Temple Upper Pot 7",
+      "name": "Spirit Temple 3F Beamos Hall Pot",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -21476,7 +21476,7 @@
       "forbid": [],
       "hash": "12909857529499414969",
       "id": 94,
-      "name": "Spirit Temple Upper Bombs (5) Chest 1",
+      "name": "Spirit Temple 2F First Mirror Chest",
       "unprovable": false
     },
     {
@@ -21568,7 +21568,7 @@
       "forbid": [],
       "hash": "12959656942046734931",
       "id": 375,
-      "name": "Spirit Temple Upper Gold Skulltula Token 1",
+      "name": "Spirit Temple 2F GS Sun on Floor Room",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -22136,7 +22136,7 @@
       "forbid": [],
       "hash": "13333368700054583083",
       "id": 901,
-      "name": "Spirit Temple Pot 13",
+      "name": "Spirit Temple 1F Child Crawlspace Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -23021,7 +23021,7 @@
       "forbid": [],
       "hash": "13828480906010430010",
       "id": 99,
-      "name": "Spirit Temple Upper Bombs (5) Chest 2",
+      "name": "Spirit Temple 4F Topmost Chest",
       "unprovable": false
     },
     {
@@ -23058,7 +23058,7 @@
       "forbid": [],
       "hash": "13852283723126411131",
       "id": 439,
-      "name": "Spirit Temple Upper Map Chest",
+      "name": "Spirit Temple 2F Map Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -23304,7 +23304,7 @@
       "forbid": [],
       "hash": "14040210993541550542",
       "id": 100,
-      "name": "Spirit Temple Upper Red Rupee (20) Chest 2",
+      "name": "Spirit Temple 3F Hallway Left Invisible Chest",
       "unprovable": false
     },
     {
@@ -23582,7 +23582,7 @@
       "forbid": [],
       "hash": "14221521666026319023",
       "id": 929,
-      "name": "Spirit Temple Pot 14",
+      "name": "Spirit Temple 1F Child Crawlspace Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -24043,7 +24043,7 @@
       "forbid": [],
       "hash": "14639467075158265290",
       "id": 940,
-      "name": "Spirit Temple Pot 1",
+      "name": "Spirit Temple 1F Lobby Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -24054,7 +24054,7 @@
       "forbid": [],
       "hash": "14643042271469583596",
       "id": 941,
-      "name": "Spirit Temple Upper Pot 5",
+      "name": "Spirit Temple 3F Hall After Sun Block Room Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -25444,7 +25444,7 @@
       "forbid": [],
       "hash": "15633505270333176438",
       "id": 442,
-      "name": "Spirit Temple Compass Chest",
+      "name": "Spirit Temple 1F Compass Chest",
       "unprovable": false,
       "when": {
         "setting": "maps-compasses"
@@ -25730,7 +25730,7 @@
       "forbid": [],
       "hash": "15856393088785445745",
       "id": 967,
-      "name": "Spirit Temple Upper Pot 14",
+      "name": "Spirit Temple 3F Near Boss Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -25976,7 +25976,7 @@
       "forbid": [],
       "hash": "15996033407155777420",
       "id": 974,
-      "name": "Spirit Temple Flying Pot 7",
+      "name": "Spirit Temple 1F Adult Climb Flying Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -26390,7 +26390,7 @@
       "forbid": [],
       "hash": "16244368682301461195",
       "id": 983,
-      "name": "Spirit Temple Pot 2",
+      "name": "Spirit Temple 1F Lobby Pot 5",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -26444,7 +26444,7 @@
       "forbid": [],
       "hash": "16272168033146555902",
       "id": 484,
-      "name": "Spirit Temple Upper Boss Key Chest",
+      "name": "Spirit Temple 4F Boss Key Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -26863,7 +26863,7 @@
       "forbid": [],
       "hash": "16552860015818359893",
       "id": 994,
-      "name": "Spirit Temple Flying Pot 8",
+      "name": "Spirit Temple 1F Adult Climb Flying Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -27870,7 +27870,7 @@
       "forbid": [],
       "hash": "17137051788597509779",
       "id": 1009,
-      "name": "Spirit Temple Pot 4",
+      "name": "Spirit Temple 1F Lobby Pot 2",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -27899,7 +27899,7 @@
       "forbid": [],
       "hash": "17150390912473250405",
       "id": 1010,
-      "name": "Spirit Temple Upper Flying Pot 2",
+      "name": "Spirit Temple 4F Big Mirror Flying Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -28082,7 +28082,7 @@
       "forbid": [],
       "hash": "17242888119418843110",
       "id": 1013,
-      "name": "Spirit Temple Flying Pot 5",
+      "name": "Spirit Temple 1F Child Bridge Flying Pot 1",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -28365,7 +28365,7 @@
       "forbid": [],
       "hash": "17407066694905911064",
       "id": 488,
-      "name": "Spirit Temple Upper Small Key Chest 2",
+      "name": "Spirit Temple 3F Sun Block Room Chest",
       "unprovable": false,
       "when": {
         "setting": "keys=start"
@@ -28932,7 +28932,7 @@
       "forbid": [],
       "hash": "17681039064778216430",
       "id": 1028,
-      "name": "Spirit Temple Flying Pot 1",
+      "name": "Spirit Temple 1F Lobby Flying Pot 3",
       "unprovable": true,
       "when": {
         "setting": "pots"
@@ -29047,7 +29047,7 @@
       "forbid": [],
       "hash": "17832064472493387916",
       "id": 1031,
-      "name": "Spirit Temple Pot 12",
+      "name": "Spirit Temple 1F Child Anubis Pot 4",
       "unprovable": true,
       "when": {
         "setting": "pots"

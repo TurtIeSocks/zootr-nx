@@ -1,0 +1,109 @@
+# Spirit Temple. OoTR's name wherever the remake keeps the spot: matched
+# by each check's room, its rule, the item the vanilla game puts there
+# and the remake guides for the Gold Skulltulas. Pots go by room in
+# OoTR's room words, numbered west to east. A few pots share a spot with
+# another pot; those pairs take neighbouring numbers.
+#
+# Every name carries its map floor after "Spirit Temple", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# The lobby: OoTR has two pots and two flying pots, the remake eight and
+# four, in rows on both sides.
+14639467075158265290 = "Spirit Temple 1F Lobby Pot 1"
+17137051788597509779 = "Spirit Temple 1F Lobby Pot 2"
+103563951645462556 = "Spirit Temple 1F Lobby Pot 3"
+3892291898975768871 = "Spirit Temple 1F Lobby Pot 4"
+16244368682301461195 = "Spirit Temple 1F Lobby Pot 5"
+9856880919248647941 = "Spirit Temple 1F Lobby Pot 6"
+5871571106450718234 = "Spirit Temple 1F Lobby Pot 7"
+3030155917724115111 = "Spirit Temple 1F Lobby Pot 8"
+10240421721149013838 = "Spirit Temple 1F Lobby Flying Pot 1"
+418728388637525878 = "Spirit Temple 1F Lobby Flying Pot 2"
+17681039064778216430 = "Spirit Temple 1F Lobby Flying Pot 3"
+3921371032252202099 = "Spirit Temple 1F Lobby Flying Pot 4"
+
+# The child side, past the crawl hole: the crawlspace's pots, the bridge
+# room, the Anubis room beyond it, and the torch room behind the metal
+# fence.
+13333368700054583083 = "Spirit Temple 1F Child Crawlspace Pot 1" # guess: remake's pots, named for the crawlspace they sit in
+14221521666026319023 = "Spirit Temple 1F Child Crawlspace Pot 2" # guess: as above
+5309180490719879013 = "Spirit Temple 1F Child Bridge Chest"
+17242888119418843110 = "Spirit Temple 1F Child Bridge Flying Pot 1"
+5214952873966346016 = "Spirit Temple 1F Child Bridge Flying Pot 2"
+10768155177622331490 = "Spirit Temple 1F Child Anubis Pot 1" # guess: OoTR has one pot in the child side's Anubis room, the remake four
+5889917625901158911 = "Spirit Temple 1F Child Anubis Pot 2" # guess: as above
+4515702891486979263 = "Spirit Temple 1F Child Anubis Pot 3" # guess: as above
+17832064472493387916 = "Spirit Temple 1F Child Anubis Pot 4" # guess: as above
+5703423643219134246 = "Spirit Temple 1F Child Early Torches Chest"
+10530233152473742636 = "Spirit Temple 1F GS Metal Fence"
+
+# Atop the child side's climb.
+1501288453962537671 = "Spirit Temple 2F Child Climb North Chest"
+
+# The central chamber with the statue: the chest on its hand, the map at
+# its foot, OoTR's Lobby Skulltula on the west ledge (guides: Scarecrow
+# and Longshot), and the Skulltula behind the statue (guides: Bombchus
+# from the child side).
+2203243501006528435 = "Spirit Temple 2F Statue Room Hand Chest"
+13852283723126411131 = "Spirit Temple 2F Map Chest"
+5086449036385341804 = "Spirit Temple 3F GS Lobby"
+12959656942046734931 = "Spirit Temple 2F GS Sun on Floor Room" # guess: the token the child side's sun floor room reaches with Bombchus
+7951190351490769890 = "Spirit Temple 2F Central Chamber Pot 1"
+11376619372284527696 = "Spirit Temple 2F Central Chamber Pot 2"
+778407491583679134 = "Spirit Temple 3F Central Chamber Pot 3"
+4299081678185954776 = "Spirit Temple 3F Central Chamber Pot 4"
+4371345945889970610 = "Spirit Temple 2F Central Chamber Flying Pot"
+
+# West upstairs: the sun block room, and the hall past it.
+17407066694905911064 = "Spirit Temple 3F Sun Block Room Chest"
+10127391959410674946 = "Spirit Temple 3F GS Hall After Sun Block Room"
+1405280773320432496 = "Spirit Temple 3F Hall After Sun Block Room Pot 1"
+14643042271469583596 = "Spirit Temple 3F Hall After Sun Block Room Pot 2"
+
+# The adult side, past the silver block: the sand pit's compass, the
+# boulder room's Skulltula by the Song of Time block and its key chest,
+# and the flying pots on the way up.
+15633505270333176438 = "Spirit Temple 1F Compass Chest"
+8120267919866495114 = "Spirit Temple 1F GS Boulder Room"
+4277978357934400600 = "Spirit Temple 1F Early Adult Right Chest"
+15996033407155777420 = "Spirit Temple 1F Adult Climb Flying Pot 1" # guess: the two flying pots on the adult side's way up
+16552860015818359893 = "Spirit Temple 1F Adult Climb Flying Pot 2" # guess: as above
+
+# The first mirror room. OoTR has a left and a right chest here; the
+# remake has one.
+12909857529499414969 = "Spirit Temple 2F First Mirror Chest" # guess: one chest where OoTR has two, so neither side's name
+
+# East upstairs: the pot in the Beamos hall, the Anubis room's bomb pot,
+# the four Armos room and the key chest off it, and the hall with the two
+# invisible chests.
+12733538611681391289 = "Spirit Temple 3F Beamos Hall Pot" # guess: the bomb pot on the way to the four Armos, as OoTR's holds bombs
+9063034506877571508 = "Spirit Temple 3F Anubis Room Pot" # guess: remake's respawning bomb pot
+7796220661333936673 = "Spirit Temple 3F Four Armos Room Pot 1"
+2307858130780472122 = "Spirit Temple 3F Four Armos Room Pot 2"
+679707632344397059 = "Spirit Temple 3F Four Armos Room Pot 3"
+12042193296697281461 = "Spirit Temple 3F Near Four Armos Chest"
+9143177002861777924 = "Spirit Temple 3F Hallway Right Invisible Chest" # guess: west chest on Link's right, walking in from the Armos room
+14040210993541550542 = "Spirit Temple 3F Hallway Left Invisible Chest" # guess: as above, the east chest
+
+# The top floor: the shifting wall room (OoTR's two freestanding hearts,
+# two pots here), the Boss Key in the fire ring, the big mirror room over
+# the statue's face, and the topmost chest.
+5898541057490100836 = "Spirit Temple 4F Shifting Wall Pot 1"
+12710212233257432556 = "Spirit Temple 4F Shifting Wall Pot 2"
+16272168033146555902 = "Spirit Temple 4F Boss Key Chest"
+17150390912473250405 = "Spirit Temple 4F Big Mirror Flying Pot 1"
+3626249741709483919 = "Spirit Temple 4F Big Mirror Flying Pot 2"
+936538740926387889 = "Spirit Temple 4F Big Mirror Flying Pot 3"
+5414501860520810340 = "Spirit Temple 4F Big Mirror Flying Pot 4"
+13828480906010430010 = "Spirit Temple 4F Topmost Chest"
+
+# The way into Twinrova's room, and the boss.
+10709279745659693627 = "Spirit Temple 3F Near Boss Pot 1"
+342314669160649648 = "Spirit Temple 3F Near Boss Pot 2"
+15856393088785445745 = "Spirit Temple 3F Near Boss Pot 3"
+858005297737691317 = "Spirit Temple 3F Near Boss Pot 4"
+572318066319489127 = "Spirit Temple 3F Twinrova"
+4720088048159616469 = "Spirit Temple 3F Twinrova Heart"
