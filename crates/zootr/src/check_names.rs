@@ -145,7 +145,7 @@ const FILES: &[(&str, &str)] = &[
 /// Lost Woods, where OoTR's `LW Gift from Saria` stands. Desert Colossus's
 /// map holds the Spirit Temple's two hand chests, which keep OoTR's names.
 const PREFIXES: &[(&str, &[&str])] = &[
-    ("Bottom of the Well", &["Bottom of the Well"]),
+    ("Bottom of the Well", &["BotW"]),
     ("Death Mountain Crater", &["DMC"]),
     ("Death Mountain Trail", &["DMT"]),
     ("Deku Tree", &["Deku Tree"]),
@@ -164,7 +164,7 @@ const PREFIXES: &[(&str, &[&str])] = &[
     ("Hyrule Castle", &["HC"]),
     ("Hyrule Field", &["HF", "LH", "LLR"]),
     ("Ice Cavern", &["Ice Cavern"]),
-    ("Jabu-Jabu's Belly", &["Jabu Jabus Belly"]),
+    ("Jabu-Jabu's Belly", &["Jabu"]),
     ("Kakariko Village", &["Kak"]),
     ("Kokiri Forest", &["KF", "LW"]),
     ("Lost Woods", &["LW"]),
