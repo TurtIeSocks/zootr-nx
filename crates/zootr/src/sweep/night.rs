@@ -169,10 +169,10 @@ fn played(dir: &Path) -> Result<Option<u32>> {
     Ok(most)
 }
 
-/// Shuffle `seed` with `settings` and `extras` (plando), install it on `target` the way every
-/// seed is installed (so a game that builds the patch in keeps one patch
-/// for every seed), and plan each spot, the ones in a map without one of
-/// `places` skipped.
+/// Shuffle `seed` with `settings` and `extras` (plando), install it on
+/// `target` the way every seed is installed (so a game that builds the
+/// patch in keeps one patch for every seed), and plan each spot, the ones
+/// in a map without one of `places` skipped.
 pub fn pool(
     romfs: &Romfs,
     target: &Target,

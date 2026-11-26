@@ -420,7 +420,8 @@ fn ladder_rows(dir: &Path) -> Result<String> {
 }
 
 /// `zootr gauntlet`: run `g` on this machine's game, which `session` must
-/// hold, and exit with its code once the report is written.
+/// hold, then give the game back and exit with the run's code once the
+/// report is written.
 pub(super) fn gauntlet_run(
     romfs: &Romfs,
     game: &Path,
@@ -428,7 +429,8 @@ pub(super) fn gauntlet_run(
     out: Option<PathBuf>,
     (pristine, sides): (Option<PathBuf>, Option<PathBuf>),
 ) -> Result<()> {
-    let _turn = turn::harness(turn::session(), super::running::RENEW)?;
+    let session = turn::session();
+    let turn = turn::harness(session.clone(), super::running::RENEW)?;
     let dir = match out {
         Some(dir) => dir,
         None => play::folder("gauntlet", &format!("{:?}", g.run))?,
@@ -440,6 +442,11 @@ pub(super) fn gauntlet_run(
         night.sides = sides;
         night.gauntlet(&g)
     })?;
+    drop(turn);
+    // The run's code still stands when the queue can't be reached.
+    if let Err(e) = turn::free(&session) {
+        eprintln!("the game wasn't given back, free it with `zootr turn free`: {e:#}");
+    }
     println!("{}", dir.join(gauntlet::REPORT).display());
     std::process::exit(code)
 }
