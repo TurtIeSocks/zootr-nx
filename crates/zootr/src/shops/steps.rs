@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ounce_formats::Byml;
 
-use super::signs::{BLANK, COUNTED, dst, links, relink, sign};
+use super::signs::{BLANK, dst, links, relink, sign};
 use super::{Slot, dealt, sold};
 use crate::checks::{Drop, hash_of};
 use crate::gamedata::{GameData, Op};
@@ -226,6 +226,7 @@ impl<'a> Shelves<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::signs::COUNTED;
     use super::*;
     use crate::checks::{self, hash_of};
     use crate::known::{actor, item};
@@ -390,7 +391,9 @@ mod tests {
             ..NewGame::default()
         };
         let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
-        let mine = (shelves.stands.iter()).find(|s| std::ptr::eq(s.slot, slot)).unwrap();
+        let mine = (shelves.stands.iter())
+            .find(|s| std::ptr::eq(s.slot, slot))
+            .unwrap();
         assert_eq!(mine.sign, Some(format!("{COUNTED}20")));
         assert!(!mine.signs.is_empty());
 

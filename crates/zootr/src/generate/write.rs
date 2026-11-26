@@ -532,13 +532,7 @@ impl<'a> Parts<'a> {
         }
         events.write(builder)?;
         if new_game.shop_slots > 0 {
-            fields.extend(shops::write(
-                romfs,
-                builder,
-                tables,
-                shelves,
-                new_game,
-            )?);
+            fields.extend(shops::write(romfs, builder, tables, shelves, new_game)?);
         }
         if new_game.day_skulltulas {
             day_skulltulas::write(romfs, builder)?;
@@ -549,12 +543,7 @@ impl<'a> Parts<'a> {
         }
         let pieces = &self.reads.pieces;
         fields.extend(pickups::write(
-            romfs,
-            builder,
-            tables,
-            pieces,
-            drops,
-            new_game,
+            romfs, builder, tables, pieces, drops, new_game,
         )?);
         if new_game.fortress_keys.moved() {
             let lines = Lines::of(new_game);

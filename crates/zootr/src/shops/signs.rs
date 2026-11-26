@@ -82,7 +82,10 @@ mod tests {
         let Some(romfs) = dev_dump() else { return };
         let tables = Tables::load(&romfs).unwrap();
         let sign = |i: &str| sign(&tables, i);
-        assert_eq!(sign(item::DEKU_STICK_BUNDLE_SMALL), Some(format!("{COUNTED}03")));
+        assert_eq!(
+            sign(item::DEKU_STICK_BUNDLE_SMALL),
+            Some(format!("{COUNTED}03"))
+        );
         assert_eq!(sign(actor::T_BOX_RUPEE_RED), Some(format!("{COUNTED}20")));
         // One, and a count no sign says.
         assert_eq!(sign(item::ARROW_ICE), None);
