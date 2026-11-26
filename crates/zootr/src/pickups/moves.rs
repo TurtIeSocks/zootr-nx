@@ -10,9 +10,9 @@ use ounce_formats::{ActorPack, ModBuilder, Romfs};
 use super::drops::{pickup_for, template_for};
 use super::{DROP, Kind, NEW, kind_of, seats, stale, steps};
 use crate::checks::{Drop, ItemCheck};
-use crate::gifts;
 use crate::settings::NewGame;
 use crate::standins::{StandIn, Tables, item_pack};
+use crate::{ammo, gifts};
 
 /// A holder whose item changed, and the actor its placement field names.
 pub struct Moved<'a> {
@@ -45,7 +45,8 @@ impl Moved<'_> {
 
 /// Every holder in `checks` whose item in `drops` isn't its own, and each
 /// step's placement past a holder's own when it shows them a step at a
-/// time. A boulder's item always lies in its seat, its own item too.
+/// time. Ammo still steps when a holder keeps its own drop, and a
+/// boulder's item always lies in its seat.
 pub fn moved<'a>(
     checks: &'a [ItemCheck],
     drops: &'a HashMap<u64, Drop>,
@@ -58,7 +59,7 @@ pub fn moved<'a>(
     let mut out = Vec::new();
     for (n, (of, vanilla, field, seated)) in holders.into_iter().enumerate() {
         let item = gifts::item_at(drops, of, vanilla);
-        if item == vanilla && !seated {
+        if item == vanilla && !seated && ammo::need(item, progressive).is_none() {
             continue;
         }
         let lies = |placement, k| match seated {
@@ -112,8 +113,9 @@ pub fn write(
     drops: &HashMap<u64, Drop>,
     new_game: &NewGame,
 ) -> Result<Vec<String>> {
+    let lines = crate::progressive::Lines::of(new_game);
     let mut fields = Vec::new();
-    for m in moved(checks, drops, crate::progressive::Lines::of(new_game)) {
+    for m in moved(checks, drops, lines) {
         if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
@@ -127,14 +129,17 @@ pub fn write(
         }
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
     }
-    // One keeping its own drop drops it as dealt too, since its table goes
-    // ([`tabled`]). A heart piece lying in place keeps its own field.
+    // A holder keeping its own drop needs a fixed drop because its table
+    // goes (`tabled`). Ammo's drops were already written as steps above.
     for c in checks
         .iter()
         .filter(|c| kind_of(c).is_some_and(Kind::owns_drop))
     {
         let item = gifts::item_at(drops, c.hash, &c.item);
-        if item == c.item && pickup_for(item, true).as_deref() == Some(item) {
+        if item == c.item
+            && ammo::need(item, lines).is_none()
+            && pickup_for(item, true).as_deref() == Some(item)
+        {
             fields.push(format!("{}.{DROP}={item}", c.hash));
         }
     }

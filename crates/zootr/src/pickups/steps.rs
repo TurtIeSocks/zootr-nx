@@ -157,9 +157,9 @@ mod tests {
     use super::*;
     use crate::checks::{self, hash_of};
     use crate::game::dev_dump;
-    use crate::known::field;
     use crate::known::item;
-    use crate::pickups::{FORTRESS_KEYS, FREESTANDING, Kind, POTS};
+    use crate::known::{actor, field};
+    use crate::pickups::{FORTRESS_KEYS, FREESTANDING, Kind, POTS, ROCKS};
     use crate::world::presence_of;
 
     /// A Kokiri Forest pot, and the Death Mountain Crater heart piece.
@@ -315,6 +315,22 @@ mod tests {
         // Only a built stand-in reads a BoolExp of its own.
         assert!(!steps.exps.iter().any(|(n, _)| *n == stale::exp(&rupee)));
         exp(&steps, &stale::exp(&bundle));
+    }
+
+    #[test]
+    fn a_rock_holding_one_bomb_drops_a_red_rupee_until_link_has_a_bomb_bag() {
+        if dev_dump().is_none() {
+            return;
+        }
+        // A shuffled rock outside Mido's house and a rock that holds a Bomb
+        // in the unshuffled game, on Death Mountain Trail.
+        for rock in [13002777795600434992, 6087670250388905572] {
+            let (_, root, _) = placed(&ROCKS, rock, actor::OBJ_BOMB);
+            let (_, rupee) = at(&root, rock, super::super::DROP);
+            let (_, bomb) = at(&root, copy_hash(rock, 1), super::super::DROP);
+            assert_eq!(rupee, actor::OBJ_RUPEE_RED.get());
+            assert_eq!(bomb, actor::OBJ_BOMB.get());
+        }
     }
 
     #[test]
