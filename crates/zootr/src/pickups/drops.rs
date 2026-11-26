@@ -22,6 +22,9 @@ const PICKUP: &str = "Obj_";
 /// a stand-in rupee pays 1 (Mac, 2026-11-14).
 const CHEST_RUPEE: &str = "TBox_Rupee_";
 const FLOOR_RUPEE: &str = "Obj_Rupee_";
+/// The pack files of a pickup that lands: its contact with the ground.
+#[cfg(test)]
+pub(super) const LANDS: &str = "Phive/ContactCollectionEntityParam/HitOnlyGroundAndObject";
 
 /// The pickup a holder places for `item` as it is, when there is one that
 /// shows where it's put: one that lands, when the holder `dropped` it.
