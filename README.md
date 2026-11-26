@@ -130,7 +130,7 @@ a flag does.
    - Linux: [zootr-nx-linux-x86_64.AppImage](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-linux-x86_64.AppImage),
      or the `.deb` or `.rpm` from the
      [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases/latest)
-2. Point it at your own dump of the game with the 1.1.1 update.
+2. Point it at your own dump of the game with the 1.0.0 or 1.1.1 update.
 3. Add a target: the app that runs the game and the mod folder it loads.
 4. Generate a seed and press Play.
 
@@ -144,7 +144,7 @@ the CLI.
 
 Early. Expect seeds that break and settings that change.
 
-- zootr reads the 1.1.1 update of the game only.
+- zootr has only been tested with the 1.0.0 and 1.1.1 versions of the game.
 - macOS is the main platform. Windows and Linux builds exist but are barely
   tested.
 - The tracker, the Live log, the checks list and the Archipelago client
