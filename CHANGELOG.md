@@ -3,6 +3,12 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.16.1] - 2026-11-26
+
+### Fixed
+
+- One Voices tab holds the three voice pools
+
 ## [0.16.0] - 2026-11-26
 
 ### Added
