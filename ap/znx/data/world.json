@@ -1486,7 +1486,7 @@
       "forbid": [],
       "hash": "940439159177345831",
       "id": 526,
-      "name": "Gerudo's Fortress Southwest Pot 2",
+      "name": "GF Hideout 1 Torch Jail Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -2750,7 +2750,7 @@
       "forbid": [],
       "hash": "1503765887478653725",
       "id": 554,
-      "name": "Gerudo's Fortress Northwest Flying Pot 3",
+      "name": "GF Hideout 2 Torch Jail Below Cell Flying Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -3041,7 +3041,7 @@
       "forbid": [],
       "hash": "1693186935826757463",
       "id": 1050,
-      "name": "Gerudo's Fortress North Crate 1",
+      "name": "GF Hideout Break Room Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -3714,7 +3714,7 @@
       "forbid": [],
       "hash": "2056417943849283718",
       "id": 570,
-      "name": "Gerudo's Fortress Northeast Pot 3",
+      "name": "GF Hideout Kitchen Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4150,7 +4150,7 @@
       "forbid": [],
       "hash": "2299167504535204510",
       "id": 1052,
-      "name": "Gerudo's Fortress Northwest Crate 3",
+      "name": "GF Tent Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -4588,7 +4588,7 @@
       "forbid": [],
       "hash": "2601738864413660498",
       "id": 583,
-      "name": "Gerudo's Fortress Northeast Pot 1",
+      "name": "GF Hideout 3 Torch Jail Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -4624,7 +4624,7 @@
       "forbid": [],
       "hash": "2651615114908793933",
       "id": 1053,
-      "name": "Gerudo's Fortress Northeast Crate 2",
+      "name": "GF Hideout 3 Torch Jail Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -4948,7 +4948,7 @@
       "forbid": [],
       "hash": "2817669269036620933",
       "id": 1054,
-      "name": "Gerudo's Fortress Northwest Crate 1",
+      "name": "GF Above Jail Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -6927,7 +6927,7 @@
       "forbid": [],
       "hash": "4127942712380630686",
       "id": 1058,
-      "name": "Gerudo's Fortress Northwest Crate 8",
+      "name": "GF Hideout 2 Torch Jail Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -7832,7 +7832,7 @@
       "forbid": [],
       "hash": "4589862650167016326",
       "id": 1061,
-      "name": "Gerudo's Fortress Northwest Crate 2",
+      "name": "GF Tent Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -8715,7 +8715,7 @@
       "forbid": [],
       "hash": "5126034700935231136",
       "id": 492,
-      "name": "Gerudo's Fortress Northwest Small Key 2",
+      "name": "GF Hideout 2 Torches Jail Gerudo Key",
       "unprovable": false,
       "when": {
         "ref": 9
@@ -10015,7 +10015,7 @@
       "forbid": [],
       "hash": "5950791967684866655",
       "id": 693,
-      "name": "Gerudo's Fortress Northwest Pot 1",
+      "name": "GF Hideout 4 Torch Jail Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -10320,7 +10320,7 @@
       "forbid": [],
       "hash": "6163979871466990965",
       "id": 698,
-      "name": "Gerudo's Fortress South Pot",
+      "name": "GF Hideout 1 Torch Jail Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -12197,7 +12197,7 @@
       "forbid": [],
       "hash": "7337789119684854050",
       "id": 493,
-      "name": "Gerudo's Fortress Southwest Small Key",
+      "name": "GF Hideout 1 Torch Jail Gerudo Key",
       "unprovable": false,
       "when": {
         "ref": 9
@@ -12717,7 +12717,7 @@
       "forbid": [],
       "hash": "7637566006997697590",
       "id": 750,
-      "name": "Gerudo's Fortress North Pot 1",
+      "name": "GF Hideout Break Room Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -13452,7 +13452,7 @@
       "forbid": [],
       "hash": "8243865802736975992",
       "id": 1068,
-      "name": "Gerudo's Fortress Northwest Crate 6",
+      "name": "GF Hideout 2 Torch Jail Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -13917,7 +13917,7 @@
       "forbid": [],
       "hash": "8713486340033920524",
       "id": 1070,
-      "name": "Gerudo's Fortress North Crate 2",
+      "name": "GF Hideout Break Room Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -15383,7 +15383,7 @@
       "forbid": [],
       "hash": "9362225887419425752",
       "id": 354,
-      "name": "Gerudo's Fortress North Gold Skulltula Token",
+      "name": "GF GS Top Floor",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -15504,7 +15504,7 @@
       "forbid": [],
       "hash": "9443244066451772166",
       "id": 168,
-      "name": "Gerudo's Fortress Horseback Archery",
+      "name": "GF HBA 1000 Points",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -15653,7 +15653,7 @@
       "forbid": [],
       "hash": "9507282379367090849",
       "id": 1072,
-      "name": "Gerudo's Fortress Northwest Crate 7",
+      "name": "GF Hideout Above 2 Torch Jail Crate 2",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -17211,7 +17211,7 @@
       "forbid": [],
       "hash": "10284629266025908616",
       "id": 829,
-      "name": "Gerudo's Fortress Northwest Pot 5",
+      "name": "GF Hideout 2 Torch Jail Pot 3",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -17485,7 +17485,7 @@
       "forbid": [],
       "hash": "10448629319757216336",
       "id": 835,
-      "name": "Gerudo's Fortress Northwest Flying Pot 1",
+      "name": "GF Hideout 2 Torch Jail Below Cell Flying Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -18666,7 +18666,7 @@
       "forbid": [],
       "hash": "11192137055889843513",
       "id": 1073,
-      "name": "Gerudo's Fortress Northwest Crate 5",
+      "name": "GF Hideout Above 2 Torch Jail Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -18822,7 +18822,7 @@
       "forbid": [],
       "hash": "11341244778524449886",
       "id": 309,
-      "name": "Gerudo's Fortress Cow",
+      "name": "GF Cow",
       "unprovable": false,
       "when": {
         "setting": "cows"
@@ -19991,7 +19991,7 @@
       "forbid": [],
       "hash": "12014882968213567359",
       "id": 1074,
-      "name": "Gerudo's Fortress Southwest Crate",
+      "name": "GF Hideout 1 Torch Jail Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -20029,7 +20029,7 @@
       "forbid": [],
       "hash": "12036531709858383178",
       "id": 868,
-      "name": "Gerudo's Fortress Southwest Pot 1",
+      "name": "GF Hideout 1 Torch Jail Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -20631,7 +20631,7 @@
       "forbid": [],
       "hash": "12343753510713797715",
       "id": 89,
-      "name": "Gerudo's Fortress North Piece of Heart Chest",
+      "name": "GF Chest",
       "unprovable": false
     },
     {
@@ -20708,7 +20708,7 @@
       "forbid": [],
       "hash": "12401477347800941236",
       "id": 880,
-      "name": "Gerudo's Fortress Northwest Pot 6",
+      "name": "GF Hideout 2 Torch Jail Below Cell Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -21211,7 +21211,7 @@
       "forbid": [],
       "hash": "12729353069388613701",
       "id": 1078,
-      "name": "Gerudo's Fortress Northwest Crate 4",
+      "name": "GF Hideout 4 Torch Jail Crate",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -21527,7 +21527,7 @@
       "forbid": [],
       "hash": "12946017077004046962",
       "id": 494,
-      "name": "Gerudo's Fortress North Small Key",
+      "name": "GF Hideout 3 Torches Jail Gerudo Key",
       "unprovable": false,
       "when": {
         "ref": 9
@@ -21708,7 +21708,7 @@
       "forbid": [],
       "hash": "13037049463363052038",
       "id": 376,
-      "name": "Gerudo's Fortress East Gold Skulltula Token",
+      "name": "GF GS Archery Range",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -22190,7 +22190,7 @@
       "forbid": [],
       "hash": "13384456307225149229",
       "id": 903,
-      "name": "Gerudo's Fortress Northwest Flying Pot 2",
+      "name": "GF Hideout 2 Torch Jail Below Cell Flying Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23501,7 +23501,7 @@
       "forbid": [],
       "hash": "14149922038181651872",
       "id": 926,
-      "name": "Gerudo's Fortress Northwest Pot 4",
+      "name": "GF Hideout 4 Torch Jail Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23791,7 +23791,7 @@
       "forbid": [],
       "hash": "14446042898084265136",
       "id": 936,
-      "name": "Gerudo's Fortress Northwest Pot 2",
+      "name": "GF Hideout 2 Torch Jail Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -23856,7 +23856,7 @@
       "forbid": [],
       "hash": "14512106089570646515",
       "id": 187,
-      "name": "Gerudo's Fortress Horseback Archery: Quiver",
+      "name": "GF HBA 1500 Points",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -26079,7 +26079,7 @@
       "forbid": [],
       "hash": "16052743231004465758",
       "id": 977,
-      "name": "Gerudo's Fortress Northwest Pot 7",
+      "name": "GF Hideout Above 2 Torch Jail Pot",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26363,7 +26363,7 @@
       "forbid": [],
       "hash": "16214070848493878572",
       "id": 1084,
-      "name": "Gerudo's Fortress Northeast Crate 1",
+      "name": "GF Hideout 3 Torch Jail Crate 1",
       "unprovable": false,
       "when": {
         "setting": "crates"
@@ -26537,7 +26537,7 @@
       "forbid": [],
       "hash": "16326193461159913374",
       "id": 986,
-      "name": "Gerudo's Fortress North Pot 2",
+      "name": "GF Hideout Break Room Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -26951,7 +26951,7 @@
       "forbid": [],
       "hash": "16619432200060282313",
       "id": 116,
-      "name": "Gerudo's Fortress Northwest Red Rupee (20) Chest",
+      "name": "GF Hideout 2 Torch Jail Below Cell Chest",
       "unprovable": false
     },
     {
@@ -28655,7 +28655,7 @@
       "forbid": [],
       "hash": "17564413325240842430",
       "id": 1024,
-      "name": "Gerudo's Fortress Northwest Pot 3",
+      "name": "GF Hideout 2 Torch Jail Pot 1",
       "unprovable": false,
       "when": {
         "setting": "pots"
@@ -29808,7 +29808,7 @@
       "forbid": [],
       "hash": "18277160726242923509",
       "id": 194,
-      "name": "Gerudo's Fortress Membership Card",
+      "name": "GF Hideout Gerudo Membership Card",
       "unprovable": false,
       "when": {
         "all": [
@@ -29947,7 +29947,7 @@
       "forbid": [],
       "hash": "18396961731144479654",
       "id": 495,
-      "name": "Gerudo's Fortress Northwest Small Key 1",
+      "name": "GF Hideout 4 Torches Jail Gerudo Key",
       "unprovable": false,
       "when": {
         "ref": 9
@@ -29965,7 +29965,7 @@
       "forbid": [],
       "hash": "18403153827746969167",
       "id": 1048,
-      "name": "Gerudo's Fortress Northeast Pot 2",
+      "name": "GF Hideout Kitchen Pot 2",
       "unprovable": false,
       "when": {
         "setting": "pots"
