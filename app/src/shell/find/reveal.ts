@@ -9,8 +9,9 @@ export const rowId = {
   seed: (id: number) => `seed-${id}`,
 };
 
-/** How long reveal waits for the page to draw its element. */
-const TRIES = 30;
+/** How long reveal waits for the page to draw its element: about a second,
+ * since History draws rows past its first few in the background. */
+const TRIES = 60;
 const EVERY = 16;
 /** The class that flashes a revealed row, as long as `--duration-flash`. */
 const FLASH = "animate-flash";
