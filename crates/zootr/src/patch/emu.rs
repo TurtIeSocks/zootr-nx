@@ -297,6 +297,76 @@ fn without_a_table_each_hooked_function_runs_its_own_body_and_nothing_else() {
 }
 
 #[test]
+fn baba_drops_wait_for_only_their_own_shuffled_bag() {
+    use crate::known::actor;
+    use zootr_hook::switches::{COUNT, ENTRIES, MAP, MAP_SIZE, STRING64, TABLE};
+    use zootr_hook::{SHUFFLED_NUT_BAG as NUTS, SHUFFLED_STICK_BAG as STICKS};
+
+    for mut m in machines() {
+        let name = SCRATCH + 0x1000;
+        let actor = SCRATCH + 0x2000;
+        let gd = SCRATCH + 0x3000;
+        let map = SCRATCH + 0x4000;
+        let entries = SCRATCH + 0x5000;
+        let cell = SCRATCH + 0x6000;
+        let (slot, stride, value) = STRING64;
+        let table = gd + 8 + (slot * TABLE) as u64;
+        let selector = m.h.build.entries.select_drops;
+        let mut write =
+            |address, value: u64| m.uc.mem_write(address, &value.to_le_bytes()).unwrap();
+        write(at(m.h.build.got.gamedata), cell);
+        write(cell, gd);
+        write(table + COUNT as u64, 2);
+        write(table + ENTRIES as u64, entries);
+        write(table + MAP as u64, map);
+        write(table + MAP_SIZE as u64, 2);
+        write(map, 0x0da3_a7a7);
+        write(map + 8, (1 << 32) | 0x2808_ee1c);
+        write(actor + 0x260, name);
+        for (source, setting) in [
+            (actor::ENEMY_DEKUBABA, NUTS),
+            (actor::ENEMY_DEKUBABA_WITHERED, NUTS),
+            (actor::ENEMY_DEKUBABA_DEKU_STICK_DROP, STICKS),
+            (actor::ENEMY_DEKUBABA_WITHERED_DEKU_STICK_DROP, STICKS),
+            (actor::ENEMY_FLYING_POT, 0),
+        ] {
+            let text = format!("{source}\0");
+            m.uc.mem_write(name, text.as_bytes()).unwrap();
+            for flags in [0, NUTS, STICKS, NUTS | STICKS] {
+                let header = encode(flags, &[], &[], &[], &[], &[], None);
+                m.uc.mem_write(at(m.h.build.regions.table), &header)
+                    .unwrap();
+                for owned in [0, NUTS, STICKS, NUTS | STICKS] {
+                    for (i, bag) in [NUTS, STICKS].into_iter().enumerate() {
+                        let address = entries + (i * stride + value) as u64;
+                        m.uc.mem_write(address, &[if owned & bag == 0 { 0 } else { b'I' }])
+                            .unwrap();
+                    }
+                    let set = m.set_registers();
+                    let request = m.uc.reg_read(R::X2).unwrap();
+                    m.uc.mem_write(request + 0x40, &actor.to_le_bytes())
+                        .unwrap();
+                    let skip = flags & setting != 0 && owned & setting == 0;
+                    let what = format!(
+                        "{} {source}, flags {flags:#x}, bags {owned:#x}",
+                        m.h.release.name()
+                    );
+                    m.run(
+                        at(selector),
+                        if skip { SENTINEL } else { at(selector + 4) },
+                        &what,
+                    );
+                    assert!(m.changed(&set, &KEPT).is_empty(), "{what}");
+                    if !skip {
+                        assert!(m.changed(&set, &INTS).is_empty(), "{what}");
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
     for mut m in machines() {
         let site = m.h.build.calls.gear_hud;

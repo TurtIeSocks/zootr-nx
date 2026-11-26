@@ -127,7 +127,7 @@ const fn npad_stubs(b: &Build) -> [u32; 3] {
 /// seed with [`DEV`], and springs ice traps. The nock sets Link's
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
-const fn hooks(b: &Build) -> [(u32, u32); 15] {
+const fn hooks(b: &Build) -> [(u32, u32); 16] {
     let e = &b.entries;
     [
         (e.map_loaded, entry::MAP_LOADED),
@@ -145,6 +145,7 @@ const fn hooks(b: &Build) -> [(u32, u32); 15] {
         (e.equipment_left, entry::EQUIPMENT_LEFT),
         (e.resident_create, entry::RESIDENT_MADE),
         (e.ocarina_input, entry::OCARINA_INPUT),
+        (e.select_drops, entry::SELECT_DROPS),
     ]
 }
 /// Whether build `b`'s shared state fits under its panic word, 8 byte
@@ -395,6 +396,14 @@ mod tests {
         assert_ne!(a.id, b.id);
         assert_ne!(a.build.regions.cave, b.build.regions.cave);
         assert_eq!(b.build.regions.cave, OFFSETS.regions.cave);
+    }
+
+    #[test]
+    fn each_release_checks_baba_bags_at_the_drop_selector() {
+        for (release, selector) in [(Release::V100, 0x2e9_f060), (Release::V111, 0x2ef_45e0)] {
+            let hook = Hook::of(release);
+            assert!(hook.site(selector).is_some(), "{}", release.name());
+        }
     }
 
     #[test]
@@ -714,14 +723,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0x0fc1_20e1_e89b_b381),
-            ("far", 0x438c_e7fb_f900_50f3),
-            ("code", 0x0b33_f438_d41d_b2ab),
-            ("sites", 0xc830_00e1_3314_33eb),
-            ("patches", 0x6002_24b7_7a94_0073),
-            ("pchtxt", 0x73a0_38f0_c65e_dad2),
-            ("ips", 0x2b92_834c_f5f9_ccd2),
-            ("cheat", 0x6c3e_1bc0_0617_8025),
+            ("hook", 0x3226_575e_1e1e_1c72),
+            ("far", 0x3177_037c_0ddf_2ded),
+            ("code", 0x05fa_51a2_9c9b_ad68),
+            ("sites", 0x40f9_7452_8681_f71b),
+            ("patches", 0x0ee6_7a51_58af_2980),
+            ("pchtxt", 0x33fa_c199_0378_8159),
+            ("ips", 0xecc7_caf4_a741_9090),
+            ("cheat", 0x492d_c3e5_ccfc_2051),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -732,14 +741,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0x9dbe_e5e7_a11f_adee),
-            ("far", 0x5086_decc_0284_7915),
-            ("code", 0xe531_b7db_7132_bbe5),
-            ("sites", 0x81c6_2356_3e01_17a7),
-            ("patches", 0xe9f3_ea73_21c8_5055),
-            ("pchtxt", 0x5328_6628_c354_aee5),
-            ("ips", 0x3e4f_3442_4a02_bc0c),
-            ("cheat", 0xaa80_6cd2_04f3_8b14),
+            ("hook", 0xf13c_e5e1_3135_fc39),
+            ("far", 0x6bdf_5292_4305_64de),
+            ("code", 0xcea0_dc9a_aaf7_8759),
+            ("sites", 0xb0b6_ec86_4c84_29df),
+            ("patches", 0x0478_d504_d12a_0cb9),
+            ("pchtxt", 0xcbfe_bd06_97bd_da83),
+            ("ips", 0x0174_f916_97f8_2985),
+            ("cheat", 0xd530_4109_c591_bc84),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }

@@ -51,7 +51,7 @@ const MAX: usize = 128;
 // ahead of time can follow each one: it lifts an import stub as an
 // import, never as code a pointer could reach.
 global_asm!(
-    ".macro function_hook handler, resume",
+    ".macro function_hook handler, resume, may_skip=0",
     "sub sp, sp, #0xd0",
     "stp x0, x1, [sp]",
     "stp x2, x3, [sp, #0x10]",
@@ -63,6 +63,9 @@ global_asm!(
     "stp q4, q5, [sp, #0x90]",
     "stp q6, q7, [sp, #0xb0]",
     "bl \\handler",
+    ".if \\may_skip",
+    "mov w9, w0",
+    ".endif",
     "ldp q6, q7, [sp, #0xb0]",
     "ldp q4, q5, [sp, #0x90]",
     "ldp q2, q3, [sp, #0x70]",
@@ -73,8 +76,14 @@ global_asm!(
     "ldp x2, x3, [sp, #0x10]",
     "ldp x0, x1, [sp]",
     "add sp, sp, #0xd0",
+    ".if \\may_skip",
+    "cbnz w9, 1f",
+    ".endif",
     "pacibsp",
     "b \\resume",
+    ".if \\may_skip",
+    "1: ret",
+    ".endif",
     ".endm",
     // A hook that runs its handler after the function returns, for a
     // function called with no stack arguments: it calls the function
@@ -142,6 +151,7 @@ global_asm!(
     "b gear_worn_entry",
     "b gear_mark_entry",
     "b ocarina_input_entry",
+    "b select_drops_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -172,6 +182,8 @@ global_asm!(
     "resident_made_resume:",
     "brk #0",
     "ocarina_input_resume:",
+    "brk #0",
+    "select_drops_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -268,6 +280,8 @@ global_asm!(
     "gear_mark_entry:",
     "ldr x2, [sp, #0x20]",
     "b gear_mark",
+    "select_drops_entry:",
+    "function_hook skip_baba_drop, select_drops_resume, 1",
     ".popsection",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
@@ -765,6 +779,45 @@ unsafe fn key_entries(gd: usize) -> Option<&'static mut [u8]> {
 const OWNER: usize = 0x18;
 /// An actor's name.
 const ACTOR_NAME: usize = 0x260;
+
+/// The drop request's source actor. The selector receives the request
+/// as its third argument and fills an initially empty result list.
+const DROP_SOURCE: usize = 0x40;
+
+/// Skip selecting a Baba's drop until Link owns the bag for that drop.
+/// An empty result list tells the caller there is nothing to spawn.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+unsafe extern "C" fn skip_baba_drop(_drop: usize, _result: usize, request: usize) -> bool {
+    use crate::switches::{NUT_BAG_SLOT, STICK_BAG_SLOT, STRING64};
+    use crate::{SHUFFLED_NUT_BAG, SHUFFLED_STICK_BAG};
+
+    let Some((main, table)) = table() else {
+        return false;
+    };
+    if table.flags & (SHUFFLED_NUT_BAG | SHUFFLED_STICK_BAG) == 0 {
+        return false;
+    }
+    unsafe {
+        let actor_name = at(request, DROP_SOURCE)
+            .and_then(|actor| at(actor, ACTOR_NAME))
+            .and_then(|text| name(text as *const u8));
+        let Some(actor_name) = actor_name else {
+            return false;
+        };
+        let (setting, slot) = match fnv(actor_name) {
+            // The regular and withered Babas drop nuts.
+            0x208b_3e77 | 0xd481_41a6 => (SHUFFLED_NUT_BAG, NUT_BAG_SLOT),
+            // Their severed stems drop sticks.
+            0x0dda_1148 | 0xa762_b831 => (SHUFFLED_STICK_BAG, STICK_BAG_SLOT),
+            _ => return false,
+        };
+        table.flags & setting != 0
+            && dev::single(main, table.offsets.gamedata)
+                .and_then(|gd| refill::entry(gd, STRING64, slot))
+                .is_some_and(|bag| *(bag as *const u8) == 0)
+    }
+}
 
 /// Link is about to update: hold what the dev switches hold, run the app's
 /// request, if there is one, and between events forget the last credit.

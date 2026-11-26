@@ -644,6 +644,8 @@ fn hook_flags(new_game: &NewGame) -> u32 {
             zootr_hook::FREE_BOMBCHUS,
         ),
         (new_game.bombchus == Bombchus::Bag, zootr_hook::BOMBCHU_BAG),
+        (new_game.shuffle_nut_bag, zootr_hook::SHUFFLED_NUT_BAG),
+        (new_game.shuffle_stick_bag, zootr_hook::SHUFFLED_STICK_BAG),
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
@@ -711,6 +713,23 @@ mod tests {
         assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
         assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
         let plain = hook_flags(&NewGame::default());
+        for (nuts, sticks, want) in [
+            (false, false, 0),
+            (true, false, zootr_hook::SHUFFLED_NUT_BAG),
+            (false, true, zootr_hook::SHUFFLED_STICK_BAG),
+            (
+                true,
+                true,
+                zootr_hook::SHUFFLED_NUT_BAG | zootr_hook::SHUFFLED_STICK_BAG,
+            ),
+        ] {
+            let game = NewGame {
+                shuffle_nut_bag: nuts,
+                shuffle_stick_bag: sticks,
+                ..Default::default()
+            };
+            assert_eq!(hook_flags(&game), plain | want);
+        }
         assert_eq!(plain & zootr_hook::CHILD_GEAR, 0);
         let with = |id: &str| {
             hook_flags(&NewGame {
