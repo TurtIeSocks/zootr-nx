@@ -11,6 +11,7 @@
 mod files;
 pub mod listen;
 mod pick;
+mod voice;
 mod write;
 
 use std::path::{Path, PathBuf};
@@ -20,7 +21,10 @@ use ounce_formats::Romfs;
 use serde::{Deserialize, Serialize};
 
 pub use files::{BANKS, HELD, OCARINA, STREAMS, TABLE, TRACKS, VOICE_PACKS};
-pub use pick::{Audio, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve};
+pub use pick::{
+    Audio, CHAOS, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve,
+};
+pub use voice::FILES as VOICE_FILES;
 pub use write::write;
 
 /// Where a track's music plays from.
@@ -189,7 +193,7 @@ pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
         .iter()
         .find(|t| t.via == Via::Voice && t.song == Some(name))
     {
-        let path = voice_bank(t.graph);
+        let path = voice::bank(t.graph, voice::ENGLISH);
         let (_, data) = (crate::game::search(game, &path)?.into_iter())
             .find(|(p, _)| *p == path)
             .with_context(|| format!("no bank {path}"))?;
@@ -207,17 +211,6 @@ pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
         }
     }
     bail!("no stream {name}")
-}
-
-/// The bank of NPC voice type `kind`: the named characters' are per
-/// language, and the English one stands for them all.
-pub fn voice_bank(kind: &str) -> String {
-    let lang = if kind.starts_with("Custom_") {
-        "USen_"
-    } else {
-        ""
-    };
-    format!("Sound/Resource/NV_{lang}{kind}.bars.zs")
 }
 
 /// Link's banks from the dump at `game`, decompressed, in [`BANKS`] order.
@@ -452,7 +445,11 @@ mod tests {
         let mut banks = std::collections::BTreeMap::new();
         crate::game::each_where(
             game,
-            |p| voices.iter().any(|t| voice_bank(t.graph) == p),
+            |p| {
+                voices
+                    .iter()
+                    .any(|t| voice::bank(t.graph, voice::ENGLISH) == p)
+            },
             |path, data| {
                 banks.insert(path.clone(), romfs.dicts().decompress(&path, &data)?);
                 Ok(())
@@ -460,7 +457,7 @@ mod tests {
         )
         .unwrap();
         for t in voices {
-            let bank = &banks[&voice_bank(t.graph)];
+            let bank = &banks[&voice::bank(t.graph, voice::ENGLISH)];
             let song = t.song.unwrap();
             let clip = ounce_formats::bars::bwav(bank, song).unwrap();
             let head =

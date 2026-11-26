@@ -67,7 +67,12 @@ const POOL_MODES: { id: PoolMode; label: string }[] = [
   { id: "vanilla", label: "Vanilla" },
   { id: "shuffle", label: "Shuffle" },
   { id: "random", label: "Random" },
+  { id: "chaos", label: "Chaos" },
 ];
+
+/** A pool's modes: Chaos is the NPC voices' alone. */
+const modesOf = (pool: Pool) =>
+  POOL_MODES.filter((m) => m.id !== "chaos" || pool === "npc-voice");
 
 const TRACK_MODES: { id: TrackMode; label: string }[] = [
   { id: "pool", label: "Pool" },
@@ -82,9 +87,12 @@ const POOL_HINTS: Record<PoolMode, string> = {
     "The songs trade places: each plays somewhere once. Short ones trade only with songs of a similar length.",
   random:
     "Each track draws any song, repeats allowed. Short ones draw only songs of a similar length.",
+  chaos:
+    "Each voice keeps all its lines, and each line plays some voice's clip of the same feeling: a laugh is always someone's laugh.",
 };
 
-/** The game's music, each pool Vanilla, Shuffle or Random and each track
+/** The game's music, each pool Vanilla, Shuffle or Random (NPC voices also
+ * Chaos) and each track
  * following its pool, kept vanilla, or given a picked song. */
 export function AudioPane() {
   const catalog = useCatalog();
@@ -159,11 +167,11 @@ function Pools({ tracks, error }: ReturnType<typeof useCatalog>) {
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-medium text-sm">Pool mode</span>
         <Segmented
-          options={POOL_MODES}
+          options={modesOf(pool)}
           value={mode}
           onValueChange={(m) => store(setPool(pool, m))}
           disabled={busy}
-          aria-label={`${pool} pool: vanilla, shuffle or random`}
+          aria-label={`${pool} pool mode`}
         />
         <span className="text-ink-muted text-xs">{POOL_HINTS[mode]}</span>
       </div>

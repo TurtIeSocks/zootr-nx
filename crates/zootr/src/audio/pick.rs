@@ -1,4 +1,5 @@
-//! What the music is set to: each pool Vanilla, Shuffle or Random, each
+//! What the music is set to: each pool Vanilla, Shuffle or Random (NPC
+//! voices also Chaos), each
 //! track following its pool, kept vanilla, or given a picked song. A draft
 //! keeps the modes; a seed keeps each slot's song, so it reinstalls the
 //! same.
@@ -22,10 +23,17 @@ pub enum PoolMode {
     Shuffle,
     /// Each slot draws any song in its band, repeats allowed.
     Random,
+    /// NPC voices only: each voice type keeps its lines, each line a clip
+    /// of the same emotion from any type's.
+    Chaos,
 }
 
 /// A track override's value for "keep this one vanilla".
 pub const VANILLA: &str = "vanilla";
+
+/// A seed's value for a voice slot in chaos, its lines drawn as it's
+/// written.
+pub const CHAOS: &str = "chaos";
 
 /// The pane's draft: each pool's mode (Vanilla when not named), and each
 /// track overridden, by id, to [`VANILLA`] or the id of the track whose
@@ -68,12 +76,23 @@ pub fn resolve(draft: &Draft, seed: u64) -> Result<Audio> {
             pool != Pool::Fixed || mode == PoolMode::Vanilla,
             "the fixed pool is never shuffled"
         );
-        if mode == PoolMode::Vanilla {
-            continue;
+        ensure!(
+            pool == Pool::NpcVoice || mode != PoolMode::Chaos,
+            "only NPC voices have Chaos"
+        );
+        let tracks: Vec<&Track> = TRACKS.iter().filter(|t| t.pool == pool).collect();
+        match mode {
+            PoolMode::Vanilla => continue,
+            PoolMode::Chaos => {
+                for slot in tracks.iter().filter(|t| !kept.contains(t.id)) {
+                    out.insert(slot.id.to_owned(), CHAOS.to_owned());
+                }
+                continue;
+            }
+            PoolMode::Shuffle | PoolMode::Random => {}
         }
         let id = crate::build::fnv1a(pool.name().as_bytes()) as u64;
         let mut rng = Rng::new(seed ^ id.rotate_left(32));
-        let tracks: Vec<&Track> = TRACKS.iter().filter(|t| t.pool == pool).collect();
         let bands: BTreeSet<usize> = tracks.iter().map(|t| t.band()).collect();
         for band in bands {
             let here: Vec<&Track> = tracks
@@ -94,7 +113,7 @@ pub fn resolve(draft: &Draft, seed: u64) -> Result<Audio> {
                     }
                     PoolMode::Random if songs.is_empty() => None,
                     PoolMode::Random => Some(songs[rng.below(songs.len() as u64) as usize]),
-                    PoolMode::Vanilla => unreachable!("vanilla pools are skipped"),
+                    PoolMode::Vanilla | PoolMode::Chaos => unreachable!("dealt above"),
                 };
                 if let Some(donor) = donor {
                     put(&mut out, slot, donor);
@@ -152,22 +171,34 @@ fn mode(mode: PoolMode) -> &'static str {
         PoolMode::Vanilla => "vanilla",
         PoolMode::Shuffle => "shuffle",
         PoolMode::Random => "random",
+        PoolMode::Chaos => "chaos",
     }
 }
 
-/// The draft that builds `audio` again.
+/// The draft that builds `audio` again: a seed in voice chaos gives the
+/// pool back, each voice slot it left out kept vanilla.
 pub fn draft(audio: &Audio) -> Draft {
-    Draft {
+    let mut draft = Draft {
         pools: BTreeMap::new(),
         tracks: audio.clone(),
+    };
+    if audio.values().any(|v| v == CHAOS) {
+        draft.pools.insert(Pool::NpcVoice, PoolMode::Chaos);
+        draft.tracks.retain(|_, v| v != CHAOS);
+        for t in TRACKS.iter().filter(|t| t.pool == Pool::NpcVoice) {
+            if !audio.contains_key(t.id) {
+                draft.tracks.insert(t.id.to_owned(), VANILLA.to_owned());
+            }
+        }
     }
+    draft
 }
 
-/// One `--audio POOL=vanilla|shuffle|random`.
+/// One `--audio POOL=vanilla|shuffle|random|chaos`, chaos for NPC voices.
 pub fn parse_pool(arg: &str) -> Result<(Pool, PoolMode)> {
     let (pool, mode) = arg
         .split_once('=')
-        .context("--audio takes POOL=vanilla, shuffle or random")?;
+        .context("--audio takes POOL=vanilla, shuffle, random or chaos")?;
     Ok((value("pool", pool)?, value("mode", mode)?))
 }
 
@@ -305,5 +336,27 @@ mod tests {
             }
         }
         assert_eq!(back, draft);
+    }
+
+    /// Chaos marks every voice slot but those kept, only NPC voices take
+    /// it, and a chaos seed's draft deals the same again.
+    #[test]
+    fn chaos_marks_each_voice_slot_and_comes_back_from_its_seed() {
+        let mut draft = Draft::default();
+        draft.pools.insert(Pool::NpcVoice, PoolMode::Chaos);
+        draft.tracks.insert("npc-navi".into(), VANILLA.into());
+        draft.tracks.insert("npc-cow".into(), "npc-darunia".into());
+        let audio = resolve(&draft, 1).unwrap();
+        let voices = TRACKS.iter().filter(|t| t.pool == Pool::NpcVoice).count();
+        assert_eq!(audio.len(), voices - 1);
+        assert!(!audio.contains_key("npc-navi"));
+        assert_eq!(audio["npc-cow"], "npc-darunia");
+        assert_eq!(audio["npc-darunia"], CHAOS);
+        assert_eq!(resolve(&self::draft(&audio), 9).unwrap(), audio);
+        assert!(resolve(&all(PoolMode::Chaos), 1).is_err());
+        assert_eq!(
+            parse_pool("npc-voice=chaos").unwrap(),
+            (Pool::NpcVoice, PoolMode::Chaos)
+        );
     }
 }
