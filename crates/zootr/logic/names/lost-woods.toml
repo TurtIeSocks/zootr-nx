@@ -1,0 +1,65 @@
+# Lost Woods. OoTR's name wherever the remake keeps the spot: matched by
+# position, the arrival points nearby, the rule comments and the remake
+# guides for the Gold Skulltulas. The way in from Kokiri Forest is in the
+# middle; the shortcuts to Goron City and Zora's River lie east of it,
+# the Deku Theater and Sacred Forest Meadow to the north, the bridge to
+# Hyrule Field to the southwest.
+#
+# The child and adult maps each hold their own copy of the grotto's
+# grass, as separate checks, so its names say which age's it is, as
+# OoTR's Market Guard House Child Pot does. Numbers count west to east
+# within one spot.
+
+# Gifts, games and trades
+7968474297316728619 = "LW Skull Kid"
+13557807086646791370 = "LW Ocarina Memory Game"
+9411228621880230151 = "LW Target in Woods"
+10902337446962469519 = "LW Deku Theater Skull Mask"
+4353811140173259339 = "LW Deku Theater Mask of Truth"
+4830705234802295701 = "LW Trade Cojiro" # guess: OoTR's list here has no trade checks, named as Ship of Harkinian names this one
+10103296210716215394 = "LW Trade Odd Potion" # guess: Ship of Harkinian's name; the remake calls the item the odd poultice
+
+# Gold Skulltulas: the two soil patches, by the bridge route and by the
+# theater, and the adult's high above the theater.
+9333354743976439033 = "LW GS Bean Patch Near Bridge"
+17796658857969527112 = "LW GS Bean Patch Near Theater"
+4335656213162247230 = "LW GS Above Theater"
+
+# By the Deku Theater: two scrubs east of its grotto. OoTR's sold sticks
+# and nuts; the remake's buy bugs and sell potions. Left and right as
+# Link sees them walking up from the south.
+2569517939889411425 = "LW Deku Scrub Near Deku Theater Left" # guess: the bug buyer, west of the potion seller
+15048088372638595204 = "LW Deku Scrub Near Deku Theater Right" # guess: the potion seller, east of the bug buyer
+
+# The scrub grotto, under the rock by the way to Sacred Forest Meadow.
+# OoTR's front scrub sells the nut upgrade, as this one does.
+4328741615941752705 = "LW Deku Scrub Grotto Front"
+2214083465643671502 = "LW Deku Scrub Grotto Rear" # guess: the other of the two, a little further in
+
+# The grotto under the rock by the Goron City shortcut. OoTR's held a
+# chest and beehives; the remake's has nine grass tufts.
+5488835131617393219 = "LW Near Shortcuts Grotto Child Grass 1" # guess: OoTR's grotto by the shortcuts, though its contents changed
+17993712008759335925 = "LW Near Shortcuts Grotto Adult Grass 1" # guess: as above
+5007394544348392451 = "LW Near Shortcuts Grotto Child Grass 2" # guess: as above
+16206638005430417269 = "LW Near Shortcuts Grotto Adult Grass 2" # guess: as above
+5597448927131828918 = "LW Near Shortcuts Grotto Child Grass 3" # guess: as above
+2198102825223763053 = "LW Near Shortcuts Grotto Adult Grass 3" # guess: as above
+4453932386573032729 = "LW Near Shortcuts Grotto Child Grass 4" # guess: as above
+14799938113178843638 = "LW Near Shortcuts Grotto Adult Grass 4" # guess: as above
+7412275398037840462 = "LW Near Shortcuts Grotto Child Grass 5" # guess: as above
+105365569697370932 = "LW Near Shortcuts Grotto Adult Grass 5" # guess: as above
+12665247659442490400 = "LW Near Shortcuts Grotto Child Grass 6" # guess: as above
+6371576460968048747 = "LW Near Shortcuts Grotto Adult Grass 6" # guess: as above
+8957227260103329265 = "LW Near Shortcuts Grotto Child Grass 7" # guess: as above
+700813349264257115 = "LW Near Shortcuts Grotto Adult Grass 7" # guess: as above
+2822270749178751883 = "LW Near Shortcuts Grotto Child Grass 8" # guess: as above
+14353012063098347569 = "LW Near Shortcuts Grotto Adult Grass 8" # guess: as above
+4816761342260235661 = "LW Near Shortcuts Grotto Child Grass 9" # guess: as above
+16178671185680094683 = "LW Near Shortcuts Grotto Adult Grass 9" # guess: as above
+
+# By the bridge out to Hyrule Field, beside the Gossip Stone: OoTR's
+# scrub, and the remake's chest on the ledge above. The Kokiri Forest map
+# places both here too, as KF Deku Scrub Near Bridge and KF Ledge Near
+# Bridge Chest.
+5406759280757349546 = "LW Deku Scrub Near Bridge"
+17479747339356189279 = "LW Ledge Near Bridge Chest"

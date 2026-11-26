@@ -91,7 +91,7 @@
       "forbid": [],
       "hash": "105365569697370932",
       "id": 1256,
-      "name": "Lost Woods Northeast Grass 9",
+      "name": "LW Near Shortcuts Grotto Adult Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -1119,7 +1119,7 @@
       "forbid": [],
       "hash": "700813349264257115",
       "id": 1262,
-      "name": "Lost Woods Northeast Grass 3",
+      "name": "LW Near Shortcuts Grotto Adult Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -3938,7 +3938,7 @@
       "forbid": [],
       "hash": "2198102825223763053",
       "id": 1277,
-      "name": "Lost Woods Northeast Grass 17",
+      "name": "LW Near Shortcuts Grotto Adult Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -4016,7 +4016,7 @@
       "forbid": [],
       "hash": "2214083465643671502",
       "id": 15,
-      "name": "Lost Woods Business Scrub (Rock Grotto)",
+      "name": "LW Deku Scrub Grotto Rear",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -4552,7 +4552,7 @@
       "forbid": [],
       "hash": "2569517939889411425",
       "id": 19,
-      "name": "Lost Woods Business Scrub (Bug Buyer)",
+      "name": "LW Deku Scrub Near Deku Theater Left",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -4966,7 +4966,7 @@
       "forbid": [],
       "hash": "2822270749178751883",
       "id": 1286,
-      "name": "Lost Woods Northeast Grass 14",
+      "name": "LW Near Shortcuts Grotto Child Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -7242,7 +7242,7 @@
       "forbid": [],
       "hash": "4328741615941752705",
       "id": 29,
-      "name": "Lost Woods Business Scrub (Nuts)",
+      "name": "LW Deku Scrub Grotto Front",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -7260,7 +7260,7 @@
       "forbid": [],
       "hash": "4335656213162247230",
       "id": 328,
-      "name": "Lost Woods North Gold Skulltula Token 1",
+      "name": "LW GS Above Theater",
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
@@ -7346,7 +7346,7 @@
       "forbid": [],
       "hash": "4353811140173259339",
       "id": 152,
-      "name": "Lost Woods Deku Theater: Mask of Truth",
+      "name": "LW Deku Theater Mask of Truth",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -7487,7 +7487,7 @@
       "forbid": [],
       "hash": "4453932386573032729",
       "id": 1300,
-      "name": "Lost Woods Northeast Grass 2",
+      "name": "LW Near Shortcuts Grotto Child Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8220,7 +8220,7 @@
       "forbid": [],
       "hash": "4816761342260235661",
       "id": 1306,
-      "name": "Lost Woods Northeast Grass 8",
+      "name": "LW Near Shortcuts Grotto Child Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -8319,7 +8319,7 @@
       "forbid": [],
       "hash": "4830705234802295701",
       "id": 213,
-      "name": "Lost Woods Grog: Cojiro",
+      "name": "LW Trade Cojiro",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -8497,7 +8497,7 @@
       "forbid": [],
       "hash": "5007394544348392451",
       "id": 1310,
-      "name": "Lost Woods Northeast Grass 12",
+      "name": "LW Near Shortcuts Grotto Child Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9109,7 +9109,7 @@
       "forbid": [],
       "hash": "5406759280757349546",
       "id": 37,
-      "name": "Lost Woods Business Scrub (Sticks)",
+      "name": "LW Deku Scrub Near Bridge",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -9211,7 +9211,7 @@
       "forbid": [],
       "hash": "5488835131617393219",
       "id": 1315,
-      "name": "Lost Woods Northeast Grass 6",
+      "name": "LW Near Shortcuts Grotto Child Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -9354,7 +9354,7 @@
       "forbid": [],
       "hash": "5597448927131828918",
       "id": 1316,
-      "name": "Lost Woods Northeast Grass 18",
+      "name": "LW Near Shortcuts Grotto Child Grass 3",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -10675,7 +10675,7 @@
       "forbid": [],
       "hash": "6371576460968048747",
       "id": 1322,
-      "name": "Lost Woods Northeast Grass 15",
+      "name": "LW Near Shortcuts Grotto Adult Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -12386,7 +12386,7 @@
       "forbid": [],
       "hash": "7412275398037840462",
       "id": 1333,
-      "name": "Lost Woods Northeast Grass 10",
+      "name": "LW Near Shortcuts Grotto Child Grass 5",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -12979,7 +12979,7 @@
       "forbid": [],
       "hash": "7968474297316728619",
       "id": 161,
-      "name": "Lost Woods Skull Kid",
+      "name": "LW Skull Kid",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -14430,7 +14430,7 @@
       "forbid": [],
       "hash": "8957227260103329265",
       "id": 1340,
-      "name": "Lost Woods Northeast Grass 4",
+      "name": "LW Near Shortcuts Grotto Child Grass 7",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -15333,7 +15333,7 @@
       "forbid": [],
       "hash": "9333354743976439033",
       "id": 353,
-      "name": "Lost Woods Southwest Gold Skulltula Token",
+      "name": "LW GS Bean Patch Near Bridge",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -15434,7 +15434,7 @@
       "forbid": [],
       "hash": "9411228621880230151",
       "id": 167,
-      "name": "Lost Woods Target",
+      "name": "LW Target in Woods",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -16815,7 +16815,7 @@
       "forbid": [],
       "hash": "10103296210716215394",
       "id": 217,
-      "name": "Lost Woods Fado: Odd Powder",
+      "name": "LW Trade Odd Potion",
       "unprovable": false,
       "when": {
         "setting": "trade-chain"
@@ -18078,7 +18078,7 @@
       "forbid": [],
       "hash": "10902337446962469519",
       "id": 175,
-      "name": "Lost Woods Deku Theater: Skull Mask",
+      "name": "LW Deku Theater Skull Mask",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -21148,7 +21148,7 @@
       "forbid": [],
       "hash": "12665247659442490400",
       "id": 1374,
-      "name": "Lost Woods Northeast Grass 16",
+      "name": "LW Near Shortcuts Grotto Child Grass 6",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -22510,7 +22510,7 @@
       "forbid": [],
       "hash": "13557807086646791370",
       "id": 184,
-      "name": "Lost Woods Skull Kid's Memory Game",
+      "name": "LW Ocarina Memory Game",
       "unprovable": false,
       "when": {
         "setting": "npc-gifts"
@@ -23668,7 +23668,7 @@
       "forbid": [],
       "hash": "14353012063098347569",
       "id": 1388,
-      "name": "Lost Woods Northeast Grass 13",
+      "name": "LW Near Shortcuts Grotto Adult Grass 8",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24229,7 +24229,7 @@
       "forbid": [],
       "hash": "14799938113178843638",
       "id": 1391,
-      "name": "Lost Woods Northeast Grass 1",
+      "name": "LW Near Shortcuts Grotto Adult Grass 4",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -24665,7 +24665,7 @@
       "forbid": [],
       "hash": "15048088372638595204",
       "id": 107,
-      "name": "Lost Woods Business Scrub (Potions)",
+      "name": "LW Deku Scrub Near Deku Theater Right",
       "unprovable": false,
       "when": {
         "setting": "scrubs"
@@ -26291,7 +26291,7 @@
       "forbid": [],
       "hash": "16178671185680094683",
       "id": 1402,
-      "name": "Lost Woods Northeast Grass 7",
+      "name": "LW Near Shortcuts Grotto Adult Grass 9",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -26327,7 +26327,7 @@
       "forbid": [],
       "hash": "16206638005430417269",
       "id": 1403,
-      "name": "Lost Woods Northeast Grass 11",
+      "name": "LW Near Shortcuts Grotto Adult Grass 2",
       "unprovable": false,
       "when": {
         "setting": "grass"
@@ -28455,7 +28455,7 @@
       "forbid": [],
       "hash": "17479747339356189279",
       "id": 126,
-      "name": "Lost Woods Southwest Purple Rupee (50) Chest",
+      "name": "LW Ledge Near Bridge Chest",
       "unprovable": false
     },
     {
@@ -29018,7 +29018,7 @@
       "forbid": [],
       "hash": "17796658857969527112",
       "id": 406,
-      "name": "Lost Woods North Gold Skulltula Token 2",
+      "name": "LW GS Bean Patch Near Theater",
       "unprovable": true,
       "when": {
         "setting": "gold-skulltulas"
@@ -29342,7 +29342,7 @@
       "forbid": [],
       "hash": "17993712008759335925",
       "id": 1410,
-      "name": "Lost Woods Northeast Grass 5",
+      "name": "LW Near Shortcuts Grotto Adult Grass 1",
       "unprovable": false,
       "when": {
         "setting": "grass"
