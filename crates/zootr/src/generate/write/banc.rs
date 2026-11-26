@@ -128,6 +128,9 @@ impl<'p, 'a> Banc<'p, 'a> {
         let twinned = twins::place(&rel, root, &parts.twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
         let paired = picked::place(root, &parts.picked)? > 0;
+        // Before the step gates and the fields, which give each seat its
+        // gate and its pickup.
+        let seated = parts.seats.place(root)?;
         // After the twins, so each step is a copy of a holder standing until
         // picked, and before the fields, which give each step its stand-in.
         let stepped = parts.steps.place(root)?;
@@ -136,7 +139,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         // Before the fields, which give each step's copy its stand-in.
         let shelved = self.shelves.place(root)?;
         let mut changed = checks::set_fields(root, self.fields)?;
-        let copies = &parts.steps.copies;
+        let copies = &parts.copies;
         self.spots
             .extend(picked::spots(root, &parts.picked, copies)?);
         changed.extend(checks::gone_once(root, &parts.gone)?);
@@ -171,6 +174,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         if jabu
             || twinned
             || paired
+            || seated
             || stepped
             || grouped
             || shelved

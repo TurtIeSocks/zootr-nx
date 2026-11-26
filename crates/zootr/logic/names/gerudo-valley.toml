@@ -70,3 +70,16 @@
 # carpenter boss shown the Poacher's Saw.
 11582029116926037889 = "GV Running Man Race" # OoTR has no such check, so the name is ours
 7003280842759835681 = "GV Trade Saw" # guess: OoTR's list here has no trade checks, named as Ship of Harkinian names this one
+
+# Boulders: the adult's red ones (the hammer), five in a line by the
+# pillar and three around the chest, and one cracked one. Ours, as OoTR
+# has none. Numbered west to east.
+235030242296092194 = "GV Near Pillar Red Boulder 1"
+16329060730828157520 = "GV Near Pillar Red Boulder 2"
+7623590182732686599 = "GV Near Pillar Red Boulder 3"
+1260877297084261540 = "GV Near Pillar Red Boulder 4"
+16340216739483509937 = "GV Near Pillar Red Boulder 5"
+13220487356418123141 = "GV Near Chest Red Boulder 1"
+6933130136085028789 = "GV Near Chest Red Boulder 2"
+11101586527269648394 = "GV Near Chest Red Boulder 3"
+437500486740655632 = "GV Boulder"

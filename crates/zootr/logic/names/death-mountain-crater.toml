@@ -87,3 +87,18 @@
 # The Great Fairy and Sheik
 7533377855264181032 = "DMC Great Fairy Reward"
 7517995748820283814 = "DMC Sheik in Crater"
+
+# Boulders: cracked ones (bombs or the hammer) and red ones (the hammer).
+# Ours, as OoTR has none. Most stand in both ages' maps under one hash;
+# the red ones by the Fire Temple and one by the scrub are the child's
+# alone, which no child can break while the hammer is an adult's.
+11477097298279134715 = "DMC Near GC Red Boulder"
+12575210264974120106 = "DMC Near Deku Scrub Red Boulder 1"
+8679993994356197333 = "DMC Near Deku Scrub Red Boulder 2"
+17444962966713158176 = "DMC Near Deku Scrub Red Boulder 3"
+10291266372915035962 = "DMC Near Deku Scrub Boulder"
+5524931827254348969 = "DMC Upper Grotto Boulder"
+5416806354710087510 = "DMC Near Fire Temple Red Boulder 1"
+15044423826661592135 = "DMC Near Fire Temple Red Boulder 2"
+13991526616466298561 = "DMC Near Fire Temple Red Boulder 3"
+2109842002649137583 = "DMC Near DMT Boulder"

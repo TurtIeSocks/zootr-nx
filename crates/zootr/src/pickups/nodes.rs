@@ -294,8 +294,10 @@ mod tests {
     #[test]
     fn every_loud_holder_takes_copies() {
         let Some(romfs) = dev_dump() else { return };
+        // A boulder takes no copy: its seat is a pickup nothing reads.
         let loud: BTreeSet<u64> = (crate::pickups::watched(&romfs).unwrap().into_iter())
             .filter(|c| c.watched == crate::checks::Watched::Loud)
+            .filter(|c| !crate::pickups::seats::holds(c))
             .map(|c| c.hash)
             .collect();
         let mut by_graph: BTreeMap<String, BTreeSet<usize>> = BTreeMap::new();

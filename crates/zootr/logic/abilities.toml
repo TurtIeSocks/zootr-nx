@@ -103,6 +103,8 @@ melee = "adult-sword or kokiri-sword or sticks"
 # A Business Scrub sells only once stunned: hit with a weapon, or its
 # nut sent back off a shield.
 stun-scrub = "melee or deku-shield or slingshot or boomerang"
+# A cracked boulder: its damage table takes a bomb's blast or the hammer.
+break-boulder = "explosives or hammer"
 # Kakariko's beehives hang 4.6 m up under an overhang. Their damage table
 # gives the slingshot seed 0, and a bomb's blast falls short of them.
 knock-down = "bow or boomerang or hookshot"
