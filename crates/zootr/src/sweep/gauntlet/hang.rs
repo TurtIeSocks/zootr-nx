@@ -209,23 +209,18 @@ impl Watch {
         let secs = at.as_secs_f32();
         // Frames first: a black screen is a hang whether or not the game
         // still answers reads. A missing frame neither starts nor ends the
-        // black.
+        // black, and play needs a lit frame on every look since it began.
         match lit {
             Some(false) => {
                 self.black.get_or_insert(at);
                 self.dark += 1;
+                (self.unframed, self.play) = (None, None);
             }
-            Some(true) => (self.black, self.dark) = (None, 0),
-            None => {}
-        }
-        match lit {
-            Some(_) => self.unframed = None,
-            None => _ = self.unframed.get_or_insert(at),
-        }
-        // Play needs a lit frame on every look since it began.
-        match lit {
-            Some(true) => {}
-            _ => self.play = None,
+            Some(true) => (self.black, self.dark, self.unframed) = (None, 0, None),
+            None => {
+                self.unframed.get_or_insert(at);
+                self.play = None;
+            }
         }
         if let Ok(s) = &state {
             self.map.clone_from(&s.map);
@@ -514,14 +509,21 @@ mod tests {
     }
 
     #[test]
-    fn an_rgba_frame_ignores_its_alpha() {
-        let mut out = Vec::new();
-        let mut enc = png::Encoder::new(&mut out, 16, 16);
-        enc.set_color(png::ColorType::Rgba);
-        enc.set_depth(png::BitDepth::Eight);
-        let px = [0u8, 0, 0, 255].repeat(256);
-        enc.write_header().unwrap().write_image_data(&px).unwrap();
-        assert!(black(&out).unwrap());
+    fn a_frame_with_alpha_ignores_it() {
+        let png = |colour, px: &[u8]| {
+            let mut out = Vec::new();
+            let mut enc = png::Encoder::new(&mut out, 16, 16);
+            enc.set_color(colour);
+            enc.set_depth(png::BitDepth::Eight);
+            enc.write_header().unwrap().write_image_data(px).unwrap();
+            out
+        };
+        let rgba = |grey| png(png::ColorType::Rgba, &[grey, grey, grey, 255].repeat(256));
+        let grey_alpha = |grey| png(png::ColorType::GrayscaleAlpha, &[grey, 255].repeat(256));
+        assert!(black(&rgba(0)).unwrap());
+        assert!(!black(&rgba(200)).unwrap());
+        assert!(black(&grey_alpha(0)).unwrap());
+        assert!(!black(&grey_alpha(200)).unwrap());
     }
 
     #[test]
