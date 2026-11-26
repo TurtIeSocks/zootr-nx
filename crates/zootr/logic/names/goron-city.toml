@@ -57,3 +57,29 @@
 10981256749588857721 = "GC Shop Item 6"
 3512162152062029293 = "GC Shop Item 7"
 5465750003560413462 = "GC Shop Item 8"
+
+# Boulders: the maze's cracked ones (bombs or the hammer) and red ones
+# (the hammer), four more on the top floor by the upper staircase, and
+# one on the middle floor with a copy in each age map. Ours, as OoTR has
+# none. Numbered west to east.
+13404489088146365032 = "GC Maze Boulder 1"
+15677699532769498187 = "GC Maze Boulder 2"
+350218654240957402 = "GC Maze Boulder 3"
+13752329688808041417 = "GC Maze Boulder 4"
+1326474780527120523 = "GC Maze Boulder 5"
+1493583863851704702 = "GC Maze Boulder 6"
+568594831719413463 = "GC Maze Boulder 7"
+16929684490549965748 = "GC Maze Boulder 8"
+6224093172612549845 = "GC Maze Boulder 9"
+3559172832032073716 = "GC Maze Red Boulder 1"
+6958775698257163131 = "GC Maze Red Boulder 2"
+2748115100431371354 = "GC Maze Red Boulder 3"
+12350172607562201215 = "GC Maze Red Boulder 4"
+2214331431043654664 = "GC Maze Red Boulder 5"
+14465858715163701812 = "GC Maze Red Boulder 6"
+16561044195918001352 = "GC Upper Staircase Boulder 1"
+1144847674319821543 = "GC Upper Staircase Boulder 2"
+3721220525082878677 = "GC Upper Staircase Boulder 3"
+3009822989781876601 = "GC Upper Staircase Boulder 4"
+8438942300162055419 = "GC Middle Floor Child Boulder"
+8668774813841012997 = "GC Middle Floor Adult Boulder"

@@ -119,7 +119,8 @@ impl Steps {
             } else if step.k > 0 {
                 steps.named.insert(m.hash, step.k);
             }
-            if step.k > 0 {
+            // A boulder's seats are placed with the seats (`seats`).
+            if step.k > 0 && m.hash == copy_hash(step.of, step.k) {
                 steps.copies.push((step.of, m.hash));
             }
             if m.built() {

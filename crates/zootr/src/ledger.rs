@@ -529,6 +529,9 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
     out.extend(gifts::checks());
     out.extend(scrubs::checks());
     out.extend(pickups::LOOSE.checks(romfs)?);
+    // The boulders over grottos, which no seed deals.
+    out.extend(pickups::BOULDERS.checks(romfs)?);
+    out.extend(pickups::RED_BOULDERS.checks(romfs)?);
     let placed: BTreeSet<u64> = out.iter().map(|c| c.hash).collect();
     let pickups = placed_pickups(romfs)?;
     for (file, doc) in load_bancs(romfs, banc_files(romfs)?) {

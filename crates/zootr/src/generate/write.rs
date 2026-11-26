@@ -360,6 +360,10 @@ struct Parts<'a> {
     reads: Reads,
     picked: Vec<picked::Holder>,
     steps: pickups::steps::Steps,
+    seats: pickups::seats::Seats,
+    /// Every placement copied from a holder's, by the one it copies: each
+    /// step's, then each boulder's seat.
+    copies: Vec<(u64, u64)>,
     stand_ins: Vec<(u64, String)>,
     /// Every dealt check, a kept item's too: its map's alternative needs it.
     dealt: HashSet<u64>,
@@ -381,6 +385,8 @@ impl<'a> Parts<'a> {
         let pieces = &reads.pieces;
         let picked = picked::holders(pieces, drops);
         let steps = pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd)?;
+        let seats = pickups::seats::Seats::new(pieces, drops, Lines::of(new_game));
+        let copies = [steps.copies.as_slice(), &seats.pairs].concat();
         let stand_ins = pickups::stand_ins(pieces, drops, Lines::of(new_game));
         let dealt: HashSet<u64> = (checks::dealt(romfs, new_game)?.iter())
             .map(|c| c.hash)
@@ -397,6 +403,8 @@ impl<'a> Parts<'a> {
             reads,
             picked,
             steps,
+            seats,
+            copies,
             stand_ins,
             dealt,
             twins,
@@ -463,7 +471,7 @@ impl<'a> Parts<'a> {
         gamedata::add_ints(root, &new_game.ints)?;
         gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
         let mut keyed = picked::pairs(&self.picked);
-        keyed.extend(&self.steps.copies);
+        keyed.extend(&self.copies);
         keyed.extend(trap_chests::keyed(self.drops));
         gamedata::add_keys(root, &keyed)?;
         trap_chests::game_data(root, self.drops)?;
