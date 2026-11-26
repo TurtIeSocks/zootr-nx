@@ -50,6 +50,7 @@ export const TOPICS = {
     body: [
       "Every seed you've made, newest first. Install any of them again, or open its Spoiler Log.",
       "Star a seed to keep it: the oldest seeds make way for new ones, and Clear deletes every seed but the installed and starred ones.",
+      "History keeps 1000 seeds, stars included. Select picks many at once to star, unstar or delete: shift-click picks a run.",
     ],
   },
   favorites: {
