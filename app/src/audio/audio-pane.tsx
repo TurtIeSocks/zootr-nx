@@ -3,6 +3,7 @@ import {
   Loader2,
   Map as MapIcon,
   Mic,
+  MessageCircle,
   Music,
   Music2,
   Play,
@@ -58,6 +59,7 @@ const POOL_TABS = (
     { id: "ocarina", icon: Music2 },
     { id: "voice-adult", icon: Mic },
     { id: "voice-child", icon: Mic },
+    { id: "npc-voice", icon: MessageCircle },
   ] satisfies { id: Pool; icon: typeof Music }[]
 ).map((p) => ({ ...p, label: POOL_LABELS[p.id] }));
 
@@ -91,7 +93,7 @@ export function AudioPane() {
       <PageHeader
         title="Audio"
         help="audio"
-        description="Shuffle the game's music and Link's voice."
+        description="Shuffle the game's music, Link's voice and the NPCs' voices."
         actions={<Actions />}
       />
       <SavedSets

@@ -2,7 +2,7 @@
 //! its new song and its user given the song's call. An ocarina slot's call
 //! is repointed at another call of its user. A call swapped across users
 //! played silence both ways live, so a call track only trades within its
-//! user.
+//! user. An NPC voice slot's packs take the donor's voice type.
 
 use std::collections::BTreeMap;
 
@@ -12,11 +12,14 @@ use ounce_formats::{
     xlink_copy_call,
 };
 
-use super::{Audio, HELD, TABLE, Track, Via, track};
+use super::{Audio, HELD, TABLE, Track, VOICE_PACKS, Via, track};
 use crate::ageless_items::SOUNDS;
 
 /// Play each slot's new song. Writes nothing for a seed in vanilla music.
 pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
+    let (voice, audio): (Audio, Audio) = (audio.clone().into_iter())
+        .partition(|(slot, _)| track(slot).is_ok_and(|t| t.via == Via::Voice));
+    voices(builder, &voice)?;
     if audio.is_empty() {
         return Ok(());
     }
@@ -30,7 +33,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
         .map(|(name, graph)| Ok((name.to_string(), user(graph)?)))
         .collect::<Result<BTreeMap<_, _>>>()?;
     let (mut repoints, mut table) = (vec![], false);
-    for (slot, donor) in audio {
+    for (slot, donor) in &audio {
         let (slot, donor) = (track(slot)?, track(donor)?);
         let song = (donor.song).with_context(|| format!("{} gives no song", donor.id))?;
         match (slot.via, donor.via) {
@@ -72,6 +75,43 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
     builder.write(SOUNDS, &slink)?;
     if table {
         builder.write(TABLE, &doc.to_binary())?;
+    }
+    Ok(())
+}
+
+/// Each voice slot's packs given its donor's type. A param shared by
+/// several packs is served by whichever loads first, so all are edited.
+fn voices(builder: &mut ModBuilder, audio: &Audio) -> Result<()> {
+    for (slot, donor) in audio {
+        let (slot, donor) = (track(slot)?, track(donor)?);
+        ensure!(
+            donor.via == Via::Voice,
+            "{} can't take {}: a voice trades only with a voice",
+            slot.id,
+            donor.id
+        );
+        let mut params: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+        for (_, pack, param) in VOICE_PACKS.iter().filter(|(kind, ..)| *kind == slot.graph) {
+            params.entry(param).or_default().push(pack);
+        }
+        let hash = ounce_formats::murmur3(donor.graph.as_bytes());
+        let path = format!(
+            "Voice/VoiceTypeInfo/{}.game__sound__VoiceTypeInfo.bgyml",
+            donor.graph
+        );
+        for (param, packs) in params {
+            let member = format!("Component/VoiceParam/{param}.game__component__VoiceParam.bgyml");
+            builder.edit_param(&packs, &member, |data| {
+                let mut doc = BymlDoc::parse(data)?;
+                let map = doc.root.as_mut_map()?;
+                map.insert("NpcVoiceType".into(), Byml::U32(hash));
+                map.insert(
+                    "VoiceTypeInfoBgymlPath".into(),
+                    Byml::String(path.clone().into()),
+                );
+                Ok(doc.to_binary())
+            })?;
+        }
     }
     Ok(())
 }
@@ -286,6 +326,53 @@ mod tests {
         assert!(refused("drugstore", "played-eponas-song"));
         assert!(refused("played-eponas-song", "drugstore"));
         assert!(refused("child-sword-light", "adult-death"));
+        assert!(refused("npc-navi", "drugstore"));
+        assert!(refused("drugstore", "npc-navi"));
         std::fs::remove_dir_all(dir).ok();
+    }
+
+    /// Every pack of a voice slot's type names the donor's, and a voice-only
+    /// seed leaves the sounds file alone.
+    #[test]
+    fn a_voice_type_takes_its_donors_in_every_pack() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-npc-voice-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let audio = Audio::from([
+            ("npc-navi".into(), "npc-darunia".into()),
+            ("npc-darunia".into(), "npc-navi".into()),
+            ("npc-kokiri-boy".into(), "npc-cow".into()),
+        ]);
+        write(&mut builder, &audio).unwrap();
+        builder.finish().unwrap();
+        let sounds = dir.join("romfs").join(SOUNDS).exists();
+        let mut seen = 0;
+        for (slot, donor) in &audio {
+            let (slot, donor) = (track(slot).unwrap(), track(donor).unwrap());
+            for (_, pack, param) in VOICE_PACKS.iter().filter(|(k, ..)| *k == slot.graph) {
+                let rel = ounce_formats::pack_file(pack);
+                let built = crate::game::read_built(&romfs, &dir, &rel);
+                let sarc = roead::sarc::Sarc::new(&built).unwrap();
+                let member =
+                    format!("Component/VoiceParam/{param}.game__component__VoiceParam.bgyml");
+                let doc = BymlDoc::parse(sarc.get_data(&member).unwrap()).unwrap();
+                let map = doc.root.as_map().unwrap();
+                let hash = ounce_formats::murmur3(donor.graph.as_bytes());
+                assert_eq!(map["NpcVoiceType"], Byml::U32(hash), "{pack}");
+                let Byml::String(path) = &map["VoiceTypeInfoBgymlPath"] else {
+                    panic!("{pack}")
+                };
+                assert!(
+                    path.contains(&format!("/{}.", donor.graph)),
+                    "{pack}: {path}"
+                );
+                seen += 1;
+            }
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+        assert!(!sounds, "a voice-only seed rewrote the sounds file");
+        assert!(seen > 8, "{seen} packs");
     }
 }

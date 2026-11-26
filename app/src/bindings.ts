@@ -932,6 +932,8 @@ export type Pool =
 "voice-adult" | 
 /**  Child Link's voice. */
 "voice-child" | 
+/**  The NPCs' voices, by voice type: grunts, laughs and calls. */
+"npc-voice" | 
 /**  The silences: never shuffled. */
 "fixed";
 
