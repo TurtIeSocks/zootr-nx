@@ -271,7 +271,7 @@ impl Watch {
             self.play.get_or_insert(at);
         }
         // Settled by now, or never: a screen that keeps flickering dark.
-        let unsettled = at >= limits.load + SETTLED && !self.settled(at);
+        let unsettled = at >= limits.load.saturating_add(SETTLED) && !self.settled(at);
         unsettled.then(|| Hang::Unsettled { secs, map: map() })
     }
 
@@ -478,6 +478,25 @@ mod tests {
             }
         }
         assert!(matches!(hang, Some(Hang::Unsettled { .. })), "{hang:?}");
+    }
+
+    #[test]
+    fn a_probe_with_no_load_limit_never_overflows() {
+        let mut w = Watch::default();
+        let none = Limits {
+            load: Duration::MAX,
+            ..LIMITS
+        };
+        let up = Up(true);
+        let state = || state("FakeMap", false, false);
+        assert_eq!(
+            w.tick(secs(0.0), &up, state(), Some(true), "FakeMap", none),
+            None
+        );
+        assert_eq!(
+            w.tick(secs(9.0), &up, state(), Some(false), "FakeMap", none),
+            None
+        );
     }
 
     #[test]

@@ -188,7 +188,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             });
             let first = night::at_known(spot, &known);
             let verdict = self.spot(&live.dev, &at, &first, &name, &tag)?;
-            if self.after_cell(g, &mut live, &verdict, c, &shots)? == Go::Stop {
+            if self.after_cell(g, &mut live, &verdict, (c, &name), &shots)? == Go::Stop {
                 return Ok(Go::Stop);
             }
         }
@@ -202,16 +202,15 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         g: &Gauntlet,
         live: &mut Live,
         verdict: &Verdict,
-        c: &Cell,
+        (c, name): (&Cell, &str),
         shots: &Path,
     ) -> Result<Go> {
-        let name = c.name();
         let trap = ITEMS[c.item_kind].name == grid::ICE_TRAP;
         let outcome = report::outcome(&serde_json::to_value(verdict)?, trap);
         let hang = match outcome {
             report::Outcome::Pass | report::Outcome::NoTrigger(_) => None,
             _ => {
-                let frame = shots.join(format!("{}-hang.png", slug(&name)));
+                let frame = shots.join(format!("{}-hang.png", slug(name)));
                 hang::probe(&live.dev, &mut self.input, g.limits, &frame).map(|h| (h, frame))
             }
         };
@@ -319,13 +318,18 @@ fn dump(input: &mut impl Input) {
 /// The plando that pins each of `cells`' items at its holder.
 /// [`grid::rounds`] keeps one cell a holder a round.
 fn plando(cells: &[Cell]) -> Extras {
+    let place: crate::shuffle::Fixed = (cells.iter())
+        .map(|c| (c.holder, ITEMS[c.item_kind].item()))
+        .collect();
+    debug_assert_eq!(place.len(), cells.len(), "two cells at one holder");
     Extras {
-        place: (cells.iter())
-            .map(|c| (c.holder, ITEMS[c.item_kind].item()))
-            .collect(),
+        place,
         ..Extras::default()
     }
 }
+
+/// Why a cell whose holder the settings don't make a check is refused.
+const NOT_A_CHECK: &str = "isn't a check with these settings";
 
 /// Each of `cells` the shuffle refuses with `settings`, and why: an EIE
 /// narrowing, or a holder that isn't a check with them.
@@ -336,10 +340,7 @@ fn refusals(romfs: &Romfs, settings: &Settings, cells: &[Cell]) -> Result<Vec<(C
     for c in cells {
         let item = ITEMS[c.item_kind].item();
         let why = match dealt.iter().find(|check| check.hash == c.holder) {
-            None => Some(format!(
-                "holder {} isn't a check with these settings",
-                c.holder
-            )),
+            None => Some(format!("holder {} {NOT_A_CHECK}", c.holder)),
             Some(check) => narrowing::refusal(check, &item, new_game.progressive)
                 .map(|n| format!("{n:?} (EIE debt row {})", n.number())),
         };
@@ -401,7 +402,7 @@ mod tests {
         let cells = Run::Full.cells();
         let refused = refusals(&romfs, &settings, &cells).unwrap();
         let missing: Vec<_> = (refused.iter())
-            .filter(|(_, why)| why.contains("isn't a check"))
+            .filter(|(_, why)| why.contains(NOT_A_CHECK))
             .map(|(c, _)| c.name())
             .collect();
         assert!(missing.is_empty(), "{missing:?}");
