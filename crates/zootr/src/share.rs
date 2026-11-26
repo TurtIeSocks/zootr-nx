@@ -60,7 +60,7 @@ pub fn decode(code: &str) -> Result<Shared> {
     let json = zstd::bulk::decompress(&packed, MAX_JSON).context("a share code got cut")?;
     let mut shared: Shared =
         serde_json::from_slice(&json).context("a share code from another version")?;
-    crate::settings::upgrade(&mut shared.settings, from);
+    shared.extras.vanilla |= crate::settings::upgrade(&mut shared.settings, from);
     // Codes from before [`encode`] left the build out.
     shared.extras.release = None;
     Ok(shared)

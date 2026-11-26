@@ -15,7 +15,7 @@ use crate::sweep::plan::{Planned, Trigger};
 /// The sweep's plan for one round of `settings`, rolled into a temp mod
 /// folder, which is removed after.
 pub(super) fn round(romfs: &Romfs, seed: u64, settings: &Settings) -> Result<Vec<Planned>> {
-    let report = generate::throwaway(night::roll(romfs, seed, settings))?;
+    let report = generate::throwaway(night::roll(romfs, seed, settings, &Default::default()))?;
     night::planned(romfs, &report, &dev::places(romfs)?)
 }
 
