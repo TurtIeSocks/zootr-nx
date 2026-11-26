@@ -3,7 +3,7 @@
 # match by room, rule and vanilla item, and the remake guides for the
 # Skulltulas. Pots go by room, numbered west to east.
 #
-# Every name carries its map floor after "Jabu Jabus Belly", as the dungeon
+# Every name carries its map floor after "Jabu", as the dungeon
 # map shows it with Link beside the check (sweeps of 2026-11-25). Checks
 # in one room at one height share the floor read for them. Every floor
 # is one the game's map lists for the check's room; where a warp landed
@@ -11,49 +11,49 @@
 
 # Under the east hole in Ruto's room: two Skulltulas on its walls, the
 # higher one Upper.
-11283202900158580106 = "Jabu Jabus Belly 1F GS Lobby Basement Upper" # guess: only 2 m higher than its neighbour
-13852835165271311030 = "Jabu Jabus Belly 1F GS Lobby Basement Lower" # guess: only 2 m lower than its neighbour
+11283202900158580106 = "Jabu 1F GS Lobby Basement Upper" # guess: only 2 m higher than its neighbour
+13852835165271311030 = "Jabu 1F GS Lobby Basement Lower" # guess: only 2 m lower than its neighbour
 
 # The water room at the foot of the lift.
-9496373148524757782 = "Jabu Jabus Belly B1 Deku Scrub"
+9496373148524757782 = "Jabu B1 Deku Scrub"
 
 # The basement room with two Octoroks, and a chest the remake added on
 # its platform.
-11286310503376671564 = "Jabu Jabus Belly B1 Basement 2 Octoroks Pot 1"
-15686356656840817485 = "Jabu Jabus Belly B1 Basement 2 Octoroks Pot 2"
-437556170115291814 = "Jabu Jabus Belly B1 Basement 2 Octoroks Pot 3"
-3104022011556950435 = "Jabu Jabus Belly B1 Basement 2 Octoroks Pot 4"
-3609242017501283521 = "Jabu Jabus Belly B1 Basement 2 Octoroks Chest" # guess: new chest, on the platform past the Octoroks
+11286310503376671564 = "Jabu B1 2 Octoroks Pot 1"
+15686356656840817485 = "Jabu B1 2 Octoroks Pot 2"
+437556170115291814 = "Jabu B1 2 Octoroks Pot 3"
+3104022011556950435 = "Jabu B1 2 Octoroks Pot 4"
+3609242017501283521 = "Jabu B1 2 Octoroks Chest" # guess: new chest, on the platform past the Octoroks
 
 # The water switch room: the Skulltula on its vines, three pots, and the
 # Map Chest across it.
-11513774157335944149 = "Jabu Jabus Belly B1 GS Water Switch Room"
-9356640604710933239 = "Jabu Jabus Belly B1 Basement Switch Room Pot 1"
-13411964117731733665 = "Jabu Jabus Belly B1 Basement Switch Room Pot 2"
-5103883096284362521 = "Jabu Jabus Belly B1 Basement Switch Room Pot 3"
-14933854942830098290 = "Jabu Jabus Belly B1 Map Chest"
+11513774157335944149 = "Jabu B1 GS Water Switch Room"
+9356640604710933239 = "Jabu B1 Switch Room Pot 1"
+13411964117731733665 = "Jabu B1 Switch Room Pot 2"
+5103883096284362521 = "Jabu B1 Switch Room Pot 3"
+14933854942830098290 = "Jabu B1 Map Chest"
 
 # The forked corridor's branches.
-5527401621172639818 = "Jabu Jabus Belly 1F Boomerang Chest"
-3510516276638146208 = "Jabu Jabus Belly 1F Compass Chest"
+5527401621172639818 = "Jabu 1F Boomerang Chest"
+3510516276638146208 = "Jabu 1F Compass Chest"
 
 # Above the Big Octo.
-6978589088482176618 = "Jabu Jabus Belly 2F Above Big Octo Pot 1"
-3604029748172586256 = "Jabu Jabus Belly 2F Above Big Octo Pot 2"
-6807599735094224635 = "Jabu Jabus Belly 2F Above Big Octo Pot 3"
+6978589088482176618 = "Jabu 2F Above Big Octo Pot 1"
+3604029748172586256 = "Jabu 2F Above Big Octo Pot 2"
+6807599735094224635 = "Jabu 2F Above Big Octo Pot 3"
 
 # Before the boss: the Skulltula on the vine pillar, pots in the corridor.
-15983944335296207002 = "Jabu Jabus Belly 2F GS Near Boss"
-13522941381613826313 = "Jabu Jabus Belly 2F Before Boss Pot 1"
-8440112383775285250 = "Jabu Jabus Belly 2F Before Boss Pot 2"
-1886228517829174646 = "Jabu Jabus Belly 2F Before Boss Pot 3"
+15983944335296207002 = "Jabu 2F GS Near Boss"
+13522941381613826313 = "Jabu 2F Before Boss Pot 1"
+8440112383775285250 = "Jabu 2F Before Boss Pot 2"
+1886228517829174646 = "Jabu 2F Before Boss Pot 3"
 
 # Barinade's room.
-17008314122241535243 = "Jabu Jabus Belly 2F Barinade Pot 1"
-7236701055993128778 = "Jabu Jabus Belly 2F Barinade Pot 2"
-13226303525664955816 = "Jabu Jabus Belly 2F Barinade Pot 3"
-4451366174329825617 = "Jabu Jabus Belly 2F Barinade Pot 4"
-5637390904733861408 = "Jabu Jabus Belly 2F Barinade Pot 5"
-8321479553829035058 = "Jabu Jabus Belly 2F Barinade Pot 6"
-17608884438514432711 = "Jabu Jabus Belly 2F Barinade Heart"
-1756007200646888751 = "Jabu Jabus Belly 2F Barinade"
+17008314122241535243 = "Jabu 2F Barinade Pot 1"
+7236701055993128778 = "Jabu 2F Barinade Pot 2"
+13226303525664955816 = "Jabu 2F Barinade Pot 3"
+4451366174329825617 = "Jabu 2F Barinade Pot 4"
+5637390904733861408 = "Jabu 2F Barinade Pot 5"
+8321479553829035058 = "Jabu 2F Barinade Pot 6"
+17608884438514432711 = "Jabu 2F Barinade Heart"
+1756007200646888751 = "Jabu 2F Barinade"
