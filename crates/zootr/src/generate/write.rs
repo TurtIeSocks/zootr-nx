@@ -243,7 +243,8 @@ pub fn write_mod(
         0 => Vec::new(),
         _ => shops::slots(romfs)?,
     };
-    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
+    let mut tables = standins::Tables::load(romfs)?;
+    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd, &tables)?;
     write_text(romfs, &mut builder, drops, new_game, &shelves, hints)?;
     let mut parts = Parts::new(romfs, drops, new_game, reads, &gd)?;
     // Presets and `--default` edits go last, so they win over a skip's.
@@ -251,7 +252,7 @@ pub fn write_mod(
     edits.extend(new_game.defaults.iter().cloned());
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     let defaults = parts.game_data(&mut data.root, &gd, &slots, &shelves, &edits)?;
-    let (fields, look) = parts.assets(&mut builder, &shelves)?;
+    let (fields, look) = parts.assets(&mut builder, &shelves, &mut tables)?;
     let mut maps = banc::Banc::new(&parts, &all, &shelves, &fields)?;
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
@@ -537,6 +538,7 @@ impl<'a> Parts<'a> {
         &mut self,
         builder: &mut ModBuilder,
         shelves: &shops::Shelves,
+        tables: &mut standins::Tables,
     ) -> Result<(Vec<String>, Option<LookSpec>)> {
         let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
         let mut fields = new_game.fields.clone();
@@ -547,13 +549,12 @@ impl<'a> Parts<'a> {
             scrubs::events(drops, &mut events)?;
         }
         fields.extend(cows::fields(&self.reads.cows));
-        let mut tables = standins::Tables::load(romfs)?;
-        self.models(builder, &mut tables)?;
-        cows::write(romfs, builder, &mut tables, &mut events, &self.reads.cows)?;
+        self.models(builder, tables)?;
+        cows::write(romfs, builder, tables, &mut events, &self.reads.cows)?;
         self.reads.levels.events(&mut events)?;
         let look = if ice_traps::springs(new_game) {
             ice_traps::event(&mut events)?;
-            ice_traps::sensor(romfs, builder, &mut tables)?;
+            ice_traps::sensor(romfs, builder, tables)?;
             ice_traps::thaw(builder)?;
             Some(ice_traps::look(romfs, builder)?)
         } else {
@@ -565,13 +566,7 @@ impl<'a> Parts<'a> {
         }
         events.write(builder)?;
         if new_game.shop_slots > 0 {
-            fields.extend(shops::write(
-                romfs,
-                builder,
-                &mut tables,
-                shelves,
-                new_game,
-            )?);
+            fields.extend(shops::write(romfs, builder, tables, shelves, new_game)?);
         }
         if new_game.day_skulltulas {
             day_skulltulas::write(romfs, builder)?;
@@ -582,25 +577,20 @@ impl<'a> Parts<'a> {
         }
         let pieces = &self.reads.pieces;
         fields.extend(pickups::write(
-            romfs,
-            builder,
-            &mut tables,
-            pieces,
-            drops,
-            new_game,
+            romfs, builder, tables, pieces, drops, new_game,
         )?);
         if new_game.fortress_keys.moved() {
             let lines = Lines::of(new_game);
             fields.extend(fortress::fields(romfs, pieces, drops, lines)?);
         }
         self.steps.write(romfs, builder)?;
-        held::write(romfs, builder, &mut tables)?;
+        held::write(romfs, builder, tables)?;
         if new_game.freestanding {
-            goron_pot::write(romfs, builder, &mut tables, drops, new_game)?;
+            goron_pot::write(romfs, builder, tables, drops, new_game)?;
         }
         let boots = Enabled::of(&new_game.on).boots();
         if !boots.is_empty() {
-            ageless::gear::shortcut(&mut tables, &boots)?;
+            ageless::gear::shortcut(tables, &boots)?;
         }
         tables.write(builder)?;
         Ok((fields, look))

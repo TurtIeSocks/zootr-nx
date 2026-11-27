@@ -9,12 +9,13 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ounce_formats::Byml;
 
-use super::signs::{dst, links, relink};
+use super::signs::{BLANK, dst, links, relink, sign};
 use super::{Slot, dealt, sold};
 use crate::checks::{Drop, hash_of};
 use crate::gamedata::{GameData, Op};
 use crate::settings::NewGame;
 use crate::shows::{and, by_name, copy_hash, copy_in, gate, not, or, steps, within};
+use crate::standins::Tables;
 
 /// One stand-in on a check slot's shelf.
 pub struct Stand<'a> {
@@ -25,6 +26,9 @@ pub struct Stand<'a> {
     pub placements: Vec<u64>,
     /// The sign under each placement that has one.
     pub signs: Vec<u64>,
+    /// The sign naming the count this sale gives. Nothing to name, and
+    /// [`Stand::signs`] stands gated on [`BLANK`].
+    pub sign: Option<String>,
 }
 
 /// One step of a slot: the BoolExp true while it's the one the slot gives,
@@ -69,7 +73,7 @@ pub struct Shelves<'a> {
     pub stands: Vec<Stand<'a>>,
     /// Each step's BoolExps: its own, then one per placement.
     pub exps: Vec<(String, Vec<Op>)>,
-    /// The Bools a sale sets, one per step.
+    /// The Bools a sale sets, one per step, and the blank sign's.
     pub bools: Vec<String>,
     /// Each step's placement past a slot's own, by the placement it copies.
     copies: Vec<(u64, u64)>,
@@ -88,6 +92,7 @@ impl<'a> Shelves<'a> {
         drops: &'a HashMap<u64, Drop>,
         new_game: &NewGame,
         gd: &GameData,
+        tables: &Tables,
     ) -> Result<Self> {
         let mut shelves = Self {
             sold: Vec::new(),
@@ -99,23 +104,35 @@ impl<'a> Shelves<'a> {
             sign_copies: Vec::new(),
             relinks: HashMap::new(),
         };
+        let mut blank = false;
         for (slot, item) in dealt(slots, new_game.shop_slots, drops) {
             shelves.sold.push(slot);
             let Some(steps) = steps(item, crate::progressive::Lines::of(new_game)) else {
+                let (tag, signs) = (
+                    sign(tables, item),
+                    (slot.placements.iter())
+                        .filter_map(|p| slot.signs.get(p).copied())
+                        .collect::<Vec<_>>(),
+                );
+                if tag.is_none() {
+                    blank |= !signs.is_empty();
+                    for &named in &signs {
+                        shelves.gates.insert(named, BLANK.to_string());
+                    }
+                }
                 shelves.stands.push(Stand {
                     slot,
                     actor: slot.actor(),
                     item,
                     placements: slot.placements.clone(),
-                    signs: (slot.placements.iter())
-                        .filter_map(|p| slot.signs.get(p).copied())
-                        .collect(),
+                    signs,
+                    sign: tag,
                 });
                 continue;
             };
             let slot_sold = by_name(&sold::flag(slot), Op::Bool);
             for (k, (shows, program)) in steps.into_iter().enumerate() {
-                let step = Step::of(slot, k);
+                let (step, tag) = (Step::of(slot, k), sign(tables, shows));
                 shelves.exps.push((step.shows.clone(), program));
                 // Unsold, the step Link's pouch points at. Sold, the one
                 // that sold.
@@ -132,12 +149,18 @@ impl<'a> Shelves<'a> {
                     let program = within(slot.presence.get(&of), program.clone(), gd)?;
                     let name = format!("ZootrShelf.{hash}");
                     shelves.exps.push((name.clone(), program));
-                    if let Some(&sign) = slot.signs.get(&of) {
-                        let copy = copy_hash(sign, k);
-                        shelves.gates.insert(copy, name.clone());
+                    if let Some(&named) = slot.signs.get(&of) {
+                        let copy = copy_hash(named, k);
+                        // A step with no count to show keeps its sign hidden.
+                        blank |= tag.is_none();
+                        let gate = match &tag {
+                            Some(_) => name.clone(),
+                            None => BLANK.to_string(),
+                        };
+                        shelves.gates.insert(copy, gate);
                         if k > 0 {
-                            shelves.sign_copies.push((sign, copy));
-                            shelves.relinks.insert(hash, (sign, copy));
+                            shelves.sign_copies.push((named, copy));
+                            shelves.relinks.insert(hash, (named, copy));
                         }
                         signs.push(copy);
                     }
@@ -156,8 +179,12 @@ impl<'a> Shelves<'a> {
                     item: shows,
                     placements,
                     signs,
+                    sign: tag,
                 });
             }
+        }
+        if blank {
+            shelves.bools.push(BLANK.to_string());
         }
         Ok(shelves)
     }
@@ -199,9 +226,10 @@ impl<'a> Shelves<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::signs::COUNTED;
     use super::*;
     use crate::checks::{self, hash_of};
-    use crate::known::item;
+    use crate::known::{actor, item};
 
     #[test]
     fn a_shelf_places_a_gated_copy_per_step_keeping_the_slots_own_gate() {
@@ -209,6 +237,7 @@ mod tests {
             return;
         };
         let gd = GameData::load(&romfs).unwrap();
+        let tables = Tables::load(&romfs).unwrap();
         let slots = super::super::slots(&romfs).unwrap();
         // A Kokiri Shop slot: its goods stand only before or after the
         // Deku Tree.
@@ -222,7 +251,7 @@ mod tests {
             progressive: true,
             ..NewGame::default()
         };
-        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
         let mine: Vec<_> = (shelves.stands.iter())
             .filter(|s| std::ptr::eq(s.slot, slot))
             .map(|s| (s.actor.as_str(), s.item))
@@ -294,11 +323,12 @@ mod tests {
     }
 
     #[test]
-    fn each_step_stands_on_a_sign_of_its_own_gated_like_it() {
+    fn a_sale_of_one_gates_every_step_s_sign_off() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let gd = GameData::load(&romfs).unwrap();
+        let tables = Tables::load(&romfs).unwrap();
         let slots = super::super::slots(&romfs).unwrap();
         let slot = slots.iter().find(|s| !s.signs.is_empty()).unwrap();
         let (&of, &sign) = slot.signs.iter().next().unwrap();
@@ -308,7 +338,7 @@ mod tests {
             progressive: true,
             ..NewGame::default()
         };
-        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
         let (copy, sign_copy) = (copy_hash(of, 1), copy_hash(sign, 1));
         let mine = |s: &&Stand| std::ptr::eq(s.slot, slot);
         let signs: Vec<_> = shelves
@@ -333,8 +363,55 @@ mod tests {
         for (goods, sign) in [(of, sign), (copy, sign_copy)] {
             assert_eq!(super::super::signs::sign_of(placed(goods)), Some(sign));
             let gate = crate::world::presence_of(placed(sign)).unwrap();
-            assert_eq!(gate.flag, format!("ZootrShelf.{goods}"));
+            assert_eq!(gate.flag, BLANK, "{goods}");
+            assert!(!gate.negated);
         }
+        let blanked: Vec<_> = (shelves.stands.iter())
+            .filter(mine)
+            .map(|s| (s.item, &s.sign))
+            .filter(|(_, sign)| sign.is_some())
+            .collect();
+        assert!(blanked.is_empty(), "{blanked:?}");
+        assert!(shelves.bools.contains(&BLANK.to_string()));
+    }
+
+    #[test]
+    fn a_counted_sale_gates_its_sign_like_its_goods() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let tables = Tables::load(&romfs).unwrap();
+        let slots = super::super::slots(&romfs).unwrap();
+        let slot = slots.iter().find(|s| !s.signs.is_empty()).unwrap();
+        let &sign = slot.signs.values().next().unwrap();
+        let drops = HashMap::from([(slot.hash(), Drop::from(actor::T_BOX_RUPEE_RED.to_string()))]);
+        let new_game = NewGame {
+            shop_slots: 8,
+            ..NewGame::default()
+        };
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
+        let mine = (shelves.stands.iter())
+            .find(|s| std::ptr::eq(s.slot, slot))
+            .unwrap();
+        assert_eq!(mine.sign, Some(format!("{COUNTED}20")));
+        assert!(!mine.signs.is_empty());
+
+        let (_, banc) = (crate::checks::bancs(&romfs).unwrap())
+            .map(|(f, d)| (f, d.unwrap()))
+            .find(|(_, d)| {
+                let actors = crate::checks::actors(&d.root).unwrap();
+                actors.iter().any(|a| hash_of(a) == Some(sign))
+            })
+            .unwrap();
+        let mut root = banc.root;
+        shelves.place(&mut root).unwrap();
+        let placed = (crate::checks::actors(&root).unwrap())
+            .iter()
+            .find(|a| hash_of(a) == Some(sign))
+            .unwrap();
+        let gate = crate::world::presence_of(placed);
+        assert!(!gate.as_ref().is_some_and(|g| g.flag == BLANK), "{gate:?}");
     }
 
     #[test]
