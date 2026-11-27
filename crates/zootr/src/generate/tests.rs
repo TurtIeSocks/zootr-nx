@@ -480,6 +480,45 @@ fn pickups_are_checks_with_their_options_on() {
 }
 
 #[test]
+fn a_freestanding_gold_skulltula_token_clears_the_floor() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = Scratch::new("freestanding-token");
+    let check = pickups::FREESTANDING
+        .checks(&romfs)
+        .unwrap()
+        .into_iter()
+        .find(|check| check.hash == 13389209437182306002)
+        .unwrap();
+    let fixed = Fixed::from([(check.hash, item::TOKEN_GOLD.to_string())]);
+    let new_game = NewGame {
+        freestanding: true,
+        skulltulas: true,
+        ..Default::default()
+    };
+    shuffle(&romfs, &dir, 7, &fixed, &new_game, &Run::silent()).unwrap();
+
+    let position = |doc: &BymlDoc| {
+        let placement = checks::actors(&doc.root)
+            .unwrap()
+            .iter()
+            .find(|placement| checks::hash_of(placement) == Some(check.hash))
+            .unwrap();
+        checks::vec3(placement, checks::TRANSLATE).unwrap()
+    };
+    let vanilla = checks::load_banc(&romfs, &check.file).unwrap();
+    let built = crate::game::read_built(&romfs, &dir, &check.file);
+    let [x, y, z] = position(&vanilla);
+    let [new_x, new_y, new_z] = position(&BymlDoc::parse(&built).unwrap());
+    assert_eq!((new_x, new_z), (x, z));
+    assert!(
+        (new_y - y - 0.192_871_1).abs() < 0.000_1,
+        "height: {y} -> {new_y}",
+    );
+}
+
+#[test]
 fn the_lake_pickups_are_checks_only_with_npc_gifts_on() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
