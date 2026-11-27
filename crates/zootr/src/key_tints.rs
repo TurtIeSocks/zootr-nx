@@ -840,7 +840,7 @@ mod tests {
             std::env::temp_dir().join(format!("zootr-key-tints-{}-{keys:?}", std::process::id()));
         let mut builder = ModBuilder::new(romfs, &dir).unwrap();
         let mut tables = Tables::load(romfs).unwrap();
-        write(romfs, &mut builder, &mut tables, true, &keys, false).unwrap();
+        write(romfs, &mut builder, &mut tables, true, keys, false).unwrap();
         builder.finish().unwrap();
         let read = |rel: &str| crate::game::read_built(romfs, &dir, rel);
         let info = |name: &str| path_of(&ActorPack::load(romfs, name).unwrap(), MODEL).unwrap();
