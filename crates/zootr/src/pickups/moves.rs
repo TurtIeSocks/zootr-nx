@@ -8,8 +8,9 @@ use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use super::drops::{pickup_for, template_for};
-use super::{DROP, Kind, NEW, kind_of, seats, stale, steps};
+use super::{DROP, Kind, NEW, SKULLTULAS, kind_of, seats, stale, steps};
 use crate::checks::{Drop, ItemCheck};
+use crate::known::actor;
 use crate::settings::NewGame;
 use crate::standins::{StandIn, Tables, item_pack};
 use crate::{ammo, gifts};
@@ -31,6 +32,7 @@ pub struct Moved<'a> {
     pub actor: String,
     /// What a stand-in is built on.
     template: &'static str,
+    pub(super) hovering: bool,
     /// Which step of its holder's it is, when the holder shows one a step
     /// at a time.
     pub step: Option<steps::Step>,
@@ -52,12 +54,20 @@ pub fn moved<'a>(
     drops: &'a HashMap<u64, Drop>,
     progressive: crate::progressive::Lines,
 ) -> Vec<Moved<'a>> {
-    let holders: BTreeSet<(u64, &str, &str, bool)> = checks
+    let holders: BTreeSet<_> = checks
         .iter()
-        .filter_map(|c| Some((c.hash, c.item.as_str(), kind_of(c)?.field, seats::holds(c))))
+        .filter_map(|c| {
+            Some((
+                c.hash,
+                c.item.as_str(),
+                kind_of(c)?.field,
+                seats::holds(c),
+                SKULLTULAS.holds(c),
+            ))
+        })
         .collect();
     let mut out = Vec::new();
-    for (n, (of, vanilla, field, seated)) in holders.into_iter().enumerate() {
+    for (n, (of, vanilla, field, seated, hovering)) in holders.into_iter().enumerate() {
         let item = gifts::item_at(drops, of, vanilla);
         if item == vanilla && !seated && ammo::need(item, progressive).is_none() {
             continue;
@@ -73,18 +83,34 @@ pub fn moved<'a>(
             item,
             field,
             actor,
-            template: template_for(field),
+            template: if hovering {
+                actor::OBJ_TOKEN_GOLD
+            } else {
+                template_for(field)
+            },
+            hovering,
             step,
         };
-        let dropped = field == DROP;
+        // A Skulltula always uses a hovering version of its reward, even
+        // if the item has a pickup actor of its own that normally falls.
+        let pickup = |item| {
+            (!hovering)
+                .then(|| pickup_for(item, field == DROP))
+                .flatten()
+        };
         let Some(steps) = steps::of(of, item, progressive) else {
-            let actor = pickup_for(item, dropped).unwrap_or_else(|| format!("{NEW}{n:03}"));
+            let prefix = if hovering { stale::HOVER } else { NEW };
+            let actor = pickup(item).unwrap_or_else(|| format!("{prefix}{n:03}"));
             out.push(at(lies(of, 0), item, actor, None));
             continue;
         };
         for (k, (placement, shows, step)) in steps.into_iter().enumerate() {
-            let built = || format!("{}{n:03}_{k}", stale::STEP);
-            let actor = pickup_for(shows, dropped).unwrap_or_else(built);
+            let prefix = if hovering {
+                stale::HOVER_STEP
+            } else {
+                stale::STEP
+            };
+            let actor = pickup(shows).unwrap_or_else(|| format!("{prefix}{n:03}_{k}"));
             out.push(at(lies(placement, k), shows, actor, Some(step)));
         }
     }
@@ -115,7 +141,13 @@ pub fn write(
 ) -> Result<Vec<String>> {
     let lines = crate::progressive::Lines::of(new_game);
     let mut fields = Vec::new();
-    for m in moved(checks, drops, lines) {
+    let moved = moved(checks, drops, lines);
+    let drop_ai = moved
+        .iter()
+        .any(|m| m.hovering)
+        .then(|| ActorPack::load(romfs, super::drops::DROPPED))
+        .transpose()?;
+    for m in moved {
         if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
@@ -124,7 +156,7 @@ pub fn write(
                 price: None,
             };
             pickup
-                .build(builder, tables)
+                .build_with_drop_ai(builder, tables, drop_ai.as_ref().filter(|_| m.hovering))
                 .with_context(|| format!("{} becoming {}", m.hash, m.item))?;
         }
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
@@ -178,6 +210,71 @@ mod tests {
         COUNT_CHECK, FALLS, MODEL, NO_RESPAWN, PARENT, PHYSICS, POUCH, RESPAWN, TABLE, actor_path,
         component,
     };
+
+    #[test]
+    fn skulltula_rewards_use_the_tokens_hovering_body() {
+        let Some(romfs) = dev_dump() else { return };
+        let checks = SKULLTULAS.checks(&romfs).unwrap();
+        let hash = 17067594426901953848;
+        let dir = std::env::temp_dir().join(format!("zootr-hover-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        let drops = HashMap::from([(hash, Drop::from(actor::OBJ_HEART.to_string()))]);
+        let fields = write(
+            &romfs,
+            &mut builder,
+            &mut tables,
+            &checks,
+            &drops,
+            &NewGame::rings(),
+        )
+        .unwrap();
+        builder.finish().unwrap();
+        let prefix = format!("{hash}.{DROP}=");
+        let reward = fields.iter().find_map(|f| f.strip_prefix(&prefix)).unwrap();
+        assert_ne!(reward, actor::OBJ_HEART.get(), "the stock heart falls");
+        let heap = |name: &str| {
+            crate::standins::row(&tables.actor, name).unwrap()[field::INSTANCE_HEAP_SIZE.get()]
+                .as_int::<u32>()
+                .unwrap()
+        };
+        assert!(
+            heap(reward) >= heap(actor::OBJ_TOKEN_GOLD) + heap(actor::OBJ_HEART),
+            "the game needs room to load both the token body and the heart",
+        );
+        let rel = format!("Pack/Actor/{reward}.pack.zs");
+        let pack =
+            ActorPack::from_bytes(reward, crate::game::read_built(&romfs, &dir, &rel)).unwrap();
+        let params = pack.actor_param().unwrap().unwrap();
+        let physics = component(&params, PHYSICS).unwrap();
+        let tokens = ActorPack::load(&romfs, actor::OBJ_TOKEN_GOLD).unwrap();
+        assert_eq!(
+            component(&tokens.actor_param().unwrap().unwrap(), PHYSICS),
+            Some(physics)
+        );
+        let heart = ActorPack::load(&romfs, actor::OBJ_HEART).unwrap();
+        let heart_params = heart.actor_param().unwrap().unwrap();
+        assert_eq!(
+            component(&params, field::E_LINK_REF),
+            component(&heart_params, field::E_LINK_REF)
+        );
+        let effect_user = |name: &str| {
+            crate::standins::row(&tables.actor, name)
+                .unwrap()
+                .get(field::E_LINK_USER_NAME.get())
+                .cloned()
+        };
+        assert_eq!(effect_user(reward), effect_user(actor::OBJ_HEART));
+        let pouch = pack
+            .resolve(&pack_path(&component(&params, POUCH).unwrap()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            pouch[field::POUCH_ACTOR.get()],
+            crate::standins::pouch_actor(actor::OBJ_HEART)
+        );
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 
     #[test]
     fn a_pot_keeping_its_tables_drop_drops_it_and_loses_the_table() {
@@ -325,13 +422,13 @@ mod tests {
         hashes.sort();
         hashes.dedup();
         let (first, second) = (hashes[0], hashes[1]);
-        let skulltulas = SKULLTULAS.checks(&romfs).unwrap();
-        let (skulltula, centred) = (skulltulas[0].hash, skulltulas[1].hash);
-        checks.extend(skulltulas);
+        let pots = POTS.checks(&romfs).unwrap();
+        let (pot, centred) = (pots[0].hash, pots[1].hash);
+        checks.extend([pots[0].clone(), pots[1].clone()]);
         let drops = HashMap::from([
             (first, Drop::from(item::HOOKSHOT.to_string())),
             (second, Drop::from(actor::OBJ_SHIELD_HYLIAN.to_string())),
-            (skulltula, Drop::from(item::BOOMERANG.to_string())),
+            (pot, Drop::from(item::BOOMERANG.to_string())),
             (centred, Drop::from(item::HOOKSHOT.to_string())),
         ]);
         let dir = std::env::temp_dir().join(format!("zootr-free-{}", std::process::id()));
@@ -358,7 +455,7 @@ mod tests {
         let name = set(first, GYAML);
         assert!(name.starts_with(NEW), "{name}");
         assert_eq!(set(second, GYAML), actor::OBJ_SHIELD_HYLIAN);
-        assert!(set(skulltula, SKULLTULAS.field).starts_with(NEW));
+        assert!(set(pot, POTS.field).starts_with(NEW));
 
         let built = |name: &str| {
             let rel = format!("Pack/Actor/{name}.pack.zs");
@@ -385,9 +482,9 @@ mod tests {
         let many = field::PLAY_GET_EVENT_MANY_TIMES.get();
         assert_eq!(pouch.get(many), Some(&Byml::Bool(true)));
 
-        // The Skulltula's drops: built on a pickup that lands, keeping how
+        // The pots' drops: built on a pickup that lands, keeping how
         // it falls and bounces over the boomerang's table.
-        let dropped = set(skulltula, SKULLTULAS.field);
+        let dropped = set(pot, POTS.field);
         let sarc = built(&dropped);
         assert!(
             sarc.files()
@@ -428,7 +525,7 @@ mod tests {
         };
         for (name, base) in [
             (&dropped, -0.030_685_425),
-            (&set(centred, SKULLTULAS.field), -0.152_150_5),
+            (&set(centred, POTS.field), -0.152_150_5),
         ] {
             let (physics, bottom) = body(name);
             assert!(physics.contains(name.as_str()), "{physics}");
