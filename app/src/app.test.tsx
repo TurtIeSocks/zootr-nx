@@ -79,7 +79,6 @@ vi.mock("@/bindings", () => ({
           events: [],
           unprovable: [],
           entrances: [],
-          key_rings: [],
         },
       }),
     ),

@@ -60,7 +60,6 @@ export const seed = (): Spoiler => ({
     settings: ["Open Forest"],
   },
   entrances: [],
-  key_rings: [],
 });
 
 /** The same seed as saved before spots kept their logic. */
@@ -73,5 +72,4 @@ export const oldSeed = (): Spoiler => ({
   unprovable: [],
   start: { items: [], settings: [] },
   entrances: [],
-  key_rings: [],
 });

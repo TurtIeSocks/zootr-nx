@@ -491,8 +491,7 @@ fn clear_history() -> Res<()> {
     })
 }
 
-/// A seed's spots with their logic, the checks logic can't show a way into, and
-/// which dungeons roll a key ring.
+/// A seed's spots with their logic, and the checks logic can't show a way into.
 #[derive(Serialize, Type)]
 struct Spoiler {
     spots: Vec<Spot>,
@@ -500,7 +499,6 @@ struct Spoiler {
     unprovable: Vec<String>,
     start: Start,
     entrances: Vec<Door>,
-    key_rings: Vec<String>,
 }
 
 #[tauri::command]
@@ -514,7 +512,6 @@ fn spoiler(id: u32) -> Res<Spoiler> {
         unprovable: report.unprovable,
         start: report.start,
         entrances: report.entrances,
-        key_rings: report.key_rings,
     })
 }
 
