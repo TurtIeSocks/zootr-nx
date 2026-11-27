@@ -4,7 +4,7 @@
 
 mod floors;
 mod goods;
-mod planks;
+pub(crate) mod planks;
 pub mod rupees;
 mod signs;
 pub mod sold;
@@ -88,7 +88,10 @@ pub struct Slot {
     presence: HashMap<u64, Presence>,
     /// The sign under each placement that has one.
     signs: HashMap<u64, u64>,
-    pos: [f32; 3],
+    pub pos: [f32; 3],
+    /// The placement's own turn, Euler X, Y, Z in radians, which the game
+    /// gives its goods.
+    pub rotate: Option<[f32; 3]>,
     /// From 0, across every shop, for the new actor's name.
     index: usize,
     /// The slot's entry in its keepers' goods list.
@@ -162,6 +165,7 @@ struct Found {
     goods: String,
     hash: u64,
     pos: [f32; 3],
+    rotate: Option<[f32; 3]>,
     goods_index: i32,
     presence: Option<Presence>,
     sign: Option<u64>,
@@ -191,6 +195,7 @@ fn find_slots(romfs: &Romfs) -> Result<Vec<Slot>> {
                 goods: goods.to_owned(),
                 hash: hash_of(actor).context("a shelf actor without Hash")?,
                 pos: vec3(actor, "Translate").context("a shelf actor without Translate")?,
+                rotate: vec3(actor, "Rotate"),
                 goods_index: goods_index(actor),
                 presence: presence_of(actor),
                 sign: signs::sign_of(actor),
@@ -263,6 +268,7 @@ fn merge(mut found: Vec<Found>) -> Vec<Slot> {
                 presence,
                 signs,
                 pos: f.pos,
+                rotate: f.rotate,
                 index: 0,
                 goods_index: f.goods_index,
                 keepers: Vec::new(),

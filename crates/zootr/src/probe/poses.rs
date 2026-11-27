@@ -28,6 +28,14 @@ const RUPEES: [&crate::known::Name; 3] = [
     actor::T_BOX_RUPEE_RED,
 ];
 
+/// An actor with the model file it shows, its row's model and the shelf
+/// pose archive it plays.
+type Wanted = (String, String, String, String);
+/// Each model's vertices, and whether a shape refused to read them.
+type Meshes = HashMap<String, (Vec<[f32; 3]>, bool)>;
+/// Each animation archive's skeleton root in the shelf pose it holds.
+type Roots = HashMap<String, Base>;
+
 pub(super) fn poses(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
     unpacked(romfs, game, path, |path, data, _| {
         println!("{path}");
@@ -111,57 +119,8 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     items.extend(levels.map(|(level, _)| level.to_string()));
     items.sort();
     items.dedup();
-    // Each item with the model file it shows, its row's model and its
-    // shelf pose archive. A song shows the medallion it's painted on, and a
-    // level of our own wears the actor it's copied from, which is the only
-    // one the dump has a pack and a row for. The table still keys our name,
-    // since that's what a holder sells.
-    let mut wanted = Vec::new();
-    for item in items {
-        let (pack, row) = match (medallions::medallion(&item), progressive::worn(&item)) {
-            (Some(_), _) => (medallions::HOST.to_string(), item.clone()),
-            (None, Some(worn)) => (worn.get().to_string(), worn.get().to_string()),
-            (None, None) => (item.clone(), item.clone()),
-        };
-        let file = standins::model_file(&ActorPack::load(romfs, &pack)?)?;
-        let (Some((project, model)), Some(row_model)) =
-            (file, standins::model(&tables.actor, &row)?)
-        else {
-            continue;
-        };
-        let pose = standins::vanilla_pose(&tables.actor, &row)?;
-        wanted.push((item, format!("{project}.{model}{MODEL}"), row_model, pose));
-    }
-    let files: HashSet<&str> = wanted.iter().map(|(_, f, _, _)| f.as_str()).collect();
-    let mut archives: HashSet<String> = wanted.iter().map(|(.., p)| p.clone()).collect();
-    archives.extend(wanted.iter().map(|(_, _, m, _)| standins::own_pose(m)));
-    archives.insert(standins::stand_pose());
-
-    // One pass over the dump's models.
-    let mut meshes: HashMap<String, (Vec<[f32; 3]>, bool)> = HashMap::new();
-
-    let mut roots: HashMap<String, Base> = HashMap::new();
-    crate::game::each(game, MODELS, |path, data| {
-        let Some(file) = path.strip_prefix(MODELS) else {
-            return Ok(());
-        };
-        if let Some(stem) = file.strip_suffix(ARCHIVE) {
-            if archives.contains(stem) {
-                let data = romfs.dicts().decompress(&path, &data)?;
-                roots.insert(stem.into(), shelf_root(&data)?);
-            }
-        } else if files.contains(file) {
-            let data = romfs.dicts().decompress(&path, &data)?;
-            let (points, unread) = meshes.entry(file.into()).or_default();
-            for shape in ounce_formats::shape_names(&data) {
-                match ounce_formats::positions(&data, &shape) {
-                    Ok(p) => points.extend(p),
-                    Err(_) => *unread = true,
-                }
-            }
-        }
-        Ok(())
-    })?;
+    let wanted = wanted(romfs, &tables, items)?;
+    let (meshes, roots) = models(romfs, game, &wanted)?;
 
     let lift = |archive: &str| {
         roots
@@ -214,6 +173,194 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     }
     println!("];");
     Ok(())
+}
+
+/// Each shop slot's shelf, read from the dump: where its goods' placement
+/// sits, how low the goods' own model reaches there, the plank that follows,
+/// and the gap up to the plank above. With `try`, what an item would do at
+/// that slot: the steepest turn that fits the gap, and the rise that sets it
+/// on the plank.
+pub(super) fn shelves(
+    romfs: &Romfs,
+    game: &Path,
+    tries: &[String],
+    only: Option<&str>,
+) -> Result<()> {
+    let tables = Tables::load(romfs)?;
+    let all = crate::shops::slots(romfs)?;
+    let slots: Vec<&crate::shops::Slot> = all
+        .iter()
+        .filter(|s| only.is_none_or(|name| s.shop == name))
+        .collect();
+    let names: Vec<String> = (slots.iter())
+        .map(|s| s.goods.clone())
+        .chain(tries.iter().cloned())
+        .collect();
+    let wanted = wanted(romfs, &tables, names)?;
+    let (meshes, roots) = models(romfs, game, &wanted)?;
+    // An actor's shelf pose and its model's vertices, by the name a slot
+    // sells or a keeper shelves.
+    let posed = |name: &str| -> Option<(&Vec<[f32; 3]>, Base)> {
+        let (_, file, _, archive) = wanted.iter().find(|(item, ..)| item == name)?;
+        let (points, unread) = meshes.get(file)?;
+        if points.is_empty() || *unread {
+            return None;
+        }
+        Some((points, roots.get(archive).copied().unwrap_or_default()))
+    };
+    for slot in &slots {
+        let place = slot.rotate.unwrap_or([0.0; 3]);
+        let Some((goods_mesh, goods_pose)) = posed(&slot.goods) else {
+            println!(
+                "{} {}: {} has no readable model",
+                slot.shop, slot.number, slot.goods
+            );
+            continue;
+        };
+        // Where the goods' own model reaches, and the shelf line its bottom
+        // lands on. The turn is the placement's own, which for most goods is
+        // a yaw and leaves the height alone.
+        let turned = span_in(goods_mesh, &goods_pose, place);
+        let flat = span_in(goods_mesh, &goods_pose, [0.0; 3]);
+        let shelf = slot.pos[1] + turned.0;
+        print!(
+            "{} {}: {}  y {:.4}  rot {:.3?}  bottom {:+.4} (unturned {:+.4})  shelf {:.4}",
+            slot.shop, slot.number, slot.goods, slot.pos[1], place, turned.0, flat.0, shelf,
+        );
+        if let Some(old) = crate::shops::planks::plank(slot.shop, slot.number) {
+            print!(
+                "  plank measured {old:+.4}  goods {float:+.4} off it",
+                float = turned.0 - old
+            );
+        }
+        // The slot standing on the same spot of the shelf, one row up: the
+        // room between this goods' bottom and that one's.
+        let above = (slots.iter())
+            .filter(|o| o.shop == slot.shop && o.pos[1] > slot.pos[1] + 0.2)
+            .map(|o| (crate::checks::flat(o.pos, slot.pos), o))
+            .filter(|(near, _)| *near < 0.3)
+            .min_by(|(a, x), (b, y)| a.total_cmp(b).then(x.pos[1].total_cmp(&y.pos[1])));
+        let gap = match above {
+            Some((near, o)) => match posed(&o.goods) {
+                Some((mesh, pose)) => {
+                    let up = o.pos[1] + span_in(mesh, &pose, o.rotate.unwrap_or([0.0; 3])).0;
+                    print!(
+                        "  above {} at {:.2} m  gap {:.4}",
+                        o.number,
+                        near,
+                        up - shelf
+                    );
+                    Some(up - shelf)
+                }
+                None => None,
+            },
+            None => None,
+        };
+        println!();
+        for item in tries {
+            let Some((mesh, pose)) = posed(item) else {
+                continue;
+            };
+            let Some(gap) = gap else {
+                println!("    {item}: no shelf above");
+                continue;
+            };
+            let best = (0..3)
+                .filter(|axis| *axis != 1)
+                .flat_map(|axis| (0..=180u32).map(move |deg| (axis, deg)))
+                // The pose that fills the gap most, and among those the
+                // least turn. A yaw about Y is skipped: it changes nothing.
+                .filter_map(|(axis, deg)| {
+                    let mut turn = [0.0f32; 3];
+                    turn[axis] = (deg as f32 - 90.0) * std::f32::consts::FRAC_PI_2 / 90.0;
+                    let (lo, hi) = span_in(mesh, &pose, turn);
+                    (hi - lo <= gap).then_some((hi - lo, deg.abs_diff(90), axis, lo, turn))
+                })
+                .max_by(|(tall, steep, ..), (other, deeper, ..)| {
+                    tall.total_cmp(other).then(deeper.cmp(steep))
+                });
+            match best {
+                Some((height, steep, axis, lo, turn)) => {
+                    let (rise, at, way, rad) = (
+                        turned.0 - lo,
+                        slot.hash(),
+                        ['X', 'Y', 'Z'][axis],
+                        turn[axis],
+                    );
+                    println!(
+                        "    {item}: {steep}° about {way}  height {height:.4}  floor {lo:+.4}  rise {rise:+.4}"
+                    );
+                    println!(
+                        "      --field {at:#018x}.Rotate.{axis}={rad:.4} --field {at:#018x}.Translate.1+={rise:.4}"
+                    );
+                }
+                None => println!("    {item}: no turn fits {gap:.4} m, it lies as it is"),
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Each item with the model file it shows, its row's model and its shelf
+/// pose archive. A song shows the medallion it's painted on, and a level of
+/// our own wears the actor it's copied from, which is the only one the dump
+/// has a pack and a row for. The name stays ours, since that's what a holder
+/// sells.
+fn wanted(
+    romfs: &Romfs,
+    tables: &Tables,
+    items: impl IntoIterator<Item = String>,
+) -> Result<Vec<Wanted>> {
+    let mut out = Vec::new();
+    for item in items {
+        let (pack, row) = match (medallions::medallion(&item), progressive::worn(&item)) {
+            (Some(_), _) => (medallions::HOST.to_string(), item.clone()),
+            (None, Some(worn)) => (worn.get().to_string(), worn.get().to_string()),
+            (None, None) => (item.clone(), item.clone()),
+        };
+        let file = standins::model_file(&ActorPack::load(romfs, &pack)?)?;
+        let (Some((project, model)), Some(row_model)) =
+            (file, standins::model(&tables.actor, &row)?)
+        else {
+            continue;
+        };
+        let pose = standins::vanilla_pose(&tables.actor, &row)?;
+        out.push((item, format!("{project}.{model}{MODEL}"), row_model, pose));
+    }
+    Ok(out)
+}
+
+/// One pass over the dump's models: each wanted model's vertices, and each
+/// wanted archive's skeleton root in the shelf pose it holds.
+fn models(romfs: &Romfs, game: &Path, wanted: &[Wanted]) -> Result<(Meshes, Roots)> {
+    let files: HashSet<&str> = wanted.iter().map(|(_, f, _, _)| f.as_str()).collect();
+    let mut archives: HashSet<String> = wanted.iter().map(|(.., p)| p.clone()).collect();
+    archives.extend(wanted.iter().map(|(_, _, m, _)| standins::own_pose(m)));
+    archives.insert(standins::stand_pose());
+    let mut meshes: Meshes = HashMap::new();
+    let mut roots: Roots = HashMap::new();
+    crate::game::each(game, MODELS, |path, data| {
+        let Some(file) = path.strip_prefix(MODELS) else {
+            return Ok(());
+        };
+        if let Some(stem) = file.strip_suffix(ARCHIVE) {
+            if archives.contains(stem) {
+                let data = romfs.dicts().decompress(&path, &data)?;
+                roots.insert(stem.into(), shelf_root(&data)?);
+            }
+        } else if files.contains(file) {
+            let data = romfs.dicts().decompress(&path, &data)?;
+            let (points, unread) = meshes.entry(file.into()).or_default();
+            for shape in ounce_formats::shape_names(&data) {
+                match ounce_formats::positions(&data, &shape) {
+                    Ok(p) => points.extend(p),
+                    Err(_) => *unread = true,
+                }
+            }
+        }
+        Ok(())
+    })?;
+    Ok((meshes, roots))
 }
 
 const HEADER: &str = "\
@@ -269,19 +416,40 @@ fn height(points: &[[f32; 3]], pose: &Base) -> f32 {
 /// The lowest and highest of `points` once `pose` scales, turns (Euler X,
 /// Y, Z) and lifts them.
 fn span(points: &[[f32; 3]], pose: &Base) -> (f32, f32) {
+    span_in(points, pose, [0.0; 3])
+}
+
+/// The lowest and highest of `points` once `pose` has them, and a placement
+/// then turns the whole thing about its own origin by `place` (Euler X, Y,
+/// Z). The game puts a goods actor's rotation outside its animation pose,
+/// so the pose runs first and the turn lifts whatever the pose left low.
+fn span_in(points: &[[f32; 3]], pose: &Base, place: [f32; 3]) -> (f32, f32) {
     let scale = pose.scale.unwrap_or([1.0; 3]);
-    let [x, y, z, _] = pose.rotate.unwrap_or([0.0, 0.0, 0.0, 1.0]);
+    let [px, py, pz, _] = pose.rotate.unwrap_or([0.0; 4]);
+    let turn = euler(place);
+    let posed = euler([px, py, pz]);
+    // Row Y of the placement's turn after the pose's, and where the pose's
+    // lift lands once the turn has moved it.
+    let row = [0, 1, 2].map(|j| (0..3).map(|i| turn[1][i] * posed[i][j]).sum::<f32>());
+    let lift = pose
+        .translate
+        .map_or(0.0, |t| (0..3).map(|i| turn[1][i] * t[i]).sum::<f32>());
+    points.iter().fold((f32::MAX, f32::MIN), |(low, high), p| {
+        let y = (0..3).map(|i| row[i] * p[i] * scale[i]).sum::<f32>() + lift;
+        (low.min(y), high.max(y))
+    })
+}
+
+/// The rows of Rz * Ry * Rx for Euler X, Y, Z in radians.
+fn euler([x, y, z]: [f32; 3]) -> [[f32; 3]; 3] {
     let (sx, cx) = x.sin_cos();
     let (sy, cy) = y.sin_cos();
     let (sz, cz) = z.sin_cos();
-    // Row Y of Rz * Ry * Rx.
-    let row = [cy * sz, sx * sy * sz + cx * cz, cx * sy * sz - sx * cz];
-    let (low, high) = points.iter().fold((f32::MAX, f32::MIN), |(low, high), p| {
-        let y = (0..3).map(|i| row[i] * p[i] * scale[i]).sum::<f32>();
-        (low.min(y), high.max(y))
-    });
-    let lift = pose.translate.map_or(0.0, |t| t[1]);
-    (low + lift, high + lift)
+    [
+        [cy * cz, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx],
+        [cy * sz, sx * sy * sz + cx * cz, cx * sy * sz - sx * cz],
+        [-sy, cy * sx, cy * cx],
+    ]
 }
 
 #[cfg(test)]
@@ -326,6 +494,27 @@ mod tests {
         let sword = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.4]];
         assert!(height(&shield, &lean) <= HEADROOM);
         assert!(height(&sword, &lean) > HEADROOM);
+    }
+
+    #[test]
+    fn a_placements_turn_runs_after_the_pose() {
+        let quarter = [std::f32::consts::FRAC_PI_2, 0.0, 0.0];
+        let rod = [[0.0, 0.0, -0.2], [0.0, 0.0, 1.0]];
+        // A goods actor's turn sits outside its animation pose, so a quarter
+        // turn about X sends the end reaching along +Z down under it.
+        let (low, high) = span_in(&rod, &Base::default(), quarter);
+        assert!((low + 1.0).abs() < 1e-6);
+        assert!((high - 0.2).abs() < 1e-6);
+        // The pose's lift is turned with the model, not left upright.
+        let back = Base {
+            translate: Some([0.0, 0.0, 0.5]),
+            ..Base::default()
+        };
+        let (low, high) = span_in(&rod, &back, quarter);
+        assert!((low + 1.5).abs() < 1e-6);
+        assert!((high + 0.3).abs() < 1e-6);
+        // Unturned, the turn changes nothing.
+        assert_eq!(span(&rod, &back), span_in(&rod, &back, [0.0; 3]));
     }
 
     #[test]

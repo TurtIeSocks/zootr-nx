@@ -145,6 +145,19 @@ pub enum Probe {
     /// How far below its origin each pool item's model reaches on a
     /// shelf, in the pose it plays there: the source of `shops/floors/table.rs`.
     Floors,
+    /// Each shelf slot's own goods: where its placement stands, how low its
+    /// model reaches in the pose and turn it plays, the plank that follows,
+    /// and the gap up to the plank above. `--try` adds what an item would do
+    /// there, the steepest turn that fits the gap and the rise that sets it
+    /// on the plank.
+    Shelves {
+        /// Item names to try at each slot, as the pool holds them.
+        #[arg(long = "try")]
+        try_items: Vec<String>,
+        /// A shop's name, as the spoiler holds it, to read only its slots.
+        #[arg(long)]
+        shop: Option<String>,
+    },
     /// Each shape in the models whose path contains this: the lowest and
     /// highest corner of its vertices as stored, before any pose, and each
     /// level of detail's vertex and triangle counts, and its attributes
@@ -641,6 +654,9 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Poses { path } => poses::poses(romfs, game, &path),
         Probe::Bounds { path, pose } => poses::bounds(romfs, game, &path, pose.as_deref()),
         Probe::Floors => poses::floors(romfs, game),
+        Probe::Shelves { try_items, shop } => {
+            poses::shelves(romfs, game, &try_items, shop.as_deref())
+        }
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
