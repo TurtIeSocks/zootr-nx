@@ -360,6 +360,9 @@ struct Parts<'a> {
     reads: Reads,
     picked: Vec<picked::Holder>,
     steps: pickups::steps::Steps,
+    /// Each holder whose step copies stand by their module's own gate, with
+    /// the program each waits on (`pickups::nodes::gates`).
+    gates: HashMap<u64, Vec<Op>>,
     seats: pickups::seats::Seats,
     /// Every placement copied from a holder's, by the one it copies: each
     /// step's, then each boulder's seat.
@@ -374,6 +377,34 @@ struct Parts<'a> {
     rupees: Vec<String>,
 }
 
+/// Each holder whose step copies can stand by its module's own gate instead
+/// of a duplicated node (`pickups::nodes::gates`): one that lies until picked,
+/// and whose drop no event names and puts in place.
+///
+/// A thief's call picks which step's key to drop by a Switch on each step's
+/// BoolExp, and the flag that lets the key appear is set inside that very
+/// call. A step gated on it reads false at the Switch, so her call always
+/// drops the holder's own step: a key dealt 10 Arrows would hand a Red Rupee
+/// to a Link holding a bow, and one dealt the Hookshot a second Hookshot
+/// instead of the Longshot. The four Fortress keys keep their nodes.
+fn module_gates(
+    romfs: &Romfs,
+    gd: &GameData,
+    pieces: &[ItemCheck],
+    picked: &[picked::Holder],
+) -> Result<HashMap<u64, Vec<Op>>> {
+    Ok((pickups::nodes::gates(romfs, gd)?)
+        .into_iter()
+        .filter(|(hash, _)| {
+            (picked.iter()).any(|h| {
+                h.hash == *hash
+                    && matches!(h.after, picked::After::Taken(_))
+                    && !(pieces.iter()).any(|c| c.hash == *hash && pickups::is_named(c))
+            })
+        })
+        .collect())
+}
+
 impl<'a> Parts<'a> {
     fn new(
         romfs: &'a Romfs,
@@ -384,7 +415,9 @@ impl<'a> Parts<'a> {
     ) -> Result<Self> {
         let pieces = &reads.pieces;
         let picked = picked::holders(pieces, drops);
-        let steps = pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd)?;
+        let gates = module_gates(romfs, gd, pieces, &picked)?;
+        let steps =
+            pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd, &gates)?;
         let seats = pickups::seats::Seats::new(pieces, drops, Lines::of(new_game));
         let copies = [steps.copies.as_slice(), &seats.pairs].concat();
         let stand_ins = pickups::stand_ins(pieces, drops, Lines::of(new_game));
@@ -403,6 +436,7 @@ impl<'a> Parts<'a> {
             reads,
             picked,
             steps,
+            gates,
             seats,
             copies,
             stand_ins,
@@ -664,7 +698,46 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 mod tests {
     use super::*;
     use crate::known::actor;
+    use crate::pickups::{BOSS_HEARTS, FORTRESS_KEYS};
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, MENU_CYCLE};
+
+    /// A thief dealt ammo keeps its node, and a boss heart dealt the same
+    /// doesn't: her call names each step's key and picks one by its BoolExp,
+    /// and the flag that lets the key appear is set inside that call.
+    #[test]
+    fn a_called_holder_keeps_the_module_gate_out() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let arrows = actor::T_BOX_ARROW_BUNDLE_SMALL.get();
+        let heart = 17948245526767051747;
+        let keys: Vec<ItemCheck> = FORTRESS_KEYS.checks(&romfs).unwrap();
+        let mut pieces: Vec<ItemCheck> = keys.clone();
+        pieces.extend(
+            BOSS_HEARTS
+                .checks(&romfs)
+                .unwrap()
+                .into_iter()
+                .filter(|c| c.hash == heart),
+        );
+        let drops: HashMap<u64, Drop> = (pieces.iter())
+            .map(|c| (c.hash, Drop::from(arrows.to_owned())))
+            .collect();
+        let picked = picked::holders(&pieces, &drops);
+        let gates = module_gates(&romfs, &gd, &pieces, &picked).unwrap();
+        assert!(
+            gates.contains_key(&heart),
+            "a heart dealt ammo stands on Gohma's own flag"
+        );
+        for key in &keys {
+            assert!(
+                !gates.contains_key(&key.hash),
+                "{} waits on her call",
+                key.hash
+            );
+        }
+    }
 
     #[test]
     fn an_adult_start_holds_the_master_sword_only_from_the_start_inventory() {

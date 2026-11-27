@@ -76,12 +76,16 @@ pub struct Steps {
 }
 
 impl Steps {
+    /// `module` is each holder whose step copies stand by their module's own
+    /// gate instead of a duplicated node (`super::nodes::gates`): the program
+    /// each step waits on beside its rung and the not-picked term.
     pub fn new(
         checks: &[ItemCheck],
         drops: &HashMap<u64, Drop>,
         progressive: crate::progressive::Lines,
         holders: &[Holder],
         gd: &GameData,
+        module: &HashMap<u64, Vec<Op>>,
     ) -> Result<Self> {
         let mut steps = Self {
             copies: Vec::new(),
@@ -104,6 +108,15 @@ impl Steps {
             };
             let unpicked = not(by_name(&picked::got(step.of), Op::Exp));
             let program = shows::within(own, and(step.program.clone(), unpicked), gd)?;
+            // A copy the module can't be handed a node for stands while the
+            // module itself would have made its holder (`super::nodes::gates`),
+            // so its gate says when the holder may appear at all: Gohma's
+            // heart container dealt 10 Arrows stood in her room while she was
+            // alive, before this (Mac, 2026-11-26).
+            let program = match module.get(&step.of) {
+                Some(awaits) => and(awaits.clone(), program),
+                None => program,
+            };
             let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
             // A thief's key keeps her vanilla gate, and her call picks the
@@ -158,7 +171,7 @@ mod tests {
     use crate::checks::{self, hash_of};
     use crate::game::dev_dump;
     use crate::known::item;
-    use crate::known::{actor, field};
+    use crate::known::{actor, field, flag};
     use crate::pickups::{FORTRESS_KEYS, FREESTANDING, Kind, POTS, ROCKS};
     use crate::world::presence_of;
 
@@ -166,9 +179,20 @@ mod tests {
     const POT: u64 = 2108281022000564101;
     const PIECE: u64 = 10331043360028932045;
 
-    /// `kind`'s check placed as `hash`, dealt `item`, placed a step at a
-    /// time in its map: the steps, and the map with the fields written.
+    /// As `placed`, with the holder standing at a module nothing can read.
     fn placed(kind: &Kind, hash: u64, item: &str) -> (Steps, Byml, Vec<Spot>) {
+        placed_at(kind, hash, item, &HashMap::new())
+    }
+
+    /// `kind`'s check placed as `hash`, dealt `item`, placed a step at a time
+    /// in its map, each step waiting on `module` beside its own rung: the
+    /// steps, and the map with the fields written.
+    fn placed_at(
+        kind: &Kind,
+        hash: u64,
+        item: &str,
+        module: &HashMap<u64, Vec<Op>>,
+    ) -> (Steps, Byml, Vec<Spot>) {
         let romfs = dev_dump().unwrap();
         let gd = GameData::load(&romfs).unwrap();
         let checks: Vec<ItemCheck> = (kind.checks(&romfs).unwrap().into_iter())
@@ -182,6 +206,7 @@ mod tests {
             crate::progressive::Lines::climbing(),
             &holders,
             &gd,
+            module,
         )
         .unwrap();
         let mut doc = checks::load_banc(&romfs, &checks[0].file).unwrap();
@@ -353,5 +378,37 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(picked::flag_at(&row), Some(picked::flag(PIECE)));
+    }
+
+    /// A copy the module can't be handed a node for stands while the module
+    /// itself would have made its holder, beside its rung and the not-picked
+    /// term. A holder with no such gate gains nothing.
+    #[test]
+    fn a_step_at_a_module_made_holder_waits_on_the_module_too() {
+        if dev_dump().is_none() {
+            return;
+        }
+        // What Gohma's room's module waits on, as `super::nodes::gates` reads
+        // it for her heart container.
+        let awaits = vec![Op::Bool(murmur3(flag::GOHMA_DEFEAT_BOSS.get().as_bytes()))];
+        let module = HashMap::from([(PIECE, awaits.clone())]);
+        let (steps, _, _) = placed_at(&FREESTANDING, PIECE, item::HOOKSHOT, &module);
+        let picked = Op::Exp(murmur3(picked::got(PIECE).as_bytes()));
+        for hash in [PIECE, copy_hash(PIECE, 1)] {
+            let read = exp(&steps, &gate(hash));
+            assert_eq!(&read[..awaits.len()], awaits.as_slice(), "{hash}");
+            // Its rung and the not-picked term stand behind the module's,
+            // joined to it by the And the module's term adds.
+            assert!(
+                read.ends_with(&[picked, Op::Not, Op::And, Op::And]),
+                "{hash}"
+            );
+        }
+        // Nothing unreadable, nothing gained: the same steps without a module.
+        let (bare, _, _) = placed(&FREESTANDING, PIECE, item::HOOKSHOT);
+        let bare = exp(&bare, &gate(PIECE));
+        let gained = exp(&steps, &gate(PIECE)).len() - bare.len();
+        assert_eq!(gained, awaits.len() + 1, "the term and the And joining it");
+        assert!(!bare.contains(&awaits[0]));
     }
 }

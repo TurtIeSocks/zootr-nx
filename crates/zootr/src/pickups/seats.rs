@@ -209,7 +209,7 @@ mod tests {
             .filter(|c| c.hash == hash)
             .collect();
         let holders = picked::holders(&checks, drops);
-        let steps = Steps::new(&checks, drops, lines, &holders, &gd).unwrap();
+        let steps = Steps::new(&checks, drops, lines, &holders, &gd, &HashMap::new()).unwrap();
         let seats = Seats::new(&checks, drops, lines);
         let mut doc = checks::load_banc(&romfs, &checks[0].file).unwrap();
         picked::place(&mut doc.root, &holders).unwrap();

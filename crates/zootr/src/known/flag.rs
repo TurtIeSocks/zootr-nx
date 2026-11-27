@@ -67,6 +67,7 @@ pub const GET_TYPE: &Name = &n!(0x85e21f218449ba2f);
 pub const GHOST_SHOP_COUPON_NUM: &Name = &n!(0x8626a74ca144f41d);
 pub const GIMMICK_DEFEAT_ENEMY_OPEN_DODONGO_CAVE_01: &Name = &n!(0x2a59bffb86e2b97d);
 pub const GLASS_TRUTH: &Name = &n!(0xda9de841b8cd4fb4);
+pub const GOHMA_DEFEAT_BOSS: &Name = &n!(0x7f066af8aae2bdca);
 pub const GORON_CITY: &Name = &n!(0x9d6e53ad274f22b1);
 pub const GORON_CITY_ADULT: &Name = &n!(0xb654b6139e0eb236);
 pub const GORON_CITY_BOMB_HITS_GORON006: &Name = &n!(0x9e71019b47198b35);
