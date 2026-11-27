@@ -146,7 +146,9 @@ impl<'p, 'a> Banc<'p, 'a> {
         // picked, and before the fields, which give each step its stand-in.
         let stepped = parts.steps.place(root)?;
         let grouped = pickups::groups::copy(root, &self.ran)?
-            | self.wiring.refer(root, &self.loud, &self.creators, &self.unbound)?;
+            | self
+                .wiring
+                .refer(root, &self.loud, &self.creators, &self.unbound)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = self.shelves.place(root)?;
         let mut changed = checks::set_fields(root, self.fields)?;

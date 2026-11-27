@@ -179,7 +179,10 @@ pub fn gates(romfs: &Romfs, gd: &GameData) -> Result<HashMap<u64, Vec<Op>>> {
             None => None,
         };
         *read.entry(c.hash).or_insert(true) &= program.is_some();
-        by_holder.entry(c.hash).or_default().push(program.unwrap_or_default());
+        by_holder
+            .entry(c.hash)
+            .or_default()
+            .push(program.unwrap_or_default());
     }
     Ok(by_holder
         .into_iter()
@@ -320,7 +323,10 @@ mod tests {
             paths(&root),
             ["FakePot_1a2b", "_3c4d/FakePot_5e6f", "FakePot_1a2b_Copy1"]
         );
-        assert_eq!((wiring.graphs.len(), wiring.graphs["FakeRoom"].len()), (1, 1));
+        assert_eq!(
+            (wiring.graphs.len(), wiring.graphs["FakeRoom"].len()),
+            (1, 1)
+        );
     }
 
     /// Each loud holder whose every graph names what it waits on, so its step
@@ -423,7 +429,11 @@ mod tests {
             .insert(REFERENCE.into(), Byml::U64(pot));
         let creators = HashMap::from([(pot, vec![("FakeCity".to_owned(), 3)])]);
         let mut wiring = Wiring::default();
-        assert!(!wiring.refer(&mut root, &[(pot, 11)], &creators, &HashSet::new()).unwrap());
+        assert!(
+            !wiring
+                .refer(&mut root, &[(pot, 11)], &creators, &HashSet::new())
+                .unwrap()
+        );
         assert!(wiring.graphs.is_empty());
     }
 
