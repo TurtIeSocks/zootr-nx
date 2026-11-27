@@ -303,3 +303,23 @@ test("a kept Entrances tab on a seed without doors presses All Checks", async ()
   await open();
   expect(tab("All Checks").getAttribute("aria-pressed")).toBe("true");
 });
+
+test("Key Rings lists each ring dungeon, and shows only when a seed rolls one", async () => {
+  await open();
+  expect(screen.queryByRole("button", { name: "Key Rings" })).toBeNull();
+  cleanup();
+  const sheet = await open({
+    ...seed(),
+    key_rings: ["Spirit Temple", "Bottom of the Well"],
+  });
+  fireEvent.click(tab("Key Rings"));
+  const list = within(sheet.getByRole("list", { name: "Key rings" }));
+  expect(list.getByText("Spirit Temple")).toBeTruthy();
+  expect(list.getByText("Bottom of the Well")).toBeTruthy();
+});
+
+test("a kept Key Rings tab on a seed without rings presses All Checks", async () => {
+  useUi.setPath("spoiler.tab", "key-rings");
+  await open();
+  expect(tab("All Checks").getAttribute("aria-pressed")).toBe("true");
+});
