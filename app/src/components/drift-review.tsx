@@ -11,7 +11,7 @@ import { nameOf } from "@/lib/format";
 import {
   DEFAULTS_FROM,
   driftSince,
-  takeSeed,
+  takeDraft,
   useDriftBase,
   useDriftFrom,
   useSeeds,
@@ -50,7 +50,7 @@ export function DriftReview({ children, side }: DriftReviewProps) {
             size="sm"
             onClick={() => {
               setOpen(false);
-              takeSeed(base);
+              takeDraft(base);
             }}
           >
             <RotateCcw />

@@ -35,7 +35,7 @@ import {
   deleteSeeds,
   install,
   starSeeds,
-  takeSettings,
+  takeDraft,
   useDiffCount,
   useSeeds,
 } from "@/stores/seeds";
@@ -342,8 +342,8 @@ const HistoryRow = memo(function HistoryRow({
             {!e.ap_slot && (
               <UseSettings
                 differs={differs}
-                tip="Use this seed's settings for the next one. Plando and flag edits stay behind"
-                onUse={() => takeSettings(e)}
+                tip="Use this seed's settings, pins, colors and music for the next one. Flag edits stay behind"
+                onUse={() => takeDraft(e)}
               />
             )}
             <TipButton

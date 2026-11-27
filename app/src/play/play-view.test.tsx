@@ -270,6 +270,27 @@ test("a seed's settings can be used once they differ from the current ones", () 
   expect(button("Use settings").getAttribute("aria-disabled")).toBeNull();
 });
 
+test("use settings brings back a seed's pins, colors and music", async () => {
+  const pinned = summary({
+    place: { 22: "Item_A" },
+    colors: { "kokiri-tunic": "random" },
+    audio: { pools: { area: "shuffle" } },
+  });
+  backend({ installed: pinned, entries: [pinned] });
+  const set = vi
+    .spyOn(commands, "setConfig")
+    .mockResolvedValue({ status: "ok", data: [] });
+  show(pinned, { x: true });
+  openTab("History");
+  fireEvent.click(button("Use settings"));
+  await waitFor(() => expect(set).toHaveBeenCalled());
+  const draft = set.mock.lastCall?.[0];
+  expect(draft?.settings).toEqual({});
+  expect(draft?.place).toEqual({ 22: "Item_A" });
+  expect(draft?.colors).toEqual({ "kokiri-tunic": "random" });
+  expect(draft?.audio).toEqual({ pools: { area: "shuffle" } });
+});
+
 test("a seed built with a test setup carries a badge", () => {
   show({ ...seed, test: true });
   openTab("History");

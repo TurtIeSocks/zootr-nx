@@ -57,9 +57,9 @@ export const TOPICS = {
     title: "Favorites",
     at: { tab: "Play", folder: "favorites" },
     body: [
-      "Settings you keep by name, to switch between. Save your current settings here, then Use them again any time.",
-      "Use settings replaces every setting, the starting inventory included. A plando stays as it is.",
-      "Vanilla+ and Randomizer come built in: the game as it is with comfort enhancements, and the randomizer's usual setup.",
+      "A setup you keep by name, to switch between: its settings, its pins, its colors and its music. Save what you have here, then Use it again any time.",
+      "Use settings replaces every setting, the starting inventory included, and brings back the pins, colors and music that favorite kept.",
+      "Vanilla+ and Randomizer come built in: the game as it is with comfort enhancements, and the randomizer's usual setup. They keep no pins, colors or music of their own, so yours stay as they are.",
     ],
   },
   "ap-slot": {
