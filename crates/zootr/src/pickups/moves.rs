@@ -9,10 +9,10 @@ use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use super::drops::{pickup_for, template_for};
 use super::{DROP, Kind, NEW, SKULLTULAS, kind_of, seats, stale, steps};
-use crate::checks::{Drop, ItemCheck};
-use crate::known::actor;
+use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE};
+use crate::known::{actor, item};
 use crate::settings::NewGame;
-use crate::standins::{StandIn, Tables, item_pack};
+use crate::standins::{StandIn, Tables, item_pack, table_floor};
 use crate::{ammo, gifts};
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -160,6 +160,12 @@ pub fn write(
                 .with_context(|| format!("{} becoming {}", m.hash, m.item))?;
         }
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
+        // A placed token's model extends below its origin. Raise it by
+        // the model's depth, as the shelf placement does.
+        if m.field == GYAML && m.item == item::TOKEN_GOLD {
+            let rise = -table_floor(&tables.actor, m.item)?;
+            fields.push(format!("{}.{TRANSLATE}.1+={rise}", m.hash));
+        }
     }
     // A holder keeping its own drop needs a fixed drop because its table
     // goes (`tabled`). Ammo's drops were already written as steps above.

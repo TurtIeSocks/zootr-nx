@@ -493,7 +493,7 @@ mod tests {
     /// its table in the exefs patch, and a game that builds the patch in
     /// rebuilds for every seed. A new caller goes through `install` or
     /// `throwaway`, and is added here on purpose.
-    const WRITERS: [(&str, &str); 4] = [
+    const WRITERS: [(&str, &str); 5] = [
         (
             "crates/zootr/src/cli/seed.rs",
             "Shuffle::write installs, or writes a folder no target reads",
@@ -504,6 +504,7 @@ mod tests {
             "roll, which install and throwaway take",
         ),
         ("app/src-tauri/src/generating.rs", "install or throwaway"),
+        ("crates/zootr/src/generate/tests/seed.rs", "tests"),
     ];
 
     #[test]
