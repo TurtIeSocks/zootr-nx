@@ -19,6 +19,7 @@ mod refill;
 mod rt;
 mod songbook;
 mod swap;
+mod weapon_bags;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
@@ -51,7 +52,7 @@ const MAX: usize = 128;
 // ahead of time can follow each one: it lifts an import stub as an
 // import, never as code a pointer could reach.
 global_asm!(
-    ".macro function_hook handler, resume, may_skip=0",
+    ".macro function_hook handler, resume, may_skip=0, sign=1",
     "sub sp, sp, #0xd0",
     "stp x0, x1, [sp]",
     "stp x2, x3, [sp, #0x10]",
@@ -79,7 +80,9 @@ global_asm!(
     ".if \\may_skip",
     "cbnz w9, 1f",
     ".endif",
+    ".if \\sign",
     "pacibsp",
+    ".endif",
     "b \\resume",
     ".if \\may_skip",
     "1: ret",
@@ -288,7 +291,28 @@ global_asm!(
     "chest_made_entry:",
     "function_hook chest_made, chest_made_resume",
     "granted_entry:",
-    "function_hook granted, granted_resume",
+    "function_hook granted, granted_call, 0, 0",
+    // Check for missing starter bags after the pouch accepts a grant.
+    // Forward the add's ninth argument on the stack as well as its registers.
+    "granted_call:",
+    "sub sp, sp, #0x30",
+    "ldr x9, [sp, #0x30]",
+    "str x9, [sp]",
+    "stp x29, x30, [sp, #0x10]",
+    "add x29, sp, #0x10",
+    "stp x0, x1, [sp, #0x20]",
+    "bl add_to_pouch",
+    "str x0, [sp, #8]",
+    "ldp x1, x2, [sp, #0x20]",
+    "bl ensure_weapon_bags",
+    "ldr x0, [sp, #8]",
+    "ldp x29, x30, [sp, #0x10]",
+    "add sp, sp, #0x30",
+    "ret",
+    ".global add_to_pouch",
+    "add_to_pouch:",
+    "pacibsp",
+    "b granted_resume",
     "link_update_entry:",
     "function_hook link_update, link_update_resume",
     "picked_entry:",
@@ -649,8 +673,8 @@ unsafe extern "C" fn chest_made(node: usize) {
 
 /// `name` is about to be added to the pouch: credit it, then remake the
 /// closed chests of its line. Every holder that adds to the pouch passes
-/// here once, so a copy credits its dungeon once. Pickups don't add, and
-/// [`picked`] credits theirs.
+/// here once, so a copy credits its dungeon once. [`picked`] also handles
+/// the pickup window.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -666,9 +690,8 @@ unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
 }
 
 /// A pickup window is opening on what Link takes (a pot's drop, a
-/// freestanding item): credit it. The take stocks the pouch without
-/// passing the add, so `granted` never sees it. The window's node binds
-/// the item's name, its slot at `node + 0x20` tagged in the low 2 bits.
+/// freestanding item): credit it. The window's node binds the item's
+/// name, its slot at `node + 0x20` tagged in the low 2 bits.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
