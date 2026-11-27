@@ -142,7 +142,7 @@ impl<'a> Table<'a> {
     }
 
     /// Each line: its number, whether it's [`KEYED`], and its levels.
-    fn lines(&self) -> impl Iterator<Item = (u16, bool, Levels<'a>)> {
+    pub(crate) fn lines(&self) -> impl Iterator<Item = (u16, bool, Levels<'a>)> {
         let mut rest = self.lines;
         (0..).map_while(move |i| {
             let (&n, after) = rest.split_first()?;
