@@ -98,8 +98,23 @@ pub(super) fn gates(
         for c in creators.filter(|c| only.as_ref().is_none_or(|o| o.contains(&c.hash))) {
             let (hash, area, gyaml) = (c.hash, &c.area, &c.gyaml);
             let quiet = if c.quiet { "quiet" } else { "loud" };
+            // What the gate needs that a GameData program can read: what a
+            // step copy of this holder can stand by instead of a node.
+            let gate = match c.gate.needs() {
+                Some(needs) if needs.is_empty() => "-".to_owned(),
+                Some(needs) => needs
+                    .iter()
+                    .map(|n| match n {
+                        crate::gates::Readable::Bool(f) => format!("flag:{f}"),
+                        crate::gates::Readable::Exp(e) => format!("exp:{e}"),
+                        crate::gates::Readable::Not(f) => format!("!flag:{f}"),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" "),
+                None => "branch".to_owned(),
+            };
             println!(
-                "{hash} {area} {gyaml} {}#{} x{} {quiet}",
+                "{hash} {area} {gyaml} {}#{} x{} {quiet} {gate}",
                 c.graph, c.node, c.placed
             );
         }

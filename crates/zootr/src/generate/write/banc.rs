@@ -34,6 +34,9 @@ pub(super) struct Banc<'p, 'a> {
     /// A loud holder's copies, which get nodes of their own instead.
     loud: Vec<(u64, u64)>,
     creators: HashMap<u64, Vec<(String, usize)>>,
+    /// Each step copy that stands by its module's own gate instead, so it gets
+    /// no name in the group and no node (`pickups::nodes::gates`).
+    unbound: HashSet<u64>,
     wiring: pickups::nodes::Wiring,
     /// The holders whose tables go, a step's copy's with its holder's.
     tabled: HashSet<u64>,
@@ -78,6 +81,13 @@ impl<'p, 'a> Banc<'p, 'a> {
             true => HashMap::new(),
             false => pickups::nodes::creators(romfs)?,
         };
+        // A copy of a holder that lies until picked, whose module's gate a
+        // program can read, stands by that gate: naming it in the module's
+        // group or duplicating its node hung the map's load (issue #539).
+        let unbound: HashSet<u64> = (steps.copies.iter())
+            .filter(|(of, _)| parts.gates.contains_key(of))
+            .map(|(_, copy)| *copy)
+            .collect();
         let mut tabled = pickups::tabled(pieces);
         // A step's copy is placed with its holder's table, which goes too.
         let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
@@ -96,6 +106,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             ran,
             loud,
             creators,
+            unbound,
             wiring: pickups::nodes::Wiring::default(),
             tabled,
             kept: match parts.new_game.quiet_enemies {
@@ -135,7 +146,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         // picked, and before the fields, which give each step its stand-in.
         let stepped = parts.steps.place(root)?;
         let grouped = pickups::groups::copy(root, &self.ran)?
-            | self.wiring.refer(root, &self.loud, &self.creators)?;
+            | self.wiring.refer(root, &self.loud, &self.creators, &self.unbound)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = self.shelves.place(root)?;
         let mut changed = checks::set_fields(root, self.fields)?;

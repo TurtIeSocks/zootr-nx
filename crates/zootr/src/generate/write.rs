@@ -360,6 +360,9 @@ struct Parts<'a> {
     reads: Reads,
     picked: Vec<picked::Holder>,
     steps: pickups::steps::Steps,
+    /// Each holder whose step copies stand by their module's own gate, with
+    /// the program each waits on (`pickups::nodes::gates`).
+    gates: HashMap<u64, Vec<Op>>,
     seats: pickups::seats::Seats,
     /// Every placement copied from a holder's, by the one it copies: each
     /// step's, then each boulder's seat.
@@ -384,7 +387,19 @@ impl<'a> Parts<'a> {
     ) -> Result<Self> {
         let pieces = &reads.pieces;
         let picked = picked::holders(pieces, drops);
-        let steps = pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd)?;
+        // Each holder whose step copies can stand by its module's own gate
+        // instead of a duplicated node (`pickups::nodes::gates`). Only a
+        // holder that lies until picked: a breakable's copy may stand once the
+        // holder breaks, which only the module knows.
+        let gates: HashMap<u64, Vec<Op>> = (pickups::nodes::gates(romfs, gd)?)
+            .into_iter()
+            .filter(|(hash, _)| {
+                (picked.iter())
+                    .any(|h| h.hash == *hash && matches!(h.after, crate::picked::After::Taken(_)))
+            })
+            .collect();
+        let steps =
+            pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd, &gates)?;
         let seats = pickups::seats::Seats::new(pieces, drops, Lines::of(new_game));
         let copies = [steps.copies.as_slice(), &seats.pairs].concat();
         let stand_ins = pickups::stand_ins(pieces, drops, Lines::of(new_game));
@@ -403,6 +418,7 @@ impl<'a> Parts<'a> {
             reads,
             picked,
             steps,
+            gates,
             seats,
             copies,
             stand_ins,
