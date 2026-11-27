@@ -11,7 +11,7 @@ use crate::checks::{self, Drop, Watched};
 use crate::events::Flows;
 use crate::{
     adult_jabu, carpenters, chest_looks, chest_size, enemies, entrances, fortress, gifts,
-    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins,
+    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins, water_temple,
 };
 
 /// The map pass's inputs, worked out once, and what it gathers map by map.
@@ -161,6 +161,9 @@ impl<'p, 'a> Banc<'p, 'a> {
         if let Some(kept) = &self.kept {
             changed.extend(enemies::hide(root, kept)?);
         }
+        // The wall over the temple's mouth, so the entrance is reachable the
+        // way its logic rule already says it is (`water_temple`).
+        let mouth = water_temple::open(root)?;
         changed.extend(checks::clear_drops(root, self.carried)?);
         changed.extend(checks::clear_tables(root, &self.tabled)?);
         let (all, posed) = (self.all, &mut self.posed);
@@ -196,6 +199,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             || levelled
             || looked
             || doors
+            || mouth
             || bridged > 0
             || !changed.is_empty()
         {
