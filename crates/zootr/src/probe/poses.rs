@@ -287,11 +287,27 @@ pub(super) fn shelves(
                         ['X', 'Y', 'Z'][axis],
                         turn[axis],
                     );
-                    println!(
-                        "    {item}: {steep}° about {way}  height {height:.4}  floor {lo:+.4}  rise {rise:+.4}"
+                    // What the shelf code raises this item today, off the
+                    // rupee's plank. A seed testing this pose adds the rest on
+                    // top, since the shelf code's own field already ran.
+                    let bottom = crate::shops::floor(item)
+                        .or_else(|| standins::table_floor(&tables.actor, item).ok());
+                    let today = crate::shops::planks::plank(slot.shop, slot.number)
+                        .zip(bottom)
+                        .map_or(0.0, |(plank, low)| plank - low);
+                    let (extra, lean) = (
+                        rise - today,
+                        if crate::shops::stands(item) {
+                            " leans today"
+                        } else {
+                            ""
+                        },
                     );
                     println!(
-                        "      --field {at:#018x}.Rotate.{axis}={rad:.4} --field {at:#018x}.Translate.1+={rise:.4}"
+                        "    {item}: {steep}° about {way}  height {height:.4}  floor {lo:+.4}  rise {rise:+.4}  today {today:+.4}{lean}"
+                    );
+                    println!(
+                        "      --field {at:#018x}.Rotate.{axis}={rad:.4} --field {at:#018x}.Translate.1+={extra:.4}"
                     );
                 }
                 None => println!("    {item}: no turn fits {gap:.4} m, it lies as it is"),
