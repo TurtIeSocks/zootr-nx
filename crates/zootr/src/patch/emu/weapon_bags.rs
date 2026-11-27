@@ -9,19 +9,6 @@ const MAP_AT: u64 = SCRATCH + 0x4000;
 const ENTRIES_AT: u64 = SCRATCH + 0x5000;
 const CELL: u64 = SCRATCH + 0x6000;
 
-/// Run through the hook until it returns or calls the game.
-fn next_call(m: &mut Machine, start: u64) -> Option<u32> {
-    *m.uc.get_data_mut() = Run {
-        start,
-        until: SENTINEL,
-        left: None,
-    };
-    m.uc.emu_start(start, SENTINEL, 0, BUDGET).unwrap();
-    let left = m.uc.get_data().left;
-    assert_eq!(m.uc.reg_read(R::PC).unwrap(), left.unwrap_or(SENTINEL));
-    left.map(|pc| (pc - BASE) as u32)
-}
-
 #[test]
 fn a_first_bow_or_slingshot_grant_adds_its_missing_starter_bag() {
     let gifts = [
@@ -93,7 +80,7 @@ fn a_first_bow_or_slingshot_grant_adds_its_missing_starter_bag() {
                 let stack = m.uc.reg_read(R::SP).unwrap();
                 write64(&mut m, stack, 1);
                 let original = b.entries.granted + 4;
-                assert_eq!(next_call(&mut m, at(b.entries.granted)), Some(original));
+                assert_eq!(m.next_call(at(b.entries.granted)), Some(original));
                 let mut stack_arg = [0; 8];
                 m.uc.mem_read(m.uc.reg_read(R::SP).unwrap(), &mut stack_arg)
                     .unwrap();
@@ -101,7 +88,7 @@ fn a_first_bow_or_slingshot_grant_adds_its_missing_starter_bag() {
                 let mut resume = m.uc.reg_read(R::X30).unwrap();
                 m.uc.reg_write(R::X0, result).unwrap();
                 let mut bags = Vec::new();
-                while let Some(call) = next_call(&mut m, resume) {
+                while let Some(call) = m.next_call(resume) {
                     resume = m.uc.reg_read(R::X30).unwrap();
                     match call {
                         call if call == b.funcs.get_bool => {

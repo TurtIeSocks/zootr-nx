@@ -1,8 +1,9 @@
 //! The first Bow and Slingshot come with the bag that holds their ammo.
 
-use super::{dev, hooked, name, refill};
+use super::{at, dev, hooked, name, refill, shared};
 use crate::switches::{BULLET_BAG_SLOT, QUIVER_SLOT, STRING64};
 use crate::table::fnv;
+use crate::{List, Table};
 
 /// The Small Bullet Bag and Small Quiver names in the game's read-only data.
 #[cfg(not(zootr_build = "v65536"))]
@@ -60,27 +61,44 @@ unsafe extern "C" fn ensure_weapon_bags(result: u32, pouch: usize, added: *const
     if result & 1 == 0 {
         return;
     }
-    hooked(|main, table| {
-        let o = table.offsets;
-        // SAFETY: The table and the bag names refer to this build's main.
-        unsafe {
-            let Some(gd) = dev::single(main, o.gamedata) else {
-                return;
-            };
-            let added = added.as_ref().and_then(|&p| name(p)).map(fnv);
-            for bag in BAGS {
-                let empty = refill::entry(gd, STRING64, bag.slot)
-                    .is_some_and(|value| *(value as *const u8) == 0);
-                // Ownership also covers shelf aliases and saves made
-                // before the bag was granted.
-                if empty
-                    && (added.is_some_and(|hash| bag.weapon_names.contains(&hash))
-                        || dev::get_bool(main, o, gd, bag.owned) == Some(true))
-                {
-                    let name = (main + bag.bag_name as usize) as *const u8;
-                    add_to_pouch(pouch, &name, KEY_ITEM, 1, 0, 0, 0, 0, 0);
-                }
+    hooked(|main, table| unsafe {
+        shared(main).with(List::inventory_changed);
+        let added = added.as_ref().and_then(|&p| name(p)).map(fnv);
+        ensure(main, table, pouch, added);
+    });
+}
+
+/// Check saved ownership once the item get is over.
+///
+/// # Safety
+/// The table's offsets are this build's.
+pub(super) unsafe fn repair_missing(main: usize, table: &Table) {
+    if let Some(pouch) = unsafe { at(main, table.offsets.manager as usize) } {
+        unsafe { ensure(main, table, pouch, None) };
+    }
+}
+
+/// # Safety
+/// The pouch and table offsets are this build's.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
+unsafe fn ensure(main: usize, table: &Table, pouch: usize, added: Option<u32>) {
+    let o = table.offsets;
+    unsafe {
+        let Some(gd) = dev::single(main, o.gamedata) else {
+            return;
+        };
+        for bag in BAGS {
+            let empty = refill::entry(gd, STRING64, bag.slot)
+                .is_some_and(|value| *(value as *const u8) == 0);
+            // The actual ownership flag covers stand-ins and older saves.
+            if empty
+                && (added.is_some_and(|hash| bag.weapon_names.contains(&hash))
+                    || dev::get_bool(main, o, gd, bag.owned) == Some(true))
+            {
+                let name = (main + bag.bag_name as usize) as *const u8;
+                add_to_pouch(pouch, &name, KEY_ITEM, 1, 0, 0, 0, 0, 0);
             }
         }
-    });
+    }
 }

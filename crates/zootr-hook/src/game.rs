@@ -759,6 +759,7 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn taken(pouched: usize) {
     hooked(|main, table| unsafe {
+        shared(main).with(List::inventory_changed);
         if table.spots == 0 {
             return;
         }
@@ -858,8 +859,9 @@ unsafe extern "C" fn link_update(actor: usize) {
             look::fit(main, &table);
             freeze::freeze(main, &table, actor);
         }
-        if dev::playing(main, table.offsets) == Some(false) {
-            shared(main).with(List::idle);
+        if dev::playing(main, table.offsets) == Some(false) && shared(main).with(List::idle) {
+            weapon_bags::repair_missing(main, &table);
+            chests::refresh(main, &table);
         }
     })
 }
