@@ -9,7 +9,8 @@ import { InfinitySwitches } from "@/dev/infinity-switches";
 import { openPalette } from "@/dev/nav";
 import { call } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { pin, send, useCanSend, useDev } from "@/stores/dev";
+import { send, useCanSend, useDev } from "@/stores/dev";
+import { pin, useUi } from "@/stores/ui";
 
 /** The window's head, always on screen: where Link is, his age, the
  * search and the pin, and the infinite switches. */
@@ -127,7 +128,7 @@ function AgePicker() {
 
 /** Keeps the window over the game, or lets it drop behind. */
 function PinButton() {
-  const [pinned] = useDev.usePath("pinned");
+  const [pinned] = useUi.usePath("dev.pinned");
   return (
     <Button
       size="icon-sm"
