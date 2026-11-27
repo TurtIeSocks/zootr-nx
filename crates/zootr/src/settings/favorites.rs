@@ -1,5 +1,6 @@
-//! Favorites: setting sets kept by name. The player's own live in the
-//! config, and two come built in.
+//! Favorites: drafts kept by name — a setting set with its plando, its
+//! colors and its music. The player's own live in the config, and two come
+//! built in.
 
 use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
@@ -8,10 +9,16 @@ use super::{
     BOMBCHUS, BUNNY_HOOD, Bombchus, CHESTS, DOOR_OF_TIME, DoorOfTime, PROGRESSIVE, QUIET_NAVI,
     SCRUBS, SKIP_ALL, SKIP_ARRIVALS, SKIP_INTRO, Settings, choice_id,
 };
+use crate::shuffle::Fixed;
 use crate::starting;
 
-/// A setting set the player keeps by name: settings only, never a plando,
-/// a test setup or flag edits.
+/// A draft the player keeps by name: its settings, plando, colors and
+/// music. Never a test setup or flag edits.
+///
+/// A pane is `None` when the favorite says nothing about it, which is how a
+/// favorite saved before the panes were kept reads, and how a built-in
+/// stands. `Some` with nothing in it says "nothing here": the plando
+/// clears, the colors go Vanilla, the music goes vanilla.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Favorite {
@@ -21,6 +28,19 @@ pub struct Favorite {
     /// When it was saved or last updated, in seconds as History's times.
     pub time: u32,
     pub settings: Settings,
+    /// The plando it pins: chest hash to the item it holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "specta",
+        specta(type = Option<std::collections::BTreeMap<String, String>>)
+    )]
+    pub place: Option<Fixed>,
+    /// The colors as the Colors pane asked for them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colors: Option<crate::colors::Draft>,
+    /// The music as the Audio pane asked for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio: Option<crate::audio::Draft>,
 }
 
 /// A favorite that comes with the app: never stored, renamed, updated or
@@ -155,6 +175,9 @@ pub fn check(mine: &[Favorite]) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::audio::Draft as AudioDraft;
+    use crate::colors::{Draft as PaletteDraft, Mode, Pick};
+    use crate::known::item;
     use crate::settings::{Kind, schema};
 
     fn mine(name: &str, settings: Settings) -> Favorite {
@@ -163,7 +186,50 @@ mod tests {
             note: String::new(),
             time: 0,
             settings,
+            place: None,
+            colors: None,
+            audio: None,
         }
+    }
+
+    /// A favorite's own draft, panes named.
+    fn draft(name: &str) -> Favorite {
+        Favorite {
+            place: Some(Fixed::from([(7, item::HOOKSHOT.to_string())])),
+            colors: Some(PaletteDraft::from([(
+                "kokiri-tunic".into(),
+                Pick::Mode(Mode::Random),
+            )])),
+            audio: Some(AudioDraft::default()),
+            ..mine(name, Settings::new())
+        }
+    }
+
+    #[test]
+    fn a_favorite_keeps_its_draft_and_an_old_one_says_nothing() {
+        let kept = draft("My Run");
+        let json = serde_json::to_string(&kept).unwrap();
+        assert_eq!(serde_json::from_str::<Favorite>(&json).unwrap(), kept);
+
+        // A favorite saved before the panes were kept says nothing about them.
+        let old = serde_json::to_string(&mine("Old", Settings::new())).unwrap();
+        assert!(!old.contains("place") && !old.contains("colors"), "{old}");
+        let read: Favorite = serde_json::from_str(&old).unwrap();
+        assert_eq!((read.place, read.colors, read.audio), (None, None, None));
+
+        // An empty pane is "nothing here", not silence: it clears.
+        let cleared: Favorite = serde_json::from_str(
+            r#"{"name":"Cleared","time":0,"settings":{},"place":{},"colors":{},"audio":{}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            (cleared.place, cleared.colors, cleared.audio),
+            (
+                Some(Fixed::new()),
+                Some(PaletteDraft::new()),
+                Some(AudioDraft::default())
+            )
+        );
     }
 
     #[test]

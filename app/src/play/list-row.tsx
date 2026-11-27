@@ -4,6 +4,7 @@ import { Tip } from "@/components/tip";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { count } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useArmed } from "@/play/use-armed";
 
@@ -72,32 +73,27 @@ export function ListRow({
   );
 }
 
-/** "differs in N settings", or nothing at none. */
+/** "differs in N changes", or nothing at none. A change is a setting or a
+ * pane entry: a pin, a palette, a pool or a track. */
 export function DiffersIn({ n }: { n: number }) {
-  return (
-    n > 0 && (
-      <span>
-        · differs in {n} setting{n === 1 ? "" : "s"}
-      </span>
-    )
-  );
+  return n > 0 && <span>· differs in {count(n, "change")}</span>;
 }
 
 /** Props for {@link UseSettings}. */
 export interface UseSettingsProps {
-  /** How many settings differ from the current ones. */
+  /** How many settings and pane entries differ from the current ones. */
   differs: number;
   /** What using them does, said on hover. */
   tip: string;
   onUse: () => void;
 }
 
-/** Makes a row's settings the current ones, unless they already are. */
+/** Makes a row's draft the current one, unless it already is. */
 export function UseSettings({ differs, tip, onUse }: UseSettingsProps) {
   return (
     <TipButton
       label="Use settings"
-      tip={differs === 0 ? "Your settings already match" : tip}
+      tip={differs === 0 ? "Nothing here differs from what you have" : tip}
       variant="ghost"
       disabled={differs === 0}
       onClick={onUse}

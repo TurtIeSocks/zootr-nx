@@ -584,8 +584,13 @@ export type Event = { type: "Started"; session: Session } |
 { type: "Marked"; at: number; text: string } | { type: "Unsaved"; reason: string } | { type: "Ended"; reason: string } | { type: "Status"; status: LiveStatus };
 
 /**
- *  A setting set the player keeps by name: settings only, never a plando,
- *  a test setup or flag edits.
+ *  A draft the player keeps by name: its settings, plando, colors and
+ *  music. Never a test setup or flag edits.
+ * 
+ *  A pane is `None` when the favorite says nothing about it, which is how a
+ *  favorite saved before the panes were kept reads, and how a built-in
+ *  stands. `Some` with nothing in it says "nothing here": the plando
+ *  clears, the colors go Vanilla, the music goes vanilla.
  */
 export type Favorite = {
 	name: string,
@@ -593,6 +598,12 @@ export type Favorite = {
 	/**  When it was saved or last updated, in seconds as History's times. */
 	time: number,
 	settings: { [key in string]: Value },
+	/**  The plando it pins: chest hash to the item it holds. */
+	place?: { [key in string]: string } | null,
+	/**  The colors as the Colors pane asked for them. */
+	colors?: { [key in string]: Pick } | null,
+	/**  The music as the Audio pane asked for it. */
+	audio?: AudioDraft | null,
 };
 
 /**  One group's header, with its rows when it's open. */

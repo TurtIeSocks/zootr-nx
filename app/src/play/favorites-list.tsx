@@ -6,11 +6,10 @@ import { RequestError } from "@/components/request-error";
 import { divided } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
-import type { Settings } from "@/lib/config";
+import type { Source } from "@/lib/drift";
 import { count, when } from "@/lib/format";
 import { useRequest } from "@/lib/request";
 import { RequestProvider } from "@/lib/request-provider";
-import { settingsChanges } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { NameDialog } from "@/play/label-dialog";
 import {
@@ -27,7 +26,7 @@ import {
   saveFavorite,
   updateFavorite,
 } from "@/stores/favorites";
-import { takeSettings } from "@/stores/seeds";
+import { takeDraft, useDiffCount } from "@/stores/seeds";
 
 /** What the name dialog is doing: labelling the favorite called `name`, or
  * saving a new one without it. */
@@ -35,15 +34,14 @@ interface Naming {
   name?: string;
 }
 
-/** How many settings differ between `settings` and the current ones. */
-const useDiffers = (settings: Settings) =>
-  useConfig(
-    (s) => settingsChanges(s.schema, settings, s.config.settings).length,
-  );
-
-/** What Use settings says it does. */
+/** What Use settings does with one of the player's own favorites. */
 const USE_TIP =
-  "Use these settings for the next seed. Plando and flag edits stay behind";
+  "Use these settings, pins, colors and music for the next seed. Flag edits stay behind";
+
+/** What Use settings does with a built-in: it keeps no draft of its own, so
+ * nothing of yours is touched. */
+const BUILT_IN_TIP =
+  "Use these settings for the next seed. Your pins, colors and music stay as they are";
 
 /** The Favorites folder: setting sets kept by name, newest first, with the
  * built-in ones pinned below. Its rows' writes share one request, which
@@ -79,7 +77,7 @@ function Favorites() {
       <RequestError className="mx-4 mb-2" />
       {mine.length === 0 ? (
         <p className="px-4 pb-2 text-[13px] text-ink-muted">
-          No favorites yet. Save your current settings to keep them here.
+          No favorites yet. Save what you have now, and Use it any time.
         </p>
       ) : (
         <ul aria-label="Your favorites" className={cn("px-1 pb-1", divided)}>
@@ -98,8 +96,8 @@ function Favorites() {
           <ListRow
             key={b.id}
             name={<p className="truncate font-medium text-sm">{b.name}</p>}
-            meta={<Meta note={b.note} settings={b.settings} />}
-            actions={<Use settings={b.settings} />}
+            meta={<Meta note={b.note} source={b} />}
+            actions={<Use source={b} tip={BUILT_IN_TIP} />}
           />
         ))}
       </ul>
@@ -108,7 +106,9 @@ function Favorites() {
         onClose={() => setNaming(undefined)}
         heading={kept?.name ? "Label Favorite" : "Save Favorite"}
         description={
-          kept?.name ? kept.name : "Keeps your current settings under a name"
+          kept?.name
+            ? kept.name
+            : "Keeps your settings, pins, colors and music under a name"
         }
         formKey={kept?.name ?? ""}
         label={labelled && { name: labelled.name, note: labelled.note ?? "" }}
@@ -124,12 +124,13 @@ function Favorites() {
 interface MetaProps {
   time?: number;
   note?: string;
-  settings: Settings;
+  /** The favorite or built-in whose draft this row offers. */
+  source: Source;
 }
 
-/** A favorite's quiet line: when, its note, and how many settings differ. */
-function Meta({ time, note, settings }: MetaProps) {
-  const differs = useDiffers(settings);
+/** A favorite's quiet line: when, its note, and how much differs. */
+function Meta({ time, note, source }: MetaProps) {
+  const differs = useDiffCount(source);
   const parts = [time !== undefined && when(time), note].filter(Boolean);
   return (
     <>
@@ -139,14 +140,19 @@ function Meta({ time, note, settings }: MetaProps) {
   );
 }
 
-/** Makes `settings` the current ones. */
-function Use({ settings }: { settings: Settings }) {
+/** Props for {@link Use}. */
+interface UseProps {
+  source: Source;
+  /** What it says on hover, which differs between the player's own favorites
+   * and the built-ins. */
+  tip: string;
+}
+
+/** Makes `source`'s draft the current one. */
+function Use({ source, tip }: UseProps) {
+  const differs = useDiffCount(source);
   return (
-    <UseSettings
-      differs={useDiffers(settings)}
-      tip={USE_TIP}
-      onUse={() => takeSettings({ settings })}
-    />
+    <UseSettings differs={differs} tip={tip} onUse={() => takeDraft(source)} />
   );
 }
 
@@ -158,21 +164,21 @@ interface FavoriteRowProps {
 
 /** One of the player's own favorites, with Update, Label and Delete. */
 function FavoriteRow({ favorite: f, onLabel }: FavoriteRowProps) {
-  const differs = useDiffers(f.settings);
+  const differs = useDiffCount(f);
   const { run } = useRequest();
   return (
     <ListRow
       name={<p className="truncate font-medium text-sm">{f.name}</p>}
-      meta={<Meta time={f.time} note={f.note} settings={f.settings} />}
+      meta={<Meta time={f.time} note={f.note} source={f} />}
       actions={
         <>
-          <Use settings={f.settings} />
+          <Use source={f} tip={USE_TIP} />
           <ConfirmButton
             label="Update favorite"
             tip={
               differs === 0
-                ? "Your settings already match"
-                : "Keep your current settings in this favorite instead"
+                ? "It already matches your settings, pins, colors and music"
+                : "Keep your current settings, pins, colors and music in this favorite instead"
             }
             confirm="Really update?"
             icon={<RefreshCw />}

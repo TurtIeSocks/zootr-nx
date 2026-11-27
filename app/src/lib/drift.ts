@@ -7,7 +7,7 @@ import type {
 } from "@/bindings";
 import { same } from "@/lib/api";
 import { tidy } from "@/lib/audio";
-import type { FullConfig } from "@/lib/config";
+import type { FullConfig, Settings } from "@/lib/config";
 import type { Change } from "@/lib/saved-sets";
 
 /** The panes beside the settings whose drafts drift counts. */
@@ -18,6 +18,25 @@ export type PaneBase = Pick<Summary, "colors" | "audio" | "place">;
 
 /** The panes with nothing set: what the defaults are. */
 export const NO_PANES: PaneBase = { colors: {}, audio: {}, place: {} };
+
+/** A draft a source keeps — a seed's or a favorite's. A pane it says nothing
+ * about is absent, and stays exactly as it is. */
+export type Draft = {
+  colors?: PaneBase["colors"] | null;
+  audio?: PaneBase["audio"] | null;
+  place?: PaneBase["place"] | null;
+};
+
+/** A draft with its settings: what a History row or a favorite row keeps. */
+export type Source = Draft & { settings: Settings };
+
+/** `base`'s panes, with each one it says nothing about taken from `c`: it
+ * then counts as matching, and resets to itself. */
+export const named = (base: Draft, c: FullConfig): PaneBase => ({
+  colors: base.colors ?? c.colors,
+  audio: base.audio ?? c.audio,
+  place: base.place ?? c.place,
+});
 
 /** One pane entry that differs from the base: a palette, a pool, a track
  * override or a pin, as it was and is. Unset is undefined. */

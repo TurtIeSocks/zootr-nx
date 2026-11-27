@@ -16,7 +16,14 @@ import {
 } from "@/bindings";
 import { call, keep, message } from "@/lib/api";
 import { blocked, noDump, type Settings, unbuildable } from "@/lib/config";
-import { NO_PANES, type PaneChange, paneChanges, resetPane } from "@/lib/drift";
+import {
+  NO_PANES,
+  named,
+  type PaneChange,
+  paneChanges,
+  resetPane,
+  type Source,
+} from "@/lib/drift";
 import { count } from "@/lib/format";
 import { type Change, settingsChanges } from "@/lib/settings";
 import { saveConfig, useConfig } from "@/stores/config";
@@ -142,18 +149,18 @@ export const useDrifted = (id: string) =>
 export const useGroupDrifted = (name: string) =>
   useSeeds((s) => s.drift.some((c) => c.def.group === name));
 
-/** How many settings and pane entries differ from history entry `e`'s:
- * what its History row shows. Worked out in the row, only while History
- * shows, never on each settings change: across a long history that took
- * tens of milliseconds a keystroke. */
-export function useDiffCount(e: Summary) {
+/** How many settings and pane entries differ from the draft `source` keeps:
+ * what its row shows, over the panes it names. Worked out in the row, only
+ * while the list shows, never on each settings change: across a long history
+ * that took tens of milliseconds a keystroke. */
+export function useDiffCount(source: Source) {
   const schema = useConfig((s) => s.schema);
   const config = useConfig((s) => s.config);
   return useMemo(
     () =>
-      settingsChanges(schema, e.settings, config.settings).length +
-      paneChanges(e, config).length,
-    [schema, config, e],
+      settingsChanges(schema, source.settings, config.settings).length +
+      paneChanges(named(source, config), config).length,
+    [schema, config, source],
   );
 }
 
@@ -404,21 +411,21 @@ export const starSeeds = (ids: number[], starred: boolean) =>
   run(() => call(commands.starSeeds(ids, starred)));
 /** Deletes every entry but the installed and starred ones. */
 export const clearHistory = () => run(() => call(commands.clearHistory()));
-/** Makes an entry's settings the current ones. `{ settings: {} }` puts
- * them back to the defaults. */
-export const takeSettings = (entry: Pick<Summary, "settings">) =>
-  run(() => saveConfig({ settings: entry.settings }));
+/** The panes a draft covers, beside the settings. */
+const PANES = ["colors", "audio", "plando"] as const;
 
-/** Makes what drift measures from the current settings and panes: `base`'s,
- * or the defaults with none. Locked palettes keep their picks. */
-export const takeSeed = (base: Summary | null) =>
+/** Makes the draft `source` keeps the current one: its settings, pins,
+ * colors and music. A pane it says nothing about — a built-in's, or a
+ * favorite saved before the panes were kept — stays exactly as it is. `null`
+ * is the defaults, everything cleared. Locked palettes keep their picks. */
+export const takeDraft = (source: Source | null) =>
   run(() =>
     saveConfig((c) => ({
-      settings: base?.settings ?? {},
+      settings: source?.settings ?? {},
       ...Object.assign(
         {},
-        ...(["colors", "audio", "plando"] as const).map((pane) =>
-          resetPane(pane, base ?? NO_PANES)(c),
+        ...PANES.map((pane) =>
+          resetPane(pane, named(source ?? NO_PANES, c))(c),
         ),
       ),
     })),
