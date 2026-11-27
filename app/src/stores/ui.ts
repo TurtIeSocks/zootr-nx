@@ -140,6 +140,7 @@ export interface Ui {
   dev: {
     /** The open tab. */
     tab: DevTab;
+    /** The window floats over the game. */
     pinned: boolean;
     /** Warp's tab, each tab's search, and the side to warp to. */
     teleport: {
