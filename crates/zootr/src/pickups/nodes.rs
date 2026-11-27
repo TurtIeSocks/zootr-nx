@@ -14,9 +14,9 @@
 //! A copy whose holder's own gate a GameData program can read stands on that
 //! gate instead ([`gates`]), named by nothing and with no node of its own:
 //! naming a copy in a module's group, or duplicating its node in that module's
-//! graph, hung the map's load — either one alone, at the Deku Tree's heart
+//! graph, hung the map's load, either one alone, at the Deku Tree's heart
 //! container dealt 10 Arrows (issue #539).
-
+//!
 //! A holder a nested module makes or watches is left out: its copy stays a
 //! plain placement. A copy named through the module's path (`_1fdf/Name`)
 //! hung its map's load, with its node or without, where the same at the
