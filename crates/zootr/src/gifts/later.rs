@@ -225,10 +225,7 @@ mod tests {
             return;
         };
         let all = Flows::load(&romfs).unwrap();
-        let darunia = GIFTS
-            .iter()
-            .find(|g| g.flow == scene::GORON_0030)
-            .unwrap();
+        let darunia = GIFTS.iter().find(|g| g.flow == scene::GORON_0030).unwrap();
         let How::Later { caller, .. } = darunia.how else {
             panic!("Darunia's gift is granted by its caller")
         };
@@ -291,13 +288,7 @@ mod tests {
         );
         let hop = lines
             .iter()
-            .find(|l| {
-                l.contains(&format!(
-                    "{}=\"{}\"",
-                    flow::EVENT_NAME,
-                    darunia.flow
-                ))
-            })
+            .find(|l| l.contains(&format!("{}=\"{}\"", flow::EVENT_NAME, darunia.flow)))
             .expect("the caller never reaches his scene")
             .rsplit_once(" -> ")
             .unwrap()
