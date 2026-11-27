@@ -1,4 +1,3 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { create } from "zustand";
 import { dotPath } from "zustand-dot";
 import {
@@ -96,8 +95,6 @@ interface Dev {
     follow: boolean;
     query: string;
   };
-  /** The window floats over the game. */
-  pinned: boolean;
   /** Every request's result, and the one running: one at a time across
    * the window. */
   activity: {
@@ -131,7 +128,6 @@ export const useDev = create<Dev>()(
       },
       options: { places: [], spawns: [], items: [], names: [], quests: {} },
       tests: { setups: {}, goals: {}, holds: {} },
-      pinned: true,
       activity: { log: [], running: null },
       lastWarp: null,
       target: null,
@@ -243,11 +239,4 @@ export async function setSwitches(name: keyof DevSwitches, value: boolean) {
     useDev.setPath("game.state.switches", now);
   }
   return now;
-}
-
-/** Keeps the window over the game, or lets it drop behind. */
-export async function pin() {
-  const pinned = useDev.getPath("pinned");
-  await getCurrentWindow().setAlwaysOnTop(!pinned);
-  useDev.setPath("pinned", !pinned);
 }
