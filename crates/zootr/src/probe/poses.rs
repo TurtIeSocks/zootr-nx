@@ -15,6 +15,9 @@ use crate::standins::{self, Tables};
 
 /// The animation a shelf pose plays, the first an archive has.
 const POSES: [u64; 2] = [field::POSE_SHOP.0, field::POSE_COMMON.0];
+/// The gap above a shelf's plank, from the spacing between a shop's rows
+/// (0.6 m at the Kokiri stall, 0.7 at the Goron).
+const HEADROOM: f32 = 0.7;
 const MODELS: &str = "Model/";
 const ARCHIVE: &str = ".anim.bfres.zs";
 const MODEL: &str = ".bfres.zs";
@@ -168,12 +171,20 @@ pub(super) fn floors(romfs: &Romfs, game: &Path) -> Result<()> {
     };
     let mut floors = BTreeMap::new();
     let token = actor::OBJ_TOKEN_GOLD_ANIMATION.to_string();
+    let leaning = roots
+        .get(&standins::stand_pose())
+        .copied()
+        .unwrap_or_default();
     for (item, file, model, pose) in &wanted {
         let mesh = match meshes.get(file) {
             Some((points, false)) if !points.is_empty() => Some(points),
             _ => None,
         };
-        let stands = *pose == token && mesh.is_some_and(|m| flat(m));
+        // A flat model leans back only while the lean fits the gap to the
+        // shelf above it. A 1.3 m sword doesn't, so it lies flat like the
+        // game leaves it.
+        let stands =
+            *pose == token && mesh.is_some_and(|m| flat(m) && height(m, &leaning) <= HEADROOM);
         let pose = match stands {
             true => standins::stand_pose(),
             false => pose.clone(),
@@ -246,6 +257,18 @@ fn flat(points: &[[f32; 3]]) -> bool {
 /// The lowest of `points` once `pose` scales, turns (Euler X, Y, Z) and
 /// lifts them.
 fn lowest(points: &[[f32; 3]], pose: &Base) -> f32 {
+    span(points, pose).0
+}
+
+/// How tall `points` stand in `pose`: the top vertex less the bottom.
+fn height(points: &[[f32; 3]], pose: &Base) -> f32 {
+    let (lo, hi) = span(points, pose);
+    hi - lo
+}
+
+/// The lowest and highest of `points` once `pose` scales, turns (Euler X,
+/// Y, Z) and lifts them.
+fn span(points: &[[f32; 3]], pose: &Base) -> (f32, f32) {
     let scale = pose.scale.unwrap_or([1.0; 3]);
     let [x, y, z, _] = pose.rotate.unwrap_or([0.0, 0.0, 0.0, 1.0]);
     let (sx, cx) = x.sin_cos();
@@ -253,10 +276,12 @@ fn lowest(points: &[[f32; 3]], pose: &Base) -> f32 {
     let (sz, cz) = z.sin_cos();
     // Row Y of Rz * Ry * Rx.
     let row = [cy * sz, sx * sy * sz + cx * cz, cx * sy * sz - sx * cz];
-    let low = (points.iter())
-        .map(|p| (0..3).map(|i| row[i] * p[i] * scale[i]).sum::<f32>())
-        .fold(f32::MAX, f32::min);
-    low + pose.translate.map_or(0.0, |t| t[1])
+    let (low, high) = points.iter().fold((f32::MAX, f32::MIN), |(low, high), p| {
+        let y = (0..3).map(|i| row[i] * p[i] * scale[i]).sum::<f32>();
+        (low.min(y), high.max(y))
+    });
+    let lift = pose.translate.map_or(0.0, |t| t[1]);
+    (low + lift, high + lift)
 }
 
 #[cfg(test)]
@@ -289,6 +314,18 @@ mod tests {
         assert!(flat(&plate));
         assert!(!flat(&rod));
         assert!(!flat(&post));
+    }
+
+    #[test]
+    fn a_lean_that_reaches_the_shelf_above_lies_flat() {
+        let lean = Base {
+            rotate: Some([std::f32::consts::FRAC_PI_3, 0.0, 0.0, 1.0]),
+            ..Default::default()
+        };
+        let shield = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.5]];
+        let sword = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.4]];
+        assert!(height(&shield, &lean) <= HEADROOM);
+        assert!(height(&sword, &lean) > HEADROOM);
     }
 
     #[test]

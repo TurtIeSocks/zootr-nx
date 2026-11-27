@@ -4,8 +4,9 @@
 //! writes the table ([`table`]) from the dump: rerun it when the pool or
 //! the poses change. A model whose vertices it can't read takes its
 //! `ActorInfo` floor, less its own pose's lift, plus the shelf pose's. A
-//! model lying flat in the token's pose stands up in the Deku Shield's
-//! instead.
+//! model lying flat in the token's pose leans back in the Deku Shield's
+//! instead, only while the lean fits the gap to the shelf above: a 1.3 m
+//! sword lies flat.
 
 mod table;
 
