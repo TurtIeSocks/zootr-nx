@@ -252,6 +252,19 @@ mod tests {
             component(&tokens.actor_param().unwrap().unwrap(), PHYSICS),
             Some(physics)
         );
+        let heart = ActorPack::load(&romfs, actor::OBJ_HEART).unwrap();
+        let heart_params = heart.actor_param().unwrap().unwrap();
+        assert_eq!(
+            component(&params, field::E_LINK_REF),
+            component(&heart_params, field::E_LINK_REF)
+        );
+        let effect_user = |name: &str| {
+            crate::standins::row(&tables.actor, name)
+                .unwrap()
+                .get(field::E_LINK_USER_NAME.get())
+                .cloned()
+        };
+        assert_eq!(effect_user(reward), effect_user(actor::OBJ_HEART));
         let pouch = pack
             .resolve(&pack_path(&component(&params, POUCH).unwrap()))
             .unwrap()

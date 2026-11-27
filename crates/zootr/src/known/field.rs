@@ -201,6 +201,7 @@ pub const EXPANSION_MAX_NUM_ACTOR: &Name = &n!(0x7ecc00d8b78c4b9d);
 pub const EXTERNAL_DAMAGE_PARAMETERS: &Name = &n!(0x1dca37c44ab571af);
 pub const EYEBALL_L: &Name = &n!(0xcbf89785eff44290);
 pub const E_LINK_REF: &Name = &n!(0x056f1f8dc82c8f2d);
+pub const E_LINK_USER_NAME: &Name = &n!(0x497d535885189078);
 pub const FIELD_AND_DUNGEON_ENTRANCE_EVENT_REQUEST_ACTOR: &Name = &n!(0x94a2be4ee49117d6);
 pub const FILE_PATH: &Name = &n!(0x539b73265db72ca4);
 pub const FIRST_BANC_PARAM: &Name = &n!(0x5154ecbeaa6fb240);

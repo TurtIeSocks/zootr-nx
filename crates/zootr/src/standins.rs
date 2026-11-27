@@ -436,6 +436,14 @@ impl StandIn<'_> {
         };
         if let Some(drop_ai) = drop_ai {
             lend(&mut writer, &mut refs, field::AI_INFO_REF, drop_ai)?;
+            // The hovering body comes from the token, whose idle effect
+            // would otherwise draw its gold outline around the reward.
+            let effects = field::E_LINK_REF.get();
+            if let Some(path) = component(&given, effects) {
+                refs.insert(effects.into(), Byml::String(path.into()));
+            } else {
+                refs.remove(effects);
+            }
             // Hovering drops skip the bound action, so they can keep the
             // item's table without inheriting the template's bounce params.
             if let Some(table) = component(&given, TABLE) {
@@ -491,6 +499,7 @@ impl StandIn<'_> {
 
         tables.add(name, &template.name, &item.name, self.price)?;
         if drop_ai.is_some() {
+            tables.take(name, &item.name, &[field::E_LINK_USER_NAME])?;
             // The hovering body and the reward's own parameters are both
             // loaded while the drop spawns.
             tables.add_heaps(name, &template.name)?;
