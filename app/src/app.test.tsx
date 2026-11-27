@@ -74,7 +74,13 @@ vi.mock("@/bindings", () => ({
     spoiler: vi.fn(() =>
       Promise.resolve({
         status: "ok",
-        data: { spots: [], events: [], unprovable: [], entrances: [] },
+        data: {
+          spots: [],
+          events: [],
+          unprovable: [],
+          entrances: [],
+          key_rings: [],
+        },
       }),
     ),
     appLogState: () =>

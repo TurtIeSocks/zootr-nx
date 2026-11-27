@@ -1,7 +1,12 @@
 import type { Door, Held, Spoiler, Spot } from "@/bindings";
 
 /** The spoiler's views. */
-export type SpoilerTab = "spheres" | "hero" | "checks" | "entrances";
+export type SpoilerTab =
+  | "spheres"
+  | "hero"
+  | "checks"
+  | "entrances"
+  | "key-rings";
 
 /** A spot's area by name. History fills the names in for every seed; the
  * ids only satisfy types. */

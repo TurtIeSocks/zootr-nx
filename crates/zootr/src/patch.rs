@@ -427,7 +427,8 @@ mod tests {
                 DungeonKeys::Rings,
                 DungeonKeys::Singles,
             ] {
-                let credits = crate::key_tints::credits(true, keys, true);
+                let credits =
+                    crate::key_tints::credits(true, &crate::keys::KeyModes::fixed(keys), true);
                 let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
                 let p = h.patches(&progressive::LINES, &keyed, ALL, &credits, &[SPOT], None);
                 assert!(

@@ -435,7 +435,7 @@ pub fn print(romfs: &Romfs, unknown: bool) -> Result<()> {
 /// their own dungeon). Counted room by room, a refusal is logic's own.
 fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Refused> {
     let need = (!crate::key_rooms::by_room(c))
-        .then(|| crate::keys::dungeon_need(c, new_game.keys))
+        .then(|| crate::keys::dungeon_need(c, &new_game.key_modes()))
         .flatten();
     let own_key = |item: &str| matches!(&need, Some(Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
     (items.iter())

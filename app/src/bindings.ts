@@ -1108,13 +1108,17 @@ export type Snapshot = {
 
 export type Source = "Live" | "Saves";
 
-/**  A seed's spots with their logic, and the checks logic can't show a way into. */
+/**
+ *  A seed's spots with their logic, the checks logic can't show a way into, and
+ *  which dungeons roll a key ring.
+ */
 export type Spoiler = {
 	spots: Spot[],
 	events: RoundEvent[],
 	unprovable: string[],
 	start: Start,
 	entrances: Door[],
+	key_rings: string[],
 };
 
 /**  One chest in a seed. */

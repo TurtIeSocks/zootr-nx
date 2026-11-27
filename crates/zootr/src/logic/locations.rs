@@ -154,7 +154,7 @@ impl Build<'_> {
             None => need,
         };
         let keys = [
-            keys::dungeon_need(check, ctx.keys),
+            keys::dungeon_need(check, &ctx.keys),
             keys::fortress_need(&check.item, ctx),
         ];
         Ok(match keys.into_iter().flatten().collect::<Vec<_>>() {

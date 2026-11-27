@@ -40,8 +40,8 @@ pub struct Ctx {
     pub on: BTreeSet<String>,
     /// For what's rolled per seed, like shop prices.
     pub seed: u64,
-    /// How dungeon keys are dealt: as copies, logic asks for them.
-    pub keys: DungeonKeys,
+    /// How each dungeon's keys are dealt: as copies, logic asks for them.
+    pub keys: crate::keys::KeyModes,
     /// How the thieves' keys are dealt: as copies, the card's check asks
     /// for them.
     pub fortress: FortressKeys,
@@ -76,7 +76,7 @@ impl Ctx {
             lines: crate::progressive::Lines::of(new_game),
             on: new_game.on.clone(),
             seed: new_game.seed,
-            keys: new_game.keys,
+            keys: new_game.key_modes(),
             fortress: new_game.fortress_keys,
             open: BTreeSet::new(),
             doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
@@ -94,7 +94,7 @@ impl Ctx {
             lines: Default::default(),
             on: BTreeSet::new(),
             seed: 0,
-            keys: DungeonKeys::Vanilla,
+            keys: crate::keys::KeyModes::roll(DungeonKeys::Vanilla, 0),
             fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
             doors: None,

@@ -148,6 +148,13 @@ impl NewGame {
         }
     }
 
+    /// How each dungeon's small keys come, `keys` read with the mixed roll
+    /// done off `seed`. A pure function of the two, so a seed always deals
+    /// the same keys and a door reroll can't shift them.
+    pub fn key_modes(&self) -> crate::keys::KeyModes {
+        crate::keys::KeyModes::roll(self.keys, self.seed)
+    }
+
     /// Fit the start to `pouch`, the seed's own table (`Pouch::seeded`),
     /// and mark what it then holds, as [`Start::settle`] says. Returns what
     /// came down.
@@ -704,6 +711,11 @@ mod tests {
         let singles = Settings::from([(KEYS.into(), "singles".into())]);
         let game = NewGame::from_settings(&singles, &[]).unwrap();
         assert_eq!(game.keys, DungeonKeys::Singles);
+        // A mixed seed deals copies too, so its key chests are checks.
+        let mixed = Settings::from([(KEYS.into(), "mixed".into())]);
+        let game = NewGame::from_settings(&mixed, &[]).unwrap();
+        assert_eq!(game.keys, DungeonKeys::Mixed);
+        assert!(game.keys.copies() && game.keys.moved());
         let def = schema().into_iter().find(|d| d.id == KEYS).unwrap();
         let Kind::Choice {
             default, options, ..
@@ -713,7 +725,7 @@ mod tests {
         };
         assert_eq!(default, "vanilla");
         let ids: Vec<_> = options.iter().map(|o| o.id.as_str()).collect();
-        assert_eq!(ids, ["vanilla", "start", "rings", "singles"]);
+        assert_eq!(ids, ["vanilla", "start", "rings", "singles", "mixed"]);
     }
 
     #[test]

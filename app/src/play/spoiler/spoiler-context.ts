@@ -27,6 +27,8 @@ export function useSpoiler(): SpoilerState {
 export function useShownTab(): SpoilerTab {
   const { spoiler } = useSpoiler();
   const [tab] = useUi.usePath("spoiler.tab");
-  const shown = tab !== "entrances" || spoiler.entrances.length > 0;
+  const shown =
+    (tab !== "entrances" || spoiler.entrances.length > 0) &&
+    (tab !== "key-rings" || spoiler.key_rings.length > 0);
   return hasLogic(spoiler) && shown ? tab : "checks";
 }

@@ -268,7 +268,11 @@ mod tests {
 
     /// The first ring and the first boss key copy, with what each sets.
     fn keys() -> Vec<(String, Sets)> {
-        let all = crate::key_tints::sets(true, DungeonKeys::Rings, false);
+        let all = crate::key_tints::sets(
+            true,
+            &crate::keys::KeyModes::fixed(DungeonKeys::Rings),
+            false,
+        );
         let first = |bool: bool| {
             let found = all.iter().find(|(_, s)| matches!(s, Sets::Bool(_)) == bool);
             found.cloned().unwrap()
@@ -290,7 +294,11 @@ mod tests {
             romfs,
             &drops,
             Lines::climbing(),
-            crate::key_tints::sets(true, DungeonKeys::Rings, false),
+            crate::key_tints::sets(
+                true,
+                &crate::keys::KeyModes::fixed(DungeonKeys::Rings),
+                false,
+            ),
         )
         .unwrap()
     }
@@ -300,7 +308,11 @@ mod tests {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let sets = crate::key_tints::sets(true, DungeonKeys::Singles, false);
+        let sets = crate::key_tints::sets(
+            true,
+            &crate::keys::KeyModes::fixed(DungeonKeys::Singles),
+            false,
+        );
         let drops = (1..)
             .zip(&sets)
             .map(|(n, (key, _))| (n, Drop::from(key.clone())));

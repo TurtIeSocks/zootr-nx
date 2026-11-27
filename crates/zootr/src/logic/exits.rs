@@ -114,7 +114,7 @@ pub(super) fn edges(
         }
         ensure!(rule.added, "no exit from {} to {}", rule.from, rule.to);
         let mut need = book.need(&rule.expr, ctx)?;
-        if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
+        if let Some(keys) = keys::boss_door_need(&rule.to, &ctx.keys) {
             need = Need::All(vec![need, keys]);
         }
         let to_eras = eras_of(&scan.places, &rule.to);

@@ -1,6 +1,6 @@
 import { EyeOff } from "lucide-react";
 import { useState } from "react";
-import { commands } from "@/bindings";
+import { commands, type Spoiler } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Help } from "@/components/help";
@@ -22,6 +22,7 @@ import { ChecksTab } from "@/play/spoiler/checks-tab";
 import { Detail } from "@/play/spoiler/detail";
 import { EntrancesTab } from "@/play/spoiler/entrances-tab";
 import { HeroTab } from "@/play/spoiler/hero-tab";
+import { KeyRingsTab } from "@/play/spoiler/key-rings-tab";
 import { hasLogic, type SpoilerTab } from "@/play/spoiler/rows";
 import { SpheresTab } from "@/play/spoiler/spheres-tab";
 import {
@@ -43,12 +44,23 @@ const TABS: { id: SpoilerTab; label: string }[] = [
 /** The tab a seed with shuffled doors adds. */
 const ENTRANCES = { id: "entrances", label: "Entrances" } as const;
 
+/** The tab a seed that rolls which dungeons take a key ring adds. */
+const KEY_RINGS = { id: "key-rings", label: "Key Rings" } as const;
+
+/** The tabs `spoiler` shows: each extra one only when the seed has it. */
+const tabsFor = (spoiler: Spoiler): { id: SpoilerTab; label: string }[] => [
+  ...TABS,
+  ...(spoiler.entrances.length ? [ENTRANCES] : []),
+  ...(spoiler.key_rings.length ? [KEY_RINGS] : []),
+];
+
 /** The tab bodies by tab. */
 const PANELS: Record<SpoilerTab, () => React.JSX.Element> = {
   spheres: SpheresTab,
   hero: HeroTab,
   checks: ChecksTab,
   entrances: EntrancesTab,
+  "key-rings": KeyRingsTab,
 };
 
 /** Glowing cards scrolled out of view, as dots on the scroll edges. */
@@ -177,7 +189,7 @@ function TabBar() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2">
         <Segmented
-          options={spoiler.entrances.length ? [...TABS, ENTRANCES] : TABS}
+          options={tabsFor(spoiler)}
           value={tab}
           onValueChange={setTab}
         />
