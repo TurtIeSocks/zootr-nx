@@ -60,6 +60,57 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
 }
 
 #[test]
+fn a_mixed_seed_deals_one_copy_for_its_ring_dungeons_and_one_for_every_other_key() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let dir = Scratch::new("keys-mixed");
+    let mixed = NewGame {
+        keys: crate::settings::DungeonKeys::Mixed,
+        ..NewGame::default()
+    };
+    let report = shuffle(
+        &romfs,
+        &dir.join("mixed"),
+        7,
+        &Fixed::new(),
+        &mixed,
+        &Run::silent(),
+    )
+    .unwrap();
+    let modes = crate::keys::KeyModes::roll(crate::settings::DungeonKeys::Mixed, 7);
+    // The seed mixes: some dungeons get a ring, the rest their keys.
+    let rings = modes.rings().len();
+    assert!(
+        rings > 0 && rings < keys::DUNGEONS.len(),
+        "seed 7 rolls one way"
+    );
+    assert_eq!(report.key_rings.len(), rings, "{:?}", report.key_rings);
+    // Every key chest is a check, and none of them holds a key the game
+    // counts.
+    let held = report.spots.iter().filter(|s| keys::is_key(&s.vanilla));
+    assert_eq!(held.count(), 45);
+    assert!(report.spots.iter().all(|s| !keys::is_key(&s.item)));
+    // Each dungeon holds as many copies as its mode deals.
+    for (i, d) in keys::DUNGEONS.iter().enumerate() {
+        let n = i + 1;
+        let copy = crate::key_tints::ring(n);
+        let dealt = report.spots.iter().filter(|s| s.item == copy).count() as u32;
+        let want = match modes.mode(n) {
+            crate::keys::KeyMode::Rings => 1,
+            crate::keys::KeyMode::Singles => keys::copies_of(n),
+        };
+        assert_eq!(
+            dealt,
+            want,
+            "{}: {}",
+            d.name,
+            modes.mode(n) == crate::keys::KeyMode::Rings
+        );
+    }
+}
+
+#[test]
 fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_start() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;

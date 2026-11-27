@@ -334,7 +334,7 @@ fn write_text(
     lines.push(scrubs::lines(drops, Lines::of(new_game)));
     lines.extend(scrubs::sold_out(drops));
     let fortress = new_game.fortress_keys.copies();
-    let mut key_lines = key_tints::captions(new_game.keys, BOSS_COPIES, fortress);
+    let mut key_lines = key_tints::captions(&new_game.key_modes(), BOSS_COPIES, fortress);
     if maps_move(new_game) {
         key_lines.new.extend(map_copies::captions());
     }
@@ -514,7 +514,9 @@ impl<'a> Parts<'a> {
             gamedata::respawn_on_load(root)?;
         }
         let fortress = new_game.fortress_keys.copies();
-        for (copy, template, _) in &key_tints::made(new_game.keys.copies(), BOSS_COPIES, fortress) {
+        for (copy, template, _) in
+            &key_tints::made(new_game.key_modes().copies(), BOSS_COPIES, fortress)
+        {
             let names = [copy.clone()];
             gamedata::join_structs(root, template.get(), &names, &[gamedata::IS_GET])?;
         }
@@ -615,7 +617,14 @@ impl<'a> Parts<'a> {
         let items = drops.values().map(|d| d.item.as_str()).chain(shown);
         medallions::write(romfs, builder, tables, items)?;
         let fortress = new_game.fortress_keys.copies();
-        key_tints::write(romfs, builder, tables, BOSS_COPIES, new_game.keys, fortress)?;
+        key_tints::write(
+            romfs,
+            builder,
+            tables,
+            BOSS_COPIES,
+            &new_game.key_modes(),
+            fortress,
+        )?;
         if maps_move(new_game) {
             map_copies::write(romfs, builder, tables)?;
         }
@@ -624,7 +633,13 @@ impl<'a> Parts<'a> {
         crate::marks::write(romfs, builder, tables, &mut tags)?;
         crate::chest_looks::write(romfs, builder, tables, &mut tags)?;
         tags.write(builder)?;
-        foreign::write(romfs, builder, tables, &new_game.foreign, new_game.keys)?;
+        foreign::write(
+            romfs,
+            builder,
+            tables,
+            &new_game.foreign,
+            &new_game.key_modes(),
+        )?;
         ammo::write(romfs, builder, tables, &self.rupees)
     }
 }
@@ -646,7 +661,7 @@ fn levels(
 /// and with maps and compasses moving theirs.
 fn sets(new_game: &NewGame) -> Vec<(String, crate::copies::Sets)> {
     let fortress = new_game.fortress_keys.copies();
-    let mut sets = key_tints::sets(BOSS_COPIES, new_game.keys, fortress);
+    let mut sets = key_tints::sets(BOSS_COPIES, &new_game.key_modes(), fortress);
     if maps_move(new_game) {
         sets.extend(map_copies::sets());
     }

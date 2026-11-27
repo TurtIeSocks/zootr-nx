@@ -80,6 +80,9 @@ pub enum DungeonKeys {
     Rings,
     /// Each small key and boss key on its own, in any chest
     Singles,
+    /// Each dungeon rolls its own from the seed: a ring, or its keys one
+    /// by one
+    Mixed,
 }
 
 impl DungeonKeys {
@@ -87,6 +90,7 @@ impl DungeonKeys {
         match self {
             Self::Rings => "Key rings",
             Self::Singles => "Keysanity",
+            Self::Mixed => "Rings or Keysanity",
             Self::Vanilla => Keys::Vanilla.label(),
             Self::Start => Keys::Start.label(),
         }
@@ -100,7 +104,7 @@ impl DungeonKeys {
     /// Whether small keys come as copies the hook credits to their own
     /// dungeon, dealt with the boss keys to any chest.
     pub fn copies(self) -> bool {
-        matches!(self, Self::Rings | Self::Singles)
+        matches!(self, Self::Rings | Self::Singles | Self::Mixed)
     }
 }
 

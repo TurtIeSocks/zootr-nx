@@ -548,6 +548,7 @@ pub(crate) mod tests {
             unprovable: vec![],
             start: Default::default(),
             entrances: vec![],
+            key_rings: vec![],
             spots: vec![Spot {
                 hash: 1,
                 area: "Area".into(),

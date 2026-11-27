@@ -441,6 +441,7 @@ mod tests {
             unprovable: vec![],
             start: Default::default(),
             entrances: vec![],
+            key_rings: vec![],
             spots: vec![spot(MIDO[2].0), spot(1)],
             written: crate::generate::Written {
                 defaults: vec![],

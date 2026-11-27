@@ -24,12 +24,11 @@ use crate::checks::{self, DROP_ACTOR, GYAML};
 use crate::copies::as_credits;
 use crate::copies::{self, MADE, POUCH_TEXT, Sets, TEXT_PARTS, copy, own_pack, pointed};
 use crate::keys::{
-    BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, SMALL, boss_flag, dungeon, dungeon_of,
-    has_boss, small_flag,
+    BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, KeyMode, KeyModes, SMALL, boss_flag, dungeon,
+    dungeon_of, has_boss, small_flag,
 };
 use crate::known::{Name, actor, flag, flow, item};
 use crate::medallions::{self, Color};
-use crate::settings::DungeonKeys;
 use crate::standins::{Tables, raw};
 use crate::text::{Copies, CopyLine, Named, Says};
 use paint::{Host, Look};
@@ -146,12 +145,12 @@ pub fn ring(n: usize) -> String {
     format!("{MADE}KeyRing{n:02}")
 }
 
-/// The model dungeon `n`'s ring copy shows as `keys` deals it: the ring
-/// of its keys, or with Keysanity its single tinted key.
-fn ring_model(n: usize, keys: DungeonKeys) -> String {
-    match keys {
-        DungeonKeys::Rings => RING_LOOK.name(n),
-        _ => SMALL_LOOK.name(n),
+/// The model dungeon `n`'s ring copy shows as its mode deals it: the ring
+/// of its keys, or where its keys come one at a time its single tinted key.
+fn ring_model(n: usize, mode: KeyMode) -> String {
+    match mode {
+        KeyMode::Rings => RING_LOOK.name(n),
+        KeyMode::Singles => SMALL_LOOK.name(n),
     }
 }
 
@@ -168,10 +167,10 @@ pub fn fortress() -> String {
 }
 
 /// The pack a ring or boss key copy is built as, the same as [`write`]
-/// writes it with `keys`, for a holder that stands in for it. `None` for any other
-/// item.
-pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
-    let Some((template, model)) = copy_of(item, keys) else {
+/// writes it for `modes`, for a holder that stands in for it. `None` for any
+/// other item.
+pub fn copy_pack(romfs: &Romfs, item: &str, modes: &KeyModes) -> Result<Option<ActorPack>> {
+    let Some((template, model)) = copy_of(item, modes) else {
         return Ok(None);
     };
     let template = ActorPack::load(romfs, template)?;
@@ -182,15 +181,16 @@ pub fn copy_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<
 /// lives only in the seed, and it answers to its own name, whose lines
 /// [`captions`] writes.
 pub fn name_label(item: &str) -> Option<String> {
-    copy_of(item, DungeonKeys::default()).map(|_| copies::label(item))
+    copy_of(item, &KeyModes::default()).map(|_| copies::label(item))
 }
 
-/// The key `item` copies and the model it shows as `keys` deals it.
-fn copy_of(item: &str, keys: DungeonKeys) -> Option<(&'static Name, String)> {
+/// The key `item` copies and the model it shows as its dungeon's mode
+/// deals it. The Fortress's copy shows the Fortress key model either way.
+fn copy_of(item: &str, modes: &KeyModes) -> Option<(&'static Name, String)> {
     let (template, n) = copied_as(item)?;
     let model = match template {
         _ if n == FORTRESS_MODEL => SMALL_LOOK.name(FORTRESS_MODEL),
-        t if t == SMALL => ring_model(n, keys),
+        t if t == SMALL => ring_model(n, modes.mode(n)),
         _ => boss(n),
     };
     Some((template, model))
@@ -213,37 +213,39 @@ fn copied_as(item: &str) -> Option<(&'static Name, usize)> {
     })
 }
 
-/// The lines a copy of `template` for dungeon `n` reads as `keys` deals it.
-fn copy_text(template: &Name, n: usize, keys: DungeonKeys) -> &'static CopyText {
+/// The lines a copy of `template` for dungeon `n` reads as its mode deals
+/// it. The Fortress's copy reads as a single key, which is what its four
+/// thieves each carry.
+fn copy_text(template: &Name, n: usize, modes: &KeyModes) -> &'static CopyText {
     match template == BOSS {
         true => &BOSS_TEXT,
-        false if keys == DungeonKeys::Singles || n == FORTRESS_MODEL => &SINGLE_TEXT,
+        false if n == FORTRESS_MODEL || modes.mode(n) == KeyMode::Singles => &SINGLE_TEXT,
         false => &RING_TEXT,
     }
 }
 
 /// The place whose keys copy `item` is, and the English name its get
-/// shows as `keys` deals it, `{}` the place's name.
+/// shows as its dungeon's mode deals it, `{}` the place's name.
 pub(crate) fn english_name(
     item: &str,
-    keys: DungeonKeys,
+    modes: &KeyModes,
 ) -> Option<(&'static Dungeon, &'static str)> {
     let (template, n) = copied_as(item)?;
     let place = match n {
         FORTRESS_MODEL => &FORTRESS,
         n => dungeon(n),
     };
-    Some((place, copy_text(template, n, keys)[0].0?))
+    Some((place, copy_text(template, n, modes)[0].0?))
 }
 
 /// The text each copy's get shows, copied from its template's and naming
 /// its dungeon: a copy answers to its own name, so the game looks its
 /// lines up under it.
-pub fn captions(keys: DungeonKeys, bosses: bool, fortress: bool) -> Copies<'static> {
-    let new = made(keys.copies(), bosses, fortress)
+pub fn captions(modes: &KeyModes, bosses: bool, fortress: bool) -> Copies<'static> {
+    let new = made(modes.copies(), bosses, fortress)
         .into_iter()
         .flat_map(|(copy, template, n)| {
-            TEXT_PARTS.iter().zip(copy_text(template, n, keys)).map(
+            TEXT_PARTS.iter().zip(copy_text(template, n, modes)).map(
                 move |(part, &(english, bracketed))| {
                     let says = english.map_or(Says::Source, |english| {
                         Says::Named(Named {
@@ -319,19 +321,22 @@ const BOSS_TEXT: CopyText = [
     (None, false),
 ];
 /// What each copy sets as it's found: with `bosses` a boss key's flag, with
-/// key rings a ring's counter, full, with Keysanity one more on a small
-/// key's counter, and with `fortress` one more on the Fortress's.
-pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Sets)> {
+/// a dungeon's keys coming as a ring that ring's counter, full, with them
+/// coming one at a time one more on its counter, and with `fortress` one
+/// more on the Fortress's.
+pub fn sets(bosses: bool, modes: &KeyModes, fortress: bool) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
     for (i, d) in DUNGEONS.iter().enumerate() {
         if bosses && d.boss_room.is_some() {
             out.push((boss(i + 1), Sets::Bool(boss_flag(d.name))));
         }
+        if !modes.copies() {
+            continue;
+        }
         let counter = small_flag(d.name);
-        match keys {
-            DungeonKeys::Rings => out.push((ring(i + 1), Sets::Int(counter, d.keys as i32))),
-            DungeonKeys::Singles => out.push((ring(i + 1), Sets::Add(counter, 1))),
-            DungeonKeys::Vanilla | DungeonKeys::Start => {}
+        match modes.mode(i + 1) {
+            KeyMode::Rings => out.push((ring(i + 1), Sets::Int(counter, d.keys as i32))),
+            KeyMode::Singles => out.push((ring(i + 1), Sets::Add(counter, 1))),
         }
     }
     if fortress {
@@ -343,20 +348,21 @@ pub fn sets(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Set
 /// [`sets`] as the hook's table names it. The seed adds the map copies'
 /// (`generate::write`), so only tests ask for the keys' alone.
 #[cfg(test)]
-pub fn credits(bosses: bool, keys: DungeonKeys, fortress: bool) -> Vec<(String, Credit)> {
-    as_credits(sets(bosses, keys, fortress))
+pub fn credits(bosses: bool, modes: &KeyModes, fortress: bool) -> Vec<(String, Credit)> {
+    as_credits(sets(bosses, modes, fortress))
 }
 
 /// Writes each dungeon's model and actor copies, the boss key's only with
-/// `bosses`, and with `keys` dealing copies the ring: showing a ring with
-/// key rings, a single key with Keysanity. Points the Fortress keys at a
-/// model of their own, and with `fortress` makes their copy.
+/// `bosses`, and with `modes` dealing copies the ring: showing a ring where
+/// a dungeon's keys come as one, a single key where they come one at a
+/// time. Points the Fortress keys at a model of their own, and with
+/// `fortress` makes their copy.
 pub fn write(
     romfs: &Romfs,
     builder: &mut ModBuilder,
     tables: &mut Tables,
     bosses: bool,
-    keys: DungeonKeys,
+    modes: &KeyModes,
     fortress: bool,
 ) -> Result<()> {
     let small = Host::read(romfs, &SMALL_LOOK)?;
@@ -370,17 +376,17 @@ pub fn write(
         let name = small.paint(builder, n, tint)?;
         copy(builder, tables, &chest, &chest_key(n), &name, false)?;
         copy(builder, tables, &floor, &name, &name, false)?;
-        if keys == DungeonKeys::Rings {
+        if modes.mode(n) == KeyMode::Rings {
             let model = rings::model(&small.model, d.keys as usize)?;
-            small.write_as(builder, &ring_model(n, keys), &model, tint, true)?;
+            small.write_as(builder, &ring_model(n, KeyMode::Rings), &model, tint, true)?;
         }
-        if keys.copies() {
+        if modes.copies() {
             copy(
                 builder,
                 tables,
                 &chest,
                 &ring(n),
-                &ring_model(n, keys),
+                &ring_model(n, modes.mode(n)),
                 true,
             )?;
         }
@@ -398,7 +404,7 @@ pub fn write(
     if fortress {
         copy(builder, tables, &chest, &self::fortress(), &name, true)?;
     }
-    uncounted(tables, bosses, keys.copies(), fortress)
+    uncounted(tables, bosses, modes.copies(), fortress)
 }
 
 /// Every credited copy's pouch row is a plain item. The template's deal
@@ -474,6 +480,7 @@ mod tests {
     use super::*;
     use crate::game::dev_dump;
     use crate::known::field;
+    use crate::settings::DungeonKeys;
     use crate::standins::{MODEL, path_of, renamed};
 
     #[test]
@@ -487,8 +494,8 @@ mod tests {
         );
         let text = |s: &str| vec![Part::Text(s.into())];
         let (rings, singles) = (
-            captions(DungeonKeys::Rings, true, false),
-            captions(DungeonKeys::Singles, false, false),
+            captions(&KeyModes::fixed(DungeonKeys::Rings), true, false),
+            captions(&KeyModes::fixed(DungeonKeys::Singles), false, false),
         );
         let rels = crate::text::archives(&romfs).unwrap();
         assert_eq!(rels.len(), 16);
@@ -650,30 +657,68 @@ mod tests {
             return;
         }
         let bosses = DUNGEONS.iter().filter(|d| d.boss_room.is_some()).count();
-        assert_eq!(credits(true, DungeonKeys::Start, false).len(), bosses);
         assert_eq!(
-            credits(false, DungeonKeys::Rings, false).len(),
+            credits(true, &KeyModes::fixed(DungeonKeys::Start), false).len(),
+            bosses
+        );
+        assert_eq!(
+            credits(false, &KeyModes::fixed(DungeonKeys::Rings), false).len(),
             DUNGEONS.len()
         );
-        assert!(credits(false, DungeonKeys::Vanilla, false).is_empty());
+        assert!(credits(false, &KeyModes::fixed(DungeonKeys::Vanilla), false).is_empty());
         // The Fortress copy, one more on its counter, as `probe data` names it.
-        let fortress = credits(false, DungeonKeys::Vanilla, true);
+        let fortress = credits(false, &KeyModes::fixed(DungeonKeys::Vanilla), true);
         assert_eq!(fortress, [(super::fortress(), Credit::Add(0x3a28_b6a4, 1))]);
         let forest = DUNGEONS
             .iter()
             .position(|d| d.name == flag::FOREST_TEMPLE)
             .unwrap();
-        let credits = credits(true, DungeonKeys::Rings, false);
+        let credits = credits(true, &KeyModes::fixed(DungeonKeys::Rings), false);
         let of = |name: String| credits.iter().find(|(n, _)| *n == name).map(|c| c.1);
         // The Forest Temple's, as `probe data` names them.
         assert_eq!(of(boss(forest + 1)), Some(Credit::Bool(0x4273_33a0)));
         assert_eq!(of(ring(forest + 1)), Some(Credit::Int(0x9023_7092, 5)));
-        let singles = super::credits(true, DungeonKeys::Singles, false);
+        let singles = super::credits(true, &KeyModes::fixed(DungeonKeys::Singles), false);
         let one = singles
             .iter()
             .find(|(n, _)| *n == ring(forest + 1))
             .map(|c| c.1);
         assert_eq!(one, Some(Credit::Add(0x9023_7092, 1)));
+    }
+
+    #[test]
+    fn a_mixed_seed_fills_its_ring_dungeons_counter_and_ticks_the_rest_one_a_key() {
+        if crate::game::no_names() {
+            return;
+        }
+        let modes = KeyModes::roll(DungeonKeys::Mixed, 7);
+        let sets = sets(true, &modes, false);
+        let mixed = (1..=DUNGEONS.len())
+            .filter(|&n| modes.mode(n) == KeyMode::Rings)
+            .count();
+        assert!(mixed > 0 && mixed < DUNGEONS.len(), "seed 7 rolls one way");
+        for (i, d) in DUNGEONS.iter().enumerate() {
+            let counter = small_flag(d.name);
+            let found = sets.iter().find(|(name, _)| *name == ring(i + 1));
+            let want = match modes.mode(i + 1) {
+                KeyMode::Rings => Sets::Int(counter, d.keys as i32),
+                KeyMode::Singles => Sets::Add(counter, 1),
+            };
+            assert_eq!(found.map(|(_, sets)| sets), Some(&want), "{}", d.name);
+        }
+    }
+
+    #[test]
+    fn a_mixed_seed_names_each_copy_after_its_own_dungeon_s_mode() {
+        let modes = KeyModes::roll(DungeonKeys::Mixed, 7);
+        for (i, d) in DUNGEONS.iter().enumerate() {
+            let (_, english) = english_name(&ring(i + 1), &modes).unwrap();
+            let want = match modes.mode(i + 1) {
+                KeyMode::Rings => "{} Key Ring",
+                KeyMode::Singles => "{} Small Key",
+            };
+            assert_eq!(english, want, "{}", d.name);
+        }
     }
 
     #[test]
@@ -755,24 +800,27 @@ mod tests {
     #[test]
     fn a_copy_s_pack_built_in_memory_is_the_one_the_seed_writes() {
         let Some(romfs) = dev_dump() else { return };
-        for keys in [DungeonKeys::Rings, DungeonKeys::Singles] {
+        for keys in [
+            KeyModes::fixed(DungeonKeys::Rings),
+            KeyModes::fixed(DungeonKeys::Singles),
+        ] {
             let dir = std::env::temp_dir()
                 .join(format!("zootr-copy-pack-{}-{keys:?}", std::process::id()));
             let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
             let mut tables = Tables::load(&romfs).unwrap();
-            write(&romfs, &mut builder, &mut tables, true, keys, true).unwrap();
+            write(&romfs, &mut builder, &mut tables, true, &keys, true).unwrap();
             builder.finish().unwrap();
             for copy in [ring(2), boss(2), fortress()] {
                 let rel = pack_file(&copy);
                 let bytes = crate::game::read_built(&romfs, &dir, &rel);
                 let written = ActorPack::from_bytes(&copy, bytes.to_vec()).unwrap();
-                let built = copy_pack(&romfs, &copy, keys).unwrap().unwrap();
+                let built = copy_pack(&romfs, &copy, &keys).unwrap().unwrap();
                 assert_eq!(built.files(), written.files(), "{copy} {keys:?}");
                 for f in built.files() {
                     assert_eq!(built.raw(&f), written.raw(&f), "{copy} {keys:?}: {f}");
                 }
             }
-            let hookshot = copy_pack(&romfs, item::HOOKSHOT, keys).unwrap();
+            let hookshot = copy_pack(&romfs, item::HOOKSHOT, &keys).unwrap();
             assert!(hookshot.is_none());
             std::fs::remove_dir_all(&dir).ok();
         }
@@ -781,11 +829,13 @@ mod tests {
     #[test]
     fn each_copy_shows_its_own_model_from_its_own_file_and_a_ring_its_keys() {
         let Some(romfs) = dev_dump() else { return };
-        shows_own_models(&romfs, DungeonKeys::Rings);
-        shows_own_models(&romfs, DungeonKeys::Singles);
+        shows_own_models(&romfs, &KeyModes::fixed(DungeonKeys::Rings));
+        shows_own_models(&romfs, &KeyModes::fixed(DungeonKeys::Singles));
+        // One seed, some dungeons showing a ring and some a single key.
+        shows_own_models(&romfs, &KeyModes::roll(DungeonKeys::Mixed, 7));
     }
 
-    fn shows_own_models(romfs: &Romfs, keys: DungeonKeys) {
+    fn shows_own_models(romfs: &Romfs, keys: &KeyModes) {
         let dir =
             std::env::temp_dir().join(format!("zootr-key-tints-{}-{keys:?}", std::process::id()));
         let mut builder = ModBuilder::new(romfs, &dir).unwrap();
@@ -819,11 +869,12 @@ mod tests {
                 let boss = BOSS_LOOK.name(n);
                 copies.push((boss.clone(), BOSS, boss));
             }
-            let shown = match keys {
-                DungeonKeys::Rings => RING_LOOK.name(n),
-                _ => SMALL_LOOK.name(n),
+            let ringed = keys.mode(n) == KeyMode::Rings;
+            let shown = match keys.mode(n) {
+                KeyMode::Rings => RING_LOOK.name(n),
+                KeyMode::Singles => SMALL_LOOK.name(n),
             };
-            let rings = d.keys as usize * usize::from(keys == DungeonKeys::Rings);
+            let rings = d.keys as usize * usize::from(ringed);
             assert!(key_vertices(&shown) >= one * rings.max(1), "{shown}");
             if rings > 0 {
                 // The hoop, with any Triforces, weighs less than two keys.

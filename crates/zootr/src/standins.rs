@@ -6,9 +6,10 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
 use roead::sarc::SarcWriter;
 
+use crate::keys::KeyModes;
 use crate::known::{Name, actor, field, flag, item};
 use crate::medallions;
-use crate::settings::{DungeonKeys, NewGame};
+use crate::settings::NewGame;
 
 mod tables;
 
@@ -341,10 +342,11 @@ fn cloned(
 /// `item`'s pack, for a holder that shows or stands in for it: a key copy
 /// or another player's item the seed builds, or the dump's.
 pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result<ActorPack> {
-    if let Some(pack) = made_pack(romfs, item, new_game.keys)? {
+    let modes = new_game.key_modes();
+    if let Some(pack) = made_pack(romfs, item, &modes)? {
         return Ok(pack);
     }
-    match crate::foreign::pack(romfs, item, &new_game.foreign, new_game.keys)? {
+    match crate::foreign::pack(romfs, item, &new_game.foreign, &modes)? {
         Some(pack) => Ok(pack),
         None => ActorPack::load(romfs, item),
     }
@@ -352,8 +354,8 @@ pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result
 
 /// `item`'s pack as the seed writes it, if the seed builds it (a key or map
 /// copy, a Bombchu Bag, the Magic Meter): the dump doesn't have it.
-pub(crate) fn made_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
-    if let Some(pack) = crate::key_tints::copy_pack(romfs, item, keys)? {
+pub(crate) fn made_pack(romfs: &Romfs, item: &str, modes: &KeyModes) -> Result<Option<ActorPack>> {
+    if let Some(pack) = crate::key_tints::copy_pack(romfs, item, modes)? {
         return Ok(Some(pack));
     }
     if let Some(pack) = crate::map_copies::copy_pack(romfs, item)? {

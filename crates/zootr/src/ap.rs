@@ -280,6 +280,11 @@ const HELD: &[(&str, &str, &str)] = &[
     ),
     (
         "keys",
+        "mixed",
+        " With Rings or Keysanity, each dungeon rolls its own from the seed: its small keys come as one ring, or one at a time.",
+    ),
+    (
+        "keys",
         "singles",
         " Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon.",
     ),
