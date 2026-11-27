@@ -3,6 +3,21 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.16.3] - 2026-11-27
+
+### Fixed
+
+- Deku baba drops with shuffled bags
+- Keep the Magic Meter in the line when progressive items are on
+- Single bombs wait for bomb bag
+- A step copy at a module-made holder stands on its gate
+- A thief's key keeps its node and her call's switch
+- Skulltula reward gravity
+- Remove token outline
+- No sign for a sale of one
+- A model too long for its shelf lies flat
+- Freestanding tokens clipping into the ground
+
 ## [0.16.2] - 2026-11-26
 
 ### Fixed
