@@ -266,7 +266,8 @@ fn take_name<'a>(rest: &mut &'a [u8]) -> Option<&'a [u8]> {
 }
 
 /// A menu slot several actors share, as the seed writes it: the page,
-/// the age flag's hash, the slot's cell on its page, the actor count, each
+/// the age flag's hash, the slot's first and last cells on its page, the
+/// actor count, each
 /// actor's age bits, then each one's kind, then the size of the names and
 /// each one's name the way the lines write it. Actors are in the game's
 /// table order.
@@ -277,6 +278,9 @@ pub struct Slot<'a> {
     pub age_flag: u32,
     /// Where the slot's cell is in its page's list.
     pub cell: u8,
+    /// Its last cell: a slot split into one row per actor has a cell for
+    /// each on the same pane, `cell` to `last`. The same as `cell` when not.
+    pub last: u8,
     pub actors: MultiSlot<'a>,
     /// What the page draws each actor by. On the Items page, what the cell
     /// setter takes: its kind in the game's item kind list, less one. On
@@ -303,7 +307,7 @@ impl<'a> Slot<'a> {
     fn parse(bytes: &'a [u8]) -> Option<(Self, &'a [u8])> {
         let (&[page], rest) = bytes.split_first_chunk()?;
         let (hash, rest) = rest.split_first_chunk()?;
-        let (&[cell, n], rest) = rest.split_first_chunk()?;
+        let (&[cell, last, n], rest) = rest.split_first_chunk()?;
         let (ages, rest) = rest.split_at_checked(n as usize)?;
         let (kinds, rest) = rest.split_at_checked(n as usize)?;
         let (size, rest) = rest.split_first_chunk()?;
@@ -312,6 +316,7 @@ impl<'a> Slot<'a> {
             page: Page::from_u8(page)?,
             age_flag: u32::from_le_bytes(*hash),
             cell,
+            last,
             actors: MultiSlot { ages },
             kinds,
             names,
@@ -341,6 +346,7 @@ pub struct SlotSpec<'a> {
     pub page: Page,
     pub age_flag: u32,
     pub cell: u8,
+    pub last: u8,
     pub actors: &'a [(&'a str, u8, u8)],
 }
 
@@ -445,7 +451,7 @@ pub fn encode(
         let n = u8::try_from(slot.actors.len()).expect("a slot has under 256 actors");
         body.push(slot.page as u8);
         body.extend(slot.age_flag.to_le_bytes());
-        body.extend([slot.cell, n]);
+        body.extend([slot.cell, slot.last, n]);
         body.extend(slot.actors.iter().map(|a| a.1));
         body.extend(slot.actors.iter().map(|a| a.2));
         let mut names = Vec::new();
@@ -712,6 +718,7 @@ mod tests {
         page: Page::Items,
         age_flag: 0xc0ff_ee00,
         cell: 22,
+        last: 24,
         actors: &[("FakeCheck", 2, 44), ("FakeSaw", 2, 39), ("FakeEgg", 1, 31)],
     };
 
@@ -719,6 +726,7 @@ mod tests {
         page: Page::Equipment,
         age_flag: 0xc0ff_ee00,
         cell: 12,
+        last: 12,
         actors: &[("FakeTruth", 3, 16), ("FakeKeaton", 3, 12)],
     };
 
@@ -728,11 +736,14 @@ mod tests {
             let [Some(slot), Some(masks)] = t.slots else {
                 panic!("two slots");
             };
-            assert_eq!((masks.page, masks.cell), (Page::Equipment, 12));
+            assert_eq!(
+                (masks.page, masks.cell, masks.last),
+                (Page::Equipment, 12, 12)
+            );
             assert_eq!(masks.actor(1), Some((&b"FakeKeaton"[..], 12)));
             assert_eq!(masks.index(b"FakeTruth"), Some(0));
             assert_eq!(slot.page, Page::Items);
-            assert_eq!((slot.age_flag, slot.cell), (0xc0ff_ee00, 22));
+            assert_eq!((slot.age_flag, slot.cell, slot.last), (0xc0ff_ee00, 22, 24));
             assert_eq!(slot.actors.ages, [2, 2, 1]);
             assert_eq!(slot.actor(1), Some((&b"FakeSaw"[..], 39)));
             assert_eq!(slot.actor(2), Some((&b"FakeEgg"[..], 31)));

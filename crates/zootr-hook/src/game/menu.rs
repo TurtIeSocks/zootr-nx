@@ -158,9 +158,14 @@ extern "C" fn equipment_left(page: usize) {
 
 fn built(which: Page, page: usize) {
     hooked(|main, _| {
-        shared(main)
-            .ui
-            .with(|s| s.pages[which as usize] = PageUp { page, up: true })
+        shared(main).ui.with(|s| {
+            let p = &mut s.pages[which as usize];
+            *p = PageUp {
+                page,
+                up: true,
+                builds: p.builds.wrapping_add(1),
+            };
+        })
     })
 }
 
@@ -188,10 +193,17 @@ extern "C" fn ui_update() {
     })
 }
 
-/// Look at slot `i`'s page and make its cell show what the store says. A
-/// focused cell's button is refreshed as the cursor would, so the item
-/// detail panel follows. One not focused never is: focusing it would put
-/// a second cursor on the page.
+/// Frames a slot's cells redraw after its page's build, which draws them
+/// its own way over that time.
+const REDRAWS: u8 = 30;
+
+/// Look at slot `i`'s page and make its cells show what the store says.
+/// A split slot's rows each have a cell on one pane: the first's icon is
+/// the one seen, the last takes the cursor and fills the item detail
+/// panel, so both show the pick. A focused cell's button is refreshed as the cursor
+/// would, so the panel follows. One not focused never is: focusing it
+/// would put a second cursor on the page. The trade item Link has on ZR,
+/// picked in the Quick Swap wheel or the page, is the pick.
 ///
 /// Far code: it runs only while a page is up.
 ///
@@ -202,17 +214,27 @@ extern "C" fn ui_update() {
 unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
     let slot = table.slots[i]?;
     let ui = &shared(main).ui;
-    let page = ui.with(|s| {
-        let PageUp { page, up } = s.pages[slot.page as usize];
+    let (page, builds) = ui.with(|s| {
+        let PageUp { page, up, builds } = s.pages[slot.page as usize];
         s.slots[i].seen.on_slot &= up;
-        up.then_some(page)
+        up.then_some((page, builds))
     })?;
     let o = table.offsets;
     let l = slot.page.layout();
     unsafe {
-        let cell = cell(page, &l, slot.cell)?;
-        let button = at(cell, l.button)?;
-        let focused = CURSOR_ON.contains(&*((button + STATE) as *const u8));
+        let first = cell(page, &l, slot.cell)?;
+        let last = cell(page, &l, slot.last)?;
+        // The rows draw into one pane, the last set over the one before:
+        // the first cell draws last, so its icon is the one on screen.
+        let cells: &[usize] = if first == last {
+            &[first]
+        } else {
+            &[last, first]
+        };
+        let mut on_slot = false;
+        for &cell in cells {
+            on_slot |= focused(at(cell, l.button)?);
+        }
         let owns = chests::owned(main, o)?;
         let held = (0..slot.actors.ages.len())
             .filter(|&i| slot.actor(i).is_some_and(|(n, _)| owns(n)))
@@ -220,21 +242,84 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
         let gd = dev::single(main, o.gamedata)?;
         let child = dev::get_bool(main, o, gd, slot.age_flag)?;
         let seen = Seen {
-            on_slot: focused,
+            on_slot,
             child,
             held,
         };
-        let (want, cycling) = ui.with(|s| {
+        // The wheel equips a trade item without the page: it's the pick.
+        let worn = match slot.page {
+            Page::Items => {
+                let equipped: Equipped = func(main, o.equipped);
+                let kind = equipped(at(main, o.manager as usize)?, child.into(), 1);
+                (0..slot.actors.ages.len())
+                    .find(|&i| slot.actor(i).is_some_and(|(_, k)| i32::from(k) == kind))
+            }
+            Page::Equipment => None,
+        };
+        let (want, cycling, fresh) = ui.with(|s| {
             let state = &mut s.slots[i];
             state.seen = seen;
-            (state.showing(&slot.actors), state.cycling())
+            if let Some(worn) = worn.filter(|_| !state.cycling()) {
+                state.choose(worn, &slot.actors);
+            }
+            if state.drawn != builds {
+                state.drawn = builds;
+                state.redraws = REDRAWS;
+            }
+            let fresh = state.redraws > 0;
+            state.redraws = state.redraws.saturating_sub(1);
+            (state.showing(&slot.actors), state.cycling(), fresh)
         });
-        tint(cell, l.cursor_line, if cycling { CYCLING } else { PLAIN })?;
-        let (actor, kind) = slot.actor(want?)?;
-        if name(at(cell, l.name)? as *const u8) == Some(actor) {
-            return Some(());
+        for &cell in cells {
+            tint(cell, l.cursor_line, if cycling { CYCLING } else { PLAIN })?;
         }
-        let on_button = match slot.page {
+        let (actor, kind) = slot.actor(want?)?;
+        // A page build draws each cell its own row's way, over the pane,
+        // for a few frames: the cells redraw through those, and again off
+        // the pick.
+        let mut off = fresh;
+        for &cell in cells {
+            off |= name(at(cell, l.name)? as *const u8) != Some(actor);
+        }
+        if off {
+            for &cell in cells {
+                draw(main, o, slot.page, &l, cell, actor, kind, child);
+            }
+        }
+    }
+    Some(())
+}
+
+/// Whether the cursor is on the cell whose button is `button`.
+///
+/// # Safety
+/// `button` is a page cell's button.
+#[inline(always)]
+unsafe fn focused(button: usize) -> bool {
+    CURSOR_ON.contains(unsafe { &*((button + STATE) as *const u8) })
+}
+
+/// Make one cell of a slot on `page`, laid out as `l`, show `actor`, drawn
+/// as `kind`.
+///
+/// # Safety
+/// `cell` is a page's cell, and the offsets are this build's.
+/// Far code, as [`show`].
+#[allow(clippy::too_many_arguments)]
+#[inline(never)]
+#[unsafe(link_section = ".far")]
+unsafe fn draw(
+    main: usize,
+    o: &crate::Offsets,
+    page: Page,
+    l: &Layout,
+    cell: usize,
+    actor: &[u8],
+    kind: u8,
+    child: bool,
+) -> Option<()> {
+    unsafe {
+        let on_button = match page {
             Page::Items => {
                 let set: CellSet = func(main, o.cell_set);
                 set(cell, &actor.as_ptr(), i32::from(kind), 0, 1);
@@ -265,11 +350,12 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
             l.state,
             if on_button { ON_BUTTON } else { USABLE },
         )?;
-        if slot.page == Page::Equipment {
+        if page == Page::Equipment {
             // The Equipment page's own refresh applies the new frames so.
             func::<Redraw>(main, o.redraw)(cell, 0);
         }
-        if focused {
+        let button = at(cell, l.button)?;
+        if focused(button) {
             for refresh in [o.unfocus, o.focus] {
                 func::<Focus>(main, refresh)(button, 0, 0, 0);
             }
@@ -282,6 +368,7 @@ unsafe fn show(main: usize, table: &Table, i: usize) -> Option<()> {
 ///
 /// # Safety
 /// `cell` is a page's cell, and the offsets are this build's.
+#[unsafe(link_section = ".far")]
 unsafe fn seek(
     main: usize,
     o: &crate::Offsets,
@@ -302,6 +389,7 @@ unsafe fn seek(
 ///
 /// # Safety
 /// `cell` is a page's cell.
+#[unsafe(link_section = ".far")]
 unsafe fn tint(cell: usize, cursor_line: usize, color: [f32; 4]) -> Option<()> {
     unsafe {
         let panes = at(at(cell, CELL_LAYOUT)?, LAYOUT_PANES)?;
@@ -319,6 +407,7 @@ unsafe fn tint(cell: usize, cursor_line: usize, color: [f32; 4]) -> Option<()> {
 ///
 /// # Safety
 /// `page` is the page `l` is for.
+#[unsafe(link_section = ".far")]
 unsafe fn cell(page: usize, l: &Layout, i: u8) -> Option<usize> {
     let count = unsafe { *((page + l.count) as *const u32) };
     (u32::from(i) < count).then_some(())?;

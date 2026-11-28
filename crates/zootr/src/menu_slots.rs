@@ -4,11 +4,18 @@
 //! `EquipmentArray` entry whose `SpecialDeal` is `Mask`
 //! (`UI/Pouch/PouchTable`). Each slot's items are in the table's own
 //! order, each with the ages that use it. See `docs/research/in-game-ui.md`.
+//!
+//! The trade slot's row is split into one row per item, in place: the
+//! Quick Swap wheel lists one entry per row whose item Link holds and his
+//! age can use, so each trade item gets its own. The rows share the slot's
+//! pane, each with its own cell, which the hook keeps on the pick.
 
-use ounce_formats::murmur3;
+use anyhow::{Context, Result, ensure};
+use ounce_formats::{Byml, BymlDoc, ModBuilder, murmur3};
 use zootr_hook::SlotSpec;
 use zootr_hook::ui::{Age, Page};
 
+use crate::game::POUCH_TABLE;
 use crate::known::{Name, actor, field, flag, item};
 
 const CHILD: u8 = Age::Child as u8;
@@ -20,18 +27,12 @@ const BOTH: u8 = CHILD | ADULT;
 pub struct MenuSlot {
     page: Page,
     /// The page's list in the pouch table, and the slot's `SpecialDeal`.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the dump test checks the slot by them")
-    )]
     list: &'static Name,
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "the dump test checks the slot by them")
-    )]
     deal: &'static Name,
     /// The slot's cell in the page's list.
     cell: u8,
+    /// Whether the seed splits the slot's row into one row per item.
+    split: bool,
     items: &'static [(&'static Name, u8)],
     /// What the page draws the item at table position `i` by, see
     /// [`zootr_hook::Slot`].
@@ -46,6 +47,7 @@ const TRADE: MenuSlot = MenuSlot {
     list: field::ITEM_ARRAY,
     deal: field::SWORD_BIG_GORON_CHALLENGE,
     cell: 22,
+    split: true,
     items: &[
         (item::CLAIM_CHECK, ADULT),
         (item::EYE_DROP, ADULT),
@@ -72,6 +74,7 @@ const MASKS: MenuSlot = MenuSlot {
     list: field::EQUIPMENT_ARRAY,
     deal: field::MASK,
     cell: 12,
+    split: false,
     items: &[
         (actor::ARMOR_CHILD_MASK_TRUTH, BOTH),
         (actor::ARMOR_CHILD_MASK_GORON, BOTH),
@@ -102,9 +105,68 @@ impl MenuSlot {
             page: self.page,
             age_flag: murmur3(flag::SEQUENCE_IS_CHILDHOOD.as_bytes()),
             cell: self.cell,
+            last: self.last(),
             actors,
         }
     }
+
+    /// The slot's last cell: a split row's items follow its first.
+    fn last(&self) -> u8 {
+        match self.split {
+            true => self.cell + (self.items.len() - 1) as u8,
+            false => self.cell,
+        }
+    }
+}
+
+/// Split each split slot's row in the pause menu's table into one row per
+/// item, in place and in the table's order, each a copy of the row with one
+/// actor. Every row is an object the game allocates on the table's heap, so
+/// its RESTBL entry grows with the row count: grown by bytes alone, the Mac
+/// build crashes loading it.
+pub fn write(builder: &mut ModBuilder) -> Result<()> {
+    let mut doc = BymlDoc::parse(&builder.read(POUCH_TABLE)?)?;
+    let before = rows(&doc.root);
+    for slot in ALL.iter().filter(|s| s.split) {
+        let list = (doc.root.as_mut_map()?.get_mut(slot.list.get()))
+            .with_context(|| format!("the pause menu lacks {}", slot.list))?
+            .as_mut_array()?;
+        let at = usize::from(slot.cell);
+        let row = list.get(at).context("the slot's row")?.as_map()?.clone();
+        ensure!(
+            row.get(field::SPECIAL_DEAL.get()) == Some(&Byml::String(slot.deal.get().into())),
+            "row {at} isn't the {} slot",
+            slot.deal
+        );
+        let actors = row
+            .get(field::ACTOR.get())
+            .context("the slot's actors")?
+            .as_array()?
+            .to_vec();
+        ensure!(
+            actors.len() == slot.items.len(),
+            "the {} slot changed",
+            slot.deal
+        );
+        let split = actors.into_iter().map(|actor| {
+            let mut one = row.clone();
+            one.insert(field::ACTOR.get().into(), Byml::Array(vec![actor]));
+            Byml::Map(one)
+        });
+        list.splice(at..=at, split);
+    }
+    let after = rows(&doc.root);
+    builder.write(POUCH_TABLE, &doc.to_binary())?;
+    builder.scale(POUCH_TABLE, before, after)
+}
+
+/// How many rows the table at `root` has, on every page.
+fn rows(root: &Byml) -> usize {
+    let pages = root.as_map().into_iter().flat_map(|m| m.values());
+    pages
+        .filter_map(|p| p.as_array().ok())
+        .map(|a| a.len())
+        .sum()
 }
 
 #[cfg(test)]
@@ -151,6 +213,46 @@ mod tests {
                 .collect();
             assert_eq!(game, ours);
         }
+    }
+
+    #[test]
+    fn the_trade_row_splits_into_one_row_per_item_in_place() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-menu-slots-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let vanilla = BymlDoc::parse(&romfs.read(POUCH_TABLE).unwrap()).unwrap();
+        write(&mut builder).unwrap();
+        let split = BymlDoc::parse(&builder.read(POUCH_TABLE).unwrap()).unwrap();
+        let get = |m: &'_ Byml, key: &Name| m.as_map().unwrap().get(&**key).cloned();
+        let list = |d: &BymlDoc| {
+            get(&d.root, TRADE.list)
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .to_vec()
+        };
+        let (old, new) = (list(&vanilla), list(&split));
+        let n = TRADE.items.len();
+        assert_eq!(new.len(), old.len() + n - 1);
+        assert_eq!(new[..22], old[..22]);
+        assert_eq!(new[22 + n..], old[23..]);
+        let actors = get(&old[22], field::ACTOR).unwrap();
+        for (i, row) in new[22..22 + n].iter().enumerate() {
+            let one = get(row, field::ACTOR).unwrap();
+            assert_eq!(one.as_array().unwrap(), &actors.as_array().unwrap()[i..=i]);
+            let (mut a, mut b) = (
+                row.as_map().unwrap().clone(),
+                old[22].as_map().unwrap().clone(),
+            );
+            a.remove(field::ACTOR.get());
+            b.remove(field::ACTOR.get());
+            assert_eq!(a, b, "row {i} keeps the slot's pane and deal");
+        }
+        assert_eq!(TRADE.last(), 22 + n as u8 - 1);
+        assert_eq!(MASKS.last(), MASKS.cell);
+        std::fs::remove_dir_all(dir).ok();
     }
 
     #[test]
