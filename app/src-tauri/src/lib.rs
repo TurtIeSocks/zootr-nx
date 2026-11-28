@@ -739,6 +739,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             ui::UiShared
         ])
         .constant("TRACKER_COLUMNS", inventory::COLUMNS)
+        .constant("TRACKER_MAX_GAP", inventory::MAX_GAP)
         .constant("STEPS", progress::names())
         // Only setting values (JSON numbers) and small counts reach this: the
         // u64 seeds and hashes go over as strings.

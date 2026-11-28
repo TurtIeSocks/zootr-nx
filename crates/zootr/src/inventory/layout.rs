@@ -68,6 +68,9 @@ impl Section {
 /// section can have a column of its own.
 pub const COLUMNS: u8 = Section::ALL.len() as u8;
 
+/// The most pixels between sections the grid takes.
+pub const MAX_GAP: u8 = 24;
+
 /// Where a section sits in the grid and how wide it draws.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -111,6 +114,10 @@ pub struct TrackerOptions {
     /// The CSS color, alpha included, laid over a missing item's icon.
     /// `None` follows the background, which matches a faded icon.
     pub missing: Option<String>,
+    /// Each section draws its title above it.
+    pub titles: bool,
+    /// Pixels between sections and between columns, up to [`MAX_GAP`].
+    pub gap: u8,
     /// Every section once. The order within a column is the draw order.
     pub sections: Vec<Placement>,
 }
@@ -121,6 +128,8 @@ impl Default for TrackerOptions {
             size: IconSize::default(),
             background: "#18181b".into(),
             missing: None,
+            titles: true,
+            gap: 12,
             sections: Section::ALL.map(Placement::new).into(),
         }
     }
@@ -139,6 +148,7 @@ impl TrackerOptions {
         });
         let missing = Section::ALL.into_iter().filter(|s| !seen.contains(s));
         self.sections.extend(missing.map(Placement::new));
+        self.gap = self.gap.min(MAX_GAP);
         let shown: BTreeSet<u8> = (self.sections.iter())
             .filter(|p| p.shown)
             .map(|p| p.column)
@@ -236,9 +246,20 @@ mod tests {
     }
 
     #[test]
+    fn the_gap_stops_at_its_most() {
+        let wide = TrackerOptions {
+            gap: 99,
+            ..TrackerOptions::default()
+        };
+        assert_eq!(wide.tidy().gap, MAX_GAP);
+    }
+
+    #[test]
     fn an_older_config_follows_the_background() {
         let old: TrackerOptions = serde_json::from_str(r##"{"background":"#ff00ff"}"##).unwrap();
         assert_eq!(old.missing, None);
+        assert!(old.titles);
+        assert_eq!(old.gap, 12);
         assert_eq!(old.background, "#ff00ff");
     }
 

@@ -238,6 +238,8 @@ export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading
 
 export const TRACKER_COLUMNS = 10 as const;
 
+export const TRACKER_MAX_GAP = 24 as const;
+
 /* Types */
 /**  A status change or a log line, or the page's log started over. */
 export type ApEvent = {
@@ -1431,6 +1433,10 @@ export type TrackerOptions = {
 	 *  `None` follows the background, which matches a faded icon.
 	 */
 	missing?: string | null,
+	/**  Each section draws its title above it. */
+	titles?: boolean,
+	/**  Pixels between sections and between columns, up to [`MAX_GAP`]. */
+	gap?: number,
 	/**  Every section once. The order within a column is the draw order. */
 	sections?: Placement[],
 };

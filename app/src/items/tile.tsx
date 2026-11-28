@@ -194,6 +194,8 @@ export interface SectionGridProps {
   cells: { cell: Cell; at: number }[];
   size: number;
   ink: string;
+  /** Draws the section's title above it. */
+  heading?: boolean;
   /** Draws one cell. */
   children: (cell: Cell, at: number) => ReactNode;
 }
@@ -205,19 +207,22 @@ export function SectionGrid({
   cells,
   size,
   ink,
+  heading = true,
   children,
 }: SectionGridProps) {
   const rows = cells.some(({ cell }) => cell.row);
   return (
     <>
-      <h3
-        className={cn(
-          "mb-1.5 ml-0.5 font-semibold text-[10.5px] uppercase leading-3.5 tracking-[0.08em] opacity-80",
-          ink,
-        )}
-      >
-        {TITLES[placement.section]}
-      </h3>
+      {heading && (
+        <h3
+          className={cn(
+            "mb-1.5 ml-0.5 font-semibold text-[10.5px] uppercase leading-3.5 tracking-[0.08em] opacity-80",
+            ink,
+          )}
+        >
+          {TITLES[placement.section]}
+        </h3>
+      )}
       {/* As wide as its tiles, so a row's label doesn't take the slack. */}
       <div
         className="grid w-max gap-1"

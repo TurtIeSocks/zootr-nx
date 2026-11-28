@@ -25,6 +25,8 @@ export const fullOptions = (o: TrackerOptions): Options => ({
   size: "Medium",
   background: "#18181b",
   missing: null,
+  titles: true,
+  gap: 12,
   sections: [],
   ...o,
 });

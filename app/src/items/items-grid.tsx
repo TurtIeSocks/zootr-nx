@@ -54,15 +54,16 @@ export interface ItemsGridProps {
 export function ItemsGrid({ edit }: ItemsGridProps) {
   const [sections] = useItems.usePath("options.sections");
   const [background] = useItems.usePath("options.background");
+  const [gap] = useItems.usePath("options.gap");
   // An empty column isn't drawn, so the pop out trims to what's shown.
   const columns = columnsOf(sections, TRACKER_COLUMNS);
   return (
     <div
-      className={cn("inline-flex items-start gap-3 p-3", edit && "rounded-lg")}
-      style={{ background }}
+      className={cn("inline-flex items-start p-3", edit && "rounded-lg")}
+      style={{ background, gap }}
     >
       {columns.map(({ n, shown }) => (
-        <div key={n} className="flex flex-col gap-3">
+        <div key={n} className="flex flex-col" style={{ gap }}>
           {shown.map((placement) => (
             <GridSection
               key={placement.section}
@@ -87,6 +88,7 @@ function GridSection({ placement, edit }: GridSectionProps) {
   const all = useItems((s) => s.cells);
   const cells = useMemo(() => inSection(all, section), [all, section]);
   const size = useItems((s) => PIXELS[s.options.size]);
+  const [titles] = useItems.usePath("options.titles");
   const ink = useInk();
   return (
     <section
@@ -105,7 +107,13 @@ function GridSection({ placement, edit }: GridSectionProps) {
           fixed={cells.some(({ cell }) => cell.row)}
         />
       )}
-      <SectionGrid placement={placement} cells={cells} size={size} ink={ink}>
+      <SectionGrid
+        placement={placement}
+        cells={cells}
+        size={size}
+        ink={ink}
+        heading={titles}
+      >
         {(cell) => <TrackerTile cell={cell} size={size} ink={ink} />}
       </SectionGrid>
     </section>

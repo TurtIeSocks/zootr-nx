@@ -20,7 +20,7 @@ mod glyph;
 mod layout;
 pub use edit::{Intent, Pouch};
 pub use glyph::Glyph;
-pub use layout::{COLUMNS, IconSize, Placement, Section, TrackerOptions};
+pub use layout::{COLUMNS, IconSize, MAX_GAP, Placement, Section, TrackerOptions};
 
 const POUCH: &str = "PouchData";
 const STOCK: &Name = flag::STOCK_NUM;
