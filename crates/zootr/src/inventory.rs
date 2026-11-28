@@ -23,6 +23,10 @@ pub use glyph::Glyph;
 pub use layout::{COLUMNS, IconSize, MAX_GAP, Placement, Section, TrackerOptions};
 
 const POUCH: &str = "PouchData";
+
+/// Counted from the checks alone: no pouch entry holds it, and a new game
+/// gets it as hearts, never as a grid item. Drawn only with counts.
+const CHECKS_ONLY: &Name = actor::OBJ_HEART_CONTAINER;
 const STOCK: &Name = flag::STOCK_NUM;
 
 /// One cell of the grid.
@@ -142,6 +146,7 @@ const GRID: &[Slot] = &[
     slot(Upgrades, "Stick Capacity", &[item::STICK_BAG_SMALL, item::STICK_BAG_MEDIUM, item::STICK_BAG_LARGE]),
     slot(Upgrades, "Nut Capacity", &[item::NUT_BAG_SMALL, item::NUT_BAG_MEDIUM, item::NUT_BAG_LARGE]),
     Slot { count: Some(actor::OBJ_HEART_PIECE), ..slot(Quest, "Heart Pieces", &[actor::OBJ_HEART_PIECE]) },
+    Slot { count: Some(CHECKS_ONLY), ..slot(Quest, "Heart Containers", &[CHECKS_ONLY]) },
     slot(Quest, "Magic", &[crate::magic::meter::METER, item::FAIRY_BLESS_MP_DOUBLE]),
     slot(Quest, "Improved Spin", &[item::FAIRY_BLESS_MP]),
     slot(Quest, "Double Defense", &[item::FAIRY_BLESS_DEFENSE_DOUBLE]),
@@ -189,7 +194,7 @@ pub struct Held {
 /// first, then its count.
 pub fn held() -> Vec<Held> {
     let mut out: Vec<Held> = Vec::new();
-    for s in GRID {
+    for s in GRID.iter().filter(|s| !s.tiers.contains(&CHECKS_ONLY)) {
         let tiers = s.tiers.iter().map(|&actor| Held { actor, ammo: false });
         let count =
             (s.count.filter(|c| !s.tiers.contains(c))).map(|actor| Held { actor, ammo: true });
@@ -356,6 +361,9 @@ pub struct Inventory {
     /// Each pouch count's `IsGet` flag, where the game has one. Its menus
     /// list only an item whose flag is on.
     owned: HashMap<u32, u32>,
+    /// Counts taken from elsewhere over the save's, by actor: hearts,
+    /// counted from the checks.
+    counts: HashMap<&'static Name, i32>,
 }
 
 impl Inventory {
@@ -384,6 +392,7 @@ impl Inventory {
             dungeons: kept(found),
             values: HashMap::new(),
             owned,
+            counts: HashMap::new(),
         })
     }
 
@@ -414,6 +423,14 @@ impl Inventory {
             n => n.parse().unwrap_or_default(),
         };
         self.values.insert(c.hash, value) != Some(value)
+    }
+
+    /// Takes `counts` over the save's. True when the grid changed.
+    pub fn set_counts(&mut self, counts: impl IntoIterator<Item = (&'static Name, i32)>) -> bool {
+        let counts: HashMap<_, _> = counts.into_iter().collect();
+        let changed = counts != self.counts;
+        self.counts = counts;
+        changed
     }
 
     /// Whether `slot` is of our own items and the loaded values hold none
@@ -454,7 +471,8 @@ impl Inventory {
         });
         GRID.iter()
             .map(|s| {
-                let tier = self.tier(s);
+                let counted = s.count.and_then(|a| self.counts.get(a).copied());
+                let tier = counted.map_or_else(|| self.tier(s), |n| usize::from(n > 0));
                 let held = s.tiers[tier.saturating_sub(1)];
                 let icon = s.icon.unwrap_or(held);
                 Cell {
@@ -464,9 +482,9 @@ impl Inventory {
                     glyph: Glyph::of(icon),
                     tier: tier as u8,
                     tiers: s.tiers.len() as u8,
-                    count: s.count.map(|a| self.value(a)),
+                    count: counted.or_else(|| s.count.map(|a| self.value(a))),
                     row: None,
-                    hidden: self.absent(s),
+                    hidden: self.absent(s) || (s.tiers.contains(&CHECKS_ONLY) && counted.is_none()),
                 }
             })
             .chain(dungeons)
@@ -692,6 +710,27 @@ pub(super) mod tests {
         (flag::INSIDE_THE_DEKU_TREE, item::DUNGEON_MAP),
         (flag::INSIDE_THE_DEKU_TREE, item::DUNGEON_COMPASS),
     ];
+
+    #[test]
+    fn hearts_take_the_counts_given_and_containers_show_only_with_one() {
+        let mut inv = inventory_of(&HAS);
+        let cells = inv.cells();
+        assert!(cell(&cells, "Heart Containers").hidden);
+        assert_eq!(cell(&cells, "Heart Pieces").count, Some(0));
+        let counts = [
+            (actor::OBJ_HEART_PIECE, 14),
+            (actor::OBJ_HEART_CONTAINER, 0),
+        ];
+        assert!(inv.set_counts(counts));
+        assert!(!inv.set_counts(counts));
+        let cells = inv.cells();
+        let pieces = cell(&cells, "Heart Pieces");
+        assert_eq!((pieces.tier, pieces.count), (1, Some(14)));
+        let containers = cell(&cells, "Heart Containers");
+        assert!(!containers.hidden);
+        assert_eq!((containers.tier, containers.count), (0, Some(0)));
+        assert_eq!(containers.glyph, Glyph::Heart);
+    }
 
     #[test]
     fn a_save_fills_each_dungeons_row_and_leaves_missing_items_empty() {

@@ -517,6 +517,31 @@ pub fn flag(romfs: &Romfs, gd: &GameData, hash: u64) -> Result<Option<Flag>> {
     Ok(Tracker::new(gd, &[Spot::new(&placement, &names)])?.flag(hash))
 }
 
+/// Every check that holds one of `items` in a vanilla game, as a spot
+/// holding it, so the tracker reads what each sets once done.
+pub(crate) fn holding(romfs: &Romfs, items: &[&Name]) -> Result<Vec<Spot>> {
+    let wanted = |c: &ItemCheck| items.iter().any(|i| c.item == i.get());
+    let new_game = NewGame::from_settings(&every_shuffle(), &[])?;
+    // What no setting deals comes after, as a pickup placed as itself. A
+    // check is listed once, though each age's map has a copy.
+    let census = census(romfs, &breakables(romfs)?)?;
+    let mut found: Vec<ItemCheck> = Vec::new();
+    for c in checks::dealt(romfs, &new_game)?.into_iter().chain(census) {
+        if wanted(&c) && !found.iter().any(|f| f.hash == c.hash) {
+            found.push(c);
+        }
+    }
+    let names = crate::names::Names::load(romfs, items.iter().map(|i| i.get()))?;
+    let spot = |check: &ItemCheck| {
+        let placement = Placement {
+            check,
+            item: &check.item,
+        };
+        Spot::new(&placement, &names)
+    };
+    Ok(found.iter().map(spot).collect())
+}
+
 /// What the tracker reads once check `hash` is done in a seed whose spots
 /// are `spots`, as the app's client does: a check dealt another item can
 /// tick another flag (a Gold Skulltula's own pickup Bool, not its token's

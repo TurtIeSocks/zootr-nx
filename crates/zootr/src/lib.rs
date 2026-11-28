@@ -64,6 +64,7 @@ mod gifts;
 mod goron_pot;
 mod grant;
 mod graphs;
+pub mod hearts;
 mod held;
 pub mod hints;
 pub mod history;

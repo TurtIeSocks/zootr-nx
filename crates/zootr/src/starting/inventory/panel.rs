@@ -702,7 +702,7 @@ mod tests {
         let click = |s: &Start, at, intent| click(&gd, &inv, &pouch, s, at, intent).unwrap();
         let view = items(&gd, &inv, &pouch, &Start::default(), &[], &[]).unwrap();
         let at = (view.cells.iter())
-            .position(|c| c.label == "Heart Containers")
+            .position(|c| c.label == "Heart Containers" && !c.hidden)
             .unwrap();
         assert_eq!(view.cells[at].section, Section::Quest);
         assert_eq!((view.cells[at].count, view.caps[at]), (Some(0), Some(8)));
