@@ -47,6 +47,33 @@ pub(super) fn poses(romfs: &Romfs, game: &Path, path: &str) -> Result<()> {
                     "    {bone} S{:?} R{:?} T{:?}",
                     b.scale, b.rotate, b.translate
                 );
+                // A bone its curves move: how far each value ranges.
+                let frames = match ounce_formats::fska::frames(data, &anim, bone) {
+                    Ok(f) => f.unwrap_or_default(),
+                    Err(e) => {
+                        println!("      curves unread: {e}");
+                        continue;
+                    }
+                };
+                if frames.len() > 1 {
+                    let range = |get: &dyn Fn(&Base) -> [f32; 3]| {
+                        let lo = (0..3)
+                            .map(|i| frames.iter().map(|f| get(f)[i]).fold(f32::MAX, f32::min));
+                        let hi = (0..3)
+                            .map(|i| frames.iter().map(|f| get(f)[i]).fold(f32::MIN, f32::max));
+                        format!(
+                            "{:.3?}..{:.3?}",
+                            lo.collect::<Vec<_>>(),
+                            hi.collect::<Vec<_>>()
+                        )
+                    };
+                    println!(
+                        "      {} frames  R {}  T {}",
+                        frames.len(),
+                        range(&|f| f.rotate.map_or([0.0; 3], |r| [r[0], r[1], r[2]])),
+                        range(&|f| f.translate.unwrap_or_default()),
+                    );
+                }
             }
         }
         Ok(())
