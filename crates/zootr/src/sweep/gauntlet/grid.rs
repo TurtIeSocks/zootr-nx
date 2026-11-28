@@ -9,6 +9,7 @@ use anyhow::{Result, bail};
 use clap::ValueEnum;
 use serde::Serialize;
 
+use super::loads;
 use crate::known::{actor, item};
 use crate::{ice_traps, key_tints};
 
@@ -229,9 +230,10 @@ impl Cell {
 /// What a gauntlet runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Run {
-    /// The tour, then every cell.
+    /// The tour, every cell, then the loads.
     Full,
-    /// The tour, then one item kind of each group at every holder kind.
+    /// The tour, one item kind of each group at every holder kind, then
+    /// the loads' quick kinds.
     Quick,
     /// The tour alone.
     Places,
@@ -239,6 +241,8 @@ pub enum Run {
     Holders,
     /// Every item kind, each in a small chest of its own.
     Items,
+    /// Every module-made holder dealt each load kind, its map loaded.
+    Loads,
 }
 
 impl Run {
@@ -247,11 +251,21 @@ impl Run {
         matches!(self, Run::Full | Run::Quick | Run::Places)
     }
 
+    /// The item kinds its loads deal, none for a run without loads.
+    /// `quick` keeps [`loads::QUICK`].
+    pub fn loads(self, quick: bool) -> &'static [&'static str] {
+        match self {
+            Run::Full | Run::Loads if !quick => &loads::KINDS,
+            Run::Full | Run::Loads | Run::Quick => &loads::QUICK,
+            Run::Places | Run::Holders | Run::Items => &[],
+        }
+    }
+
     /// Its cells, before any filter.
     pub fn cells(self) -> Vec<Cell> {
         let every = || (0..HOLDERS.len()).flat_map(|h| (0..ITEMS.len()).map(move |i| (h, i)));
         match self {
-            Run::Places => vec![],
+            Run::Places | Run::Loads => vec![],
             Run::Full => every().map(|(h, i)| Cell::at(h, i)).collect(),
             Run::Quick => (every().filter(|&(_, i)| ITEMS[i].quick))
                 .map(|(h, i)| Cell::at(h, i))
@@ -354,6 +368,17 @@ mod tests {
         assert!(items.iter().all(|c| c.holder_kind == SMALL_CHEST));
         assert_eq!(rounds(&items).len(), 1, "a chest of its own each");
         assert!(Run::Places.tours() && !Run::Items.tours());
+    }
+
+    #[test]
+    fn full_loads_every_kind_and_quick_two() {
+        assert_eq!(Run::Full.loads(false), loads::KINDS);
+        assert_eq!(Run::Loads.loads(true), loads::QUICK);
+        assert_eq!(Run::Quick.loads(false), loads::QUICK);
+        for run in [Run::Places, Run::Holders, Run::Items] {
+            assert!(run.loads(false).is_empty(), "{run:?}");
+        }
+        assert!(Run::Loads.cells().is_empty() && !Run::Loads.tours());
     }
 
     #[test]

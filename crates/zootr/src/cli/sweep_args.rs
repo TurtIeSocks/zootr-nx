@@ -88,12 +88,17 @@ pub(super) struct GauntletArgs {
     #[arg(long = "item")]
     pub(super) items: Vec<String>,
     /// Tour only the places whose `MAP/SPOT` holds this, like a map's
-    /// name, to see a hung load again. Repeatable.
+    /// name, to see a hung load again, and load only the holders whose
+    /// `MAP/HASH` does. Repeatable.
     #[arg(long = "place")]
     pub(super) places: Vec<String>,
     /// Stop at the first failure.
     #[arg(long)]
     pub(super) fail_fast: bool,
+    /// Loads deal only progressive items and ammo, the two kinds behind
+    /// the Deku Tree's hung load.
+    #[arg(long)]
+    pub(super) quick: bool,
     /// Seconds of pure black, the triforce gone, that make a hang.
     #[arg(long, default_value_t = 2.0, value_parser = seconds)]
     pub(super) black_limit: f32,
@@ -133,6 +138,7 @@ impl GauntletArgs {
             items: self.items,
             places: self.places,
             fail_fast: self.fail_fast,
+            quick: self.quick,
             limits: Limits {
                 black: Duration::from_secs_f32(self.black_limit),
                 load: Duration::from_secs_f32(self.load_limit),

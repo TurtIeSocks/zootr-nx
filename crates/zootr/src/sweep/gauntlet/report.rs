@@ -14,6 +14,8 @@ use crate::sweep::report::verdicts;
 /// A row's `gauntlet` field: what it records.
 pub mod row {
     pub const PLACE: &str = "place";
+    /// A map loaded with a load round's items at its module-made holders.
+    pub const LOAD: &str = "load";
     pub const CELL: &str = "cell";
     /// A hang seen after a cell's sweep.
     pub const HANG: &str = "hang";
@@ -91,6 +93,9 @@ struct Seen {
 struct Read {
     places: BTreeMap<String, Seen>,
     cells: BTreeMap<String, Seen>,
+    loads: BTreeMap<String, Seen>,
+    /// Loads that hung, then landed on a retry, with each hang.
+    retried: Vec<(String, Vec<String>)>,
     errors: Vec<String>,
 }
 
@@ -107,17 +112,41 @@ fn read(rows: &str) -> Read {
             .to_owned();
         let frame = row["frame"].as_str().map(str::to_owned);
         let why = row["why"].as_str().unwrap_or_default().to_owned();
+        let load = row["load"].as_bool() == Some(true);
         match kind {
-            row::PLACE => {
+            row::PLACE | row::LOAD => {
                 let outcome = match row.get("hang").filter(|h| !h.is_null()) {
                     Some(h) => Outcome::Fail(hang_words(h)),
                     None => Outcome::Pass,
                 };
-                let seen = Seen {
-                    outcome,
-                    evidence: frame.into_iter().collect(),
+                // A load's pins say what its map held.
+                let pins = (row["pins"].as_array().into_iter().flatten()).map(|p| {
+                    let (holder, kind) = (&p["holder"], &p["item_kind"]);
+                    format!(
+                        "holder {} held {}",
+                        holder.as_str().unwrap_or_default(),
+                        kind.as_str().unwrap_or_default()
+                    )
+                });
+                let hangs: Vec<String> = (row["tries"].as_array().into_iter().flatten())
+                    .filter(|t| !t["hang"].is_null())
+                    .map(|t| {
+                        format!(
+                            "from {}: {}",
+                            t["spot"].as_str().unwrap_or_default(),
+                            hang_words(&t["hang"])
+                        )
+                    })
+                    .collect();
+                if outcome == Outcome::Pass && !hangs.is_empty() {
+                    out.retried.push((name.clone(), hangs));
+                }
+                let evidence = frame.into_iter().chain(pins).collect();
+                let seen = Seen { outcome, evidence };
+                match kind == row::LOAD {
+                    true => out.loads.insert(name, seen),
+                    false => out.places.insert(name, seen),
                 };
-                out.places.insert(name, seen);
             }
             row::CELL => {
                 let cell = row["cell"].as_str().unwrap_or_default().to_owned();
@@ -139,8 +168,16 @@ fn read(rows: &str) -> Read {
                 seen.outcome = Outcome::Fail(hang_words(&row["hang"]));
                 seen.evidence.extend(frame);
             }
-            row::REFUSED => _ = out.cells.insert(name, seen_of(Outcome::Refused(why))),
-            row::UNPLANNED => _ = out.cells.insert(name, seen_of(Outcome::Harness(why))),
+            row::REFUSED | row::UNPLANNED => {
+                // A load's holder no teleport reaches waits on a way there.
+                let outcome = match (kind == row::REFUSED, load) {
+                    (true, _) => Outcome::Refused(why),
+                    (false, true) => Outcome::NoTrigger(why),
+                    (false, false) => Outcome::Harness(why),
+                };
+                let into = if load { &mut out.loads } else { &mut out.cells };
+                into.insert(name, seen_of(outcome));
+            }
             row::ERROR => out
                 .errors
                 .push(row["error"].as_str().unwrap_or_default().into()),
@@ -160,12 +197,16 @@ fn seen_of(outcome: Outcome) -> Seen {
 }
 
 /// `report.md` for the rows of a run named `run`, and its exit code: 1
-/// when anything failed, else 2 when the harness broke or a cell has no
-/// trigger yet, else 0.
+/// when anything failed, else 2 when the harness broke or a cell or load
+/// has no trigger yet, else 0.
 pub fn render(rows: &str, run: &str) -> (String, i32) {
     let read = read(rows);
     let mut md = format!("# Gauntlet: {run}\n\n");
-    let all = || read.places.values().chain(read.cells.values());
+    let all = || {
+        (read.places.values())
+            .chain(read.cells.values())
+            .chain(read.loads.values())
+    };
     let count = |f: fn(&Outcome) -> bool| all().filter(|s| f(&s.outcome)).count();
     let fails = count(|o| matches!(o, Outcome::Fail(_)));
     let harness = count(|o| matches!(o, Outcome::Harness(_))) + read.errors.len();
@@ -174,7 +215,11 @@ pub fn render(rows: &str, run: &str) -> (String, i32) {
         seen.values().filter(|s| f(&s.outcome)).count()
     };
     md += "| | Pass | Fail | Refused | No trigger | Harness |\n|---|---|---|---|---|---|\n";
-    for (label, seen) in [("Places", &read.places), ("Cells", &read.cells)] {
+    let loads = (!read.loads.is_empty()).then_some(("Loads", &read.loads));
+    let tables = [("Places", &read.places), ("Cells", &read.cells)]
+        .into_iter()
+        .chain(loads);
+    for (label, seen) in tables {
         let _ = writeln!(
             md,
             "| {label} | {} | {} | {} | {} | {} |",
@@ -189,7 +234,7 @@ pub fn render(rows: &str, run: &str) -> (String, i32) {
         grid(&mut md, &read.cells);
     }
     let section = |md: &mut String, title: &str, f: fn(&Outcome) -> Option<&String>| {
-        let items: Vec<_> = (read.places.iter().chain(&read.cells))
+        let items: Vec<_> = (read.places.iter().chain(&read.cells).chain(&read.loads))
             .filter_map(|(name, s)| Some((name, f(&s.outcome)?, &s.evidence)))
             .collect();
         if items.is_empty() {
@@ -211,6 +256,12 @@ pub fn render(rows: &str, run: &str) -> (String, i32) {
         Outcome::Harness(w) => Some(w),
         _ => None,
     });
+    if !read.retried.is_empty() {
+        let _ = writeln!(md, "\n## Hung, then loaded on a retry\n");
+        for (name, hangs) in &read.retried {
+            let _ = writeln!(md, "- **{name}**: {}", hangs.join("; "));
+        }
+    }
     if !read.errors.is_empty() {
         let _ = writeln!(md, "\n## Errors\n");
         for e in &read.errors {
@@ -279,6 +330,37 @@ mod tests {
         let (md, code) = render(&rows, "fake");
         assert_eq!(code, 0, "{md}");
         assert!(md.contains("| pot |"), "{md}");
+    }
+
+    #[test]
+    fn a_hung_load_fails_naming_what_its_map_held() {
+        let pins = json!([{"holder": "123", "item_kind": "ammo"}]);
+        let rows = lines(&[
+            json!({"gauntlet": "load", "name": "FakeMap (round 0)", "pins": pins,
+                "hang": {"signal": "black", "secs": 2.0}, "frame": "f.png"}),
+            json!({"gauntlet": "refused", "load": true, "name": "9 × song (round 0)", "why": "Fake"}),
+            json!({"gauntlet": "unplanned", "load": true, "name": "8 in FakeMap", "why": "no arrival point"}),
+        ]);
+        let (md, code) = render(&rows, "fake");
+        assert_eq!(code, 1, "{md}");
+        assert!(md.contains("| Loads | 0 | 1 | 1 | 1 | 0 |"), "{md}");
+        assert!(md.contains("holder 123 held ammo"), "{md}");
+        // A refused load isn't a cell.
+        assert!(md.contains("| Cells | 0 | 0 | 0 | 0 | 0 |"), "{md}");
+    }
+
+    #[test]
+    fn a_load_that_lands_on_a_retry_passes_naming_the_hang() {
+        let tries = json!([{"spot": "FakeSpot", "hang": {"signal": "black"}}, {"spot": "FakeSpot", "hang": null}]);
+        let rows = lines(&[
+            json!({"gauntlet": "load", "name": "FakeMap (round 0)", "tries": tries, "hang": null}),
+        ]);
+        let (md, code) = render(&rows, "fake");
+        assert_eq!(code, 0, "{md}");
+        assert!(
+            md.contains("- **FakeMap (round 0)**: from FakeSpot: hang: black"),
+            "{md}"
+        );
     }
 
     #[test]
