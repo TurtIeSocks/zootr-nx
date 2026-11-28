@@ -27,6 +27,10 @@ const cell = (label: string, patch: Partial<Cell> = {}): Cell => ({
   ...patch,
 });
 
+/** How many veil layers a tile lays over its icon. */
+const veils = (tile: HTMLElement) =>
+  tile.querySelectorAll(":scope > [aria-hidden]").length;
+
 const backend = {
   listeners: [] as ((e: { payload: ItemsState }) => void)[],
   state: {
@@ -67,7 +71,8 @@ const itemsOptions = vi.fn((_o: TrackerOptions) =>
 );
 
 vi.mock("@/bindings", () => ({
-  TRACKER_COLUMNS: 3,
+  TRACKER_COLUMNS: 10,
+  TRACKER_MAX_GAP: 24,
   events: {
     itemsEvent: {
       listen: (cb: (e: { payload: ItemsState }) => void) => {
@@ -149,12 +154,62 @@ test("hidden sections stay hidden", async () => {
 test("missing items are grey, held ones show counts and tiers", async () => {
   showItems();
   const missing = await screen.findByRole("img", { name: "Hammer (missing)" });
-  expect(missing.className).toContain("grayscale");
+  // Opaque and veiled, so a color key on the background leaves it whole.
+  expect(missing.className).not.toMatch(/opacity-\d/);
+  expect(missing.querySelector("img")?.className).toContain("grayscale");
+  expect(veils(missing)).toBe(1);
   const bombs = screen.getByRole("img", { name: "Bombs" });
-  expect(bombs.className).not.toContain("grayscale");
+  expect(bombs.querySelector("img")?.className).not.toContain("grayscale");
+  expect(veils(bombs)).toBe(0);
   expect(within(bombs).getByText("20")).toBeTruthy();
   const bag = screen.getByRole("img", { name: "Bomb Bag" });
   expect(within(bag).getByText("2")).toBeTruthy();
+});
+
+test("missing items take the color picked for them", async () => {
+  backend.state = {
+    ...backend.state,
+    options: { ...backend.state.options, missing: "#123456" },
+  };
+  showItems();
+  const missing = await screen.findByRole("img", { name: "Hammer (missing)" });
+  const layer = missing.querySelector<HTMLElement>(
+    ":scope > [aria-hidden] > span",
+  );
+  expect(layer?.style.background).toContain("rgb(18, 52, 86)");
+});
+
+test("titles off leaves the sections unheaded but still named", async () => {
+  backend.state = {
+    ...backend.state,
+    options: { ...backend.state.options, titles: false, gap: 0 },
+  };
+  showItems();
+  const inventory = await screen.findByRole("region", { name: "Inventory" });
+  expect(screen.queryByRole("heading", { name: "Inventory" })).toBeNull();
+  const column = inventory.parentElement as HTMLElement;
+  expect(column.style.gap).toBe("0px");
+  expect((column.parentElement as HTMLElement).style.gap).toBe("0px");
+});
+
+test("the titles switch and spacing slider save the options", async () => {
+  showItems();
+  await screen.findByRole("region", { name: "Inventory" });
+  expect(screen.getByRole("heading", { name: "Inventory" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("switch", { name: "Section titles" }));
+  await waitFor(() =>
+    expect(itemsOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ titles: false }),
+    ),
+  );
+  fireEvent.change(screen.getByRole("slider", { name: /Spacing/ }), {
+    target: { value: "4" },
+  });
+  await waitFor(() =>
+    expect(itemsOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ gap: 4 }),
+    ),
+  );
 });
 
 test("a progressive Quest item shows its tier, as an upgrade does", async () => {
@@ -205,7 +260,7 @@ test("a dungeon's row fills from the backend, names its dungeon and fades what i
   const boss = within(row).getByRole("img", {
     name: "Forest Temple Boss Key (missing)",
   });
-  expect(boss.className).toContain("grayscale");
+  expect(veils(boss)).toBe(1);
   expect(within(row).getByRole("img", { name: "Deku Tree Map" })).toBeTruthy();
   // Each row starts with its dungeon's short name, the full one on hover.
   const grid = row.querySelector(".grid");
@@ -219,8 +274,8 @@ test("a dungeon's row fills from the backend, names its dungeon and fades what i
   const absent = within(row).getByRole("img", {
     name: "Deku Tree Small Keys (not in this dungeon)",
   });
-  expect(absent.className).toContain("opacity-12");
-  expect(absent.className).not.toContain("opacity-28");
+  expect(veils(absent)).toBe(2);
+  expect(absent.className).not.toMatch(/opacity-\d/);
   expect(row.querySelectorAll("img")).toHaveLength(4);
   // Rows line up with dungeons at one width, so it has no stepper.
   expect(

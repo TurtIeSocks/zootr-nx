@@ -236,7 +236,9 @@ export const events = {
 /* Constants */
 export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading checks","step":"checks"},{"name":"building logic","step":"logic"},{"name":"placing items","step":"placing"},{"name":"writing the mod","step":"writing"},{"name":"writing the spoiler","step":"spoiler"},{"name":"installing","step":"installing"},{"name":"rebuilding the game","step":"rebuilding"}] as const;
 
-export const TRACKER_COLUMNS = 3 as const;
+export const TRACKER_COLUMNS = 10 as const;
+
+export const TRACKER_MAX_GAP = 24 as const;
 
 /* Types */
 /**  A status change or a log line, or the page's log started over. */
@@ -1431,6 +1433,15 @@ export type TrackerOptions = {
 	size?: IconSize,
 	/**  A CSS color. */
 	background?: string,
+	/**
+	 *  The CSS color, alpha included, laid over a missing item's icon.
+	 *  `None` follows the background, which matches a faded icon.
+	 */
+	missing?: string | null,
+	/**  Each section draws its title above it. */
+	titles?: boolean,
+	/**  Pixels between sections and between columns, up to [`MAX_GAP`]. */
+	gap?: number,
 	/**  Every section once. The order within a column is the draw order. */
 	sections?: Placement[],
 };

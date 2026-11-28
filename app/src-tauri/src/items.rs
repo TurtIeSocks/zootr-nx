@@ -8,9 +8,11 @@ use specta::Type;
 use tauri::{AppHandle, Manager};
 use tauri_specta::Event as _;
 use zootr::config::Config;
+use zootr::hearts::{self, Hearts};
 use zootr::history::History;
 use zootr::inventory::{self, Cell, Inventory, TrackerOptions};
 use zootr::savefile::{self, Change};
+use zootr::tracker;
 
 use crate::live_tab::Live;
 use crate::{Res, blocking, game_art, romfs};
@@ -36,30 +38,65 @@ impl tauri_specta::Event for ItemsEvent {
 /// in and then the watcher's rows. Kept with that install time, so a new
 /// install starts it over.
 #[derive(Default)]
-pub(crate) struct Items(Mutex<Option<(Option<u32>, Inventory)>>);
+pub(crate) struct Items(Mutex<Option<Installed>>);
+
+/// The grid for one install, and the heart checks that count its hearts.
+struct Installed {
+    since: Option<u32>,
+    inv: Inventory,
+    hearts: Hearts,
+}
+
+impl Installed {
+    /// The installed seed's grid and heart checks, filled from the last
+    /// save played since it went in.
+    fn build(app: &AppHandle, config: &Config, history: &History) -> anyhow::Result<Self> {
+        let since = history.installed().at;
+        let gd = app.state::<Live>().gamedata(config)?;
+        let romfs = romfs(config)?;
+        let mut inv = Inventory::new(&gd, &romfs)?;
+        let report = (history.installed().id)
+            .map(|id| history.report(id))
+            .transpose()?;
+        let (spots, start) = report
+            .as_ref()
+            .map_or((&[][..], &[][..]), |r| (&r.spots[..], &r.start.items[..]));
+        let mut hearts = Hearts::new(&gd, &hearts::vanilla(&romfs)?, spots, start)?;
+        if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
+            let save = savefile::load(&save)?;
+            inv.load(inventory::in_save(&save));
+            hearts.load(tracker::in_save(&save), inventory::in_save(&save));
+        }
+        inv.set_counts(hearts.counts());
+        Ok(Self { since, inv, hearts })
+    }
+
+    /// Takes one change the watcher saw. True when the grid changed.
+    fn change(&mut self, change: &Change) -> bool {
+        let held = self.inv.change(change);
+        let counted = self.hearts.change(change) && self.inv.set_counts(self.hearts.counts());
+        held || counted
+    }
+}
 
 impl Items {
     pub(crate) fn state(&self, app: &AppHandle) -> anyhow::Result<ItemsState> {
         let config = Config::load()?;
-        let since = History::load()?.installed().at;
+        let history = History::load()?;
+        let since = history.installed().at;
         let mut items = self.0.lock().unwrap();
-        if items.as_ref().is_none_or(|(at, _)| *at != since) {
-            let gd = app.state::<Live>().gamedata(&config)?;
-            let mut inv = Inventory::new(&gd, &romfs(&config)?)?;
-            if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
-                inv.load(inventory::in_save(&savefile::load(&save)?));
-            }
-            *items = Some((since, inv));
+        if items.as_ref().is_none_or(|held| held.since != since) {
+            *items = Some(Installed::build(app, &config, &history)?);
         }
         Ok(ItemsState {
-            cells: items.as_ref().expect("just built").1.cells(),
+            cells: items.as_ref().expect("just built").inv.cells(),
             game_art: game_art(&config),
             options: config.tracker.tidy(),
         })
     }
 
     pub(crate) fn change(&self, app: &AppHandle, change: &Change) {
-        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|(_, inv)| inv.change(change));
+        let changed = (self.0.lock().unwrap().as_mut()).is_some_and(|held| held.change(change));
         if changed {
             self.emit(app);
         }

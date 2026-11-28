@@ -161,6 +161,7 @@ const GLYPHS: &[(&Name, Glyph)] = &[
     (item::BULLET_BAG_MEDIUM, Glyph::BulletBag),
     (item::BULLET_BAG_LARGE, Glyph::BulletBag),
     (actor::OBJ_HEART_PIECE, Glyph::HeartPiece),
+    (actor::OBJ_HEART_CONTAINER, Glyph::Heart),
     (crate::magic::meter::METER, Glyph::Magic),
     (item::FAIRY_BLESS_MP_DOUBLE, Glyph::Magic),
     (item::FAIRY_BLESS_MP, Glyph::Spin),
