@@ -825,6 +825,22 @@ mod tests {
     }
 
     #[test]
+    fn talon_takes_the_pocket_cucco_or_the_egg_it_hatches_from() {
+        needs_names!();
+        let book = Book::load().unwrap();
+        let c = ctx(true, &[]);
+        let talon = crate::gifts::GIFTS
+            .iter()
+            .find(|g| g.giver == "Talon: Pocket Cucco");
+        let needs = &book.check(talon.unwrap().hash()).unwrap().needs;
+        let needs = book.need(needs, &c).unwrap();
+        for held in [item::POCKET_EGG, item::POCKET_CUCCO] {
+            assert!(needs.met(&have(&[held]), Era::Adult), "{held}");
+        }
+        assert!(!needs.met(&have(&[]), Era::Adult));
+    }
+
+    #[test]
     fn each_zora_preset_opens_its_way_without_the_item() {
         needs_names!();
         let book = Book::load().unwrap();
