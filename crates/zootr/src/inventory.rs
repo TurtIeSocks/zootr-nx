@@ -40,6 +40,8 @@ struct Slot {
     icon: Option<&'static Name>,
     /// Shown as a number.
     count: Option<&'static Name>,
+    /// Held one tier at a time: an egg or what hatches from it.
+    exclusive: bool,
 }
 
 const fn slot(section: Section, label: &'static str, tiers: &'static [&'static Name]) -> Slot {
@@ -49,6 +51,15 @@ const fn slot(section: Section, label: &'static str, tiers: &'static [&'static N
         tiers,
         icon: None,
         count: None,
+        exclusive: false,
+    }
+}
+
+/// An egg's cell: the egg, then what hatches from it, never both.
+const fn hatch(label: &'static str, tiers: &'static [&'static Name]) -> Slot {
+    Slot {
+        exclusive: true,
+        ..slot(Trade, label, tiers)
     }
 }
 
@@ -101,12 +112,11 @@ const GRID: &[Slot] = &[
     bottle("Bottle", &[field::BOTTLE_D]),
     bottle("Bottle", &[field::BOTTLE_E]),
     ammo("Business Scrub Seeds", &[item::SCRUB_BUSINESS_SEED], None, item::SCRUB_BUSINESS_SEED),
-    // Link can hold every trade item at once, so each has a cell.
-    slot(Trade, "Weird Egg", &[item::WEIRD_EGG]),
-    slot(Trade, "Cucco", &[item::ALARM_CUCCO]),
+    // Link can hold every trade item at once, so each has a cell, but
+    // an egg shares its cell with what hatches from it.
+    hatch("Weird Egg", &[item::WEIRD_EGG, item::ALARM_CUCCO]),
     slot(Trade, "Zelda's Letter", &[item::ZELDA_LETTER]),
-    slot(Trade, "Pocket Egg", &[item::POCKET_EGG]),
-    slot(Trade, "Pocket Cucco", &[item::POCKET_CUCCO]),
+    hatch("Pocket Egg", &[item::POCKET_EGG, item::POCKET_CUCCO]),
     slot(Trade, "Cojiro", &[item::COJIRO_CUCCO]),
     slot(Trade, "Odd Mushroom", &[item::ODD_MUSHROOM]),
     slot(Trade, "Odd Potion", &[item::ODD_POWDER]),
@@ -213,9 +223,13 @@ pub fn section(actor: &Name) -> Option<Section> {
     cell.map(|s| s.section)
 }
 
-/// The tiers below `actor` in its cell, which holding it holds too.
+/// The tiers below `actor` in its cell, which holding it holds too: none
+/// in an egg's cell, held one tier at a time.
 pub fn below(actor: &Name) -> Vec<&'static Name> {
-    let tiers = tiers_of(actor);
+    let cell = GRID
+        .iter()
+        .find(|s| !s.exclusive && s.tiers.contains(&actor));
+    let tiers = cell.map_or(&[][..], |s| s.tiers);
     tiers.iter().take_while(|&&t| t != actor).copied().collect()
 }
 
@@ -543,29 +557,41 @@ pub(super) mod tests {
         actor::ARMOR_CHILD_MASK_TRUTH,
     ];
 
-    /// Every trade item, child then adult, as the Trade section lists them.
-    const TRADE: [&Name; 14] = [
-        item::WEIRD_EGG,
-        item::ALARM_CUCCO,
-        item::ZELDA_LETTER,
-        item::POCKET_EGG,
-        item::POCKET_CUCCO,
-        item::COJIRO_CUCCO,
-        item::ODD_MUSHROOM,
-        item::ODD_POWDER,
-        item::POACHER_SAW,
-        item::BROKEN_SWORD,
-        item::PRESCRIPTION,
-        item::EYEBALL_FROG,
-        item::EYE_DROP,
-        item::CLAIM_CHECK,
+    /// Every trade item's cell, child then adult, as the Trade section
+    /// lists them: an egg's holds what hatches from it too.
+    const TRADE: [&[&Name]; 12] = [
+        &[item::WEIRD_EGG, item::ALARM_CUCCO],
+        &[item::ZELDA_LETTER],
+        &[item::POCKET_EGG, item::POCKET_CUCCO],
+        &[item::COJIRO_CUCCO],
+        &[item::ODD_MUSHROOM],
+        &[item::ODD_POWDER],
+        &[item::POACHER_SAW],
+        &[item::BROKEN_SWORD],
+        &[item::PRESCRIPTION],
+        &[item::EYEBALL_FROG],
+        &[item::EYE_DROP],
+        &[item::CLAIM_CHECK],
     ];
 
     #[test]
-    fn each_trade_item_has_a_cell_of_its_own_in_trade() {
+    fn each_trade_item_has_a_cell_in_trade_an_egg_s_shared_with_its_hatch() {
         let trade: Vec<_> = GRID.iter().filter(|s| s.section == Trade).collect();
-        let held: Vec<_> = trade.iter().map(|s| s.tiers.to_vec()).collect();
-        assert_eq!(held, TRADE.map(|a| vec![a]));
+        let held: Vec<_> = trade.iter().map(|s| s.tiers).collect();
+        assert_eq!(held, TRADE);
+        let eggs: Vec<_> = trade
+            .iter()
+            .filter(|s| s.exclusive)
+            .map(|s| s.label)
+            .collect();
+        assert_eq!(eggs, ["Weird Egg", "Pocket Egg"]);
+    }
+
+    #[test]
+    fn a_hatch_holds_nothing_below_it() {
+        assert!(below(item::ALARM_CUCCO).is_empty());
+        assert!(below(item::POCKET_CUCCO).is_empty());
+        assert_eq!(below(item::LONGSHOT), [item::HOOKSHOT]);
     }
 
     #[test]

@@ -465,8 +465,25 @@ mod tests {
         let trade: Vec<_> = (view.cells.iter())
             .filter(|c| c.section == inventory::Section::Trade)
             .collect();
-        assert_eq!(trade.len(), 14);
-        assert!(trade.iter().all(|c| c.tier == 1), "{trade:?}");
+        assert_eq!(trade.len(), 12);
+        // An egg's cell shows its hatch, the top tier.
+        assert!(trade.iter().all(|c| c.tier == c.tiers), "{trade:?}");
+    }
+
+    #[test]
+    fn a_click_through_an_egg_s_cell_holds_the_egg_or_the_cucco() {
+        let Some((gd, inv, pouch)) = layout() else {
+            return;
+        };
+        let at = (inv.cells().iter())
+            .position(|c| c.label == "Weird Egg")
+            .unwrap();
+        let go = |s: &Start| click(&gd, &inv, &pouch, s, at, Intent::Up).unwrap();
+        let egg = go(&Start::default());
+        assert_eq!(egg, start(&[("weird-egg", 1)]));
+        let cucco = go(&egg);
+        assert_eq!(cucco, start(&[("cucco", 1)]));
+        assert_eq!(go(&cucco), Start::default());
     }
 
     #[test]

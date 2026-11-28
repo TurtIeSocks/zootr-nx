@@ -1,7 +1,7 @@
 //! Changing what Link has from the grid: a click on a cell, as the save
 //! edits it makes. A tier held keeps the ones below it, as the game does
-//! (the Fairy and Time Ocarinas both stay in the pouch), except along a
-//! trade sequence, where Link holds one item at a time. A bag also names
+//! (the Fairy and Time Ocarinas both stay in the pouch), except in an
+//! egg's cell, where Link holds the egg or what hatches from it. A bag also names
 //! itself as its group's cap, which is where the game reads the cap from.
 
 use std::collections::HashMap;
@@ -375,7 +375,10 @@ impl Inventory {
             Intent::Up => (self.tier(slot) + 1) % (n + 1),
             Intent::Down => (self.tier(slot) + n) % (n + 1),
         };
-        let held = |i: usize| i < next;
+        let held = |i: usize| match slot.exclusive {
+            true => i + 1 == next,
+            false => i < next,
+        };
         let mut out: Vec<Edit> = (slot.tiers.iter().enumerate())
             .filter(|&(i, a)| held(i) != (self.value(a) > 0))
             .map(|(i, a)| Edit::new(key(a), if held(i) { "1" } else { "0" }))
@@ -540,6 +543,25 @@ mod tests {
                 (h(item::LONGSHOT), "0".into())
             ]
         );
+    }
+
+    #[test]
+    fn an_egg_s_cell_holds_the_egg_or_its_hatch_alone() {
+        needs_names!();
+        let save = save_of(&[(item::POCKET_EGG, 1)], "");
+        let mut inv = inventory();
+        inv.load(crate::inventory::in_save(&save));
+        let egg = cell_at(&inv.cells(), "Pocket Egg");
+        let up = inv.edits(&pouch(), &save, egg, Intent::Up).unwrap();
+        assert_eq!(
+            pairs(up),
+            [
+                (h(item::POCKET_EGG), "0".into()),
+                (h(item::POCKET_CUCCO), "1".into())
+            ]
+        );
+        let down = inv.edits(&pouch(), &save, egg, Intent::Down).unwrap();
+        assert_eq!(pairs(down), [(h(item::POCKET_EGG), "0".into())]);
     }
 
     #[test]
