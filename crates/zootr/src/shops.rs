@@ -558,20 +558,24 @@ mod tests {
     fn a_shield_stands_up_on_a_shelf_and_the_rupee_lies_as_its_vertices_say() {
         let Some(romfs) = dev_dump() else { return };
         let tables = Tables::load(&romfs).unwrap();
-        let at = |item: &Name| {
+        let span = |item: &Name| {
             let pack = ActorPack::load(&romfs, item).unwrap();
             let pose = vanilla_pose(&tables.actor, item).unwrap();
             let shown = heights::shown(&pack, &pack, Role::Shelf, Some(&pose)).unwrap();
             shown
                 .hull(&tables.actor, item)
                 .unwrap()
-                .lo(&heights::UPRIGHT)
+                .span(&heights::UPRIGHT)
         };
-        // Posed in their own shop poses, they stand on their rims.
-        assert!((at(actor::T_BOX_SHIELD_DEKU) - 0.022).abs() < 0.001);
-        assert!((at(actor::T_BOX_SHIELD_HYLIAN) - 0.004).abs() < 0.001);
+        // Posed in their own shop poses, they stand on their rims at the
+        // placement, which sits on its plank's collision to 3 cm.
+        for shield in [actor::T_BOX_SHIELD_DEKU, actor::T_BOX_SHIELD_HYLIAN] {
+            let (lo, _) = span(shield);
+            assert!(lo.abs() < 0.03, "{shield:?}: {lo}");
+        }
         // The token's pose leaves the rupee centred on its origin.
-        assert!((at(actor::T_BOX_RUPEE_RED) + 0.191).abs() < 0.001);
+        let (lo, hi) = span(actor::T_BOX_RUPEE_RED);
+        assert!(lo < -0.05 && (lo + hi).abs() < 0.02, "{lo} {hi}");
     }
 
     #[test]

@@ -9,7 +9,7 @@
 
 use anyhow::{Context, Result, ensure};
 
-use super::names::find_magic;
+use super::names::{find_magic, name_at};
 use super::shape::shapes_of;
 use super::{attribute, attributes, bones};
 use crate::reader::Reader;
@@ -25,10 +25,11 @@ const SMOOTH_COUNT: usize = 0x3a;
 const RIGID_COUNT: usize = 0x3c;
 const ROTATION_MODE: u32 = 0x7000;
 const EULER_XYZ: u32 = 0x1000;
-/// A bone: its parent (u16, none at 0xffff), then its scale (3 floats),
+/// A bone: its name (a pool string pointer), its parent (u16, none at 0xffff), then its scale (3 floats),
 /// rotation (4: a quaternion, or Euler XYZ angles and a 1) and
 /// translation (3).
 const BONE_SIZE: usize = 0x58;
+const BONE_NAME: usize = 0x00;
 const BONE_PARENT: usize = 0x22;
 const BONE_SCALE: usize = 0x30;
 const BONE_ROTATION: usize = 0x3c;
@@ -49,6 +50,8 @@ const IDENTITY: Affine = [
 pub struct Skeleton {
     /// Each bone's place in the model.
     pub bones: Vec<Affine>,
+    /// Each bone's name, in the same order.
+    pub names: Vec<String>,
     /// The bone each skinning matrix stands for, smooth ones first.
     pub matrices: Vec<usize>,
 }
@@ -62,8 +65,12 @@ pub fn skeleton(data: &[u8]) -> Result<Skeleton> {
     let euler = r.u32(at + FLAGS)? & ROTATION_MODE == EULER_XYZ;
     let first = r.ptr(at + BONES)?;
     let mut bones: Vec<Affine> = Vec::new();
+    let mut names = Vec::new();
     for i in 0..r.u16(at + BONE_COUNT)? as usize {
         let b = first + BONE_SIZE * i;
+        names.push(
+            String::from_utf8_lossy(name_at(data, b + BONE_NAME).unwrap_or_default()).into_owned(),
+        );
         let floats = |at: usize, n: usize| -> Result<Vec<f32>> {
             (0..n).map(|k| r.f32(at + 4 * k)).collect()
         };
@@ -97,7 +104,11 @@ pub fn skeleton(data: &[u8]) -> Result<Skeleton> {
     let matrices = (0..count)
         .map(|i| Ok(r.u16(list + 2 * i)? as usize))
         .collect::<Result<_>>()?;
-    Ok(Skeleton { bones, matrices })
+    Ok(Skeleton {
+        bones,
+        names,
+        matrices,
+    })
 }
 
 /// The bits of a `bones` value that hold the first index of the shape

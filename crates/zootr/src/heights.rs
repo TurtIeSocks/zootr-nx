@@ -103,14 +103,20 @@ impl Shown {
     /// table lacks (one the seed paints, like a key's copy) takes `item`'s
     /// `ActorInfo` box instead.
     pub(crate) fn hull(&self, actor: &BymlDoc, item: &str) -> Result<Hull> {
-        let (kind, points) = match model_row(self.model_key()) {
-            Some((kind, points)) => (
+        let (kind, rest, points) = match model_row(self.model_key()) {
+            Some((kind, rest, points)) => (
                 kind,
+                rest,
                 points.iter().map(|p| p.map(|c| c as f32 / MM)).collect(),
             ),
-            None => (Kind::Box, corners(actor, item)?),
+            None => (Kind::Box, IDENTITY, corners(actor, item)?),
         };
-        let frames = pose_row(self.pose_key()).unwrap_or(&[IDENTITY]);
+        // A pose with no clip leaves the root bones where the model binds
+        // them.
+        let frames = match pose_row(self.pose_key()) {
+            Some(frames) if !frames.is_empty() => frames,
+            _ => std::slice::from_ref(&rest),
+        };
         Ok(Hull::posed(kind, &points, frames))
     }
 }
@@ -122,10 +128,10 @@ pub(crate) fn pose_key(archives: &[String], role: Role) -> u64 {
 
 const IDENTITY: Frame = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
 
-fn model_row(key: u64) -> Option<(Kind, &'static [[i16; 3]])> {
+fn model_row(key: u64) -> Option<(Kind, Frame, &'static [[i16; 3]])> {
     let at = MODELS.binary_search_by_key(&key, |(n, ..)| n.0).ok()?;
-    let (_, kind, points) = MODELS[at];
-    Some((Kind::of(kind), points))
+    let (_, kind, rest, points) = MODELS[at];
+    Some((Kind::of(kind), rest, points))
 }
 
 fn pose_row(key: u64) -> Option<&'static [Frame]> {
@@ -137,7 +143,7 @@ fn pose_row(key: u64) -> Option<&'static [Frame]> {
 /// its pose: `None` for either missing.
 #[cfg(test)]
 pub(crate) fn rows(shown: &Shown) -> (Option<Kind>, bool) {
-    let kind = model_row(shown.model_key()).map(|(kind, _)| kind);
+    let kind = model_row(shown.model_key()).map(|(kind, ..)| kind);
     (kind, pose_row(shown.pose_key()).is_some())
 }
 
@@ -283,7 +289,7 @@ fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
-fn apply(f: &Frame, p: [f32; 3]) -> [f32; 3] {
+pub(crate) fn apply(f: &Frame, p: [f32; 3]) -> [f32; 3] {
     [0, 1, 2].map(|r| f[r * 4] * p[0] + f[r * 4 + 1] * p[1] + f[r * 4 + 2] * p[2] + f[r * 4 + 3])
 }
 
@@ -379,6 +385,39 @@ pub(crate) fn frame(scale: [f32; 3], rotate: [f32; 3], translate: [f32; 3]) -> F
         f[row * 4 + 3] = translate[row];
     }
     f
+}
+
+/// The map that undoes `f`.
+pub(crate) fn invert(f: &Frame) -> Frame {
+    let m = |r: usize, c: usize| f[r * 4 + c];
+    let det = m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1))
+        - m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0))
+        + m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
+    let mut out = [0.0; 12];
+    for r in 0..3 {
+        for c in 0..3 {
+            // The cofactor of (c, r), over the determinant.
+            let (a, b) = (
+                [0, 1, 2]
+                    .iter()
+                    .filter(|&&i| i != c)
+                    .copied()
+                    .collect::<Vec<_>>(),
+                [0, 1, 2]
+                    .iter()
+                    .filter(|&&i| i != r)
+                    .copied()
+                    .collect::<Vec<_>>(),
+            );
+            let minor = m(a[0], b[0]) * m(a[1], b[1]) - m(a[0], b[1]) * m(a[1], b[0]);
+            let sign = if (r + c) % 2 == 0 { 1.0 } else { -1.0 };
+            out[r * 4 + c] = sign * minor / det;
+        }
+    }
+    for r in 0..3 {
+        out[r * 4 + 3] = -(0..3).map(|k| out[r * 4 + k] * f[k * 4 + 3]).sum::<f32>();
+    }
+    out
 }
 
 /// `parent` after `child`: a child bone's map inside its parent's.
@@ -645,8 +684,7 @@ mod tests {
     fn the_table_is_sorted_and_its_rows_are_whole() {
         assert!(MODELS.windows(2).all(|w| w[0].0 < w[1].0));
         assert!(POSES.windows(2).all(|w| w[0].0 < w[1].0));
-        assert!(MODELS.iter().all(|(_, _, p)| !p.is_empty()));
-        assert!(POSES.iter().all(|(_, f)| !f.is_empty()));
+        assert!(MODELS.iter().all(|(.., p)| !p.is_empty()));
         let text = include_str!("heights/table.rs");
         assert!(text.starts_with("//! Written by `zootr probe heights`"));
     }

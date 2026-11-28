@@ -128,7 +128,7 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
         .collect();
 
     let dirs = heights::directions();
-    let mut models: BTreeMap<u64, (Kind, Vec<[i16; 3]>)> = BTreeMap::new();
+    let mut models: BTreeMap<u64, (Kind, Frame, Vec<[i16; 3]>)> = BTreeMap::new();
     let mut clips: HashMap<String, Vec<u8>> = HashMap::new();
     crate::game::each(game, MODELS, |path, data| {
         let Some(file) = path.strip_prefix(MODELS) else {
@@ -140,7 +140,7 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
             }
         } else if let Some(users) = files.get(file) {
             let data = romfs.dicts().decompress(&path, &data)?;
-            let (kind, points) = mesh(&data)?;
+            let (kind, rest, points) = mesh(&data)?;
             let hull = heights::extremes(&points, &dirs);
             if hull.is_empty() {
                 return Ok(());
@@ -150,7 +150,7 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
                 .map(|p| p.map(|c| (c * 1000.0).round() as i16))
                 .collect();
             for (model, _) in users {
-                models.insert(hash(model), (kind, mm.clone()));
+                models.insert(hash(model), (kind, rest, mm.clone()));
             }
         }
         Ok(())
@@ -169,10 +169,10 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
             .iter()
             .map(|p| p.map(|c| (c * 1000.0).round() as i16))
             .collect();
-        models.insert(s.model_key(), (kind, mm));
+        models.insert(s.model_key(), (kind, IDENTITY, mm));
     }
     for s in shown.keys() {
-        if let Some((Kind::Skinned, _)) = models.get(&s.model_key()) {
+        if let Some((Kind::Skinned, ..)) = models.get(&s.model_key()) {
             eprintln!("{}: skinned, posed by its root alone", s.model);
         }
     }
@@ -187,17 +187,18 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
     print!("{HEADER}");
     println!("#[rustfmt::skip]");
     println!(
-        "pub(super) const MODELS: [(Name, u8, &[[i16; 3]]); {}] = [",
+        "pub(super) const MODELS: [(Name, u8, Frame, &[[i16; 3]]); {}] = [",
         models.len()
     );
-    for (key, (kind, points)) in &models {
+    for (key, (kind, rest, points)) in &models {
         let each: Vec<String> = points
             .iter()
             .map(|[x, y, z]| format!("[{x},{y},{z}]"))
             .collect();
         println!(
-            "    (n!({key:#018x}), {}, &[{}]),",
+            "    (n!({key:#018x}), {}, {}, &[{}]),",
             *kind as u8,
+            row(rest),
             each.join(",")
         );
     }
@@ -210,9 +211,7 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
         poses.len()
     );
     for (key, frames) in &poses {
-        let each: Vec<String> = (frames.iter())
-            .map(|f| format!("[{}]", f.map(|v| format!("{v:.4}")).join(",")))
-            .collect();
+        let each: Vec<String> = frames.iter().map(row).collect();
         println!("    (n!({key:#018x}), &[{}]),", each.join(","));
     }
     println!("];");
@@ -228,29 +227,49 @@ use super::{Frame, Name};
 use crate::n;
 
 /// Each model's hull, by its file's hash, in hash order: what its row was
-/// made from ([`super::Kind`]) and its points in millimetres.
+/// made from ([`super::Kind`]), where its skeleton binds its root bones
+/// (the pose a clip-less actor keeps), and its points in millimetres in
+/// the space under them.
 ";
 
 const POSES_DOC: &str = "\
 /// Each pose's root transform at every frame of its clip, by its key's
-/// hash ([`super::pose_key`]), in hash order.";
+/// hash ([`super::pose_key`]), in hash order. None for a pose with no
+/// clip: the model keeps its bind.";
 
-/// A model's vertices in its own space, and whether a shape is skinned to
-/// more than one bone (posed then by the root alone).
-fn mesh(data: &[u8]) -> Result<(Kind, Vec<[f32; 3]>)> {
+/// A frame as the table writes it.
+fn row(f: &Frame) -> String {
+    format!("[{}]", f.map(|v| format!("{v:.4}")).join(","))
+}
+
+const IDENTITY: Frame = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
+
+/// A model's vertices, whether a shape is skinned to more than one bone
+/// (posed then by the root alone), and where its root bones bind.
+///
+/// A clip sets the root bones outright, so the vertices go into the space
+/// under them: the bind takes them out of the model's space. Left in it,
+/// a model binding its skeleton's root 0.18 m up (the Recovery Heart) took that
+/// lift twice once its clip set the same 0.18 m.
+fn mesh(data: &[u8]) -> Result<(Kind, Frame, Vec<[f32; 3]>)> {
     let skeleton = ounce_formats::skeleton(data)?;
+    let rest = (skeleton.names.iter())
+        .position(|n| hash(n) == field::SKL_ROOT.0)
+        .and_then(|i| skeleton.bones.get(i))
+        .map_or(IDENTITY, |b| std::array::from_fn(|i| b[i / 4][i % 4]));
+    let under = heights::invert(&rest);
     let mut kind = Kind::Mesh;
     let mut points = Vec::new();
     for shape in ounce_formats::shapes_of(data)? {
         match ounce_formats::model_vertices(data, &skeleton, &shape.name) {
-            Ok(placed) => points.extend(placed.into_iter().map(|(p, _)| p)),
+            Ok(placed) => points.extend(placed.into_iter().map(|(p, _)| heights::apply(&under, p))),
             Err(e) => eprintln!("  {}: {e}", shape.name),
         }
         if shape.skin > 1 {
             kind = Kind::Skinned;
         }
     }
-    Ok((kind, points))
+    Ok((kind, rest, points))
 }
 
 /// An actor's `ActorInfo` model box's corners.
@@ -273,7 +292,7 @@ fn corners(tables: &Tables, actor: &str) -> Option<Vec<[f32; 3]>> {
 
 /// The root's transform at every frame of the clip `archives` play in
 /// `role`: the first of its clips any archive has, the root's frames each
-/// carrying the bone under it. No clip, and the root stays put.
+/// carrying the bone under it. No clip, no frames: the model keeps its bind.
 fn frames(clips: &HashMap<String, Vec<u8>>, archives: &[String], role: Role) -> Result<Vec<Frame>> {
     let found = role.clips().iter().find_map(|clip| {
         archives.iter().find_map(|a| {
@@ -285,7 +304,7 @@ fn frames(clips: &HashMap<String, Vec<u8>>, archives: &[String], role: Role) -> 
         })
     });
     let Some((data, clip)) = found else {
-        return Ok(vec![heights::frame([1.0; 3], [0.0; 3], [0.0; 3])]);
+        return Ok(vec![]);
     };
     let bone = |name: &str| -> Result<Vec<Frame>> {
         let each = ounce_formats::fska::frames(data, &clip, name)?
