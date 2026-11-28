@@ -160,14 +160,21 @@ export function forcedPick(
   return def.kind.options.find((o) => o.id === id);
 }
 
-/** The toggle `def` needs on to do anything, while it's off. */
+/** The setting `def` needs to do anything, while it isn't so: a toggle
+ * that's off, or a choice at the pick `def` does nothing with. */
 export function unmet(
   def: SettingDef,
   settings: Settings,
   schema: SettingDef[],
 ): SettingDef | undefined {
-  const needed = schema.find((d) => d.id === def.requires);
-  return needed && !isOn(needed, settings, schema) ? needed : undefined;
+  const { requires } = def;
+  const needed = schema.find((d) => d.id === requires?.id);
+  if (!needed || !requires) return undefined;
+  const met =
+    requires.not === null
+      ? isOn(needed, settings, schema)
+      : chosen(needed, settings)?.id !== requires.not;
+  return met ? undefined : needed;
 }
 
 /** Whether a setting is forced on, by its parent or a choice's pick. */

@@ -975,6 +975,15 @@ export type Rebuild = {
  */
 export type Release = "1.0.0" | "1.1.1";
 
+/**
+ *  What a setting needs of another to do anything: toggle `id` on, or with
+ *  `not`, choice `id` at any pick but that one.
+ */
+export type Requires = {
+	id: string,
+	not: string | null,
+};
+
 /**  An item Link gets outside the shuffle, in the round that collects it. */
 export type RoundEvent = {
 	round: number,
@@ -1036,10 +1045,10 @@ export type SettingDef = {
 	/**  When the parent is on, this one is too, whatever its own value. */
 	parent: string | null,
 	/**
-	 *  The toggle that must be on for this one to do anything. While it's
-	 *  off, the app greys this one out.
+	 *  What another setting must be for this one to do anything. While
+	 *  it isn't, the app greys this one out.
 	 */
-	requires: string | null,
+	requires: Requires | null,
 	/**  The section of its panel it sits in. */
 	section: string,
 	/**  The line under that section's title: see [`Place::about`]. */

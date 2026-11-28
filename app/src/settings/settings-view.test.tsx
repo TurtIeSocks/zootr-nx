@@ -143,7 +143,7 @@ test("a setting greys out while the toggle it needs is off", () => {
   const shops = toggle("shops", "Shopsanity");
   const slots = {
     ...choice("slots", "Shop slots", ["One", "All"]),
-    requires: "shops",
+    requires: { id: "shops", not: null },
   };
   show({ defs: [shops, slots] });
   const one = () => screen.getByRole("button", { name: "One" });
@@ -159,7 +159,10 @@ test("a setting greys out while the toggle it needs is off", () => {
 
 test("a toggle whose requirement is unmet shows off, and keeps its value", () => {
   const shops = toggle("shops", "Shopsanity");
-  const prices = { ...toggle("prices", "Cheap prices"), requires: "shops" };
+  const prices = {
+    ...toggle("prices", "Cheap prices"),
+    requires: { id: "shops", not: null },
+  };
   const settings = { prices: true };
   const cheap = () => screen.getByRole("switch", { name: "Cheap prices" });
   show({ defs: [shops, prices], settings });
@@ -177,7 +180,7 @@ test("a choice whose requirement is unmet shows no pick, and keeps its value", (
   const shops = toggle("shops", "Shopsanity");
   const size = {
     ...choice("size", "Size", ["Small", "Big"]),
-    requires: "shops",
+    requires: { id: "shops", not: null },
   };
   const hints = {
     ...choice("hints", "Gossip stones", [
@@ -187,7 +190,7 @@ test("a choice whose requirement is unmet shows no pick, and keeps its value", (
       "Junk",
       "All",
     ]),
-    requires: "shops",
+    requires: { id: "shops", not: null },
   };
   const settings = { size: "big", hints: "items" };
   show({ defs: [shops, size, hints], settings });
