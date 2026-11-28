@@ -174,7 +174,7 @@ pub fn write(
                 Some(goods) => {
                     let own = ActorPack::load(romfs, &m.actor)?;
                     Placed {
-                        rise: placed_rise(tables, &goods, &own, &own)?,
+                        rise: placed_rise(tables, &goods, &own, &own, None)?,
                         rotate: None,
                     }
                 }

@@ -126,7 +126,7 @@ pub(crate) fn pose_key(archives: &[String], role: Role) -> u64 {
     hash(&format!("{}|{}", archives.join("+"), role.word()))
 }
 
-const IDENTITY: Frame = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
+pub(crate) const IDENTITY: Frame = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0];
 
 fn model_row(key: u64) -> Option<(Kind, Frame, &'static [[i16; 3]])> {
     let at = MODELS.binary_search_by_key(&key, |(n, ..)| n.0).ok()?;
@@ -283,13 +283,15 @@ impl Hull {
     /// Whether it lies flat: thinner upright than half its narrower side
     /// across.
     pub(crate) fn flat(&self) -> bool {
-        let extent = |i: usize| {
-            let (lo, hi) = (self.points.iter()).fold((f32::MAX, f32::MIN), |(lo, hi), p| {
-                (lo.min(p[i]), hi.max(p[i]))
-            });
-            hi - lo
-        };
-        extent(1) < 0.5 * extent(0).min(extent(2))
+        self.reach(1) < 0.5 * self.reach(0).min(self.reach(2))
+    }
+
+    /// How far it reaches along its own axis `i` (X, Y, Z), unturned.
+    pub(crate) fn reach(&self, i: usize) -> f32 {
+        let (lo, hi) = (self.points.iter()).fold((f32::MAX, f32::MIN), |(lo, hi), p| {
+            (lo.min(p[i]), hi.max(p[i]))
+        });
+        hi - lo
     }
 }
 
@@ -301,45 +303,10 @@ pub(crate) fn apply(f: &Frame, p: [f32; 3]) -> [f32; 3] {
     [0, 1, 2].map(|r| f[r * 4] * p[0] + f[r * 4 + 1] * p[1] + f[r * 4 + 2] * p[2] + f[r * 4 + 3])
 }
 
-/// Which way a shelf item leans: a turn about its placement's own X, as
-/// `Rotate.0` stood the Master Sword up live (2026-11-26, `shops.md`).
-/// One way for every slot, so a shop's columns all tip alike.
-const LEAN: f32 = 1.0;
-/// The ladder's step: half a degree.
-const STEP: f32 = std::f32::consts::PI / 360.0;
-/// Its steps, upright to flat.
-const STEPS: u32 = 180;
-
-/// A placement's turn `place`, leaned by `lean` radians about its own X.
-pub(crate) fn leaned(place: &Turn, lean: f32) -> Turn {
-    times(place, &euler([LEAN * lean, 0.0, 0.0]))
-}
-
-/// How far a shelf item leans under a `gap` up to the shelf above, its
-/// slot turned by `place`. Not at all while its spin's sweep fits from its
-/// lowest point up. Else, from upright to flat, the lean that leaves it
-/// tallest while the sweep fits, the least lean on a tie: the height is
-/// the aim, not the angle. `None` when no lean fits.
-pub(crate) fn lean(item: &Hull, place: &Turn, gap: f32) -> Option<f32> {
-    let fits = |lean: f32| {
-        let turn = leaned(place, lean);
-        item.spun(&turn).1 - item.lo(&turn) <= gap
-    };
-    if fits(0.0) {
-        return Some(0.0);
-    }
-    (1..=STEPS)
-        .map(|i| i as f32 * STEP)
-        .filter(|&lean| fits(lean))
-        .map(|lean| {
-            let (lo, hi) = item.span(&leaned(place, lean));
-            (hi - lo, lean)
-        })
-        .fold(None, |best: Option<(f32, f32)>, (tall, lean)| match best {
-            Some((most, _)) if most >= tall => best,
-            _ => Some((tall, lean)),
-        })
-        .map(|(_, lean)| lean)
+/// Whether `item`, turned by `place`, fits under a `gap` to the shelf
+/// above: its spin's sweep, from its lowest point up.
+pub(crate) fn fits(item: &Hull, place: &Turn, gap: f32) -> bool {
+    item.spun(place).1 - item.lo(place) <= gap
 }
 
 /// How far an item rises over its placement so its lowest point meets the
@@ -641,24 +608,14 @@ mod tests {
     }
 
     #[test]
-    fn the_ladder_takes_the_tallest_lean_that_fits() {
-        // A 1 m rod up the spin's axis sweeps nothing as it spins, so it
-        // fits once it leans low enough: at acos 0.8 under a 0.8 m gap, and
-        // no further, since every steeper lean stands it shorter.
-        let rod = hull(&[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
-        let lean = lean(&rod, &UPRIGHT, 0.8).unwrap();
-        assert!((lean - 0.8f32.acos()).abs() <= STEP, "{lean}");
-        let height = |a: f32| {
-            let (lo, hi) = rod.span(&leaned(&UPRIGHT, a));
-            hi - lo
-        };
-        assert!(height(lean) <= 0.8 + 1e-6);
-        assert!(height(lean) > height(lean + STEP));
-        // An L with an arm out along +Z sweeps that arm as it spins, and
-        // never fits under 0.1 m. Upright under 5 m it doesn't lean.
-        let l = hull(&[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.6]]);
-        assert_eq!(super::lean(&l, &UPRIGHT, 5.0), Some(0.0));
-        assert_eq!(super::lean(&l, &UPRIGHT, 0.1), None);
+    fn an_item_fits_by_its_spins_sweep_from_its_lowest_point() {
+        // A 1 m post on the spin's axis sweeps nothing: it fits a 1 m gap.
+        let post = hull(&[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+        assert!(fits(&post, &UPRIGHT, 1.0) && !fits(&post, &UPRIGHT, 0.9));
+        // An arm out along Z, tipped 30° about X, sweeps up past its own top.
+        let arm = hull(&[[0.0, 0.0, 0.0], [0.0, 0.0, 1.0]]);
+        let tipped = euler([30f32.to_radians(), 0.0, 0.0]);
+        assert!(!fits(&arm, &tipped, 0.6) && fits(&arm, &tipped, 1.01));
     }
 
     #[test]

@@ -15,7 +15,7 @@ use crate::settings::NewGame;
 mod fit;
 mod tables;
 
-pub(crate) use fit::{fit, placed_rise, seat, stand_pose, vanilla_pose};
+pub(crate) use fit::{fit, placed_rise, rest_pose, seat, stand_pose, vanilla_pose};
 pub(crate) use tables::PLAIN_DEAL;
 pub use tables::Tables;
 use tables::number;
@@ -452,22 +452,28 @@ impl StandIn<'_> {
         }
         refs.insert(POUCH.get().into(), reference(&new_pouch));
         refs.insert(RESPAWN.get().into(), Byml::String(NO_RESPAWN.into()));
+        // Every stand-in plays the spin, then a pose: the item's own list
+        // may name neither (a sword's is empty, the bow's lacks the spin).
         let mut placed = Placed::default();
-        let shelf = match &self.stand {
+        let mut spin = true;
+        let pose = match &self.stand {
             Stand::Shelf { turn, gap, plank } => {
                 let fit = fit(tables, template, item, *turn, *gap, *plank)?;
                 placed = Placed {
                     rise: fit.rise,
                     rotate: fit.rotate,
                 };
-                Some(self.animate(name, &fit.pose, &like, &mut refs, &mut new_files)?)
+                spin = fit.spin;
+                fit.pose
             }
             Stand::Placed(goods) => {
-                placed.rise = placed_rise(tables, goods, template, item)?;
-                None
+                let pose = rest_pose(template, item)?;
+                placed.rise = placed_rise(tables, goods, template, item, Some(&pose))?;
+                pose
             }
-            Stand::Body => None,
+            Stand::Body => rest_pose(template, item)?,
         };
+        let animations = self.animate(name, &pose, spin, &like, &mut refs, &mut new_files)?;
         let links = self.links(drop_ai.is_some())?;
         for (key, _) in links {
             match component(&given, key) {
@@ -482,10 +488,10 @@ impl StandIn<'_> {
             if let Some(table) = component(&given, TABLE) {
                 refs.insert(TABLE.get().into(), Byml::String(table.into()));
             }
-            self.lift(name, tables, true, &mut refs, &mut new_files)?;
+            self.lift(name, tables, &pose, true, &mut refs, &mut new_files)?;
         } else {
             if self.is_pickup() && self.falls()? {
-                self.lift(name, tables, false, &mut refs, &mut new_files)?;
+                self.lift(name, tables, &pose, false, &mut refs, &mut new_files)?;
             }
             let new_table = self.table(name, &like, &mut new_files)?;
             refs.insert(TABLE.get().into(), reference(&new_table));
@@ -539,23 +545,24 @@ impl StandIn<'_> {
             // loaded while the drop spawns.
             tables.add_heaps(name, &template.name)?;
         }
-        if let Some(animations) = shelf {
-            tables.animate(name, animations)?;
-        }
+        tables.animate(name, animations)?;
         Ok(placed)
     }
 
-    /// Its animations on a shelf. Returns them for its row.
+    /// Its animations: the spin when `spin`, then `pose`. Returns them for
+    /// its row.
     fn animate<'a>(
         &'a self,
         name: &str,
         pose: &str,
+        spin: bool,
         like: &BymlDoc,
         refs: &mut BymlMap,
         new_files: &mut Vec<NewFile<'a>>,
     ) -> Result<Byml> {
         let template = &self.template;
-        let animations = Byml::Array(vec![archive(SPIN), archive(pose)]);
+        let spun = spin.then(|| archive(SPIN));
+        let animations = Byml::Array(spun.into_iter().chain([archive(pose)]).collect());
         let template_param = path_of(template, ANIMATION)?;
         let mut param = resolved(template, &template_param)?;
         param.insert(ANIMATIONS.get().into(), animations.clone());
@@ -605,16 +612,17 @@ impl StandIn<'_> {
         &'a self,
         name: &str,
         tables: &Tables,
+        pose: &str,
         hovering: bool,
         refs: &mut BymlMap,
         new_files: &mut Vec<NewFile<'a>>,
     ) -> Result<()> {
         let template = &self.template;
-        let at_rest = |item: &ActorPack| -> Result<f32> {
-            let shown = heights::shown(template, item, Role::Rest, None)?;
+        let at_rest = |item: &ActorPack, pose| -> Result<f32> {
+            let shown = heights::shown(template, item, Role::Rest, pose)?;
             Ok(shown.hull(&tables.actor, &item.name)?.lo(&UPRIGHT))
         };
-        let base = at_rest(&self.item)?;
+        let base = at_rest(&self.item, Some(pose))?;
         let physics = path_of(template, PHYSICS)?;
         let set = resolved(template, &physics)?;
         let set = pack_path(
@@ -626,7 +634,7 @@ impl StandIn<'_> {
         // A hovering body holds the token's height, whatever its shape: only
         // a resting body's own bottom matters.
         let by = match hovering {
-            true => at_rest(template)?,
+            true => at_rest(template, None)?,
             false => {
                 let mut bottom = f32::INFINITY;
                 for (_, _, path) in &bodies {

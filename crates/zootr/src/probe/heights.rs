@@ -81,8 +81,16 @@ fn universe(romfs: &Romfs, tables: &Tables) -> Result<BTreeMap<Shown, String>> {
             (None, Some(worn)) => (ActorPack::load(romfs, worn)?, worn.to_string()),
             (None, None) => (ActorPack::load(romfs, item)?, item.clone()),
         };
+        // On each template: as its own archives play (the key an item
+        // placed as its own actor shares), and as a stand-in plays the spin
+        // and its pose.
         for template in &templates {
             add(heights::shown(template, &pack, Role::Rest, None)?, &row);
+            let pose = standins::rest_pose(template, &pack)?;
+            add(
+                heights::shown(template, &pack, Role::Rest, Some(&pose))?,
+                &row,
+            );
         }
         let vanilla = standins::vanilla_pose(&tables.actor, &row)?;
         for pose in [
@@ -474,8 +482,9 @@ pub(super) fn shelves(
                 heights::plank(slot.hash()),
             )?;
             println!(
-                "    {item}: pose {}  rise {:+.4}  turn {}",
+                "    {item}: pose {}{}  rise {:+.4}  turn {}",
                 fit.pose,
+                if fit.spin { "" } else { " (still)" },
                 fit.rise,
                 fit.rotate.map_or("none".into(), |r| format!("{r:.4?}")),
             );
