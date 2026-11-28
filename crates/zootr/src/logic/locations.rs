@@ -109,6 +109,14 @@ impl Build<'_> {
                 }
             }
         }
+        if !pocketed
+            && let Some(&era) = self
+                .creation_ages
+                .get(&check.file)
+                .and_then(|ages| ages.get(&check.hash))
+        {
+            where_.retain(|p| p.1 == era);
+        }
         if where_.is_empty() {
             bail!("check {} ({}) has no place", check.hash, check.holder);
         }
@@ -182,5 +190,51 @@ impl Build<'_> {
             }
         }
         Ok(Need::All(needs))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::known::map;
+    use crate::logic::World;
+    use crate::rules::{Book, Ctx, Have};
+    use crate::settings::NewGame;
+    use crate::world::Era;
+
+    #[test]
+    fn spirit_lobby_pots_need_only_their_own_age_in_the_lobby() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let new_game = NewGame {
+            pots: true,
+            ..Default::default()
+        };
+        let checks = crate::checks::dealt(&romfs, &new_game).unwrap();
+        let book = Book::load().unwrap();
+        let world = World::build(&romfs, &book, &Ctx::new(&new_game), &checks).unwrap();
+        for (hash, era) in [
+            (14639467075158265290, Era::Child),
+            (17137051788597509779, Era::Adult),
+            (103563951645462556, Era::Child),
+            (3892291898975768871, Era::Adult),
+            (16244368682301461195, Era::Child),
+            (9856880919248647941, Era::Adult),
+            (5871571106450718234, Era::Adult),
+            (3030155917724115111, Era::Child),
+        ] {
+            let spots: Vec<_> = world.locations.iter().filter(|l| l.hash == hash).collect();
+            assert_eq!(spots.len(), 1, "{hash}");
+            let spot = spots[0];
+            assert_eq!(
+                world.places[spot.place],
+                (map::SPIRIT_TEMPLE.to_string(), era)
+            );
+            assert!(
+                spot.need.met(&Have::default(), era),
+                "{} at {hash}",
+                spot.need
+            );
+        }
     }
 }
