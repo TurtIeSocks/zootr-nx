@@ -1,5 +1,6 @@
 //! Written by `zootr probe heights`, from the dump: rerun it when the pool,
-//! the models or the poses change, never edit it by hand. See [`super`].
+//! the models, the poses or the shops change, never edit it by hand. See
+//! [`super`].
 #![allow(clippy::approx_constant)]
 
 use super::{Frame, Name};
@@ -233,4 +234,67 @@ pub(super) const POSES: [(Name, &[Frame]); 94] = [
     (n!(0xfa6a9624601188bc), &[[1.0000,0.0000,0.0000,0.0000,0.0000,1.0000,0.0000,0.2100,0.0000,0.0000,1.0000,0.0000]]),
     (n!(0xfb5bafb27b521343), &[[0.9830,0.6883,0.0000,0.0000,-0.6883,0.9830,0.0000,-0.0360,-0.0000,0.0000,1.2000,0.0000]]),
     (n!(0xff6afd2e6ab3171f), &[[1.6000,0.0000,0.0000,0.0000,0.0000,1.6000,0.0000,0.0000,0.0000,0.0000,1.6000,0.0000]]),
+];
+
+/// Each shop slot's plank, by its placement's hash, in hash order: how far
+/// the shop's collision floor under it sits from it. A slot with none
+/// isn't listed.
+#[rustfmt::skip]
+pub(super) const PLANKS: [(u64, f32); 56] = [
+    (0x0e5b2e1efb2ec0a6, -0.0007),
+    (0x10d28a0cdf41643b, -0.0487),
+    (0x137af2947ebbf323, -0.0041),
+    (0x1842d3c8f8d2b04d, -0.0247),
+    (0x22498ec25c96bef0, -0.0350),
+    (0x2342d792953018af, -0.0107),
+    (0x2a82ccb3480253e3, -0.0008),
+    (0x30bdb4de7b3a8ded, -0.0657),
+    (0x42adffd335eec74c, 0.0010),
+    (0x46cc8dc85c593759, -0.0670),
+    (0x4bda3eab614ef916, -0.0145),
+    (0x4dee1ce7fcc7bd4c, -0.0026),
+    (0x5045ad77938b49ab, -0.0414),
+    (0x536dd60130b2aecd, -0.0022),
+    (0x59d496ed68e556dd, -0.0140),
+    (0x5e50590626f9b42f, -0.0008),
+    (0x648408010844625b, -0.0580),
+    (0x6c4d94e4246255a5, -0.0308),
+    (0x6ec40c741944bdae, -0.0115),
+    (0x7143a8d9c83e2bcb, -0.0201),
+    (0x7aff7a0e2912b5a8, -0.0007),
+    (0x7bb82e446b379c51, -0.0007),
+    (0x7e08c3aa83c2c088, -0.0217),
+    (0x817a1018f027e8f1, -0.0280),
+    (0x82ba70b937658c79, -0.0004),
+    (0x850d189b38e6f873, 0.0069),
+    (0x8b61098661de27ab, -0.0116),
+    (0x957a0a169612dc39, -0.0325),
+    (0x986542d5229ac379, 0.0070),
+    (0x999501a6c06a189c, -0.0238),
+    (0x9ffd6cd567f1a879, -0.0005),
+    (0xa0e9f18dbd41d117, -0.0331),
+    (0xa1877414e6eb9569, -0.0022),
+    (0xa6dce3aabda98a72, -0.0009),
+    (0xaa57fb757906b51b, -0.0102),
+    (0xac51191bf2b7ca44, -0.0335),
+    (0xac73641421a2ea26, -0.0108),
+    (0xadf79fc65908825c, -0.0108),
+    (0xb4ed26be1dd279c7, -0.0210),
+    (0xb5aade748ec18a32, -0.0007),
+    (0xb713da6515005f16, 0.0072),
+    (0xb7c87cd565b8590b, -0.0116),
+    (0xc0f68439087338cd, -0.0116),
+    (0xc49379f0b7c1cb6f, -0.0582),
+    (0xca3fc17857ff7857, 0.0004),
+    (0xcacb146b9ce9bbe5, -0.0050),
+    (0xd4a9ace7212b25a7, -0.0236),
+    (0xd50c53443ebc3e45, -0.0108),
+    (0xe2ccdcb27b1e2268, -0.0026),
+    (0xe64b3bd010ced650, 0.0005),
+    (0xe7ab9400a7b6f309, -0.0492),
+    (0xebda151210199ace, -0.0020),
+    (0xef6d5c89b3dd5a76, -0.0492),
+    (0xf3ac26541a677b76, -0.0108),
+    (0xfaf80fa73d534b42, -0.0306),
+    (0xfbfbe2feb825a91f, -0.0582),
 ];

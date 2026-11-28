@@ -215,12 +215,77 @@ pub(super) fn heights(romfs: &Romfs, game: &Path) -> Result<()> {
         println!("    (n!({key:#018x}), &[{}]),", each.join(","));
     }
     println!("];");
+    let planks = planks(&floors(romfs, game, &crate::shops::slots(romfs)?)?);
+    println!();
+    println!("{PLANKS_DOC}");
+    println!("#[rustfmt::skip]");
+    println!(
+        "pub(super) const PLANKS: [(u64, f32); {}] = [",
+        planks.len()
+    );
+    for (slot, plank) in &planks {
+        println!("    ({slot:#018x}, {plank:.4}),");
+    }
+    println!("];");
     Ok(())
+}
+
+/// How far below a shop slot a collision floor may sit and still be its
+/// plank, not the room's floor or a lower shelf's.
+const PLANK_BELOW: f32 = -0.3;
+/// How far above a shop slot its plank may sit: the placements sit on
+/// theirs to under a centimetre above.
+const PLANK_ABOVE: f32 = 0.1;
+/// How far above a shop slot `probe shelves` lists floors: a shelf's
+/// reach, so the one above shows.
+const SHELF_REACH: f32 = 0.6;
+
+/// The collision floors near each shop slot, by its hash, as heights off
+/// the slot, low to high: its plank and whatever else stands within a
+/// shelf's reach. A slot no map places has none.
+fn floors(
+    romfs: &Romfs,
+    game: &Path,
+    slots: &[crate::shops::Slot],
+) -> Result<HashMap<u64, Vec<f32>>> {
+    let maps = crate::warp::placed_by_map(romfs, |_| true)?;
+    let mut floors = HashMap::new();
+    for placed in maps.values() {
+        let here: Vec<&crate::shops::Slot> = (slots.iter())
+            .filter(|s| placed.iter().any(|p| p.hash == Some(s.hash())))
+            .collect();
+        if here.is_empty() {
+            continue;
+        }
+        let walls = crate::nav::mesh::walls(romfs, game, placed)?;
+        for slot in here {
+            let [x, y, z] = slot.pos;
+            let mut near: Vec<f32> = (walls.solid.iter().chain(&walls.air))
+                .flat_map(|wall| wall.floors_at(x, z))
+                .map(|f| f - y)
+                .filter(|f| (PLANK_BELOW..SHELF_REACH).contains(f))
+                .collect();
+            near.sort_by(f32::total_cmp);
+            floors.insert(slot.hash(), near);
+        }
+    }
+    Ok(floors)
+}
+
+/// Each slot's plank, by its hash: the highest floor under it.
+fn planks(floors: &HashMap<u64, Vec<f32>>) -> BTreeMap<u64, f32> {
+    (floors.iter())
+        .filter_map(|(slot, near)| {
+            let plank = near.iter().rev().find(|&&f| f <= PLANK_ABOVE)?;
+            Some((*slot, *plank))
+        })
+        .collect()
 }
 
 const HEADER: &str = "\
 //! Written by `zootr probe heights`, from the dump: rerun it when the pool,
-//! the models or the poses change, never edit it by hand. See [`super`].
+//! the models, the poses or the shops change, never edit it by hand. See
+//! [`super`].
 #![allow(clippy::approx_constant)]
 
 use super::{Frame, Name};
@@ -231,6 +296,11 @@ use crate::n;
 /// (the pose a clip-less actor keeps), and its points in millimetres in
 /// the space under them.
 ";
+
+const PLANKS_DOC: &str = "\
+/// Each shop slot's plank, by its placement's hash, in hash order: how far
+/// the shop's collision floor under it sits from it. A slot with none
+/// isn't listed.";
 
 const POSES_DOC: &str = "\
 /// Each pose's root transform at every frame of its clip, by its key's
@@ -364,9 +434,7 @@ pub(super) fn shelves(
     let tables = Tables::load(romfs)?;
     let slots = crate::shops::slots(romfs)?;
     let gaps = crate::shops::gaps(romfs, &tables, &slots)?;
-    let wanted: BTreeSet<u64> = slots.iter().map(|s| s.hash()).collect();
-    let maps = crate::warp::placed_by_map(romfs, |_| true)?;
-    let mut walls: HashMap<&str, crate::nav::mesh::Walls> = HashMap::new();
+    let floors = floors(romfs, game, &slots)?;
     for slot in slots
         .iter()
         .filter(|s| only.is_none_or(|name| s.shop == name))
@@ -387,31 +455,24 @@ pub(super) fn shelves(
             hull.kind,
             gap.map_or("none".into(), |g| format!("{g:.4}")),
         );
-        // The collision floors right under the slot: the plank its goods
-        // stand on, read from the shop's own meshes.
-        let map = maps.iter().find(|(_, placed)| {
-            placed.iter().any(|p| {
-                p.hash
-                    .is_some_and(|h| h == slot.hash() && wanted.contains(&h))
-            })
-        });
-        if let Some((name, placed)) = map {
-            if !walls.contains_key(name.as_str()) {
-                walls.insert(name, crate::nav::mesh::walls(romfs, game, placed)?);
-            }
-            let w = &walls[name.as_str()];
-            let [x, y, z] = slot.pos;
-            let mut floors: Vec<f32> = (w.solid.iter().chain(&w.air))
-                .flat_map(|wall| wall.floors_at(x, z))
-                .map(|f| f - y)
-                .filter(|f| (-0.3..0.6).contains(f))
-                .collect();
-            floors.sort_by(f32::total_cmp);
-            println!("    {name}: floors {floors:+.4?}");
-        }
+        // The plank the table seats it on, and the collision floors near
+        // it in the shop's own meshes.
+        println!(
+            "    plank {}  floors {:+.4?}",
+            heights::plank(slot.hash()).map_or("none".into(), |p| format!("{p:+.4}")),
+            floors.get(&slot.hash()).cloned().unwrap_or_default(),
+        );
         for item in tries {
             let pack = ActorPack::load(romfs, item)?;
-            let fit = standins::fit(&tables, &goods, &pack, slot.rotate.unwrap_or_default(), gap)?;
+            let turn = slot.rotate.unwrap_or_default();
+            let fit = standins::fit(
+                &tables,
+                &goods,
+                &pack,
+                turn,
+                gap,
+                heights::plank(slot.hash()),
+            )?;
             println!(
                 "    {item}: pose {}  rise {:+.4}  turn {}",
                 fit.pose,
@@ -426,7 +487,25 @@ pub(super) fn shelves(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::game::dev_dump;
+    use crate::game::{DEV_DUMP, dev_dump};
+
+    /// The table's planks are the shop collision's: every slot but the
+    /// Zora Shop's eight stands on one.
+    #[test]
+    fn every_shop_slot_sits_on_the_plank_its_collision_has() {
+        let Some(romfs) = dev_dump() else { return };
+        let slots = crate::shops::slots(&romfs).unwrap();
+        let fresh = planks(&floors(&romfs, Path::new(DEV_DUMP), &slots).unwrap());
+        assert_eq!(fresh.len(), slots.len() - 8);
+        for slot in &slots {
+            let (want, have) = (fresh.get(&slot.hash()), heights::plank(slot.hash()));
+            let same = match (want, have) {
+                (Some(w), Some(h)) => (w - h).abs() < 1e-4,
+                (w, h) => w.is_none() && h.is_none(),
+            };
+            assert!(same, "{} {}: {want:?} vs {have:?}", slot.shop, slot.number);
+        }
+    }
 
     /// The table is fresh: every holder a seed can show finds its model,
     /// from its mesh or at least its box, and its pose. Nothing falls back

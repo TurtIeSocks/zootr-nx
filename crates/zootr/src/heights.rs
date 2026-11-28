@@ -17,7 +17,7 @@ use ounce_formats::{ActorPack, BymlDoc};
 use crate::known::{Name, field, hash};
 use crate::medallions;
 use crate::standins::{self, ANIMATION, MODEL, SPIN};
-use table::{MODELS, POSES};
+use table::{MODELS, PLANKS, POSES};
 
 /// A turn's rows: the rows of `Rz · Ry · Rx` for Euler X, Y, Z.
 pub(crate) type Turn = [[f32; 3]; 3];
@@ -132,6 +132,14 @@ fn model_row(key: u64) -> Option<(Kind, Frame, &'static [[i16; 3]])> {
     let at = MODELS.binary_search_by_key(&key, |(n, ..)| n.0).ok()?;
     let (_, kind, rest, points) = MODELS[at];
     Some((Kind::of(kind), rest, points))
+}
+
+/// How far the plank under shop slot `slot` (its placement's hash) sits
+/// from the slot, read from the shop's collision. `None` where no
+/// collision stands under it: the Zora Shop's shelves have none.
+pub(crate) fn plank(slot: u64) -> Option<f32> {
+    let at = PLANKS.binary_search_by_key(&slot, |(s, _)| *s).ok()?;
+    Some(PLANKS[at].1)
 }
 
 fn pose_row(key: u64) -> Option<&'static [Frame]> {
@@ -677,6 +685,7 @@ mod tests {
     fn the_table_is_sorted_and_its_rows_are_whole() {
         assert!(MODELS.windows(2).all(|w| w[0].0 < w[1].0));
         assert!(POSES.windows(2).all(|w| w[0].0 < w[1].0));
+        assert!(PLANKS.windows(2).all(|w| w[0].0 < w[1].0));
         assert!(MODELS.iter().all(|(.., p)| !p.is_empty()));
         let text = include_str!("heights/table.rs");
         assert!(text.starts_with("//! Written by `zootr probe heights`"));

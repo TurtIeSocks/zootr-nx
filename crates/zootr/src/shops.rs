@@ -22,7 +22,7 @@ use crate::per_dump::PerDump;
 use crate::rng::Rng;
 use crate::rules::Need;
 
-use crate::heights::{self, Role};
+use crate::heights;
 use crate::settings::NewGame;
 use crate::standins::{Stand, StandIn, Tables, item_pack};
 use crate::text::{Copies, CopyLine};
@@ -429,6 +429,7 @@ pub fn write(
             stand: Stand::Shelf {
                 turn: slot.rotate.unwrap_or_default(),
                 gap: gaps.get(&slot.hash()).copied(),
+                plank: heights::plank(slot.hash()),
             },
         };
         let placed = (sale.build(builder, tables))
@@ -449,18 +450,17 @@ const ROW: f32 = 0.2;
 /// Within this across, a slot stands over another.
 const COLUMN: f32 = 0.3;
 
-/// Each slot's room up to the shelf above, by its hash: from where its
-/// goods reach down to where the goods of the slot over it in the same
-/// shop do. A top row has no shelf above it measured, so it takes the gap
+/// Each slot's room up to the shelf above, by its hash: from its seat
+/// ([`crate::standins::seat`]) to the seat of the slot over it in the same
+/// shop. A top row has no shelf above it measured, so it takes the gap
 /// of the row below it. A slot alone in its column has none.
 pub(crate) fn gaps(romfs: &Romfs, tables: &Tables, slots: &[Slot]) -> Result<HashMap<u64, f32>> {
     let mut bottoms = HashMap::new();
     for slot in slots {
         let goods = ActorPack::load(romfs, &slot.goods)?;
-        let hull =
-            heights::shown(&goods, &goods, Role::Shelf, None)?.hull(&tables.actor, &slot.goods)?;
-        let turn = heights::euler(slot.rotate.unwrap_or_default());
-        bottoms.insert(slot.hash(), slot.pos[1] + hull.lo(&turn));
+        let turn = slot.rotate.unwrap_or_default();
+        let seat = crate::standins::seat(tables, &goods, turn, heights::plank(slot.hash()))?;
+        bottoms.insert(slot.hash(), slot.pos[1] + seat);
     }
     let over = |slot: &Slot| {
         (slots.iter())
@@ -561,7 +561,7 @@ mod tests {
         let span = |item: &Name| {
             let pack = ActorPack::load(&romfs, item).unwrap();
             let pose = vanilla_pose(&tables.actor, item).unwrap();
-            let shown = heights::shown(&pack, &pack, Role::Shelf, Some(&pose)).unwrap();
+            let shown = heights::shown(&pack, &pack, heights::Role::Shelf, Some(&pose)).unwrap();
             shown
                 .hull(&tables.actor, item)
                 .unwrap()
@@ -786,7 +786,7 @@ mod tests {
         let placed = |s: &Slot| (s.number == 1) as usize * s.placements.len();
         let placed: usize = slots.iter().map(placed).sum();
         assert!(fields.contains(&format!("{}.Gyaml={name}", goron.hash())));
-        // The Hookshot rises so its lowest point meets the bomb bundle's.
+        // The Hookshot rises so its lowest point meets its plank.
         let raised = format!("{}.Translate.1+=", goron.hash());
         let rise: f32 = (fields.iter())
             .find_map(|f| f.strip_prefix(&raised))
@@ -802,6 +802,7 @@ mod tests {
                 .unwrap()
                 .get(&goron.hash())
                 .copied(),
+            heights::plank(goron.hash()),
         )
         .unwrap();
         assert_eq!(rise, fit.rise);

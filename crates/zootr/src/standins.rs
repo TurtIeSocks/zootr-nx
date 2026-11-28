@@ -122,8 +122,13 @@ pub struct StandIn<'a> {
 /// game put there reached ([`heights`]).
 pub enum Stand {
     /// A shop slot, its goods the template: the slot placement's turn
-    /// (Euler X, Y, Z) and the room up to the shelf above, if one is.
-    Shelf { turn: [f32; 3], gap: Option<f32> },
+    /// (Euler X, Y, Z), the room up to the shelf above, if one is, and its
+    /// plank ([`heights::plank`]).
+    Shelf {
+        turn: [f32; 3],
+        gap: Option<f32>,
+        plank: Option<f32>,
+    },
     /// Placed where this actor stood.
     Placed(ActorPack),
     /// Falling or hovering, so its body sets its height.
@@ -180,11 +185,10 @@ pub(crate) fn fit(
     item: &ActorPack,
     turn: [f32; 3],
     gap: Option<f32>,
+    plank: Option<f32>,
 ) -> Result<Fit> {
     let place = heights::euler(turn);
-    let anchor = heights::shown(goods, goods, Role::Shelf, None)?
-        .hull(&tables.actor, &goods.name)?
-        .lo(&place);
+    let anchor = seat(tables, goods, turn, plank)?;
     let hull = |pose: &str| -> Result<Hull> {
         heights::shown(goods, item, Role::Shelf, Some(pose))?.hull(&tables.actor, &item.name)
     };
@@ -207,6 +211,23 @@ pub(crate) fn fit(
         rise: anchor - shown.lo(&turned),
         rotate: (lean != 0.0).then(|| heights::angles(&turned)),
     })
+}
+
+/// Where a shelf item's lowest point goes, over its slot: on the plank
+/// under it, else, on a shelf with no collision, where the goods' lowest
+/// point was.
+pub(crate) fn seat(
+    tables: &Tables,
+    goods: &ActorPack,
+    turn: [f32; 3],
+    plank: Option<f32>,
+) -> Result<f32> {
+    match plank {
+        Some(plank) => Ok(plank),
+        None => Ok(heights::shown(goods, goods, Role::Shelf, None)?
+            .hull(&tables.actor, &goods.name)?
+            .lo(&heights::euler(turn))),
+    }
 }
 
 /// How far `item`, built on `template`, rises where `goods` stood, so its
@@ -545,8 +566,8 @@ impl StandIn<'_> {
         refs.insert(RESPAWN.get().into(), Byml::String(NO_RESPAWN.into()));
         let mut placed = Placed::default();
         let shelf = match &self.stand {
-            Stand::Shelf { turn, gap } => {
-                let fit = fit(tables, template, item, *turn, *gap)?;
+            Stand::Shelf { turn, gap, plank } => {
+                let fit = fit(tables, template, item, *turn, *gap, *plank)?;
                 placed = Placed {
                     rise: fit.rise,
                     rotate: fit.rotate,
