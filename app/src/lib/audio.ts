@@ -11,6 +11,7 @@ export const POOLS = [
   "voice-adult",
   "voice-child",
   "npc-voice",
+  "sfx",
 ] as const satisfies readonly Pool[];
 
 /** A pool a seed can shuffle. */
@@ -26,6 +27,7 @@ export const POOL_LABELS: Record<ShownPool, string> = {
   "voice-adult": "Adult voice",
   "voice-child": "Child voice",
   "npc-voice": "NPC voices",
+  sfx: "Sound effects",
 };
 
 /** A track override's value for "keep this one vanilla", as the backend

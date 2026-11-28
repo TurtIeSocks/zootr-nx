@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Square,
   Swords,
+  Volume2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { AudioDraft, Pool, PoolMode, TrackView } from "@/bindings";
@@ -71,6 +72,7 @@ const POOL_TABS: { id: PoolTab; label: string; icon: typeof Music }[] = [
     ] satisfies { id: PoolTab; icon: typeof Music }[]
   ).map((p) => ({ ...p, label: POOL_LABELS[p.id] })),
   { id: "voices", label: "Voices", icon: Mic },
+  { id: "sfx", label: POOL_LABELS.sfx, icon: Volume2 },
 ];
 
 const POOL_MODES: { id: PoolMode; label: string }[] = [
