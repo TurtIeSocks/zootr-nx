@@ -225,6 +225,19 @@ impl Machine {
         assert_eq!(pc, until, "{what}: stopped at {pc:#x} (budget?)");
     }
 
+    /// Run through the hook until it returns or calls the game.
+    fn next_call(&mut self, start: u64) -> Option<u32> {
+        *self.uc.get_data_mut() = Run {
+            start,
+            until: SENTINEL,
+            left: None,
+        };
+        self.uc.emu_start(start, SENTINEL, 0, BUDGET).unwrap();
+        let left = self.uc.get_data().left;
+        assert_eq!(self.uc.reg_read(R::PC).unwrap(), left.unwrap_or(SENTINEL));
+        left.map(|pc| (pc - BASE) as u32)
+    }
+
     /// The game's function at `pc` returns `MARK` at once.
     fn stub_return(&mut self) {
         let lr = self.uc.reg_read(R::X30).unwrap();
@@ -387,4 +400,6 @@ fn without_a_table_the_boots_icon_reads_the_games_child_byte() {
 }
 
 mod arrows;
+mod progressive_pickups;
 mod swap;
+mod weapon_bags;
