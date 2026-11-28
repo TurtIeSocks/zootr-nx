@@ -10,6 +10,8 @@ use ounce_formats::{Romfs, Texture, textures, textures_named};
 
 use crate::game;
 use crate::inventory;
+
+mod ring;
 use crate::known::{Name, actor, field, item};
 
 /// Pouch icons, one BNTX each, named by actor.
@@ -105,6 +107,7 @@ fn built_for(dir: &Path, manifest: &str) -> bool {
 fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
     std::fs::create_dir_all(part)?;
     let wanted: HashSet<&str> = inventory::icons().collect();
+    let mut small_key = None;
     for (path, data) in game::search(game, ICONS)? {
         // The search matches anywhere in a path, so not every hit is an icon.
         let Some(name) = path.strip_prefix(ICONS) else {
@@ -113,8 +116,17 @@ fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
         let name = name.trim_end_matches(".bntx.zs");
         if wanted.contains(name) {
             let data = romfs.dicts().decompress(&path, &data)?;
-            write(part, name, decode(&data).first())?;
+            let t = decode(&data).into_iter().next();
+            if name == crate::keys::SMALL.get() {
+                small_key = t.clone();
+            }
+            write(part, name, t.as_ref())?;
         }
+    }
+    // The key ring is a model alone: its icon is painted from the key's.
+    if wanted.contains(inventory::KEY_RING) {
+        let icon = small_key.as_ref().and_then(ring::paint);
+        write(part, inventory::KEY_RING, icon.as_ref())?;
     }
     // The Magic Meter is ours: its icon is painted, as the seed paints it.
     if wanted.contains(crate::magic::meter::NAME) {
@@ -145,16 +157,9 @@ fn write(dir: &Path, name: &str, t: Option<&Texture>) -> Result<()> {
 /// (the Great Fairies') doesn't count as drawn, but stays in the square. A
 /// blank `t` stays as it is.
 fn framed(t: &Texture) -> Texture {
-    let drawn = |x: usize, y: usize| t.rgba[(y * t.width + x) * 4 + 3] > EDGE;
-    let (mut x0, mut y0, mut x1, mut y1) = (t.width, t.height, 0, 0);
-    for y in 0..t.height {
-        for x in (0..t.width).filter(|&x| drawn(x, y)) {
-            (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x + 1), y1.max(y + 1));
-        }
-    }
-    if x0 >= x1 {
+    let Some((x0, y0, x1, y1)) = drawn_box(t) else {
         return t.clone();
-    }
+    };
     let (w, h) = (x1 - x0, y1 - y0);
     let side = (w.max(h) as f32 / FILL).ceil() as usize;
     // Where the square's corner falls on `t`, maybe off its edge.
@@ -181,6 +186,19 @@ fn framed(t: &Texture) -> Texture {
         height: side,
         rgba,
     }
+}
+
+/// The box `t` draws in, its pixels past [`EDGE`], as its left, top, and
+/// one past its right and bottom. None for a blank `t`.
+fn drawn_box(t: &Texture) -> Option<(usize, usize, usize, usize)> {
+    let drawn = |x: usize, y: usize| t.rgba[(y * t.width + x) * 4 + 3] > EDGE;
+    let (mut x0, mut y0, mut x1, mut y1) = (t.width, t.height, 0, 0);
+    for y in 0..t.height {
+        for x in (0..t.width).filter(|&x| drawn(x, y)) {
+            (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x + 1), y1.max(y + 1));
+        }
+    }
+    (x0 < x1).then_some((x0, y0, x1, y1))
 }
 
 /// Every texture in a BNTX, or none if it doesn't decode.

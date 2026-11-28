@@ -250,6 +250,9 @@ const DUNGEONS: [(&Name, &str, &str); 12] = [
 /// The Fortress's row, which shows its keys alone.
 const FORTRESS: (&Name, &str, &str) = (keys::FORTRESS.name, "Gerudo Fortress", "GF");
 
+/// The key ring's icon, which the icon builder paints: the dump has none.
+pub const KEY_RING: &str = "Item_Rando_KeyRing";
+
 /// Rows in the Dungeons section.
 const ROWS: usize = DUNGEONS.len() + 1;
 
@@ -263,6 +266,7 @@ pub fn icons() -> impl Iterator<Item = &'static str> {
         .chain(KEPT.map(|k| k.1))
         .chain(crate::save_editor::STATS.map(|s| s.1))
         .map(|icon| icon.get())
+        .chain([KEY_RING])
 }
 
 /// What a row keeps, one cell each: the `DungeonInfo` member that says it,
@@ -289,6 +293,10 @@ struct Kept {
     /// The member's hash, or none where the dungeon has no such item and
     /// the cell stays empty.
     key: Option<u32>,
+    dungeon: &'static Name,
+    /// The hash of the `IsGet` flag of the dungeon's ring, on the small
+    /// keys cell of a dungeon whose keys come as one.
+    ring: Option<u32>,
 }
 
 /// Every cell of every row, in order. A dungeon has an item when one of its
@@ -314,6 +322,8 @@ fn kept(found: &[ItemCheck]) -> Vec<Kept> {
                     icon: item,
                     small: i == 0,
                     key: here.then(|| murmur3(keys::dungeon_flag(member, field).as_bytes())),
+                    dungeon: member,
+                    ring: None,
                 }
             })
     })
@@ -398,7 +408,10 @@ impl Inventory {
 
     /// Every hash the grid reads.
     fn hashes(&self) -> impl Iterator<Item = u32> + '_ {
-        let kept = self.dungeons.iter().filter_map(|k| k.key);
+        let kept = self
+            .dungeons
+            .iter()
+            .flat_map(|k| k.key.into_iter().chain(k.ring));
         self.keys.values().copied().chain(kept)
     }
 
@@ -433,6 +446,30 @@ impl Inventory {
         changed
     }
 
+    /// Reads the rings of the dungeons a seed's report lists in `listed`
+    /// ([`crate::generate::Report::key_rings`]), by their names in
+    /// `romfs`. Before [`Self::load`], so a save's flags are read too.
+    pub fn set_rings(&mut self, romfs: &Romfs, listed: &[String]) -> Result<()> {
+        if !listed.is_empty() {
+            let names = crate::names::Names::load(romfs, [])?;
+            self.ring(&keys::ringed(listed, |id| names.area(id)));
+        }
+        Ok(())
+    }
+
+    /// Reads the rings of the dungeons in `rings`, whose keys come as one.
+    /// A ring shows only once Link has it, so the grid never says which
+    /// dungeons deal rings. Their copy shares its name with a single key's,
+    /// so its flag reads as a ring only here.
+    fn ring(&mut self, rings: &[&Name]) {
+        for k in self.dungeons.iter_mut().filter(|k| k.small) {
+            let n = keys::DUNGEONS.iter().position(|d| d.name == k.dungeon);
+            k.ring = n
+                .filter(|_| rings.contains(&k.dungeon))
+                .map(|i| murmur3(format!("IsGet.{}", crate::key_tints::ring(i + 1)).as_bytes()));
+        }
+    }
+
     /// Whether `slot` is of our own items and the loaded values hold none
     /// of them, as a save or seed without them.
     fn absent(&self, slot: &Slot) -> bool {
@@ -454,15 +491,19 @@ impl Inventory {
 
     pub fn cells(&self) -> Vec<Cell> {
         let dungeons = self.dungeons.iter().map(|k| {
-            let value = k
-                .key
-                .map_or(0, |key| self.values.get(&key).copied().unwrap_or(0));
+            let read = |key: u32| self.values.get(&key).copied().unwrap_or(0);
+            let value = k.key.map_or(0, read);
+            let ring = k.ring.is_some_and(|r| read(r) > 0);
+            let (label, icon) = match (ring, &k.row) {
+                (true, Some(row)) => (format!("{} Key Ring", row.name), KEY_RING.into()),
+                _ => (k.label.clone(), k.icon.to_string()),
+            };
             Cell {
                 section: Section::Dungeons,
-                label: k.label.clone(),
-                icon: k.icon.to_string(),
+                label,
+                icon,
                 glyph: Glyph::of(k.icon),
-                tier: u8::from(value > 0),
+                tier: u8::from(value > 0 || ring),
                 tiers: u8::from(k.key.is_some()),
                 count: (k.small && k.key.is_some()).then_some(value),
                 row: k.row.clone(),
@@ -778,6 +819,40 @@ pub(super) mod tests {
         );
         assert_eq!(cell(&cells, "Forest Temple Map").row, None);
         assert_eq!(rows.last().unwrap().short, "GF");
+    }
+
+    #[test]
+    fn a_ring_shows_only_once_found_and_stays_lit_with_its_keys_spent() {
+        let ring = |n| murmur3(format!("IsGet.{}", crate::key_tints::ring(n)).as_bytes());
+        let forest = keys::DUNGEONS
+            .iter()
+            .position(|d| d.name == flag::FOREST_TEMPLE);
+        let forest = ring(forest.unwrap() + 1);
+        let fire = keys::DUNGEONS
+            .iter()
+            .position(|d| d.name == flag::FIRE_TEMPLE);
+        let fire = ring(fire.unwrap() + 1);
+        let grid = |rings: &[&Name], held: &[(u32, u32)]| {
+            let pairs: Vec<_> = std::iter::once((0, 0))
+                .chain(held.iter().copied())
+                .collect();
+            let save = Save::parse(Save::fixture(&pairs)).unwrap();
+            let mut inv = inventory_of(&HAS);
+            inv.ring(rings);
+            inv.load(in_save(&save));
+            inv.cells()
+        };
+        let plain = grid(&[], &[]);
+        // Before its ring, a ring dungeon's cell is a singles one's.
+        assert_eq!(grid(&[flag::FOREST_TEMPLE], &[]), plain);
+        // Found, it's the ring, lit with every key spent.
+        let found = grid(&[flag::FOREST_TEMPLE], &[(forest, 1)]);
+        let c = cell(&found, "Forest Temple Key Ring");
+        assert_eq!((c.icon.as_str(), c.tier, c.count), (KEY_RING, 1, Some(0)));
+        assert_eq!(c.glyph, Glyph::SmallKey);
+        // A singles dungeon's first key sets the same flag, and stays keys.
+        let single = grid(&[flag::FOREST_TEMPLE], &[(fire, 1)]);
+        assert_eq!(single, plain);
     }
 
     #[test]

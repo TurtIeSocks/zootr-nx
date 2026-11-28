@@ -198,12 +198,9 @@ impl KeyModes {
         Self::roll(keys, 0)
     }
 
-    /// Each dungeon whose small keys come as a ring, by name. Only a mixed
-    /// seed mixes, so the others name none.
+    /// Each dungeon whose small keys come as a ring, by name: all eight
+    /// with key rings, the rolled ones when mixed, none otherwise.
     pub fn rings(&self) -> Vec<&'static Name> {
-        if self.setting != DungeonKeys::Mixed {
-            return Vec::new();
-        }
         DUNGEONS
             .iter()
             .enumerate()
@@ -211,6 +208,15 @@ impl KeyModes {
             .map(|(_, d)| d.name)
             .collect()
     }
+}
+
+/// The dungeons `listed` by their names, as [`KeyModes::rings`] lists them
+/// in a seed's report, `area` naming each.
+pub fn ringed(listed: &[String], area: impl Fn(&str) -> String) -> Vec<&'static Name> {
+    (DUNGEONS.iter())
+        .filter(|d| listed.contains(&area(d.name.get())))
+        .map(|d| d.name)
+        .collect()
 }
 
 /// Whether `item` is a ring, small key or boss key copy, the Fortress key
@@ -437,6 +443,13 @@ mod tests {
     use crate::gamedata::GameData;
     use crate::known::{actor, flag, flow, item, map};
     use crate::presets;
+
+    #[test]
+    fn ringed_finds_the_dungeons_a_report_names() {
+        let area = |id: &str| format!("The {id}");
+        let listed = [area(flag::FIRE_TEMPLE.get()), "Somewhere Fake".into()];
+        assert_eq!(ringed(&listed, area), [flag::FIRE_TEMPLE]);
+    }
 
     #[test]
     fn the_defaults_name_each_dungeon_with_its_count() {
@@ -701,7 +714,7 @@ mod tests {
             );
         }
         // Every other setting gives all eight dungeons the same mode, and
-        // names no ring: only a mixed seed mixes.
+        // names a ring for each dungeon whose mode is one.
         for keys in [
             DungeonKeys::Rings,
             DungeonKeys::Singles,
@@ -717,7 +730,11 @@ mod tests {
                 (1..=DUNGEONS.len()).all(|n| modes.mode(n) == want),
                 "{keys:?}"
             );
-            assert!(modes.rings().is_empty(), "{keys:?} names a ring");
+            let rings = match want {
+                KeyMode::Rings => DUNGEONS.len(),
+                KeyMode::Singles => 0,
+            };
+            assert_eq!(modes.rings().len(), rings, "{keys:?}");
         }
     }
 
