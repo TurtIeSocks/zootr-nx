@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { ago, count, seedOrCode, splitLines } from "@/lib/format";
+import { ago, count, seedOrCode, shuffled, splitLines } from "@/lib/format";
 
 test("a seed is its digits, a share code is kept whole", () => {
   expect(seedOrCode(" 48-29 13 ")).toBe("482913");
@@ -9,6 +9,21 @@ test("a seed is its digits, a share code is kept whole", () => {
 
 test("lines are trimmed and blank ones dropped", () => {
   expect(splitLines(" a=1 \n\n  \nb=2")).toEqual(["a=1", "b=2"]);
+});
+
+test("a seed counts its shuffled checks, and its kept ones when any", () => {
+  const seed = { chests: 1667, changed: 1303 };
+  expect(shuffled({ ...seed, kept: 0 })).toEqual({
+    value: 1667,
+    text: "1667 checks shuffled",
+  });
+  expect(shuffled({ chests: 138, changed: 1, kept: 138 })).toEqual({
+    value: 0,
+    text: "0 of 138 checks shuffled · 138 kept vanilla",
+  });
+  expect(shuffled({ ...seed, kept: null }).text).toBe(
+    "1303 of 1667 checks changed",
+  );
 });
 
 test("a count says one or many", () => {
