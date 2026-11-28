@@ -6,7 +6,7 @@ import unittest
 from BaseClasses import CollectionState, LocationProgressType
 
 from .. import VICTORY
-from ..exported import OPTIONS, load
+from ..exported import OPTIONS, golden
 from ..options import attr
 from . import ZnxTestBase, ap_value
 
@@ -14,7 +14,7 @@ from . import ZnxTestBase, ap_value
 class TestGolden(ZnxTestBase):
     def test_golden(self) -> None:
         whole = 0
-        for n, case in enumerate(load("golden")):
+        for n, case in enumerate(golden()):
             with self.subTest(case=n, settings=case["settings"], items=len(case["items"])):
                 self.options = {attr(k): ap_value(k, v) for k, v in case["settings"].items()}
                 self.world_setup()
@@ -41,11 +41,11 @@ class TestGoldenCoversWhatItChecks(unittest.TestCase):
     goal both met and not, and every option beside Progressive Items on."""
 
     def test_the_goal_is_met_and_not(self) -> None:
-        goals = {case["goal"] for case in load("golden")}
+        goals = {case["goal"] for case in golden()}
         self.assertEqual(goals, {True, False})
 
     def test_progressive_items_on_beside_each_option(self) -> None:
-        cases = load("golden")
+        cases = golden()
         base = cases[0]["settings"]
         paired = set()
         for case in cases:
