@@ -3,6 +3,64 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.18.0] - 2026-11-28
+
+### Added
+
+- --place tours only the places named
+- A black hang says how many frames it saw
+- Sound effects pool, cues across users
+- More enemy and animal sounds, horse hoofsteps
+- Count the checks a seed kept vanilla
+- The meter counts shuffled checks, and kept ones when any
+- A missing-item color that keeps icons opaque
+- Up to ten columns, every move right shows a change
+- Optional section titles and an adjustable gap
+- Heart pieces and containers counted from the checks
+- Every icon fills its square the same
+- Each bag shows a painted icon of its own
+- Every trade item gets its own Quick Swap entry
+- An egg shares its cell with what hatches from it
+- Loads, every module-made holder's map loaded per item kind
+- Loads say how many maps they load
+- A hung load tries its map again before it fails
+- --place names a load's holder by its hash
+
+### Fixed
+
+- Shuffle chests, which keys one by one need
+- Review round 1, from the local reviewer
+- Talk through arrival text, review round 2
+- Review round 4, from the local reviewer
+- No overflow past an unlimited load, review round 5
+- Give the game back after a run, as the spec says
+- Stop on a lost turn, no boot for no cells
+- Check the turn before a round installs its seed
+- One watch loop, a frame for every place, review round 6
+- One match on the frame, grey+alpha tested, review round 8
+- A cell's hang names its frame only when one came
+- Text on the wrong map is a wrong map, review round 11
+- Unread reads say for how long, review round 13
+- A load ends the talk-through, Claude review round
+- A failed shot keeps the last frame, review round 15
+- Probe's window starts at its first look, review rounds 16-17
+- A torn shot leaves no half-written frame, review round 18
+- A failed frame move cleans up too, review round 19
+- Check the game takes keys, quit fast, no orphan frames, review round 22
+- A watch's evidence is its own, review round 24
+- Loose stand-ins drop the Fire Arrow's flames and crackle
+- One check per rock spot, none where it can be missed
+- Ganon's Castle's barrier pots spawn with the trials done
+- Spirit Temple's lobby pots each sit at their own age
+- The rock circle Kokiri pays after the story moves on
+- A check ticked by its key no longer reads as untracked
+- Give the find test's check row its tracked field
+- Bombchus wait for whatever caps them
+- Talon takes the Pocket Cucco as well as the egg
+- A plando pin the pool lacks leaves the key stand-ins
+- A load finds its holder's map in the dump, not the plan
+- A hung load tries each of its map's spots, up to five
+
 ## [0.17.0] - 2026-11-28
 
 ### Added
