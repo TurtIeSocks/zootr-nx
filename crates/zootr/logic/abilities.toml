@@ -63,6 +63,9 @@ crater-floor = "goron-tunic and (hookshot or hover-boots or (ocarina and item:bo
 # Hyrule Castle's courtyard, past Talon asleep by the crates. Only the cucco
 # wakes him. Met Zelda starts with him woken and gone.
 courtyard = "setting:met-zelda or item:cucco"
+# Ganon's Castle's barrier is down: its six trials cleared (the coarse
+# list, with the Light Arrows for each barrier), or Ganon's Trials is Done.
+trials-cleared = "setting:ganons-trials=done or ((hover-boots or (song-of-time and hookshot)) and magic and bow and (item:dins-fire or item:fire-arrows) and blue-fire and hammer and gold-gauntlets and bow and lens and hover-boots and hookshot and mirror-shield and bombchus and longshot and item:light-arrows)"
 
 ocarina = "item:fairy-ocarina"
 zeldas-lullaby = "ocarina and item:zeldas-lullaby"

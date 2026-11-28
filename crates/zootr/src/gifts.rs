@@ -13,6 +13,7 @@ mod pocket;
 mod potion;
 pub(crate) use potion::DONE as BOTTLE_TUTORIAL_DONE;
 mod rewrite;
+mod rock_circle;
 mod rolling;
 mod sales;
 mod table;
@@ -376,7 +377,7 @@ const UNSTUCK: [(&Name, Edit); 3] = [
 
 /// Write each gift whose item changed, and Zelda's always, so her lesson
 /// never plays without an ocarina. Biggoron never makes Link wait, sword
-/// moved or not. The weeding Kokiri offers his weeding until he's paid.
+/// moved or not. The weeding and rock circle Kokiri pay until they're paid.
 /// Every Great Fairy opens in any order.
 pub fn give_all(
     romfs: &Romfs,
@@ -478,11 +479,18 @@ pub fn give_all(
     }
     pedestal::shuffle(romfs, rewrites, on)?;
     flows::edit(romfs, rewrites, BIGGORON, waited)?;
-    let paid = (GIFTS.iter().find(|g| g.flow == WEEDING))
-        .and_then(Gift::found)
-        .context("the weeding pays no Bool")?;
+    let paid = |flow: &Name| {
+        (GIFTS.iter().find(|g| g.flow == flow))
+            .and_then(Gift::found)
+            .with_context(|| format!("{flow} pays no Bool"))
+    };
+    let weeding = paid(WEEDING)?;
     flows::edit(romfs, rewrites, WEEDING, |f| {
-        weeding::offered_until_paid(f, &paid)
+        weeding::offered_until_paid(f, &weeding)
+    })?;
+    let circle = paid(rock_circle::FLOW)?;
+    flows::edit(romfs, rewrites, rock_circle::FLOW, |f| {
+        rock_circle::paid_once_cleared(f, &circle)
     })?;
     flows::edit(romfs, rewrites, FOUNTAIN, ungated)
 }

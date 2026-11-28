@@ -98,12 +98,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "103563951645462556",
       "id": 498,
       "name": "Spirit Temple 1F Lobby Pot 3",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -131,7 +136,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -167,7 +172,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 297
+            "ref": 295
           }
         },
         {
@@ -206,7 +211,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -615,7 +620,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -651,7 +656,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         },
         {
@@ -891,7 +896,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -1040,7 +1045,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -1074,7 +1079,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -1194,7 +1199,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -1212,7 +1217,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -1309,7 +1314,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -1404,7 +1409,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         }
       ],
@@ -1415,22 +1420,6 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "802407974539353270",
-      "id": 1095,
-      "name": "KF Rock Circle Adult Rock 8",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -1691,7 +1680,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -1867,7 +1856,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -1905,7 +1894,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -2012,7 +2001,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -2091,7 +2080,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -2254,7 +2243,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -2448,7 +2437,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -2466,7 +2455,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -2502,7 +2491,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -2556,7 +2545,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -2654,22 +2643,11 @@
       }
     },
     {
-      "at": [],
-      "forbid": [],
-      "hash": "1337254747199514230",
-      "id": 545,
-      "name": "OGC Tower Collapse Upper Pot 1",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
       "at": [
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -2723,7 +2701,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -2828,7 +2806,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -2882,7 +2860,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -3045,7 +3023,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -3095,7 +3073,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -3113,7 +3091,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -3336,7 +3314,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -3460,7 +3438,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -3704,7 +3682,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -4208,7 +4186,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         },
         {
@@ -4420,7 +4398,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -4491,7 +4469,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -4515,7 +4493,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -4551,7 +4529,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -4688,7 +4666,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 287
+            "ref": 285
           }
         }
       ],
@@ -4797,7 +4775,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -4963,24 +4941,13 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "2657789777104100407",
-      "id": 1107,
-      "name": "KF Rock Circle Adult Rock 11",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "kokiri-forest-child",
-          "rule": true
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat Gohma"
+            ]
+          }
         }
       ],
       "forbid": [],
@@ -5123,7 +5090,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         },
         {
@@ -5147,7 +5114,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -5165,7 +5132,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -5201,7 +5168,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -5253,7 +5220,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 299
           }
         }
       ],
@@ -5473,7 +5440,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -5503,17 +5470,6 @@
       "id": 595,
       "name": "BotW B1 Before Dead Hand Pot 1",
       "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [],
-      "forbid": [],
-      "hash": "2995876338500118652",
-      "id": 596,
-      "name": "OGC Tower Collapse Lower Pot 4",
-      "unprovable": true,
       "when": {
         "setting": "pots"
       }
@@ -5559,12 +5515,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "3030155917724115111",
       "id": 598,
       "name": "Spirit Temple 1F Lobby Pot 8",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -5801,7 +5762,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 291
           }
         }
       ],
@@ -5819,7 +5780,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -5889,7 +5850,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -6010,7 +5971,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -6252,7 +6213,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -6445,7 +6406,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -6851,7 +6812,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -7044,12 +7005,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "3892291898975768871",
       "id": 630,
       "name": "Spirit Temple 1F Lobby Pot 4",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -7469,22 +7435,6 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-child",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "4164292104786619976",
-      "id": 1124,
-      "name": "KF Rock Circle Child Rock 5",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "zora-fountain-adult",
           "rule": {
             "ref": 92
@@ -7502,6 +7452,15 @@
     },
     {
       "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
         {
           "place": "kokiri-forest-child",
           "rule": true
@@ -7884,7 +7843,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -8164,7 +8123,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -8182,7 +8141,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -8241,7 +8200,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 304
+            "ref": 302
           }
         },
         {
@@ -8435,7 +8394,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 284
           }
         }
       ],
@@ -8605,22 +8564,6 @@
       "id": 35,
       "name": "Ganons Castle Light Trial Lullaby Chest",
       "unprovable": false
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "4738397009648900238",
-      "id": 1128,
-      "name": "KF Rock Circle Adult Rock 9",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
     },
     {
       "at": [
@@ -8918,7 +8861,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -8936,7 +8879,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -9063,7 +9006,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -9081,7 +9024,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 299
           }
         }
       ],
@@ -9239,7 +9182,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 297
+            "ref": 295
           }
         },
         {
@@ -9279,7 +9222,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -9297,7 +9240,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -9351,7 +9294,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -9537,22 +9480,6 @@
       "id": 36,
       "name": "Spirit Temple 1F Child Bridge Chest",
       "unprovable": false
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "5312950394209176374",
-      "id": 1132,
-      "name": "KF Rock Circle Adult Rock 12",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
     },
     {
       "at": [
@@ -9814,7 +9741,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -9823,17 +9750,6 @@
       "id": 677,
       "name": "Shadow Temple B4 Near Boss Pot 3",
       "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [],
-      "forbid": [],
-      "hash": "5547511959614762973",
-      "id": 678,
-      "name": "OGC Tower Collapse Lower Pot 6",
-      "unprovable": true,
       "when": {
         "setting": "pots"
       }
@@ -9986,7 +9902,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -10004,7 +9920,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -10164,25 +10080,9 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "5675403228854574159",
-      "id": 1138,
-      "name": "KF Rock Circle Adult Rock 13",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 295
+            "ref": 293
           }
         }
       ],
@@ -10215,7 +10115,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -10269,7 +10169,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -10464,22 +10364,6 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "5853846732169153879",
-      "id": 1140,
-      "name": "KF Rock Circle Adult Rock 3",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "hyrule-castle-child",
           "rule": true
         }
@@ -10494,12 +10378,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "5871571106450718234",
       "id": 688,
       "name": "Spirit Temple 1F Lobby Pot 7",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -10704,7 +10593,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -10802,24 +10691,6 @@
       "unprovable": false,
       "when": {
         "setting": "loose-items"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "death-mountain-trail-child",
-          "rule": {
-            "ref": 139
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "6087670250388905572",
-      "id": 1143,
-      "name": "DMT Above Signposts Rock 1",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -11164,7 +11035,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 299
           }
         }
       ],
@@ -11258,7 +11129,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -11339,6 +11210,15 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -11373,7 +11253,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 291
           }
         }
       ],
@@ -11555,7 +11435,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 306
           }
         }
       ],
@@ -11573,7 +11453,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -11703,7 +11583,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -11739,7 +11619,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -11877,7 +11757,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -11980,7 +11860,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -12032,7 +11912,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 284
+            "ref": 282
           }
         }
       ],
@@ -12052,7 +11932,7 @@
                 "ref": 203
               },
               {
-                "ref": 279
+                "ref": 278
               }
             ]
           }
@@ -12157,7 +12037,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -12336,7 +12216,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -12345,17 +12225,6 @@
       "id": 727,
       "name": "Ganons Castle Tower Pot 4",
       "unprovable": false,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
-      "at": [],
-      "forbid": [],
-      "hash": "7057323129962538362",
-      "id": 728,
-      "name": "OGC Tower Collapse Lower Pot 5",
-      "unprovable": true,
       "when": {
         "setting": "pots"
       }
@@ -12691,6 +12560,15 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -12786,7 +12664,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -12862,7 +12740,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -12942,7 +12820,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         }
       ],
@@ -13027,7 +12905,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -13219,13 +13097,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 305
+            "ref": 303
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 292
+            "ref": 290
           }
         }
       ],
@@ -13268,7 +13146,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 299
+            "ref": 296
           }
         }
       ],
@@ -13286,7 +13164,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -13616,7 +13494,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -13672,17 +13550,6 @@
       "unprovable": false,
       "when": {
         "ref": 44
-      }
-    },
-    {
-      "at": [],
-      "forbid": [],
-      "hash": "7806434487081634021",
-      "id": 755,
-      "name": "OGC Tower Collapse Lower Pot 2",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
       }
     },
     {
@@ -14006,7 +13873,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -14141,7 +14008,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -14421,6 +14288,12 @@
     {
       "at": [
         {
+          "place": "goron-city-adult",
+          "rule": {
+            "ref": 245
+          }
+        },
+        {
           "place": "goron-city-child",
           "rule": {
             "ref": 222
@@ -14475,7 +14348,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 304
+            "ref": 302
           }
         },
         {
@@ -14651,7 +14524,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         },
         {
@@ -14668,24 +14541,6 @@
       "unprovable": false,
       "when": {
         "setting": "gold-skulltulas"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "goron-city-adult",
-          "rule": {
-            "ref": 245
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "8668774813841012997",
-      "id": 1614,
-      "name": "GC Middle Floor Adult Boulder",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -14923,7 +14778,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -14938,6 +14793,15 @@
     },
     {
       "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
         {
           "place": "kokiri-forest-child",
           "rule": true
@@ -15167,7 +15031,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -15214,22 +15078,6 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "8931631613049749371",
-      "id": 1166,
-      "name": "KF Rock Circle Adult Rock 4",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -15566,7 +15414,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         }
       ],
@@ -15663,7 +15511,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -15902,7 +15750,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -16042,7 +15890,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -16078,7 +15926,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 296
+            "ref": 294
           }
         }
       ],
@@ -16114,7 +15962,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -16150,7 +15998,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -16643,7 +16491,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -16841,7 +16689,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 284
           }
         }
       ],
@@ -17039,7 +16887,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -17226,7 +17074,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -17339,7 +17187,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -17357,7 +17205,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 296
+            "ref": 294
           }
         }
       ],
@@ -17368,12 +17216,17 @@
       "unprovable": false
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "9856880919248647941",
       "id": 809,
       "name": "Spirit Temple 1F Lobby Pot 6",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -17383,7 +17236,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -17425,7 +17278,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -17476,7 +17329,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -17494,7 +17347,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -17611,7 +17464,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -17698,7 +17551,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -17750,7 +17603,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -18000,7 +17853,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 284
           }
         }
       ],
@@ -18099,7 +17952,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -18231,7 +18084,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -18325,7 +18178,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -18376,7 +18229,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -18396,7 +18249,7 @@
           "rule": {
             "all": [
               {
-                "ref": 279
+                "ref": 278
               },
               {
                 "count": 1,
@@ -18458,7 +18311,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -18469,17 +18322,6 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
-      }
-    },
-    {
-      "at": [],
-      "forbid": [],
-      "hash": "10448158396041431760",
-      "id": 834,
-      "name": "OGC Tower Collapse Lower Pot 7",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
       }
     },
     {
@@ -18562,7 +18404,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -18708,7 +18550,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -18737,22 +18579,6 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "10656348214587939196",
-      "id": 1180,
-      "name": "KF Rock Circle Adult Rock 1",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -18970,7 +18796,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -19024,7 +18850,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -19317,7 +19143,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -19367,7 +19193,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -19378,24 +19204,6 @@
       "unprovable": false,
       "when": {
         "setting": "grass"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "death-mountain-trail-child",
-          "rule": {
-            "ref": 139
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "11074416093858939225",
-      "id": 1181,
-      "name": "DMT Above Signposts Rock 4",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -19679,7 +19487,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -20011,7 +19819,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -20126,7 +19934,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -20273,7 +20081,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 288
+            "ref": 286
           }
         }
       ],
@@ -20498,13 +20306,13 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 305
+            "ref": 303
           }
         },
         {
           "place": "dodongos-cavern-adult",
           "rule": {
-            "ref": 292
+            "ref": 290
           }
         }
       ],
@@ -20614,7 +20422,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -20869,7 +20677,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -20905,7 +20713,7 @@
         {
           "place": "gerudo-training-ground-adult",
           "rule": {
-            "ref": 284
+            "ref": 282
           }
         }
       ],
@@ -20938,7 +20746,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -21129,7 +20937,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 285
+            "ref": 283
           }
         },
         {
@@ -21153,7 +20961,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -21243,22 +21051,6 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-child",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "12045642716728132811",
-      "id": 1191,
-      "name": "KF Rock Circle Child Rock 9",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "kokiri-forest-adult",
           "rule": true
         }
@@ -21277,7 +21069,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -21392,7 +21184,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -21410,7 +21202,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 306
           }
         }
       ],
@@ -21464,7 +21256,7 @@
         {
           "place": "dodongos-cavern-child",
           "rule": {
-            "ref": 303
+            "ref": 301
           }
         },
         {
@@ -21811,7 +21603,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -21844,7 +21636,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 295
+            "ref": 293
           }
         }
       ],
@@ -22020,7 +21812,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -22091,7 +21883,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -22177,7 +21969,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -22211,7 +22003,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 306
           }
         }
       ],
@@ -22265,7 +22057,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 299
           }
         }
       ],
@@ -22632,7 +22424,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -22902,6 +22694,15 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -22953,7 +22754,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -23005,7 +22806,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -23150,7 +22951,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -23161,22 +22962,6 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "13164882936498639212",
-      "id": 1202,
-      "name": "KF Rock Circle Adult Rock 6",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -23231,22 +23016,6 @@
       "unprovable": false,
       "when": {
         "setting": "pots"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-child",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "13219695470225186387",
-      "id": 1203,
-      "name": "KF Rock Circle Child Rock 12",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
       }
     },
     {
@@ -23338,7 +23107,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -23406,6 +23175,15 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -23435,7 +23213,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -23453,7 +23231,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -23759,7 +23537,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 289
+            "ref": 287
           }
         }
       ],
@@ -24069,7 +23847,7 @@
           "rule": {
             "all": [
               {
-                "ref": 305
+                "ref": 303
               },
               {
                 "count": 1,
@@ -24143,7 +23921,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 284
           }
         }
       ],
@@ -24249,22 +24027,11 @@
       }
     },
     {
-      "at": [],
-      "forbid": [],
-      "hash": "13784984248963672668",
-      "id": 917,
-      "name": "OGC Tower Collapse Lower Pot 1",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
       "at": [
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -24296,22 +24063,6 @@
       "hash": "13787606981173272160",
       "id": 1210,
       "name": "DMT Above Signposts Rock 5",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "13817169663978116369",
-      "id": 1211,
-      "name": "KF Rock Circle Adult Rock 2",
       "unprovable": false,
       "when": {
         "setting": "rocks"
@@ -24475,7 +24226,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -24628,7 +24379,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -24734,7 +24485,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -24841,7 +24592,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -24990,7 +24741,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -25078,7 +24829,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -25131,7 +24882,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -25310,7 +25061,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -25401,7 +25152,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -25419,7 +25170,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -25451,12 +25202,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "14639467075158265290",
       "id": 940,
       "name": "Spirit Temple 1F Lobby Pot 1",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -25492,24 +25248,6 @@
       "id": 104,
       "name": "GC Maze Chest 2",
       "unprovable": false
-    },
-    {
-      "at": [
-        {
-          "place": "hyrule-field-adult",
-          "rule": {
-            "ref": 279
-          }
-        }
-      ],
-      "forbid": [],
-      "hash": "14654205574115276454",
-      "id": 1081,
-      "name": "HF Marsh Grotto Crate",
-      "unprovable": false,
-      "when": {
-        "setting": "crates"
-      }
     },
     {
       "at": [
@@ -25679,7 +25417,7 @@
           "rule": {
             "all": [
               {
-                "ref": 289
+                "ref": 287
               },
               {
                 "count": 1,
@@ -25901,7 +25639,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -25959,7 +25697,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 290
+            "ref": 288
           }
         }
       ],
@@ -26083,17 +25821,6 @@
       }
     },
     {
-      "at": [],
-      "forbid": [],
-      "hash": "15046736084248795685",
-      "id": 949,
-      "name": "OGC Tower Collapse Lower Pot 3",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
       "at": [
         {
           "place": "lost-woods-child",
@@ -26189,7 +25916,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -26283,7 +26010,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -26411,7 +26138,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -26584,7 +26311,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 290
+            "ref": 288
           }
         }
       ],
@@ -26718,22 +26445,6 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "15388836867476865988",
-      "id": 1226,
-      "name": "KF Rock Circle Adult Rock 10",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -26752,7 +26463,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 309
+            "ref": 307
           }
         }
       ],
@@ -26920,7 +26631,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -27101,7 +26812,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -27158,22 +26869,6 @@
         }
       ],
       "forbid": [],
-      "hash": "15732862253800965646",
-      "id": 1228,
-      "name": "KF Rock Circle Adult Rock 5",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
-          "place": "kokiri-forest-adult",
-          "rule": true
-        }
-      ],
-      "forbid": [],
       "hash": "15770142332975255876",
       "id": 1229,
       "name": "KF Near Midos House Adult Rock 2",
@@ -27198,7 +26893,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -27477,7 +27172,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -27629,7 +27324,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 307
+            "ref": 305
           }
         }
       ],
@@ -27743,7 +27438,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -27824,17 +27519,6 @@
       }
     },
     {
-      "at": [],
-      "forbid": [],
-      "hash": "16158747032522515754",
-      "id": 979,
-      "name": "OGC Tower Collapse Upper Pot 2",
-      "unprovable": true,
-      "when": {
-        "setting": "pots"
-      }
-    },
-    {
       "at": [
         {
           "place": "deku-tree-child",
@@ -27888,7 +27572,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -27972,12 +27656,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-child",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "16244368682301461195",
       "id": 983,
       "name": "Spirit Temple 1F Lobby Pot 5",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -28041,7 +27730,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -28258,7 +27947,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -28331,7 +28020,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -28407,7 +28096,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -28431,7 +28120,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 302
+            "ref": 299
           }
         }
       ],
@@ -28799,22 +28488,6 @@
     {
       "at": [
         {
-          "place": "kokiri-forest-child",
-          "rule": true
-        }
-      ],
-      "forbid": [],
-      "hash": "16780156705177292663",
-      "id": 1234,
-      "name": "KF Rock Circle Child Rock 2",
-      "unprovable": false,
-      "when": {
-        "setting": "rocks"
-      }
-    },
-    {
-      "at": [
-        {
           "place": "fire-temple-adult",
           "rule": {
             "ref": 211
@@ -28953,6 +28626,15 @@
     },
     {
       "at": [
+        {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
         {
           "place": "kokiri-forest-child",
           "rule": true
@@ -29307,7 +28989,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -29322,7 +29004,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -29397,7 +29079,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -29415,7 +29097,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -29486,7 +29168,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 311
+            "ref": 309
           }
         }
       ],
@@ -29504,7 +29186,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -29518,12 +29200,17 @@
       }
     },
     {
-      "at": [],
+      "at": [
+        {
+          "place": "spirit-temple-adult",
+          "rule": true
+        }
+      ],
       "forbid": [],
       "hash": "17137051788597509779",
       "id": 1009,
       "name": "Spirit Temple 1F Lobby Pot 2",
-      "unprovable": true,
+      "unprovable": false,
       "when": {
         "setting": "pots"
       }
@@ -29664,6 +29351,15 @@
     {
       "at": [
         {
+          "place": "kokiri-forest-adult",
+          "rule": {
+            "count": 1,
+            "items": [
+              "Beat PhantomGanon"
+            ]
+          }
+        },
+        {
           "place": "kokiri-forest-child",
           "rule": true
         }
@@ -29727,7 +29423,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 310
+            "ref": 308
           }
         }
       ],
@@ -30106,7 +29802,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -30503,7 +30199,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -30539,7 +30235,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -30628,7 +30324,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -30797,7 +30493,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -30815,7 +30511,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -30851,7 +30547,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 306
+            "ref": 304
           }
         }
       ],
@@ -30928,7 +30624,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 283
+            "ref": 281
           }
         }
       ],
@@ -31766,7 +31462,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         },
         {
@@ -31790,7 +31486,7 @@
         {
           "place": "hyrule-field-adult",
           "rule": {
-            "ref": 279
+            "ref": 278
           }
         }
       ],
@@ -32805,7 +32501,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -32861,7 +32557,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 288
+            "ref": 286
           }
         }
       ],
@@ -32924,7 +32620,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -32935,7 +32631,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 308
+            "ref": 306
           }
         }
       ],
@@ -33023,7 +32719,7 @@
         {
           "place": "ice-cavern-adult",
           "rule": {
-            "ref": 289
+            "ref": 287
           }
         }
       ],
@@ -33164,7 +32860,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 290
+            "ref": 288
           }
         }
       ],
@@ -33317,7 +33013,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 311
+            "ref": 309
           }
         }
       ],
@@ -33399,7 +33095,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 300
+            "ref": 298
           }
         }
       ],
@@ -33419,7 +33115,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 283
+            "ref": 281
           }
         }
       ],
@@ -33544,7 +33240,7 @@
         {
           "place": "water-temple-adult",
           "rule": {
-            "ref": 287
+            "ref": 285
           }
         }
       ],
@@ -33586,7 +33282,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 291
           }
         }
       ],
@@ -33919,7 +33615,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 293
+            "ref": 291
           }
         }
       ],
@@ -33994,7 +33690,7 @@
         {
           "place": "forest-temple-adult",
           "rule": {
-            "ref": 299
+            "ref": 296
           }
         }
       ],
@@ -34080,7 +33776,7 @@
         {
           "place": "shadow-temple-adult",
           "rule": {
-            "ref": 296
+            "ref": 294
           }
         }
       ],
@@ -34183,7 +33879,7 @@
         {
           "place": "inside-ganons-castle-adult",
           "rule": {
-            "ref": 301
+            "ref": 300
           }
         }
       ],
@@ -35127,7 +34823,7 @@
     {
       "from": "inside-ganons-castle-adult",
       "rule": {
-        "ref": 301
+        "ref": 300
       },
       "to": "ganondorf-room-adult"
     },
@@ -40962,90 +40658,6 @@
     {
       "all": [
         {
-          "ref": 71
-        },
-        {
-          "ref": 103
-        },
-        {
-          "count": 1,
-          "items": [
-            "Big Quiver",
-            "Fairy Bow"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Din's Fire",
-            "Fire Arrows"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Bottle",
-            "Bottle with Blue Fire",
-            "Bottle with Milk",
-            "Bottle with Red Potion",
-            "Ruto's Letter"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Megaton Hammer"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Golden Gauntlets"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Big Quiver",
-            "Fairy Bow"
-          ]
-        },
-        {
-          "ref": 115
-        },
-        {
-          "count": 1,
-          "items": [
-            "Hover Boots"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Hookshot",
-            "Longshot"
-          ]
-        },
-        {
-          "count": 1,
-          "items": [
-            "Mirror Shield"
-          ]
-        },
-        {
-          "ref": 104
-        },
-        {
-          "count": 1,
-          "items": [
-            "Longshot"
-          ]
-        }
-      ]
-    },
-    {
-      "all": [
-        {
           "ref": 228
         },
         {
@@ -41182,16 +40794,6 @@
       ]
     },
     {
-      "any": [
-        {
-          "setting": "ganons-trials=done"
-        },
-        {
-          "ref": 277
-        }
-      ]
-    },
-    {
       "all": [
         {
           "ref": 273
@@ -41231,7 +40833,7 @@
     {
       "all": [
         {
-          "ref": 279
+          "ref": 278
         },
         {
           "count": 1,
@@ -41248,7 +40850,7 @@
           "setting": "ganons-trials=done"
         },
         {
-          "ref": 280
+          "ref": 279
         }
       ]
     },
@@ -41377,7 +40979,7 @@
     {
       "all": [
         {
-          "ref": 278
+          "ref": 277
         },
         {
           "ref": 77
@@ -41400,7 +41002,7 @@
     {
       "all": [
         {
-          "ref": 281
+          "ref": 280
         },
         {
           "ref": 80
@@ -41410,7 +41012,7 @@
     {
       "all": [
         {
-          "ref": 291
+          "ref": 289
         },
         {
           "ref": 84
@@ -41420,7 +41022,7 @@
     {
       "all": [
         {
-          "ref": 279
+          "ref": 278
         },
         {
           "ref": 125
@@ -41430,7 +41032,17 @@
     {
       "all": [
         {
-          "ref": 282
+          "ref": 292
+        },
+        {
+          "ref": 79
+        }
+      ]
+    },
+    {
+      "all": [
+        {
+          "ref": 284
         },
         {
           "ref": 103
@@ -41453,16 +41065,6 @@
           "items": [
             "Master Sword"
           ]
-        }
-      ]
-    },
-    {
-      "all": [
-        {
-          "ref": 294
-        },
-        {
-          "ref": 79
         }
       ]
     },
@@ -41517,17 +41119,17 @@
           "ref": 298
         },
         {
-          "ref": 65
+          "ref": 11
         }
       ]
     },
     {
       "all": [
         {
-          "ref": 300
+          "ref": 297
         },
         {
-          "ref": 11
+          "ref": 65
         }
       ]
     },
@@ -41554,7 +41156,7 @@
     {
       "all": [
         {
-          "ref": 303
+          "ref": 301
         },
         {
           "count": 1,
@@ -41616,7 +41218,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 304
         },
         {
           "ref": 76
@@ -41626,7 +41228,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 304
         },
         {
           "ref": 78
@@ -41636,7 +41238,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 304
         },
         {
           "ref": 80
@@ -41646,7 +41248,7 @@
     {
       "all": [
         {
-          "ref": 306
+          "ref": 304
         },
         {
           "ref": 82
@@ -41656,7 +41258,7 @@
     {
       "all": [
         {
-          "ref": 286
+          "ref": 284
         },
         {
           "ref": 129

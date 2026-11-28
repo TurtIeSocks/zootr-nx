@@ -143,32 +143,18 @@
 5190570933151534141 = "KF Behind Shop Adult Grass 3"
 
 # The ring of rocks round the Kokiri south of Mido's house, whose reward
-# is above. Rock 7, at the middle, is in the child map only.
+# is above. Rock 7, at the middle, is in the child map only. Each child
+# rock here shares its check with the adult rock on its spot, and Rocks 2,
+# 5, 9 and 12 are no checks (`pickups/variants.rs`).
 17186151219195818834 = "KF Rock Circle Child Rock 1"
-10656348214587939196 = "KF Rock Circle Adult Rock 1"
-16780156705177292663 = "KF Rock Circle Child Rock 2"
-13817169663978116369 = "KF Rock Circle Adult Rock 2"
 13002777795600434992 = "KF Rock Circle Child Rock 3"
-5853846732169153879 = "KF Rock Circle Adult Rock 3"
 6429280567576879719 = "KF Rock Circle Child Rock 4"
-8931631613049749371 = "KF Rock Circle Adult Rock 4"
-4164292104786619976 = "KF Rock Circle Child Rock 5"
-15732862253800965646 = "KF Rock Circle Adult Rock 5"
 16857565298886773615 = "KF Rock Circle Child Rock 6"
-13164882936498639212 = "KF Rock Circle Adult Rock 6"
 2661037609348760452 = "KF Rock Circle Rock 7"
 7243630621233515413 = "KF Rock Circle Child Rock 8"
-802407974539353270 = "KF Rock Circle Adult Rock 8"
-12045642716728132811 = "KF Rock Circle Child Rock 9"
-4738397009648900238 = "KF Rock Circle Adult Rock 9"
 4182932136190668163 = "KF Rock Circle Child Rock 10"
-15388836867476865988 = "KF Rock Circle Adult Rock 10"
 8795160036094865435 = "KF Rock Circle Child Rock 11"
-2657789777104100407 = "KF Rock Circle Adult Rock 11"
-13219695470225186387 = "KF Rock Circle Child Rock 12"
-5312950394209176374 = "KF Rock Circle Adult Rock 12"
 13321954940214063371 = "KF Rock Circle Child Rock 13"
-5675403228854574159 = "KF Rock Circle Adult Rock 13"
 
 # The yard a Kokiri asks Link to weed, between Saria's house and the
 # middle of the village. Its reward is above.

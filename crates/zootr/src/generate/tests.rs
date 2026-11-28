@@ -358,10 +358,10 @@ fn pickups_are_checks_with_their_options_on() {
         &Run::silent(),
     )
     .unwrap();
-    assert_eq!(of(&report, &pickups::POTS).len(), 518);
+    assert_eq!(of(&report, &pickups::POTS).len(), 509);
     assert_eq!(of(&report, &pickups::FLYING_POTS).len(), 23);
-    assert_eq!(of(&report, &pickups::CRATES).len(), 38);
-    assert_eq!(of(&report, &pickups::ROCKS).len(), 167);
+    assert_eq!(of(&report, &pickups::CRATES).len(), 37);
+    assert_eq!(of(&report, &pickups::ROCKS).len(), 149);
     assert_eq!(of(&report, &pickups::GRASS).len(), 160);
     assert_eq!(of(&report, &pickups::HIVES).len(), 21);
     assert_eq!(of(&report, &pickups::FREESTANDING).len(), 14);
@@ -820,4 +820,42 @@ fn blue_warps_keep_age_with_the_adult_deku_tree() {
     let off = warp(&new_game);
     new_game.on.insert(crate::presets::ADULT_DEKU_TREE.into());
     assert_ne!(warp(&new_game), off);
+}
+
+#[test]
+fn the_pool_uses_one_check_per_linked_rock_and_excludes_missable_holders() {
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
+    let game = NewGame {
+        rocks: true,
+        pots: true,
+        crates: true,
+        ..NewGame::default()
+    };
+    let checks = crate::checks::dealt(&romfs, &game).unwrap();
+    let fixed = Fixed::new();
+    let deal = crate::shuffle::deal(&checks, &fixed, &game).unwrap();
+    let hashes: std::collections::HashSet<_> = deal.free.iter().map(|c| c.hash).collect();
+    for hash in [
+        16780156705177292663, // Child Rock 2
+        13817169663978116369, // Early adult Rock 2
+        10656348214587939196, // Late adult Rock 1
+        6087670250388905572,  // Late signpost rock
+        8668774813841012997,  // Adult shortcut boulder
+        14654205574115276454, // Marsh grotto crate
+        1337254747199514230,  // Escape pot
+    ] {
+        assert!(!hashes.contains(&hash), "extra check {hash}");
+    }
+    for hash in [
+        17186151219195818834, // Child Rock 1
+        2661037609348760452,  // Rock 7
+        11138816988756551783, // Early signpost rock
+        8438942300162055419,  // Child shortcut boulder
+        13727300571360846696, // Barrier pot
+        1256062463004045470,  // Tower pot before Ganondorf
+    ] {
+        assert!(hashes.contains(&hash), "missing check {hash}");
+    }
 }

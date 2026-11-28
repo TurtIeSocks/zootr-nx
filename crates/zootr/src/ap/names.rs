@@ -513,7 +513,7 @@ mod tests {
             let bare = name.trim_end_matches(|ch: char| ch.is_ascii_digit() || ch == ' ');
             assert!(bare.ends_with(kind), "{name} isn't a {kind}");
         }
-        assert!(checks.len() > 900, "{} breakables", checks.len());
+        assert!(checks.len() > 850, "{} breakables", checks.len());
     }
 
     /// A gift reads as its giver, without the area twice.

@@ -19,8 +19,10 @@ use crate::checks::{GYAML, actors, bancs, hash_of, str_field};
 use crate::known::{Name, actor, field, flag};
 use crate::per_dump::PerDump;
 
+mod age;
 mod rule;
 mod wiring;
+pub(crate) use age::creation_ages;
 pub use rule::rule;
 use rule::{Rule, atom};
 pub use wiring::{Placed, Wiring, path, wiring};
@@ -301,6 +303,7 @@ pub struct Creator {
     pub hash: u64,
     pub gyaml: String,
     pub area: String,
+    file: String,
     /// The graph, as `Logic/` keeps it, and the node's index in it.
     pub graph: String,
     pub node: usize,
@@ -339,10 +342,12 @@ fn find_creators(romfs: &Romfs) -> Result<Vec<Creator>> {
             let Some(hash) = world.placement(i, node.str(field::INSTANCE_NAME)) else {
                 continue;
             };
+            let banc = &world.bancs[inst.banc];
             out.push(Creator {
                 hash,
                 gyaml: world.gyaml(hash).to_owned(),
-                area: world.bancs[inst.banc].area.clone(),
+                area: banc.area.clone(),
+                file: banc.file.clone(),
                 graph: inst.graph.clone(),
                 node: n,
                 gate: world.named_input(i, n, CREATE, &Seen::default()),
@@ -452,6 +457,7 @@ fn one_or(mut v: Vec<Expr>, many: fn(Vec<Expr>) -> Expr) -> Expr {
 
 struct Banc {
     area: String,
+    file: String,
     groups: Vec<Group>,
 }
 
@@ -508,6 +514,7 @@ impl World {
                 area: crate::checks::area_of(&rel).to_owned(),
                 groups: groups(&doc.root)
                     .with_context(|| format!("{} in {rel}", field::AI_GROUPS))?,
+                file: rel,
             });
         }
         for b in 0..world.bancs.len() {

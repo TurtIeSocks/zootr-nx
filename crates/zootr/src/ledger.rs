@@ -254,7 +254,10 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
     let breakable = breakables(romfs)?;
     let others = census(romfs, &breakable)?;
     let open = Let::of(&new_game);
-    for c in others.iter().filter(|c| seen.insert(c.hash)) {
+    for c in others
+        .iter()
+        .filter(|c| crate::pickups::variants::canonical(c.hash) == c.hash && seen.insert(c.hash))
+    {
         let why = narrowing::left_out(c, open).map_or(Why::Unknown, Why::of);
         let why = match why {
             Why::Unknown => explain(c, &new_game, &breakable),
@@ -461,6 +464,9 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if let Some((_, why)) = listed {
         return why.clone();
     }
+    if crate::pickups::variants::excluded(c.hash) {
+        return Why::Maintainer;
+    }
     if breakable.contains(&c.holder) {
         return Why::Eie { eie: BREAKABLES };
     }
@@ -486,7 +492,8 @@ pub(crate) fn kept_out(c: &ItemCheck) -> bool {
         keys: true,
     };
     let holder = || NOT_HOLDERS.iter().find(|(h, _)| **h == *c.holder);
-    matches!(narrowing::left_out(c, open), Some(LeftOut::Maintainer))
+    crate::pickups::variants::excluded(c.hash)
+        || matches!(narrowing::left_out(c, open), Some(LeftOut::Maintainer))
         || !gifts::is_gift(c) && holder().is_some_and(|(_, why)| matches!(why, Why::Maintainer))
 }
 

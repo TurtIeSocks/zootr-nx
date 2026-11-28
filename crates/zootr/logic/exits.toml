@@ -361,7 +361,7 @@ needs = "silver-gauntlets and mirror-shield and hookshot and explosives and lens
 from = "inside-ganons-castle"
 to = "ganondorf-room"
 added = true
-needs = "(setting:ganons-trials=done or ((hover-boots or (song-of-time and hookshot)) and magic and bow and (item:dins-fire or item:fire-arrows) and blue-fire and hammer and gold-gauntlets and bow and lens and hover-boots and hookshot and mirror-shield and bombchus and longshot)) and magic and bow and item:light-arrows and master-sword"
+needs = "trials-cleared and magic and bow and item:light-arrows and master-sword"
 
 # Maps the game swaps for their `_Alternative` copy once a sage is done,
 # for good. The game's own gate is a flag logic can't read, so each

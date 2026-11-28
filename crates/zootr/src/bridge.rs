@@ -4,12 +4,15 @@
 //! `docs/superpowers/specs/2026-11-21-basic-win-condition-design.md`.
 
 use anyhow::{Context, Result, ensure};
-use ounce_formats::{Byml, EventKind, Romfs, murmur3};
+use ounce_formats::ainb::Patch;
+use ounce_formats::{Byml, EventKind, ModBuilder, Romfs, murmur3};
 
 use crate::cutscenes::played_set;
 use crate::flows::{self, Rewrites};
 use crate::gamedata::{self, op};
-use crate::known::{Name, field, flag, flow, item};
+use crate::graphs::{logic, node};
+use crate::known::{Name, actor, field, flag, flow, item, map};
+use crate::settings::Trials;
 
 /// The bridge's logic module arms its walk-in trigger while the Ganon step
 /// is exactly Step01, read as "after Ready and not after this". Nothing else
@@ -43,6 +46,59 @@ pub fn trials_done() -> Vec<String> {
         edits.push(format!("{removed}=true"));
     }
     edits
+}
+
+/// Trials Done clears the barrier without playing its scene. The pots use
+/// the same saved flag that removes the barrier.
+pub fn write_trial_pots(builder: &mut ModBuilder, trials: Trials) -> Result<()> {
+    if trials == Trials::Done {
+        let module = logic(map::INSIDE_GANON_CASTLE_LEVEL_ROOM_01_PREFAB_75AF);
+        builder.write(&module, &pots_after_barriers(builder.read(&module)?)?)?;
+    }
+    Ok(())
+}
+
+fn pots_after_barriers(data: Vec<u8>) -> Result<Vec<u8>> {
+    let mut patch = Patch::new(data)?;
+    let query = (
+        field::HOLD_GAME_DATA_GET_BOOL_SIMPLE,
+        field::GAME_DATA_NAME_BOOL,
+    );
+    let scene = node(
+        patch.graph(),
+        query,
+        flag::HAVE_PLAYED_EVENT_DM_INSIDE_GANON_CASTLE_0090,
+    )?;
+    let clear = node(
+        patch.graph(),
+        query,
+        field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR,
+    )?;
+    let create = field::LOGIC_CREATE.get();
+    let pots: Vec<_> = patch
+        .graph()
+        .nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| {
+            n.name == field::ACTOR_LOGIC_SIMPLE_ACTOR
+                && n.str(field::INSTANCE_NAME)
+                    .is_some_and(|name| name.starts_with(actor::OBJ_POT_A_06.get()))
+                && n.input(create).is_some_and(|input| {
+                    matches!(input.sources.as_slice(), [s] if s.node == scene && s.output == "Bool")
+                })
+        })
+        .map(|(i, _)| i)
+        .collect();
+    ensure!(
+        pots.len() == 4,
+        "expected four barrier pots, found {}",
+        pots.len()
+    );
+    for pot in pots {
+        patch.relink(pot, create, 0, clear, "Bool")?;
+    }
+    Ok(patch.into_bytes())
 }
 
 pub const MEDALLIONS: [&Name; 6] = [
@@ -108,11 +164,15 @@ pub fn keep_step(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use ounce_formats::BymlDoc;
+    use ounce_formats::ainb::Graph;
 
     use super::*;
     use crate::game::dev_dump;
     use crate::gamedata::{self, GameData};
     use crate::known::{field, flag, flow};
+    use crate::rules::{Book, Ctx, Have};
+    use crate::settings::{NewGame, Settings};
+    use crate::world::Era;
 
     #[test]
     fn the_bridge_waits_for_every_medallion() {
@@ -142,6 +202,93 @@ mod tests {
         let mut doc = BymlDoc::parse(&romfs.read(gamedata::PATH).unwrap()).unwrap();
         crate::presets::apply(&gd, &mut doc.root, &open()).unwrap();
         crate::presets::apply(&gd, &mut doc.root, &trials_done()).unwrap();
+    }
+
+    #[test]
+    fn the_four_barrier_pots_spawn_when_the_trials_are_clear() {
+        let Some(romfs) = dev_dump() else { return };
+        let module = logic(map::INSIDE_GANON_CASTLE_LEVEL_ROOM_01_PREFAB_75AF);
+        let vanilla = romfs.read(&module).unwrap();
+        let mut expected = Graph::parse(&vanilla).unwrap();
+        let flag_of = |name: &Name| {
+            expected
+                .nodes
+                .iter()
+                .position(|n| n.str(field::GAME_DATA_NAME_BOOL) == Some(name.get()))
+                .unwrap()
+        };
+        let scene = flag_of(flag::HAVE_PLAYED_EVENT_DM_INSIDE_GANON_CASTLE_0090);
+        let clear = flag_of(field::INSIDE_GANON_CASTLE_IS_ALL_BARRIER_CLEAR);
+        let mut linked = 0;
+        for node in &mut expected.nodes {
+            let pot = node
+                .str(field::INSTANCE_NAME)
+                .is_some_and(|name| name.starts_with(actor::OBJ_POT_A_06.get()));
+            for input in &mut node.inputs {
+                for source in input.sources.iter_mut().filter(|s| s.node == scene) {
+                    assert_eq!(input.name, field::LOGIC_CREATE.get());
+                    assert!(pot);
+                    source.node = clear;
+                    linked += 1;
+                }
+            }
+        }
+        assert_eq!(linked, 4);
+        let actual = pots_after_barriers(vanilla).unwrap();
+        assert_eq!(Graph::parse(&actual).unwrap(), expected);
+    }
+
+    #[test]
+    fn the_four_barrier_pots_require_the_trials_only_on_all_six() {
+        let Some(_) = dev_dump() else { return };
+        let book = Book::load().unwrap();
+        let context = |trials: &str| {
+            let settings = Settings::from([
+                (crate::settings::TRIALS.into(), trials.into()),
+                (crate::settings::BOMBCHUS.into(), "free".into()),
+            ]);
+            Ctx::new(&NewGame::from_settings(&settings, &[]).unwrap())
+        };
+        let all_six = context("all-six");
+        let done = context("done");
+        let empty = Have::default();
+        let mut tools = Have::default();
+        for tool in [
+            crate::magic::meter::METER,
+            item::ARROW_LIGHT,
+            item::BOMBCHU_BUNDLE_SMALL,
+            item::BOTTLE,
+            item::DIN_FIRE,
+            item::GAUNTLET_GOLD,
+            item::GAUNTLET_SILVER,
+            item::GLASS_TRUTH,
+            item::HAMMER,
+            item::HOOKSHOT,
+            item::HOVER_BOOT,
+            item::LONGSHOT,
+            item::RANGE_BOW,
+            item::SHIELD_MIRROR,
+        ] {
+            tools.add(tool);
+        }
+        for hash in [
+            13727300571360846696,
+            10177407372807102311,
+            4656702765770784238,
+            9619715366192254862,
+        ] {
+            let rule = book
+                .check(hash)
+                .unwrap_or_else(|| panic!("no rule for pot {hash}"));
+            let cleared = book.need(&rule.needs, &all_six).unwrap();
+            assert!(!cleared.met(&empty, Era::Adult));
+            assert!(cleared.met(&tools, Era::Adult));
+            assert!(
+                book.need(&rule.needs, &done)
+                    .unwrap()
+                    .met(&empty, Era::Adult)
+            );
+        }
     }
 
     /// The edited BoolExp, rendered the way `probe data` shows it.
