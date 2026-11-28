@@ -18,6 +18,7 @@ export const row = (
     item_name: `Item in ${name}`,
   },
   checked: false,
+  tracked: true,
   flag: 1,
   label: null,
   mark: null,

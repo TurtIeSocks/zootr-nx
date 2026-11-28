@@ -984,8 +984,13 @@ export type Row = {
 	spot: Spot,
 	checked: boolean,
 	/**
+	 *  Whether the tracker watches a flag for it, so it ticks once Link
+	 *  gets it.
+	 */
+	tracked: boolean,
+	/**
 	 *  The spot's Bool, which the tab can label. A spot ticked by its
-	 *  per-placement flag has none.
+	 *  per-placement flag has none, though it's tracked.
 	 */
 	flag: number | null,
 	/**  The user's label for the flag, which wins over the spot's names. */

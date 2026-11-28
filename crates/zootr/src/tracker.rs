@@ -99,8 +99,11 @@ pub struct DoorRow {
 pub struct Row {
     pub spot: Spot,
     pub checked: bool,
+    /// Whether the tracker watches a flag for it, so it ticks once Link
+    /// gets it.
+    pub tracked: bool,
     /// The spot's Bool, which the tab can label. A spot ticked by its
-    /// per-placement flag has none.
+    /// per-placement flag has none, though it's tracked.
     pub flag: Option<u32>,
     /// The user's label for the flag, which wins over the spot's names.
     pub label: Option<String>,
@@ -172,6 +175,11 @@ impl Tracker {
     /// What's set once spot `hash` is checked, if known.
     pub fn flag(&self, hash: u64) -> Option<Flag> {
         self.flags.get(&hash).copied()
+    }
+
+    /// Whether any flag it watches ticks spot `hash`.
+    fn tracks(&self, hash: u64) -> bool {
+        self.flags.contains_key(&hash) || self.taken.iter().any(|&(s, _)| s == hash)
     }
 
     /// Takes every flag from `set`, a save or values read live.
@@ -253,6 +261,7 @@ impl Tracker {
             Row {
                 spot: spot.clone(),
                 checked: self.checked.contains(&spot.hash),
+                tracked: self.tracks(spot.hash),
                 flag,
                 label: flag.and_then(&label),
                 mark: entry.marks.get(&spot.hash).cloned(),
@@ -431,6 +440,8 @@ mod tests {
     #[test]
     fn rows_carry_checked_flags_labels_and_marks() {
         let mut t = mido();
+        // A spot ticked by its key is tracked, with no Bool to label.
+        t.flags.insert(9, Flag::Key(9));
         t.change(&bool_(MIDO[2].1, "false -> true"));
         let mut history = crate::history::History::default();
         let report = crate::generate::Report {
@@ -442,7 +453,7 @@ mod tests {
             start: Default::default(),
             entrances: vec![],
             key_rings: vec![],
-            spots: vec![spot(MIDO[2].0), spot(1)],
+            spots: vec![spot(MIDO[2].0), spot(1), spot(9)],
             written: crate::generate::Written {
                 defaults: vec![],
                 actors: 0,
@@ -462,13 +473,22 @@ mod tests {
         let rows = t.rows(history.get(1).unwrap(), &history.report(1).unwrap(), label);
         let got: Vec<_> = rows
             .iter()
-            .map(|r| (r.checked, r.flag, r.label.as_deref(), r.mark.clone()))
+            .map(|r| {
+                (
+                    r.checked,
+                    r.tracked,
+                    r.flag,
+                    r.label.as_deref(),
+                    r.mark.clone(),
+                )
+            })
             .collect();
         assert_eq!(
             got,
             [
-                (true, Some(MIDO[2].1), Some("by the bed"), None),
-                (false, None, None, Some(Mark::Skipped))
+                (true, true, Some(MIDO[2].1), Some("by the bed"), None),
+                (false, false, None, None, Some(Mark::Skipped)),
+                (false, true, None, None, None)
             ]
         );
     }
