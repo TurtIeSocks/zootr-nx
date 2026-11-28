@@ -144,7 +144,7 @@ impl fmt::Display for Rule {
 
 #[cfg(test)]
 mod tests {
-    use super::super::tests::{actor, flag};
+    use super::super::expr::tests::{actor, flag};
     use super::*;
     use crate::known::actor;
 

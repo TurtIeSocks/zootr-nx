@@ -378,6 +378,21 @@ mod tests {
         );
     }
 
+    /// The Shadow Temple's freestanding small key appears once its skull jar
+    /// breaks, while the key isn't taken. The jar's `Dead` is no program, but
+    /// the key flag read false is: its copy stands on that, with no node.
+    /// The node hung the temple's load with the Hookshot there.
+    #[test]
+    fn the_shadow_temple_key_stands_on_its_key_flag() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let got = murmur3(flag::SHADOW_TEMPLE_LEVEL_ROOM_13_GET_KEY.get().as_bytes());
+        assert_eq!(
+            gates(&romfs, &gd).unwrap().get(&12562389953863361839),
+            Some(&vec![Op::Bool(got), Op::Not]),
+        );
+    }
+
     /// A top-level holder's copy is named beside it and gets a node. A
     /// nested module's holder gets neither: named through the module, its
     /// copy hung the Deku Tree's load.
