@@ -232,6 +232,8 @@ pub fn write_mod(
     let mut builder = ModBuilder::new(romfs, mod_dir)?;
     let all = Flows::load(romfs)?;
     let reads = Reads::load(romfs, drops, new_game)?;
+    let expanded = pickups::variants::drops(&reads.pieces, drops);
+    let drops = &expanded;
     let (rewrites, flags) = flows(romfs, &all, new_game, drops, &reads)?;
     for (rel, data) in &rewrites {
         for to in crate::flows::copies(romfs, rel) {
@@ -290,7 +292,11 @@ pub fn write_mod(
         defaults,
         actors,
         files,
-        stand_ins: parts.stand_ins,
+        stand_ins: parts
+            .stand_ins
+            .into_iter()
+            .map(|(hash, actor)| (pickups::variants::canonical(hash), actor))
+            .collect(),
         release,
     })
 }
@@ -506,7 +512,9 @@ impl<'a> Parts<'a> {
         gamedata::add_ints(root, &new_game.ints)?;
         gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
         let mut keyed = picked::pairs(&self.picked);
-        keyed.extend(&self.copies);
+        keyed.extend(self.copies.iter().copied().filter(|&(of, _)| {
+            pickups::variants::canonical(of) == of
+        }));
         keyed.extend(trap_chests::keyed(self.drops));
         gamedata::add_keys(root, &keyed)?;
         trap_chests::game_data(root, self.drops)?;

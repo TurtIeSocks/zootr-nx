@@ -2,7 +2,10 @@
 //! rooms and the client hold ids, and players' YAMLs (`exclude_locations`,
 //! `start_inventory`, plando) hold the names that go with them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::ids::Ids;
+use crate::pickups::variants;
 
 use serde::Deserialize;
 
@@ -52,9 +55,20 @@ fn a_released_id_keeps_its_name_and_class() {
     let items: Vec<Item> = serde_json::from_str(ITEMS).unwrap();
     let items: BTreeMap<u64, &Item> = items.iter().map(|i| (i.id, i)).collect();
 
+    let ids = Ids::load().unwrap();
+    let retired: BTreeSet<u64> = variants::EXCLUDED
+        .iter()
+        .copied()
+        .chain(variants::LINKED.iter().map(|&(alternate, _)| alternate))
+        .map(|hash| ids.location_id(hash).expect("retired locations keep their reserved IDs"))
+        .collect();
+    for id in &retired {
+        assert!(!locations.contains_key(id), "retired location {id} is active");
+    }
+
     let mut changed = Vec::new();
     for (id, name) in &released.locations {
-        if locations.get(id) != Some(&name.as_str()) {
+        if !retired.contains(id) && locations.get(id) != Some(&name.as_str()) {
             changed.push(format!(
                 "location {id}: {name} is now {:?}",
                 locations.get(id)
