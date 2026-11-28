@@ -2,15 +2,17 @@
 //! holder kind, on seeds with every check kind shuffled. It fails, with a
 //! frame, on a hung load (the black screen players hit entering an area,
 //! #425, #469), a crash, a stall or a wrong item. No vision model: each
-//! verdict comes from memory, the process and frame pixels. Spec:
-//! `docs/superpowers/specs/2026-11-25-gauntlet-design.md`.
+//! verdict comes from memory, the process and frame pixels. Specs:
+//! `docs/superpowers/specs/2026-11-25-gauntlet-design.md`, and
+//! `2026-11-27-gauntlet-v2-design.md` beside it for the loads.
 
 pub mod grid;
 pub mod hang;
+pub mod loads;
 pub mod report;
 pub mod script;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -19,6 +21,7 @@ use serde_json::json;
 
 use self::grid::{Cell, HOLDERS, ITEMS, Run};
 use self::hang::{Hang, Limits, Watched};
+use self::loads::Load;
 use self::report::row;
 use super::judge::Judge;
 use super::night::{self, Live, Night, Round, append};
@@ -43,6 +46,8 @@ pub struct Gauntlet {
     pub places: Vec<String>,
     /// Stop at the first failure.
     pub fail_fast: bool,
+    /// Loads deal only [`loads::QUICK`].
+    pub quick: bool,
     /// How long a black screen or a load may last.
     pub limits: Limits,
     /// The first round's seed, each next round's one more. `None` for one
@@ -114,20 +119,25 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             cells.len(),
             rounds.len()
         );
+        let mut stopped = false;
         for (r, cells) in rounds.iter().enumerate() {
             let round = (r, seed.wrapping_add(r as u64));
             let ran = self.gauntlet_round(g, round, split(cells, &refused), &settings, &places);
-            match ran {
-                Ok(Go::On) => {}
-                Ok(Go::Stop) => break,
-                Err(e) => {
-                    eprintln!("round {r} ended early: {e:#}");
-                    let error =
-                        json!({"gauntlet": row::ERROR, "round": r, "error": format!("{e:#}")});
-                    append(&self.results(), &error)?;
-                    if g.fail_fast {
-                        break;
-                    }
+            if self.ended(g, r, ran)? {
+                stopped = true;
+                break;
+            }
+        }
+        let kinds = loads::kinds(g.run.loads(g.quick), &g.items);
+        if !stopped && !kinds.is_empty() {
+            let holders = loads::holders(self.romfs, &settings)?;
+            let rounds = loads::rounds(&holders, &kinds);
+            eprintln!("loads: {} holders, {} rounds", holders.len(), rounds.len());
+            for (r, round) in rounds.iter().enumerate() {
+                let at = (r, seed.wrapping_add(LOAD_SEEDS + r as u64));
+                let ran = self.load_round(g, at, round, &settings, &places);
+                if self.ended(g, r, ran)? {
+                    break;
                 }
             }
         }
@@ -156,7 +166,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             let row = json!({"gauntlet": row::REFUSED, "cell": c.name(), "round": r, "why": why});
             append(&rows, &row)?;
         }
-        let extras = plando(&placed);
+        let extras = plando(&pins(&placed));
         eprintln!(
             "round {r}: seed {seed}, {} cells, {} refused",
             placed.len(),
@@ -250,6 +260,124 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         Ok(Go::On)
     }
 
+    /// Whether a round's end, `ran`, ends the run: a stop, or an error
+    /// under `--fail-fast`. An error is recorded either way.
+    fn ended(&self, g: &Gauntlet, r: usize, ran: Result<Go>) -> Result<bool> {
+        match ran {
+            Ok(go) => Ok(go == Go::Stop),
+            Err(e) => {
+                eprintln!("round {r} ended early: {e:#}");
+                let error = json!({"gauntlet": row::ERROR, "round": r, "error": format!("{e:#}")});
+                append(&self.results(), &error)?;
+                Ok(g.fail_fast)
+            }
+        }
+    }
+
+    /// Load round `r` on `seed`: `round`'s items pinned at their holders,
+    /// then each map that holds one loaded once and watched.
+    fn load_round(
+        &mut self,
+        g: &Gauntlet,
+        (r, seed): (usize, u64),
+        round: &[Load],
+        settings: &Settings,
+        places: &BTreeSet<Place>,
+    ) -> Result<Go> {
+        let rows = self.results();
+        let pins = load_pins(round);
+        let mut placed = vec![];
+        for (pin, why) in pins.iter().zip(refused(self.romfs, settings, &pins)?) {
+            match why {
+                Some(why) => append(&rows, &load_row(row::REFUSED, pin, r, &why))?,
+                None => placed.push(*pin),
+            }
+        }
+        eprintln!("load round {r}: seed {seed}, {} pinned", placed.len());
+        if self.turn_lost(g)? {
+            return Ok(Go::Stop);
+        }
+        self.stop();
+        let extras = plando(&placed);
+        let planned = night::pool(self.romfs, self.target, seed, (settings, &extras), places)?;
+        let mut maps: BTreeMap<&str, Vec<Pin>> = BTreeMap::new();
+        for pin in &placed {
+            let spot = planned.iter().find(|p| p.spot.hash == pin.0);
+            match spot.and_then(|p| p.trigger.map()) {
+                Some(map) => maps.entry(map).or_default().push(*pin),
+                None => {
+                    let why = "the seed plans no map for its holder";
+                    append(&rows, &load_row(row::UNPLANNED, pin, r, why))?;
+                }
+            }
+        }
+        let shots = self.dir.join(format!("loads-{r:02}-{seed}"));
+        std::fs::create_dir_all(&shots)?;
+        let mut live = self.start()?;
+        let picked =
+            |map: &&str| g.places.is_empty() || g.places.iter().any(|p| map.contains(p.as_str()));
+        let kept: Vec<_> = maps.iter().filter(|(map, _)| picked(map)).collect();
+        for (i, (map, pins)) in kept.iter().enumerate() {
+            if self.turn_lost(g)? {
+                return Ok(Go::Stop);
+            }
+            let name = format!("{map} (round {r})");
+            // Night's pool plans only spots in maps `places` has.
+            let place = (places.iter().find(|p| p.map == **map))
+                .with_context(|| format!("no place to teleport to in {map}"))?;
+            let frame = shots.join(format!("{}.png", slug(map)));
+            let watched = self.land(&live, place, g.limits, &frame);
+            self.log(i, kept.len(), &name, &watched);
+            let pins: Vec<_> = (pins.iter())
+                .map(|&(holder, kind)| json!({"holder": holder.to_string(), "item_kind": ITEMS[kind].name}))
+                .collect();
+            let row = json!({
+                "gauntlet": row::LOAD, "name": name, "round": r, "pins": pins,
+                "secs": watched.secs, "hang": watched.hang, "frame": watched.frame,
+            });
+            append(&rows, &row)?;
+            if self.hung(g, &mut live, &watched)? == Go::Stop {
+                return Ok(Go::Stop);
+            }
+        }
+        Ok(Go::On)
+    }
+
+    /// Teleport to `place` and watch the load, `frame` its evidence.
+    fn land(&mut self, live: &Live, place: &Place, limits: Limits, frame: &Path) -> Watched {
+        let started = std::time::Instant::now();
+        match live.dev.go_as(place, None) {
+            Ok(_) => hang::settle(&live.dev, &mut self.input, &place.map, limits, frame),
+            Err(e) => Watched {
+                secs: started.elapsed().as_secs_f32(),
+                frame: None,
+                hang: Some(Hang::Refused {
+                    why: format!("{e:#}"),
+                }),
+            },
+        }
+    }
+
+    /// One landing's line on the console, `i` of `of`.
+    fn log(&self, i: usize, of: usize, name: &str, watched: &Watched) {
+        let mark = if watched.hang.is_some() { "HANG" } else { "ok" };
+        eprintln!("[{}/{of}] {name}: {mark} {:.1}s", i + 1, watched.secs);
+    }
+
+    /// After a landing that hung: the game's threads logged, then a stop
+    /// under `--fail-fast`, else a new game.
+    fn hung(&mut self, g: &Gauntlet, live: &mut Live, watched: &Watched) -> Result<Go> {
+        if watched.hang.is_none() {
+            return Ok(Go::On);
+        }
+        dump(&mut self.input);
+        if g.fail_fast {
+            return Ok(Go::Stop);
+        }
+        *live = self.start()?;
+        Ok(Go::On)
+    }
+
     /// Whether `g` has lost its game's turn, recorded as an error when so.
     fn turn_lost(&self, g: &Gauntlet) -> Result<bool> {
         if !g.lost() {
@@ -280,35 +408,15 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             }
             let name = format!("{}/{}", place.map, place.spot);
             let frame = shots.join(format!("place-{}.png", slug(&name)));
-            let started = std::time::Instant::now();
-            let watched = match live.dev.go_as(place, None) {
-                Ok(_) => hang::settle(&live.dev, &mut self.input, &place.map, g.limits, &frame),
-                Err(e) => Watched {
-                    secs: started.elapsed().as_secs_f32(),
-                    frame: None,
-                    hang: Some(Hang::Refused {
-                        why: format!("{e:#}"),
-                    }),
-                },
-            };
-            let mark = if watched.hang.is_some() { "HANG" } else { "ok" };
-            eprintln!(
-                "[{}/{}] {name}: {mark} {:.1}s",
-                i + 1,
-                order.len(),
-                watched.secs
-            );
+            let watched = self.land(live, place, g.limits, &frame);
+            self.log(i, order.len(), &name, &watched);
             let row = json!({
                 "gauntlet": row::PLACE, "name": name, "secs": watched.secs,
                 "hang": watched.hang, "frame": watched.frame,
             });
             append(&self.results(), &row)?;
-            if watched.hang.is_some() {
-                dump(&mut self.input);
-                if g.fail_fast {
-                    return Ok(Go::Stop);
-                }
-                *live = self.start()?;
+            if self.hung(g, live, &watched)? == Go::Stop {
+                return Ok(Go::Stop);
             }
         }
         Ok(Go::On)
@@ -353,17 +461,40 @@ fn dump(input: &mut impl Input) {
     }
 }
 
-/// The plando that pins each of `cells`' items at its holder.
-/// [`grid::rounds`] keeps one cell a holder a round.
-fn plando(cells: &[Cell]) -> Extras {
-    let place: crate::shuffle::Fixed = (cells.iter())
-        .map(|c| (c.holder, ITEMS[c.item_kind].item()))
+/// An item kind pinned at a holder: a cell's or a load's.
+type Pin = (u64, usize);
+
+/// The plando that pins each of `pins`' items at its holder. The rounds
+/// keep one pin a holder.
+fn plando(pins: &[Pin]) -> Extras {
+    let place: crate::shuffle::Fixed = (pins.iter())
+        .map(|&(holder, kind)| (holder, ITEMS[kind].item()))
         .collect();
-    debug_assert_eq!(place.len(), cells.len(), "two cells at one holder");
+    debug_assert_eq!(place.len(), pins.len(), "two pins at one holder");
     Extras {
         place,
         ..Extras::default()
     }
+}
+
+/// `cells` as pins.
+fn pins(cells: &[Cell]) -> Vec<Pin> {
+    cells.iter().map(|c| (c.holder, c.item_kind)).collect()
+}
+
+/// A load round as pins.
+fn load_pins(round: &[Load]) -> Vec<Pin> {
+    round.iter().map(|l| (l.holder, l.item_kind)).collect()
+}
+
+/// How far load rounds' seeds sit from the grid's, so neither repeats
+/// the other's.
+const LOAD_SEEDS: u64 = 1000;
+
+/// A `kind` row for a load's `pin` in round `r`, saying `why`.
+fn load_row(kind: &str, &(holder, item): &Pin, r: usize, why: &str) -> serde_json::Value {
+    let name = format!("{holder} × {} (round {r})", ITEMS[item].name);
+    json!({"gauntlet": kind, "load": true, "name": name, "round": r, "why": why})
 }
 
 /// Why a cell whose holder the settings don't make a check is refused.
@@ -372,21 +503,25 @@ const NOT_A_CHECK: &str = "isn't a check with these settings";
 /// Each of `cells` the shuffle refuses with `settings`, and why: an EIE
 /// narrowing, or a holder that isn't a check with them.
 fn refusals(romfs: &Romfs, settings: &Settings, cells: &[Cell]) -> Result<Vec<(Cell, String)>> {
+    let why = refused(romfs, settings, &pins(cells))?;
+    Ok((cells.iter().zip(why))
+        .filter_map(|(c, why)| Some((*c, why?)))
+        .collect())
+}
+
+/// Why the shuffle refuses each of `pins`, `None` for one it takes.
+fn refused(romfs: &Romfs, settings: &Settings, pins: &[Pin]) -> Result<Vec<Option<String>>> {
     let new_game = NewGame::from_settings(settings, &[])?;
     let dealt = checks::dealt(romfs, &new_game)?;
-    let mut out = vec![];
-    for c in cells {
-        let item = ITEMS[c.item_kind].item();
-        let why = match dealt.iter().find(|check| check.hash == c.holder) {
-            None => Some(format!("holder {} {NOT_A_CHECK}", c.holder)),
+    let why = |&(holder, kind): &Pin| {
+        let item = ITEMS[kind].item();
+        match dealt.iter().find(|check| check.hash == holder) {
+            None => Some(format!("holder {holder} {NOT_A_CHECK}")),
             Some(check) => narrowing::refusal(check, &item, new_game.progressive)
                 .map(|n| format!("{n:?} (EIE debt row {})", n.number())),
-        };
-        if let Some(why) = why {
-            out.push((*c, why));
         }
-    }
-    Ok(out)
+    };
+    Ok(pins.iter().map(why).collect())
 }
 
 #[cfg(test)]
@@ -420,6 +555,7 @@ mod tests {
             items: vec![],
             places: vec![],
             fail_fast: false,
+            quick: false,
             limits: Limits {
                 black: std::time::Duration::from_secs(2),
                 load: std::time::Duration::from_secs(45),
@@ -446,7 +582,7 @@ mod tests {
         assert_eq!(placed.len(), cells.len() - 1);
         assert!(!placed.contains(&cells[1]));
         assert_eq!(refused_here, [&refused[0]]);
-        let extras = plando(&placed);
+        let extras = plando(&pins(&placed));
         assert_eq!(extras.place.len(), placed.len());
         assert_eq!(
             extras.place[&cells[0].holder],
@@ -488,8 +624,32 @@ mod tests {
             let refused = refusals(&romfs, &settings, &cells).unwrap();
             let (placed, _) = split(&cells, &refused);
             let out = dir.join(format!("{run:?}"));
-            let report = night::roll(&romfs, 1, &settings, &plando(&placed))(&out);
+            let report = night::roll(&romfs, 1, &settings, &plando(&pins(&placed)))(&out);
             report.unwrap_or_else(|e| panic!("{run:?}: {e:#}"));
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_load_round_generates() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let settings = settings().unwrap();
+        let holders = loads::holders(&romfs, &settings).unwrap();
+        let rounds = loads::rounds(&holders, &loads::kinds(&loads::KINDS, &[]));
+        let dir = std::env::temp_dir().join(format!("zootr-gauntlet-loads-{}", std::process::id()));
+        // Round 0 stands for the rest: all seven generate (92 s together).
+        for (r, round) in rounds.iter().enumerate().take(1) {
+            let pins = load_pins(round);
+            let why = refused(&romfs, &settings, &pins).unwrap();
+            let placed: Vec<Pin> = (pins.iter().zip(&why))
+                .filter(|(_, why)| why.is_none())
+                .map(|(p, _)| *p)
+                .collect();
+            let report =
+                night::roll(&romfs, 1, &settings, &plando(&placed))(&dir.join(r.to_string()));
+            report.unwrap_or_else(|e| panic!("round {r}: {e:#}"));
         }
         std::fs::remove_dir_all(&dir).unwrap();
     }
