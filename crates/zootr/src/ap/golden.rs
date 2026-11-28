@@ -1,6 +1,12 @@
 //! Answers the `znx` world's own logic has to match: for each exposed
 //! option and seeded handfuls of the pool, which checks Rust logic reaches
 //! and whether it beats the seed.
+//!
+//! Written small (`exported.golden` reads it back): one case a line, its
+//! settings as they differ from each option's default, and each row's
+//! items as ids, a repeated one as `[id, count]`.
+
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
@@ -46,15 +52,38 @@ fn exposed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
     Ok(out)
 }
 
-/// The golden rows of case `n`: `seed`, built with `settings` set.
-pub fn rows(
+/// Each AP option in `settings` off its default.
+fn changed(settings: &Settings) -> Result<serde_json::Map<String, Value>> {
+    let defaults = exposed(&Settings::new())?;
+    let mut out = exposed(settings)?;
+    out.retain(|id, v| defaults.get(id) != Some(v));
+    Ok(out)
+}
+
+/// `items`, names from the export's items, as their ids: a repeated one as
+/// `[id, count]`.
+fn counted(items: &[&str], item_ids: &HashMap<&str, u64>) -> Result<Vec<Value>> {
+    let mut counts = BTreeMap::new();
+    for name in items {
+        let id = item_ids
+            .get(name)
+            .with_context(|| format!("no id for item {name}"))?;
+        *counts.entry(*id).or_insert(0u32) += 1;
+    }
+    let one = |(id, n): (u64, u32)| if n == 1 { json!(id) } else { json!([id, n]) };
+    Ok(counts.into_iter().map(one).collect())
+}
+
+/// Golden case `n`: `seed`, built with `settings` set, and its rows.
+pub fn case(
     n: usize,
     settings: &Settings,
     seed: &Seed,
     names: &Namer,
     ids: &Ids,
-) -> Result<Vec<Value>> {
-    let mut out = Vec::new();
+    item_ids: &HashMap<&str, u64>,
+) -> Result<Value> {
+    let mut rows = Vec::new();
     for share in SHARES {
         let mut pool = seed.dealt.pool.clone();
         Rng::new((n * OF + share) as u64).shuffle(&mut pool);
@@ -74,12 +103,18 @@ pub fn rows(
             .iter()
             .map(|a| names.item_in(a, Some(seed.dealt.new_game.progressive)))
             .collect::<Result<Vec<_>>>()?;
-        out.push(json!({
-            "settings": exposed(settings)?,
-            "items": items,
+        rows.push(json!({
+            "items": counted(&items, item_ids)?,
             "reachable": reachable,
             "goal": goal,
         }));
     }
-    Ok(out)
+    Ok(json!({ "settings": changed(settings)?, "rows": rows }))
+}
+
+/// `cases` as golden.json: a JSON array, one case a line.
+pub fn write(cases: &[Value]) -> Result<String> {
+    let lines = cases.iter().map(serde_json::to_string);
+    let lines = lines.collect::<serde_json::Result<Vec<_>>>()?;
+    Ok(format!("[\n{}\n]\n", lines.join(",\n")))
 }

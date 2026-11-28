@@ -154,13 +154,15 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
     // Each case's rows as its seed is built, so no more than a core's worth
     // of seeds is ever held.
     let cases: Vec<(usize, &Settings)> = settings.iter().chain(&twins).enumerate().collect();
+    let item_ids = (items.iter())
+        .filter_map(|i| Some((i["name"].as_str()?, i["id"].as_u64()?)))
+        .collect();
     let golden = par_map(&cases, |&(n, s)| {
         let seed = Seed::build_in(&dump, s, &Default::default())?;
-        super::golden::rows(n, s, &seed, &names, &ids)
+        super::golden::case(n, s, &seed, &names, &ids, &item_ids)
     })
     .into_iter()
     .collect::<Result<Vec<_>>>()?;
-    let golden = Value::Array(golden.into_iter().flatten().collect());
     let mut out = BTreeMap::new();
     out.insert("world.json", pretty(&world)?);
     out.insert("items.json", pretty(&Value::Array(items))?);
@@ -169,7 +171,7 @@ pub fn export(romfs: &Romfs, ids: &str) -> Result<BTreeMap<&'static str, String>
         pretty(&pool::pool_json(pool, &levels, &kept, &names)?)?,
     );
     out.insert("options.json", pretty(&options())?);
-    out.insert("golden.json", pretty(&golden)?);
+    out.insert("golden.json", super::golden::write(&golden)?);
     out.insert("ids.json", pretty(&serde_json::to_value(&ids)?)?);
     Ok(out)
 }

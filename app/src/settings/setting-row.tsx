@@ -113,16 +113,32 @@ function Affects({ forced }: AffectsProps) {
 
 /** Props for {@link Needs}. */
 interface NeedsProps {
-  /** The toggle that must be on first. */
+  /** The setting greyed out. */
+  def: SettingDef;
+  /** The setting it waits on. */
   needed: SettingDef;
 }
 
-/** "Needs Other on first", under a setting that does nothing yet. */
-function Needs({ needed }: NeedsProps) {
+/** "Needs Other on first", or "Off with Other: Pick", under a setting
+ * that does nothing yet. */
+function Needs({ def, needed }: NeedsProps) {
+  const not = def.requires?.not;
+  const label =
+    needed.kind.type === "choice"
+      ? needed.kind.options.find((o) => o.id === not)?.label
+      : undefined;
   return (
     <p className="mt-1.5 flex items-center gap-1 text-ink-faint text-xs">
       <Lock className="size-3" />
-      Needs <SettingLink def={needed} /> on first
+      {not ? (
+        <>
+          Off with <SettingLink def={needed} />: {label ?? not}
+        </>
+      ) : (
+        <>
+          Needs <SettingLink def={needed} /> on first
+        </>
+      )}
     </p>
   );
 }
@@ -163,7 +179,7 @@ function SettingRowFrame({ def }: SettingRowProps) {
         <>
           <HeldPicks def={def} />
           {parent && <LockedBy parent={parent} pick={pick} />}
-          {needed && <Needs needed={needed} />}
+          {needed && <Needs def={def} needed={needed} />}
           {forced.length > 0 && <Affects forced={forced} />}
           <RequestError className="mt-1.5" />
         </>

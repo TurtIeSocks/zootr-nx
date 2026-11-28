@@ -15,10 +15,10 @@ use super::plan::{Halt, Planned, Trigger, preset};
 use super::verdict::{Evidence, Kill, Swept, Verdict};
 use super::watch::{MESSAGE, Watch, got_other, named, swapped, wielded};
 use super::wield::{self, Wield};
+use crate::carpenters::guards;
 use crate::dev::{Dev, Fate, Place, Request, Target};
 use crate::gamedata::GameData;
 use crate::gear;
-use crate::gerudo;
 use crate::known::{Name, flag};
 use crate::live;
 use crate::nav::act::{Touch, Used};
@@ -339,7 +339,7 @@ impl<I: Input, J: Judge> Sweeper<'_, I, J> {
         }
         // Held before the teleport, so the map change stands the guards
         // down as it would in a seed.
-        if let Some(card) = gerudo::guard_card(&p.spot.area, p.trigger.steps())
+        if let Some(card) = guards::guard_card(&p.spot.area, p.trigger.steps())
             && !self.holds(card)?
         {
             let gd = self.gd;

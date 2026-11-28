@@ -13,16 +13,13 @@
 
 use std::collections::HashMap;
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use ounce_formats::{EventKind, Flowchart, Link, Params, Romfs, Value};
 
 use crate::checks::Drop;
-use crate::flows::{
-    self, GRANT, IS_BOOL, IS_EXP, IS_INT, Model, Rewrites, running, set, string, switch,
-};
+use crate::flows::{self, GRANT, IS_BOOL, IS_EXP, Model, Rewrites, running, set, string, switch};
 use crate::gifts::GIFTS;
-use crate::known::{Name, field, flag, flow, item, scene};
-use crate::presets::all;
+use crate::known::{Name, flag, flow, item, scene};
 use crate::steps;
 
 /// What the Gerudo give.
@@ -30,7 +27,7 @@ pub const CARD: &Name = item::TOKEN_GERUDO;
 /// The quest the guards read.
 const CHALLENGE: &Name = flow::SAGE_OF_SPIRIT;
 /// The step past which the guards stand down.
-const STAND_DOWN: &str = "Step02";
+const STAND_DOWN: &str = super::CLEARED;
 /// The Banc folders the guards watch.
 const GUARDED: [&Name; 2] = [flag::GERUDO_FORTRESS, flag::GERUDO_TRAINING_GROUND];
 /// True while the quest is past its first step.
@@ -50,53 +47,6 @@ const GRANTERS: [&Name; 3] = [
 pub fn guard_card(area: &str, steps: &[(String, String)]) -> Option<&'static Name> {
     let own = steps.iter().any(|(c, _)| *c == **CHALLENGE);
     (!own && GUARDED.iter().any(|g| **g == *area)).then_some(CARD)
-}
-
-/// Gerudo Fortress Freed's edits: the four carpenters freed, their thieves
-/// left standing with their checks. Beating one opens her cell without
-/// freeing her again ([`rescue_once`]). The quest step isn't here: the
-/// opening moves it ([`freed_step`]), as freeing the carpenters does, so
-/// the fortress guards stand down with it.
-pub fn freed() -> Vec<String> {
-    let mut edits = vec![
-        format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        ),
-        format!("{HELPED}=4"),
-    ];
-    edits.extend(all(CELLS.map(|(_, freed)| freed), "true"));
-    edits.push(format!("{}=true", crate::carpenters::played()));
-    edits.extend(all(
-        [
-            flag::GERUDO_FORTRESS_WARP_POINT01_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT02_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT03_CLEAR_EVENT,
-            flag::GERUDO_FORTRESS_WARP_POINT04_CLEAR_EVENT,
-        ],
-        "true",
-    ));
-    edits
-}
-
-/// The quest step Gerudo Fortress Freed's opening moves on, as
-/// `(challenge, step)`.
-pub fn freed_step() -> (String, String) {
-    (CHALLENGE.to_string(), STAND_DOWN.to_owned())
-}
-
-/// Gerudo Fortress Fast's edits: three carpenters counted as freed, so
-/// freeing any one plays the clear event that frees all four
-/// ([`clear_once`]). Every cell still holds its carpenter, behind her
-/// thief.
-pub fn fast() -> Vec<String> {
-    vec![
-        format!("{HELPED}=3"),
-        format!(
-            "{}=1",
-            field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02
-        ),
-    ]
 }
 
 /// The shapes the hook copies from the quest's own flow.
@@ -212,109 +162,6 @@ fn at_map_change(flow: &mut Flowchart, models: &Models) -> Result<()> {
     flow.link(Link::Entry(entry), Some(head))
 }
 
-/// The rescue flow, which counts the carpenters freed.
-const RESCUE: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
-const HELPED: &Name = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED;
-/// An Int query's answers: below, at or above its `Value`.
-const AT: u32 = 1;
-const ABOVE: u32 = 2;
-
-/// The rescue flow's ask of `HELPED` against `value`.
-fn asks_helped(flow: &Flowchart, value: i32) -> Option<u16> {
-    running(flow, IS_INT).into_iter().find(|&e| {
-        let EventKind::Switch { params, .. } = &flow.events[e as usize].kind else {
-            return false;
-        };
-        let at = params.iter().find(|(k, _)| k == field::VALUE);
-        flows::param(params, flows::GAME_DATA) == Some(HELPED.get())
-            && at.is_some_and(|(_, v)| *v == Value::Int(vec![value]))
-    })
-}
-
-/// The cell doors' flow: each carpenter's entry ducks the music, opens her
-/// door, counts her freed and plays her thanks.
-const DOORS: &Name = flow::COMMON_DUNGEON_OPEN_DOOR_CHAIN_LOCK_MOVE;
-
-/// Each carpenter's door entry, and the Bool her cell's logic sets once
-/// her door has opened, which Gerudo Fortress Freed sets from the start.
-const CELLS: [(&Name, &Name); 4] = [
-    (
-        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_013,
-        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_013_ADULT,
-    ),
-    (
-        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_014,
-        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_014_ADULT,
-    ),
-    (
-        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_015,
-        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_015_ADULT,
-    ),
-    (
-        flow::GERUDO_FORTRESS_OPEN_DOOR_CHAIN_LOCK_NPC_HYLIA_016,
-        flag::GERUDO_FORTRESS_IS_AFTER_HELP_CARPENTER_NPC_HYLIA_016_ADULT,
-    ),
-];
-
-/// A cell door that opens on a carpenter already freed only opens: her
-/// count and her thanks are skipped, so beating her thief under Gerudo
-/// Fortress Freed never frees her twice. Each entry first asks her freed
-/// Bool, true going to a copy of the door's own call that ends there.
-/// Until her door first opens the Bool is false, so a rescue in play runs
-/// as in the game.
-pub fn rescue_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
-    let is_bool = asked(&steps::template(romfs)?, IS_BOOL)?;
-    flows::edit(romfs, rewrites, DOORS, |flow| {
-        for (entry, freed) in CELLS {
-            let at = flow.entry_points.iter().position(|e| e.name == *entry);
-            let at = at.with_context(|| format!("{DOORS} has no {entry}"))?;
-            let start = flow.entry_points[at].main;
-            let start = start.with_context(|| format!("{entry} runs nothing"))?;
-            // The ducking, then the call that opens her door.
-            let EventKind::Action {
-                next: Some(open), ..
-            } = flow.events[start as usize].kind
-            else {
-                bail!("{entry} doesn't start with an action");
-            };
-            let mut only = flow.events[open as usize].kind.clone();
-            let EventKind::SubFlow { next, .. } = &mut only else {
-                bail!("{entry} doesn't open her door with a call");
-            };
-            ensure!(next.is_some(), "{entry} ends at her door");
-            *next = None;
-            let only = flow.push(only);
-            let first = ask(flow, &is_bool, freed.get(), only, start)?;
-            flow.entry_points[at].main = Some(first);
-        }
-        Ok(())
-    })
-}
-
-/// The four carpenters' clear event plays once the count is past three.
-/// Play it only at four, so a count started at three (Gerudo Fortress
-/// fast) plays it on the first rescue and never again. Without that the
-/// count never passes four, so this changes nothing.
-pub fn clear_once(romfs: &Romfs, rewrites: &mut Rewrites) -> Result<()> {
-    flows::edit(romfs, rewrites, RESCUE, |flow| {
-        let past = asks_helped(flow, 3).with_context(|| format!("{RESCUE} never counts to 3"))?;
-        let EventKind::Switch { cases, .. } = &flow.events[past as usize].kind else {
-            unreachable!("asks_helped finds switches");
-        };
-        let i = cases.iter().position(|(c, _)| *c == ABOVE);
-        let i = i.with_context(|| format!("{RESCUE} does nothing past 3"))?;
-        let clear = cases[i].1;
-        let mut four = flow.events[past as usize].kind.clone();
-        let EventKind::Switch { params, cases, .. } = &mut four else {
-            unreachable!("cloned from a switch");
-        };
-        set(params, field::VALUE, Value::Int(vec![4]))?;
-        *cases = vec![(AT, clear)];
-        let four = flow.push(four);
-        flow.link(Link::Branch(past, i), Some(four))
-    })
-}
-
 /// Check at every map change, and after the grant flows if `drops` moves
 /// the card, so any way of getting it stands the guards down.
 pub fn stand_down(
@@ -344,129 +191,6 @@ mod tests {
     use crate::steps::QUIET;
 
     const ELSEWHERE: u64 = 1;
-
-    #[test]
-    fn fast_counts_three_carpenters_freed() {
-        let left = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
-        assert_eq!(fast(), [format!("{HELPED}=3"), format!("{left}=1")]);
-    }
-
-    #[test]
-    fn the_fortress_edits_apply_to_the_game() {
-        let Some(romfs) = dev_dump() else {
-            return;
-        };
-        let gd = crate::gamedata::GameData::load(&romfs).unwrap();
-        let mut doc =
-            ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
-        for edits in [freed(), fast()] {
-            crate::presets::apply(&gd, &mut doc.root, &edits).unwrap();
-        }
-    }
-
-    #[test]
-    fn freed_frees_four_and_leaves_the_quest_to_the_opening() {
-        let edits = freed();
-        assert!(edits.contains(&format!(
-            "{}=false",
-            field::GERUDO_FORTRESS_NPC_GERUDO_001_IS_IN_FIRST_PLACE
-        )));
-        for (_, freed) in CELLS {
-            assert!(edits.contains(&format!("{freed}=true")), "{freed}");
-        }
-        // The thieves stay, with their checks.
-        assert!(!edits.iter().any(|e| e.contains("DestroyGerudoThief")));
-        assert!(
-            !edits
-                .iter()
-                .any(|e| e.starts_with(&**flag::STEP_SAGE_OF_SPIRIT))
-        );
-        assert_eq!(
-            freed_step(),
-            (flow::SAGE_OF_SPIRIT.to_string(), "Step02".to_owned())
-        );
-    }
-
-    #[test]
-    fn the_clear_event_plays_only_at_four_carpenters() {
-        let Some(romfs) = dev_dump() else {
-            return;
-        };
-        let mut rewrites = Rewrites::new();
-        clear_once(&romfs, &mut rewrites).unwrap();
-        let flow = flows::current(&romfs, &rewrites, RESCUE).unwrap();
-        let cases = |e: u16| match &flow.events[e as usize].kind {
-            EventKind::Switch { cases, .. } => cases.clone(),
-            _ => panic!("{e} isn't a switch"),
-        };
-        let past = asks_helped(&flow, 3).unwrap();
-        let four = asks_helped(&flow, 4).unwrap();
-        assert!(cases(past).contains(&(ABOVE, four)));
-        let [(AT, clear)] = cases(four)[..] else {
-            panic!("{:?}", cases(four));
-        };
-        let EventKind::Action { params, .. } = &flow.events[clear as usize].kind else {
-            panic!("{clear} isn't an action");
-        };
-        assert_eq!(
-            flows::param(params, "EventName"),
-            Some(flow::MEET_FOUR_CARPENTER_CLEAR_EVENT.get())
-        );
-    }
-
-    #[test]
-    fn a_cell_door_on_a_freed_carpenter_only_opens() {
-        let Some(romfs) = dev_dump() else {
-            return;
-        };
-        let before = flows::load(&romfs, DOORS).unwrap().unwrap();
-        let mut rewrites = Rewrites::new();
-        rescue_once(&romfs, &mut rewrites).unwrap();
-        let flow = flows::current(&romfs, &rewrites, DOORS).unwrap();
-        let main = |f: &Flowchart, entry: &Name| {
-            let e = f.entry_points.iter().find(|e| e.name == *entry);
-            e.unwrap().main.unwrap()
-        };
-        for (n, (entry, freed)) in CELLS.into_iter().enumerate() {
-            let start = main(&before, entry);
-            let EventKind::Switch { params, cases, .. } =
-                &flow.events[main(&flow, entry) as usize].kind
-            else {
-                panic!("{n} doesn't ask first");
-            };
-            assert_eq!(
-                flows::param(params, flows::GAME_DATA.get()),
-                Some(freed.get())
-            );
-            let [(0, only), (1, rescue)] = cases[..] else {
-                panic!("{cases:?}");
-            };
-            assert_eq!(rescue, start, "not freed, her rescue runs as before");
-            // Freed: the door's own call, then nothing.
-            let EventKind::Action {
-                next: Some(open), ..
-            } = flow.events[start as usize].kind
-            else {
-                panic!("{n} starts with no action");
-            };
-            let (EventKind::SubFlow { next: None, .. }, EventKind::SubFlow { next: Some(_), .. }) = (
-                &flow.events[only as usize].kind,
-                &flow.events[open as usize].kind,
-            ) else {
-                panic!("{n}'s freed branch isn't the door's call alone");
-            };
-            let call = |e: u16| match &flow.events[e as usize].kind {
-                EventKind::SubFlow {
-                    flowchart,
-                    entry_point,
-                    params,
-                    ..
-                } => (flowchart.clone(), entry_point.clone(), params.clone()),
-                _ => unreachable!(),
-            };
-            assert_eq!(call(only), call(open));
-        }
-    }
 
     #[test]
     fn the_card_is_given_only_where_the_guards_watch() {

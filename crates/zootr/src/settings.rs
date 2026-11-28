@@ -36,6 +36,22 @@ pub(crate) use upgrade::{OLD_PRESETS, OLD_TOGGLES, dropped, renamed, renamed_as,
 /// Setting values by id. A missing id takes its default.
 pub type Settings = BTreeMap<String, Value>;
 
+/// What a setting needs of another to do anything: toggle `id` on, or with
+/// `not`, choice `id` at any pick but that one.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+pub struct Requires {
+    pub id: &'static str,
+    pub not: Option<&'static str>,
+}
+
+impl Requires {
+    /// The toggle that must be on, when it's a toggle's.
+    pub fn toggle(self) -> Option<&'static str> {
+        self.not.is_none().then_some(self.id)
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct SettingDef {
@@ -46,9 +62,9 @@ pub struct SettingDef {
     pub kind: Kind,
     /// When the parent is on, this one is too, whatever its own value.
     pub parent: Option<&'static str>,
-    /// The toggle that must be on for this one to do anything. While it's
-    /// off, the app greys this one out.
-    pub requires: Option<&'static str>,
+    /// What another setting must be for this one to do anything. While
+    /// it isn't, the app greys this one out.
+    pub requires: Option<Requires>,
     /// The section of its panel it sits in.
     pub section: &'static str,
     /// The line under that section's title: see [`Place::about`].
@@ -276,6 +292,8 @@ pub(crate) const MET_ZELDA: &str = "met-zelda";
 /// The rule words for [`GERUDO_FORTRESS`] Fast and Freed ([`value_word`]).
 pub(crate) const FORTRESS_FAST: &str = "gerudo-fortress=fast";
 pub(crate) const FORTRESS_FREED: &str = "gerudo-fortress=freed";
+/// Gerudo Fortress Freed's pick, which greys Fortress Keys out.
+pub(crate) const FORTRESS_FREED_PICK: &str = "freed";
 pub(crate) const SCRUBS: &str = "scrubs";
 pub(crate) const SCRUB_PRICE: &str = "scrub-price";
 pub(crate) const NPC_GIFTS: &str = "npc-gifts";
@@ -364,7 +382,18 @@ fn toggle(
 /// `def`, doing nothing unless toggle `id` is on.
 fn requires(id: &'static str, def: SettingDef) -> SettingDef {
     SettingDef {
-        requires: Some(id),
+        requires: Some(Requires { id, not: None }),
+        ..def
+    }
+}
+
+/// `def`, doing nothing while choice `id` is at `pick`.
+fn unless(id: &'static str, pick: &'static str, def: SettingDef) -> SettingDef {
+    SettingDef {
+        requires: Some(Requires {
+            id,
+            not: Some(pick),
+        }),
         ..def
     }
 }
@@ -519,22 +548,31 @@ mod tests {
     }
 
     #[test]
-    fn a_setting_that_needs_another_names_a_toggle() {
+    fn a_setting_that_needs_another_names_a_toggle_or_a_pick() {
         let schema = schema();
-        let toggle =
-            |id: &str| (schema.iter()).any(|d| d.id == id && matches!(d.kind, Kind::Toggle { .. }));
+        let def = |id: &str| schema.iter().find(|d| d.id == id).unwrap();
         let needs: Vec<_> = (schema.iter())
-            .filter_map(|d| d.requires.map(|r| (d.id.as_str(), r)))
+            .filter_map(|d| d.requires.map(|r| (d.id.as_str(), r.id, r.not)))
             .collect();
+        let freed = choice_id(GerudoFortress::Freed);
         assert_eq!(
             needs,
             [
-                (SCRUB_PRICE, SCRUBS),
-                (HUNDRED_TOKENS, NPC_GIFTS),
-                (SHOP_SLOTS, SHOPS)
+                (SCRUB_PRICE, SCRUBS, None),
+                (HUNDRED_TOKENS, NPC_GIFTS, None),
+                (SHOP_SLOTS, SHOPS, None),
+                (FORTRESS_KEYS, GERUDO_FORTRESS, Some(freed.as_str())),
             ]
         );
-        assert!(needs.iter().all(|(_, r)| toggle(r)));
+        for (_, id, not) in needs {
+            match (not, &def(id).kind) {
+                (None, Kind::Toggle { .. }) => {}
+                (Some(pick), Kind::Choice { options, .. }) => {
+                    assert!(options.iter().any(|o| o.id == pick), "{id} has no {pick}")
+                }
+                _ => panic!("{id} doesn't fit what needs it"),
+            }
+        }
     }
 
     #[test]

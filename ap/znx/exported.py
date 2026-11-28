@@ -48,3 +48,20 @@ ITEM_NAME_TO_ID = {item["name"]: item["id"] for item in ITEMS}
 LOCATION_NAME_TO_ID = {check["name"]: check["id"] for check in WORLD["checks"]}
 CLASSES = {item["name"]: item["class"] for item in ITEMS}
 HASHES = {check["name"]: check["hash"] for check in WORLD["checks"]}
+
+
+def golden() -> list:
+    """golden.json's rows, each with its settings and items whole: the
+    export writes one case a line, its settings as they differ from each
+    option's default, and each row's items as ids, a repeated one as
+    `[id, count]`."""
+    defaults = {entry["id"]: entry["default"] for entry in OPTIONS}
+    names = {item["id"]: item["name"] for item in ITEMS}
+    rows = []
+    for case in load("golden"):
+        settings = {**defaults, **case["settings"]}
+        for row in case["rows"]:
+            counts = (entry if isinstance(entry, list) else [entry, 1] for entry in row["items"])
+            items = [names[i] for i, n in counts for _ in range(n)]
+            rows.append({**row, "settings": settings, "items": items})
+    return rows

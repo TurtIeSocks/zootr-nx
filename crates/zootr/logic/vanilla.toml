@@ -317,23 +317,24 @@ era = "adult"
 item = "item:goron-tunic-pickup"
 needs = "explosives"
 
-# As its gift check says.
+# As its gift check says: every jailed cell open, which
+# `carpenters::logic` adds per cell, mode and key mode.
 [[source]]
 name = "Gerudo Membership Card"
 place = "gerudo-fortress-adult"
 era = "adult"
 item = "item:gerudo-card"
-needs = "hookshot or setting:gerudo-fortress=fast"
+needs = "always"
 
 # All four carpenters freed: the valley bridge, the running man's race and
-# the carpenters' talk wait for it, as in Ship. Freeing them is the card
-# check's rule. Gerudo Fortress Freed frees them from the start.
+# the carpenters' talk wait for it, as in Ship. Freeing them is the card's
+# rule, which `carpenters::logic` adds.
 [[source]]
 name = "Carpenters freed"
 place = "gerudo-fortress-adult"
 era = "adult"
 item = "event:carpenters-freed"
-needs = "hookshot or setting:gerudo-fortress=fast or setting:gerudo-fortress=freed"
+needs = "always"
 
 # The Kokiri shop.
 [[source]]

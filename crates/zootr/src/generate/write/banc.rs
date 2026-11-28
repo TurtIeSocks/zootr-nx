@@ -10,8 +10,8 @@ use super::{BOSS_COPIES, Parts};
 use crate::checks::{self, Drop, Watched};
 use crate::events::Flows;
 use crate::{
-    adult_jabu, carpenters, chest_looks, chest_size, enemies, entrances, fortress, gifts,
-    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins, water_temple,
+    adult_jabu, carpenters, chest_looks, chest_size, enemies, entrances, gifts, goron_pot,
+    jabu_mood, key_tints, picked, pickups, scrubs, shops, twins, water_temple,
 };
 
 /// The map pass's inputs, worked out once, and what it gathers map by map.
@@ -100,7 +100,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             posed: HashMap::new(),
             chest_drops,
             carried: match parts.new_game.fortress_keys.moved() {
-                true => &fortress::CARRYING,
+                true => &carpenters::keys::CARRYING,
                 false => &[],
             },
             ran,
@@ -181,7 +181,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         let levelled = levels.name(romfs, root, &mut self.chest_events)? > 0;
         // Last: everything above reads a chest by its host's name.
         let looked = chest_looks::swap(&rel, root, new_game)? > 0;
-        let bridged = carpenters::banc(&rel, root)?;
+        let bridged = carpenters::valley::banc(&rel, root)?;
         self.valley += bridged;
         let doors = match &parts.reads.doors {
             Some((b, _)) => entrances::rewrite(&rel, root, &new_game.doors, b)? > 0,
@@ -220,7 +220,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         let parts = self.parts;
         let (romfs, adult_jabu) = (parts.romfs, parts.new_game.adult_jabu);
         write_maps(builder, &mut self.changed_maps)?;
-        carpenters::check_banc(self.valley)?;
+        carpenters::valley::check_banc(self.valley)?;
         carpenters::write(romfs, builder)?;
         adult_jabu::arrival(romfs, builder, adult_jabu)?;
         adult_jabu::strip_foliage(romfs, builder, adult_jabu)?;

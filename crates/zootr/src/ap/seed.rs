@@ -329,7 +329,7 @@ pub(super) fn values() -> Result<Vec<Settings>> {
     let mut out = Vec::new();
     for d in domains()? {
         let def = defs.iter().find(|x| x.id == d.id);
-        let parent = def.and_then(|x| x.requires);
+        let parent = def.and_then(|x| x.requires).and_then(|r| r.toggle());
         for value in d.values.into_iter().skip(1) {
             let mut overlay = Settings::from([(d.id.clone(), value)]);
             if let Some(p) = parent {
@@ -412,7 +412,9 @@ pub(super) fn variants() -> Result<Vec<Variant>> {
     }
     let joint = |id: &str| JOINT.iter().any(|g| g.contains(&id));
     for d in domains.iter().filter(|d| !joint(&d.id)) {
-        let parent = defs.iter().find(|x| x.id == d.id).and_then(|x| x.requires);
+        let parent = (defs.iter().find(|x| x.id == d.id))
+            .and_then(|x| x.requires)
+            .and_then(|r| r.toggle());
         for value in d.values.iter().skip(1) {
             let mut overlay = Settings::from([(d.id.clone(), value.clone())]);
             let mut key = overlay.clone();

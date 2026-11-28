@@ -10,8 +10,7 @@ use anyhow::{Context, Result, bail, ensure};
 
 use crate::entrances::Doors;
 use crate::settings::{
-    ADULT_JABU, AdultJabu, DungeonEntrances, DungeonKeys, FortressKeys, NewGame, PROGRESSIVE,
-    value_word,
+    ADULT_JABU, AdultJabu, DungeonEntrances, DungeonKeys, NewGame, PROGRESSIVE, value_word,
 };
 use crate::world::Era;
 
@@ -42,9 +41,6 @@ pub struct Ctx {
     pub seed: u64,
     /// How each dungeon's keys are dealt: as copies, logic asks for them.
     pub keys: crate::keys::KeyModes,
-    /// How the thieves' keys are dealt: as copies, the card's check asks
-    /// for them.
-    pub fortress: FortressKeys,
     /// Toggles left open, each a [`Need::Setting`] instead of always or
     /// never. Only the Archipelago export opens any.
     pub open: BTreeSet<String>,
@@ -77,7 +73,6 @@ impl Ctx {
             on: new_game.on.clone(),
             seed: new_game.seed,
             keys: new_game.key_modes(),
-            fortress: new_game.fortress_keys,
             open: BTreeSet::new(),
             doors: (new_game.dungeon_entrances != DungeonEntrances::Off)
                 .then(|| new_game.doors.clone()),
@@ -95,7 +90,6 @@ impl Ctx {
             on: BTreeSet::new(),
             seed: 0,
             keys: crate::keys::KeyModes::roll(DungeonKeys::Vanilla, 0),
-            fortress: FortressKeys::Vanilla,
             open: BTreeSet::new(),
             doors: None,
             age: Era::Child,

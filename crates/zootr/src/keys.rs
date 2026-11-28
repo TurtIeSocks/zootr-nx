@@ -10,8 +10,7 @@ use crate::checks::ItemCheck;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::map_copies;
 use crate::rng::Rng;
-use crate::rules::{Ctx, Need};
-use crate::settings::FORTRESS_FAST;
+use crate::rules::Need;
 use crate::settings::{DungeonKeys, FortressKeys};
 use crate::{key_rooms, key_tints};
 
@@ -122,13 +121,19 @@ impl KeyMode {
     }
 }
 
-/// Each dungeon's [`KeyMode`], as a seed deals its keys. `mixed` rolls one
-/// per dungeon from the seed; every other value gives all eight the same.
+/// Each dungeon's [`KeyMode`], as a seed deals its keys, and the Gerudo
+/// Fortress's after them ([`FORTRESS_N`]). `mixed` rolls one per dungeon
+/// from the seed; every other value gives all eight the same.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct KeyModes {
     /// The setting's value, for what every dungeon shares
     setting: DungeonKeys,
     modes: [KeyMode; DUNGEONS.len()],
+    /// The Fortress's setting and mode, and how many cells start jailed:
+    /// one key for each, and none past Gerudo Fortress Freed.
+    fortress: FortressKeys,
+    fortress_mode: KeyMode,
+    jailed: u32,
 }
 
 impl KeyModes {
@@ -148,6 +153,57 @@ impl KeyModes {
         Self {
             setting: keys,
             modes,
+            fortress: FortressKeys::Vanilla,
+            fortress_mode: KeyMode::Singles,
+            jailed: FORTRESS.keys,
+        }
+    }
+
+    /// These modes with the Fortress's keys dealt as `keys` says for
+    /// `jailed` cells, a mixed roll off `seed` with a rotation of its own.
+    pub fn with_fortress(self, keys: FortressKeys, jailed: usize, seed: u64) -> Self {
+        let fortress_mode = match keys {
+            FortressKeys::Rings => KeyMode::Rings,
+            FortressKeys::Mixed => match Rng::new(seed.rotate_left(47)).below(2) {
+                0 => KeyMode::Rings,
+                _ => KeyMode::Singles,
+            },
+            FortressKeys::Vanilla | FortressKeys::Start | FortressKeys::Singles => KeyMode::Singles,
+        };
+        Self {
+            fortress: keys,
+            fortress_mode,
+            jailed: jailed as u32,
+            ..self
+        }
+    }
+
+    /// How the thieves' keys are dealt.
+    pub fn fortress(&self) -> FortressKeys {
+        self.fortress
+    }
+
+    /// Whether the thieves' keys are checks: moved, with a cell jailed.
+    pub fn fortress_moved(&self) -> bool {
+        self.fortress.moved() && self.jailed > 0
+    }
+
+    /// Whether the thieves' keys come as copies the hook credits.
+    pub fn fortress_copies(&self) -> bool {
+        self.fortress.copies() && self.jailed > 0
+    }
+
+    /// How many cells start jailed, each with its thief and key.
+    pub fn jailed(&self) -> u32 {
+        self.jailed
+    }
+
+    /// The Fortress key copies the seed deals: its ring, or one key for
+    /// each jailed cell.
+    pub fn fortress_dealt(&self) -> Vec<&'static str> {
+        match self.fortress_copies() {
+            true => vec![FORTRESS_COPY.as_str(); self.fortress_mode.count(self.jailed) as usize],
+            false => Vec::new(),
         }
     }
 
@@ -156,10 +212,13 @@ impl KeyModes {
         self.setting
     }
 
-    /// Dungeon `n` of [`DUNGEONS`], counting from 1. The Gerudo Fortress
-    /// has no ring form and never asks.
+    /// Dungeon `n` of [`DUNGEONS`], counting from 1, or the Fortress's
+    /// ([`FORTRESS_N`]).
     pub fn mode(&self, n: usize) -> KeyMode {
-        self.modes[n - 1]
+        match n {
+            FORTRESS_N => self.fortress_mode,
+            n => self.modes[n - 1],
+        }
     }
 
     /// Whether the chests that held keys are checks.
@@ -247,30 +306,19 @@ pub fn held(check: &ItemCheck) -> &str {
 pub static SINGLES: LazyLock<Vec<&'static str>> =
     LazyLock::new(|| KeyModes::roll(DungeonKeys::Singles, 0).dealt());
 
-/// With Fortress Keysanity, the Fortress key copy, one for each thief.
-pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
-    LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.keys as usize]);
+/// The Fortress key copy, as a ring or a single key.
+static FORTRESS_COPY: LazyLock<String> = LazyLock::new(key_tints::fortress);
 
-/// Each copy `modes` and `fortress` deal takes the place of a key chest's
-/// or a thief's Red Rupee, but for those `placed` already holds. With
-/// nothing left to deal (an AP seed fixes every check), the copies not
-/// placed here went to other worlds.
-pub fn deal_copies(
-    items: &mut [&str],
-    modes: &KeyModes,
-    fortress: FortressKeys,
-    placed: &[&str],
-) -> Result<()> {
+/// Each copy `modes` deals, the dungeons' and the Fortress's, takes the
+/// place of a key chest's or a thief's Red Rupee, but for those `placed`
+/// already holds. With nothing left to deal (an AP seed fixes every
+/// check), the copies not placed here went to other worlds.
+pub fn deal_copies(items: &mut [&str], modes: &KeyModes, placed: &[&str]) -> Result<()> {
     if items.is_empty() {
         return Ok(());
     }
-    let copies = modes.dealt();
-    let thieves: Vec<&'static str> = match fortress.copies() {
-        true => FORTRESS_COPIES.iter().map(String::as_str).collect(),
-        false => Vec::new(),
-    };
     let mut placed = placed.to_vec();
-    for key in copies.into_iter().chain(thieves) {
+    for key in modes.dealt().into_iter().chain(modes.fortress_dealt()) {
         if let Some(i) = placed.iter().position(|p| *p == key) {
             placed.swap_remove(i);
             continue;
@@ -308,21 +356,6 @@ pub fn dungeon_need(check: &ItemCheck, modes: &KeyModes) -> Option<Need> {
     }
     let (n, count) = key_rooms::count(check)?;
     smalls(n, count, modes)
-}
-
-/// With the Fortress keys dealt as copies, what logic adds to a check whose
-/// vanilla item is `item`: for the Gerudo membership card, given once the
-/// fourth carpenter is free, all four keys, or one with Gerudo Fortress
-/// fast.
-pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
-    let copies = |count| Need::Items {
-        actors: vec![key_tints::fortress()],
-        count,
-    };
-    (ctx.fortress.copies() && item == crate::gerudo::CARD).then(|| {
-        let fast = Need::All(vec![ctx.setting(FORTRESS_FAST), copies(1)]);
-        Need::Any(vec![fast, copies(FORTRESS.keys)])
-    })
 }
 
 /// With keys dealt as copies or left in their chests, what logic adds to
@@ -391,6 +424,9 @@ pub fn pooled(check: &ItemCheck) -> &str {
 
 /// The Gerudo Fortress counts keys like a dungeon, one for each thief.
 pub const FORTRESS: Dungeon = Dungeon::new(flag::GERUDO_FORTRESS, 4, None);
+/// The Fortress's number after [`DUNGEONS`], as [`KeyModes::mode`] and the
+/// key models count it.
+pub const FORTRESS_N: usize = DUNGEONS.len() + 1;
 
 /// The dungeon table's fields for a held boss key, map and compass. The
 /// dump keeps them only as hashes, so they're spelled out here.
@@ -414,8 +450,9 @@ pub fn small_flag(dungeon: &Name) -> String {
 }
 
 /// The new-game defaults that fill the counters and boss key flags of
-/// every dungeon, and the Fortress's counter when `fortress`.
-pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
+/// every dungeon, and the Fortress's counter with `fortress` keys, one for
+/// each cell left jailed.
+pub fn defaults(dungeons: bool, fortress: usize) -> Vec<String> {
     let mut edits = Vec::new();
     if dungeons {
         for d in &DUNGEONS {
@@ -425,8 +462,8 @@ pub fn defaults(dungeons: bool, fortress: bool) -> Vec<String> {
             }
         }
     }
-    if fortress {
-        edits.push(format!("{}={}", small_flag(FORTRESS.name), FORTRESS.keys));
+    if fortress > 0 {
+        edits.push(format!("{}={fortress}", small_flag(FORTRESS.name)));
     }
     edits
 }
@@ -440,7 +477,7 @@ mod tests {
 
     #[test]
     fn the_defaults_name_each_dungeon_with_its_count() {
-        let edits = defaults(true, false);
+        let edits = defaults(true, 0);
         assert_eq!(edits.len(), 8 + 6);
         for line in [
             &format!("{}=5", small_flag(flag::FOREST_TEMPLE)),
@@ -458,10 +495,10 @@ mod tests {
         );
         assert!(!edits.iter().any(|e| e.contains("Fortress")));
         assert_eq!(
-            defaults(false, true),
+            defaults(false, 4),
             [format!("{}=4", small_flag(flag::GERUDO_FORTRESS))]
         );
-        assert!(defaults(false, false).is_empty());
+        assert!(defaults(false, 0).is_empty());
     }
 
     #[test]
@@ -471,25 +508,11 @@ mod tests {
         let dealt = KeyModes::fixed(DungeonKeys::Rings).dealt();
         let mut items = vec![red; dealt.len() + 1];
         items.push(item::HOOKSHOT.get());
-        deal_copies(
-            &mut items,
-            &KeyModes::fixed(DungeonKeys::Rings),
-            FortressKeys::Vanilla,
-            &[],
-        )
-        .unwrap();
+        deal_copies(&mut items, &KeyModes::fixed(DungeonKeys::Rings), &[]).unwrap();
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
         assert!(dealt.iter().all(|k| items.contains(k)));
         assert_eq!(dealt.len(), DUNGEONS.len() + 6);
-        assert!(
-            deal_copies(
-                &mut [red; 3],
-                &KeyModes::fixed(DungeonKeys::Rings),
-                FortressKeys::Vanilla,
-                &[]
-            )
-            .is_err()
-        );
+        assert!(deal_copies(&mut [red; 3], &KeyModes::fixed(DungeonKeys::Rings), &[]).is_err());
     }
 
     #[test]
@@ -499,13 +522,7 @@ mod tests {
         // The 37 small key chests, the 2 loose keys and the 6 boss key chests.
         assert_eq!(SINGLES.len(), 39 + 6);
         let mut items = vec![red; SINGLES.len()];
-        deal_copies(
-            &mut items,
-            &KeyModes::fixed(DungeonKeys::Singles),
-            FortressKeys::Vanilla,
-            &[],
-        )
-        .unwrap();
+        deal_copies(&mut items, &KeyModes::fixed(DungeonKeys::Singles), &[]).unwrap();
         assert!(!items.contains(&red));
         let forest = DUNGEONS
             .iter()
@@ -515,13 +532,7 @@ mod tests {
         let held = items.iter().filter(|i| **i == ring).count() as u32;
         assert_eq!(held, copies_of(forest + 1));
         let mut start = vec![red; 2];
-        deal_copies(
-            &mut start,
-            &KeyModes::fixed(DungeonKeys::Start),
-            FortressKeys::Start,
-            &[],
-        )
-        .unwrap();
+        deal_copies(&mut start, &KeyModes::fixed(DungeonKeys::Start), &[]).unwrap();
         assert_eq!(start, [red; 2]);
     }
 
@@ -549,6 +560,12 @@ mod tests {
         }
     }
 
+    /// The dungeons' modes with the Fortress keys dealt as `keys`, for
+    /// `jailed` cells.
+    fn fortress(keys: FortressKeys, jailed: usize) -> KeyModes {
+        KeyModes::fixed(DungeonKeys::Vanilla).with_fortress(keys, jailed, 0)
+    }
+
     #[test]
     fn copies_placed_in_other_worlds_leave_nothing_to_deal() {
         needs_names!();
@@ -556,79 +573,51 @@ mod tests {
         // among this world's placements, and no item is left to swap.
         let copy = key_tints::fortress();
         let placed = [copy.as_str()];
-        deal_copies(
-            &mut [],
-            &KeyModes::fixed(DungeonKeys::Vanilla),
-            FortressKeys::Singles,
-            &placed,
-        )
-        .unwrap();
-        deal_copies(
-            &mut [],
-            &KeyModes::fixed(DungeonKeys::Singles),
-            FortressKeys::Singles,
-            &[],
-        )
-        .unwrap();
+        deal_copies(&mut [], &fortress(FortressKeys::Singles, 4), &placed).unwrap();
+        let modes =
+            KeyModes::fixed(DungeonKeys::Singles).with_fortress(FortressKeys::Singles, 4, 0);
+        deal_copies(&mut [], &modes, &[]).unwrap();
     }
 
     #[test]
-    fn fortress_keysanity_deals_a_copy_for_every_thief_and_the_card_asks_for_all() {
+    fn the_fortress_deals_a_copy_for_every_jailed_cell_or_one_ring() {
         needs_names!();
         let red = INSTEAD.get();
-        let mut items = vec![red; 5];
-        deal_copies(
-            &mut items,
-            &KeyModes::fixed(DungeonKeys::Vanilla),
-            FortressKeys::Singles,
-            &[],
-        )
-        .unwrap();
         let copy = key_tints::fortress();
-        assert_eq!(items.iter().filter(|i| **i == copy).count(), 4);
-        assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
-        // A copy placed by hand is one of the four.
-        let mut items = vec![red; 5];
-        let placed = [copy.as_str()];
-        deal_copies(
-            &mut items,
-            &KeyModes::fixed(DungeonKeys::Vanilla),
-            FortressKeys::Singles,
-            &placed,
-        )
-        .unwrap();
-        assert_eq!(items.iter().filter(|i| **i == copy).count(), 3);
-        assert!(is_shuffled(&copy));
-        let ctx = |fortress_keys, on: &[&str]| {
-            Ctx::new(&crate::settings::NewGame {
-                fortress_keys,
-                on: on.iter().map(|s| s.to_string()).collect(),
-                ..Default::default()
-            })
+        let dealt = |modes: KeyModes, placed: &[&str]| {
+            let mut items = vec![red; 5];
+            deal_copies(&mut items, &modes, placed).unwrap();
+            items.iter().filter(|i| **i == copy).count()
         };
-        let card = crate::gerudo::CARD.get();
-        let keysanity = ctx(FortressKeys::Singles, &[]);
-        let fast = ctx(FortressKeys::Singles, &[FORTRESS_FAST]);
-        let held = |n: usize| {
-            let mut have = crate::rules::Have::default();
-            (0..n).for_each(|_| have.add(&copy));
-            have
-        };
-        let met = |ctx: &Ctx, n| {
-            let need = fortress_need(card, ctx).unwrap();
-            need.met(&held(n), crate::world::Era::Adult)
-        };
-        assert!(!met(&keysanity, 3) && met(&keysanity, 4));
-        assert!(!met(&fast, 0) && met(&fast, 1));
-        assert_eq!(fortress_need(card, &ctx(FortressKeys::Start, &[])), None);
-        assert_eq!(fortress_need(item::HOOKSHOT.get(), &keysanity), None);
-        let area = |id: &str| format!("<{id}>");
-        let name = copy_name(
-            &key_tints::fortress(),
-            area,
-            &KeyModes::fixed(DungeonKeys::Vanilla),
+        assert_eq!(dealt(fortress(FortressKeys::Singles, 4), &[]), 4);
+        assert_eq!(dealt(fortress(FortressKeys::Singles, 1), &[]), 1);
+        assert_eq!(dealt(fortress(FortressKeys::Singles, 0), &[]), 0);
+        assert_eq!(dealt(fortress(FortressKeys::Rings, 4), &[]), 1);
+        assert_eq!(dealt(fortress(FortressKeys::Rings, 1), &[]), 1);
+        assert_eq!(dealt(fortress(FortressKeys::Start, 4), &[]), 0);
+        assert_eq!(dealt(fortress(FortressKeys::Vanilla, 4), &[]), 0);
+        // A copy placed by hand is one of them.
+        assert_eq!(
+            dealt(fortress(FortressKeys::Singles, 4), &[copy.as_str()]),
+            3
         );
+        assert!(is_shuffled(&copy));
+        let area = |id: &str| format!("<{id}>");
+        let name = copy_name(&copy, area, &fortress(FortressKeys::Singles, 4));
         assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.name)));
+    }
+
+    #[test]
+    fn mixed_fortress_keys_roll_both_ways_across_seeds() {
+        let rolled: std::collections::BTreeSet<_> = (0..64)
+            .map(|seed| {
+                KeyModes::fixed(DungeonKeys::Vanilla)
+                    .with_fortress(FortressKeys::Mixed, 4, seed)
+                    .mode(FORTRESS_N)
+            })
+            .map(|m| m == KeyMode::Rings)
+            .collect();
+        assert_eq!(rolled.len(), 2);
     }
 
     #[test]
@@ -734,7 +723,7 @@ mod tests {
             + bosses;
         assert_eq!(dealt.len(), want);
         let mut items = vec![red; dealt.len()];
-        deal_copies(&mut items, &modes, FortressKeys::Vanilla, &[]).unwrap();
+        deal_copies(&mut items, &modes, &[]).unwrap();
         assert!(!items.contains(&red));
         for n in 1..=DUNGEONS.len() {
             let held = items.iter().filter(|i| **i == key_tints::ring(n)).count() as u32;
@@ -815,7 +804,7 @@ mod tests {
         let gd = GameData::load(&romfs).unwrap();
         let mut doc =
             ounce_formats::BymlDoc::parse(&romfs.read(crate::gamedata::PATH).unwrap()).unwrap();
-        presets::apply(&gd, &mut doc.root, &defaults(true, true)).unwrap();
+        presets::apply(&gd, &mut doc.root, &defaults(true, 4)).unwrap();
         let mut held = BTreeSet::new();
         let mut lying = BTreeSet::new();
         for rel in banc_files(&romfs).unwrap() {

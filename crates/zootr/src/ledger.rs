@@ -470,9 +470,13 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if breakable.contains(&c.holder) {
         return Why::Eie { eie: BREAKABLES };
     }
+    // A freed cell's thief never stands, nor her drop and key.
+    if crate::carpenters::keys::freed_thief(c, new_game.gerudo_fortress) {
+        return Why::Setting;
+    }
     // A thief's carried drop is the key its check deals once the
     // thieves' keys move, and the seed clears it: no holder of its own.
-    if crate::fortress::is_carried(c) {
+    if crate::carpenters::keys::is_carried(c) {
         return match new_game.fortress_keys.moved() {
             true => Why::Scenery,
             false => Why::Setting,

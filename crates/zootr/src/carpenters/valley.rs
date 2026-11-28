@@ -1,18 +1,13 @@
 //! The valley bridge and everything beside it follow the four carpenters,
 //! as in Ship. The game ties them to the Spirit quest past its first step,
-//! which [`crate::gerudo`] moves as soon as Link holds the card so the
+//! which [`super::guards`] moves as soon as Link holds the card so the
 //! guards stand down. So every valley reader asks [`FREED`] instead: the
 //! clear event that frees the fourth carpenter has played. The fortress
 //! keeps the quest step, so the card still stands the guards down.
-//!
-//! Each carpenter's rescue runs on his Step01 quest schedule, applied only
-//! while the quest sits at that step. An early card skips it, so each
-//! carpenter's default schedule takes the rescue's conditional part too.
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Result, ensure};
 use ounce_formats::ainb::{Graph, Patch};
 use ounce_formats::{Byml, BymlDoc, EventKind, Flowchart, ModBuilder, Romfs};
-use roead::sarc::Sarc;
 
 use crate::checks::swap_strings;
 use crate::cutscenes::played_flag;
@@ -26,23 +21,11 @@ pub const FREED: &str = "Rando_CarpentersFreed_Exp";
 /// What the valley read before: the quest past its first step.
 const PAST_FIRST: &Name = flag::SAGE_OF_SPIRIT_IS_AFTER_STEP01_EXP;
 
-/// The folders [`write`] reads beyond the usual dump: the NPC schedules and
-/// the map pictures.
+/// The folders [`write`] reads beyond the usual dump: the head carpenter's
+/// schedule and the map pictures.
 pub const SCHEDULES: &str = "Component/AIScheduleParam";
 pub const CAPTURE_DIR: &str = "Game/MapCaptureInfo";
 const CAPTURE: &str = "Game/MapCaptureInfo/MapCaptureInfo.game__MapCaptureInfo.bgyml";
-/// The quest schedules, the rescue's among them.
-const QUEST_SCHEDULES: &str = "Pack/AIScheduleParam.pack.zs";
-const CONDITIONAL: &str = "ConditionalSchedule";
-
-/// The jailed carpenters.
-const CARPENTERS: [&Name; 4] = [
-    actor::NPC_HYLIA_013_ADULT,
-    actor::NPC_HYLIA_014_ADULT,
-    actor::NPC_HYLIA_015_ADULT,
-    actor::NPC_HYLIA_016_ADULT,
-];
-
 /// Each flow that asks for the bridge, and how many queries it has: the
 /// running man's race, the head carpenter, and Saburo once freed.
 const FLOWS: [(&Name, usize); 3] = [
@@ -111,8 +94,7 @@ pub fn check_banc(n: usize) -> Result<()> {
 }
 
 /// Writes the bridge module, the valley's navmesh, the head carpenter's
-/// schedule and the map picture reading [`FREED`], and each carpenter's
-/// default schedule with his rescue.
+/// schedule and the map picture reading [`FREED`].
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
     let module = logic(map::GERUDO_VALLEY_ADULT_PREFAB_9E43);
     builder.write(&module, &bridge(&romfs.read(&module)?)?)?;
@@ -125,18 +107,6 @@ pub fn write(romfs: &Romfs, builder: &mut ModBuilder) -> Result<()> {
         let n = swap_strings(doc.root.as_mut_map()?, PAST_FIRST.get(), FREED);
         ensure!(n == 1, "{path} reads the bridge {n} times, not once");
         builder.write(&path, &doc.to_binary())?;
-    }
-    let quest = romfs.read(QUEST_SCHEDULES)?;
-    let quest = Sarc::new(&quest)?;
-    for carpenter in CARPENTERS {
-        let path = schedule(carpenter);
-        let like = rescue(carpenter);
-        let step = quest
-            .get_data(&like)
-            .with_context(|| format!("no {like}"))?;
-        // Sized by its bytes alone, the fortress crashed loading him.
-        let new = rescued(&romfs.read(&path)?, step)?;
-        builder.write_like(&path, &new, &like, step.len())?;
     }
     Ok(())
 }
@@ -161,34 +131,9 @@ fn bridge(module: &[u8]) -> Result<Vec<u8>> {
     Ok(patch.into_bytes())
 }
 
-/// `default`, a carpenter's schedule, with the conditional part of `step`,
-/// his rescue's.
-fn rescued(default: &[u8], step: &[u8]) -> Result<Vec<u8>> {
-    let step = BymlDoc::parse(step)?;
-    let rescue = (step.root.as_map()?.get(CONDITIONAL)).context("the rescue has no conditions")?;
-    let mut doc = BymlDoc::parse(default)?;
-    let map = doc.root.as_mut_map()?;
-    match map.get(CONDITIONAL) {
-        None => {}
-        Some(Byml::Array(a)) if a.is_empty() => {}
-        Some(_) => bail!("the default schedule has conditions of its own"),
-    }
-    map.insert(CONDITIONAL.into(), rescue.clone());
-    Ok(doc.to_binary())
-}
-
 /// `actor`'s default schedule.
 fn schedule(actor: &Name) -> String {
     format!("{SCHEDULES}/{actor}.game__component__AIScheduleParam.bgyml")
-}
-
-/// The rescue's schedule for `carpenter`, in [`QUEST_SCHEDULES`].
-fn rescue(carpenter: &Name) -> String {
-    format!(
-        "{SCHEDULES}/{}_Step01_{carpenter}_{}.game__component__AIScheduleParam.bgyml",
-        flow::SAGE_OF_SPIRIT,
-        flag::GERUDO_FORTRESS
-    )
 }
 
 /// The adult valley's map parameters, where its navmesh swap is.
@@ -258,44 +203,10 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("zootr-valley-{}", std::process::id()));
         let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
         write(&romfs, &mut builder).unwrap();
-        // The module, the navmesh, the head carpenter, the map, four rescues
-        // and the size table.
-        assert_eq!(builder.finish().unwrap().len(), 9);
-        // Sized by its bytes alone, the fortress crashed: each rescue costs
-        // at least what his Step01 schedule does.
-        let table = romfs.restbl_rel().unwrap();
-        let written = crate::game::read_built(&romfs, &dir, &table);
-        let restbl = ounce_formats::Restbl::parse(&written).unwrap();
-        for carpenter in CARPENTERS {
-            let (own, step) = (
-                restbl.get(&schedule(carpenter)),
-                restbl.get(&rescue(carpenter)),
-            );
-            assert!(own.unwrap() >= step.unwrap(), "{carpenter}");
-        }
+        // The module, the navmesh, the head carpenter, the map and the size
+        // table.
+        assert_eq!(builder.finish().unwrap().len(), 5);
         std::fs::remove_dir_all(dir).unwrap();
-    }
-
-    #[test]
-    fn each_carpenter_keeps_his_rescue_past_step01() {
-        let Some(romfs) = dump() else { return };
-        let quest = romfs.read(QUEST_SCHEDULES).unwrap();
-        let quest = Sarc::new(&quest).unwrap();
-        for carpenter in CARPENTERS {
-            let step = quest.get_data(&rescue(carpenter)).unwrap();
-            let new = rescued(&romfs.read(&schedule(carpenter)).unwrap(), step).unwrap();
-            let new = BymlDoc::parse(&new).unwrap();
-            let step = BymlDoc::parse(step).unwrap();
-            let map = new.root.as_map().unwrap();
-            assert_eq!(
-                map.get(CONDITIONAL),
-                step.root.as_map().unwrap().get(CONDITIONAL)
-            );
-            assert!(
-                map.contains_key("DefaultSchedule"),
-                "{carpenter} lost his own talk"
-            );
-        }
     }
 
     #[test]

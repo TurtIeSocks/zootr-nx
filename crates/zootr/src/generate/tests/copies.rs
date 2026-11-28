@@ -15,7 +15,7 @@ fn key_chests_are_checks_and_hold_no_key_only_when_keys_start() {
     };
     let on = NewGame {
         keys: crate::settings::DungeonKeys::Start,
-        defaults: keys::defaults(true, false),
+        defaults: keys::defaults(true, 0),
         ..Default::default()
     };
     let report = shuffle(
@@ -146,7 +146,7 @@ fn thief_keys_are_checks_and_the_carried_ones_are_cleared_when_fortress_keys_sta
     };
     let on = NewGame {
         fortress_keys: crate::settings::FortressKeys::Start,
-        defaults: keys::defaults(false, true),
+        defaults: keys::defaults(false, 4),
         ..Default::default()
     };
     let report = shuffle(
@@ -218,24 +218,36 @@ fn fortress_keysanity_writes_its_copy_and_deals_one_for_every_thief() {
     assert!(!report.written.defaults.iter().any(|d| d.contains(counter)));
 }
 
+/// Each cell a Gerudo Fortress mode leaves jailed keeps its thief's check
+/// and deals one key; a freed cell's thief and key leave the pool (the
+/// maintainer's call, 2026-11-27), and her start state is written. A ring
+/// opens every cell, so it's one copy whatever the count.
 #[test]
-fn freed_carpenters_keep_the_thieves_and_their_keys_with_fortress_keysanity() {
+fn the_fortress_deals_a_thief_and_a_key_for_each_jailed_cell() {
     let Some(romfs) = crate::game::dev_dump() else {
         return;
     };
-    let dir = Scratch::new("fortress-freed");
-    let settings = crate::settings::favorites::randomizer_and(Settings::from([
-        (crate::settings::FORTRESS_KEYS.into(), "singles".into()),
-        (crate::settings::GERUDO_FORTRESS.into(), "freed".into()),
-    ]));
-    let new_game = NewGame::from_settings(&settings, &[]).unwrap();
-    let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
-    let thieves = report.spots.iter().filter(|s| s.holder == pickups::THIEF);
-    assert_eq!(thieves.count(), 4);
     let copy = crate::key_tints::fortress();
-    assert_eq!(report.spots.iter().filter(|s| s.item == copy).count(), 4);
-    let beaten = |d: &&String| d.contains("DestroyGerudoThief");
-    assert!(!report.written.defaults.iter().any(|d| beaten(&d)));
+    for (mode, keys, thieves, copies) in [
+        ("fast", "singles", 1, 1),
+        ("freed", "singles", 0, 0),
+        ("normal", "rings", 4, 1),
+    ] {
+        let dir = Scratch::new(&format!("fortress-{mode}-{keys}"));
+        let settings = crate::settings::favorites::randomizer_and(Settings::from([
+            (crate::settings::FORTRESS_KEYS.into(), keys.into()),
+            (crate::settings::GERUDO_FORTRESS.into(), mode.into()),
+        ]));
+        let new_game = NewGame::from_settings(&settings, &[]).unwrap();
+        let report = shuffle(&romfs, &dir, 7, &Fixed::new(), &new_game, &Run::silent()).unwrap();
+        let held = report.spots.iter().filter(|s| s.holder == pickups::THIEF);
+        assert_eq!(held.count(), thieves, "{mode} {keys}");
+        let dealt = report.spots.iter().filter(|s| s.item == copy).count();
+        assert_eq!(dealt, copies, "{mode} {keys}");
+        let beaten = |d: &&String| d.contains("DestroyGerudoThief");
+        let written = report.written.defaults.iter().filter(beaten).count();
+        assert_eq!(written, 4 - thieves, "{mode} {keys}");
+    }
 }
 
 #[test]

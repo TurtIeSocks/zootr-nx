@@ -473,7 +473,7 @@ pub fn is_named(check: &ItemCheck) -> bool {
 /// a line's level or ammo a step at a time ([`steps`]), holding whatever
 /// it's dealt. A logic module watching it runs each step's copy too
 /// ([`groups`], [`nodes`]), and a thief's call names each step's key
-/// (`fortress::give`).
+/// (`carpenters::keys::give`).
 pub fn is_pickup(check: &ItemCheck) -> bool {
     kind_of(check).is_some()
 }

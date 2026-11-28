@@ -63,7 +63,7 @@
   },
   {
     "default": "normal",
-    "description": "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
+    "description": "How the four carpenters in the Gerudo Fortress start. With Normal, all four are jailed, as in the game. With Fast, only the one in the 1 Torch Jail, off the fortress floor, is: the other three cells start open, their carpenters at the valley camp, and freeing the last earns the membership card. With Freed, every cell starts open, with the membership card in hand, the guards standing down and the valley bridge up. A cell that starts open has no thief, so her check and her key leave the pool. The cell pots stay checks",
     "id": "gerudo-fortress",
     "joint": 0,
     "kind": "choice",
@@ -249,8 +249,9 @@
   },
   {
     "default": "vanilla",
-    "description": "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks",
+    "description": "One Gerudo Fortress key for each cell left jailed: four with Normal, one with Fast, none with Freed. With Start, Link holds them from the start, so every cell opens whatever the thieves drop. With Keysanity, each key comes on its own. The ring or keys turn up at a random check, anywhere. Except with Vanilla, the keys the thieves carry become checks",
     "id": "fortress-keys",
+    "joint": 0,
     "kind": "choice",
     "label": "Fortress Keys",
     "options": [

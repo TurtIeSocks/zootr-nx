@@ -144,13 +144,31 @@ test("a setting is left out while the toggle it needs is off", () => {
   const reward = def("s1", {
     label: "S1",
     kind: { type: "toggle", default: true },
-    requires: gifts.id,
+    requires: { id: gifts.id, not: null },
   });
   const schema = [gifts, reward];
   expect(unmet(reward, {}, schema)?.id).toBe(gifts.id);
   expect(summary(schema, {})).toBe("Nothing extra");
   expect(unmet(reward, { s0: true }, schema)).toBeUndefined();
   expect(summary(schema, { s0: true })).toBe("S0, S1");
+});
+
+test("a setting is left out while the choice it needs sits at its pick", () => {
+  const mode = choice(
+    "mode",
+    [opt("normal", "Normal"), opt("freed", "Freed")],
+    {
+      label: "Mode",
+    },
+  );
+  const keys = def("keys", {
+    label: "Keys",
+    kind: { type: "toggle", default: true },
+    requires: { id: mode.id, not: "freed" },
+  });
+  const schema = [mode, keys];
+  expect(unmet(keys, {}, schema)).toBeUndefined();
+  expect(unmet(keys, { mode: "freed" }, schema)?.id).toBe(mode.id);
 });
 
 test("a choice is summed up only off its default", () => {

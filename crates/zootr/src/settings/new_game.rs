@@ -152,7 +152,12 @@ impl NewGame {
     /// done off `seed`. A pure function of the two, so a seed always deals
     /// the same keys and a door reroll can't shift them.
     pub fn key_modes(&self) -> crate::keys::KeyModes {
-        crate::keys::KeyModes::roll(self.keys, self.seed)
+        let jailed = crate::carpenters::jailed_count(self.gerudo_fortress);
+        crate::keys::KeyModes::roll(self.keys, self.seed).with_fortress(
+            self.fortress_keys,
+            jailed,
+            self.seed,
+        )
     }
 
     /// Fit the start to `pouch`, the seed's own table (`Pouch::seeded`),
@@ -180,8 +185,12 @@ impl NewGame {
             .map(|p| p.name.to_owned())
             .collect();
         let keys = chosen::<DungeonKeys>(settings, KEYS);
-        let fortress_keys = chosen::<FortressKeys>(settings, FORTRESS_KEYS);
         let gerudo_fortress = chosen::<GerudoFortress>(settings, GERUDO_FORTRESS);
+        // Gerudo Fortress Freed jails no cell, so no thief carries a key.
+        let fortress_keys = match gerudo_fortress {
+            GerudoFortress::Freed => FortressKeys::Vanilla,
+            _ => chosen::<FortressKeys>(settings, FORTRESS_KEYS),
+        };
         let bridge = chosen::<Bridge>(settings, BRIDGE);
         let trials = chosen::<Trials>(settings, TRIALS);
         let mut start = starting::Start::from_settings(settings)?;
@@ -275,10 +284,7 @@ impl NewGame {
             give: presets::gives(&picked)?,
             progress: [
                 presets::progress(&picked)?,
-                match gerudo_fortress {
-                    GerudoFortress::Freed => vec![crate::gerudo::freed_step()],
-                    GerudoFortress::Normal | GerudoFortress::Fast => vec![],
-                },
+                crate::carpenters::start::progress(gerudo_fortress),
             ]
             .concat(),
             spawn: None,
@@ -309,7 +315,10 @@ fn choice_edits(
         presets::softlocks(),
         keys::defaults(
             keys == DungeonKeys::Start,
-            fortress_keys == FortressKeys::Start,
+            match fortress_keys {
+                FortressKeys::Start => crate::carpenters::jailed_count(gerudo_fortress),
+                _ => 0,
+            },
         ),
         start.defaults(),
         match bridge {
@@ -319,11 +328,6 @@ fn choice_edits(
         match trials {
             Trials::Done => crate::bridge::trials_done(),
             Trials::AllSix => vec![],
-        },
-        match gerudo_fortress {
-            GerudoFortress::Normal => vec![],
-            GerudoFortress::Fast => crate::gerudo::fast(),
-            GerudoFortress::Freed => crate::gerudo::freed(),
         },
         if met_zelda {
             presets::met_zelda()
@@ -691,14 +695,14 @@ mod tests {
         assert_eq!(game.keys, DungeonKeys::Start);
         assert_eq!(
             game.defaults,
-            with_defaults_of(&keys::defaults(true, false), &["A=1"])
+            with_defaults_of(&keys::defaults(true, 0), &["A=1"])
         );
         let settings = Settings::from([(FORTRESS_KEYS.into(), "start".into())]);
         let game = NewGame::from_settings(&settings, &[]).unwrap();
         assert!(game.keys == DungeonKeys::Vanilla && game.fortress_keys == FortressKeys::Start);
         assert_eq!(
             game.defaults,
-            with_defaults_of(&keys::defaults(false, true), &[])
+            with_defaults_of(&keys::defaults(false, 4), &[])
         );
         let game = NewGame::from_settings(&Settings::new(), &[]).unwrap();
         assert_eq!(game.keys, DungeonKeys::Vanilla);
@@ -811,7 +815,7 @@ mod tests {
     }
 
     #[test]
-    fn the_gerudo_fortress_choice_writes_its_edits_and_moves_the_quest_only_when_freed() {
+    fn the_gerudo_fortress_choice_moves_the_quest_only_when_freed() {
         needs_names!();
         let game = |carpenters: &str| {
             let settings = Settings::from([(GERUDO_FORTRESS.into(), carpenters.into())]);
@@ -821,20 +825,13 @@ mod tests {
         assert_eq!(normal.gerudo_fortress, GerudoFortress::Normal);
         assert!(normal.progress.is_empty() && normal.give.is_empty());
         let fast = game("fast");
-        assert!(
-            crate::gerudo::fast()
-                .iter()
-                .all(|e| fast.defaults.contains(e))
-        );
         assert!(fast.progress.is_empty() && fast.give.is_empty());
         assert!(fast.on.contains(FORTRESS_FAST));
         let freed = game("freed");
-        assert!(
-            crate::gerudo::freed()
-                .iter()
-                .all(|e| freed.defaults.contains(e))
+        assert_eq!(
+            freed.progress,
+            crate::carpenters::start::progress(GerudoFortress::Freed)
         );
-        assert_eq!(freed.progress, [crate::gerudo::freed_step()]);
         assert!(freed.on.contains(FORTRESS_FREED) && !freed.on.contains(FORTRESS_FAST));
     }
 
@@ -846,7 +843,7 @@ mod tests {
         assert!(game.fortress_keys.moved() && game.fortress_keys.copies());
         assert_eq!(
             game.defaults,
-            with_defaults_of(&keys::defaults(false, false), &[])
+            with_defaults_of(&keys::defaults(false, 0), &[])
         );
     }
 

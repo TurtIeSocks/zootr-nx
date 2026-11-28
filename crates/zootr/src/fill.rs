@@ -404,7 +404,12 @@ mod tests {
                 .collect();
             assert_eq!(copies.len(), 4);
             for p in copies {
-                assert_ne!(p.check.item, crate::gerudo::CARD.get(), "{}", p.check.hash);
+                assert_ne!(
+                    p.check.item,
+                    crate::carpenters::guards::CARD.get(),
+                    "{}",
+                    p.check.hash
+                );
             }
         };
         seeds_fill_and(&Settings::from([fortress()]), dealt);

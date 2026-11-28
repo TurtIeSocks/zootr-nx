@@ -61,7 +61,7 @@ fn logic_defs() -> Vec<SettingDef> {
             GERUDO_FORTRESS,
             place::LOGIC,
             "Gerudo Fortress",
-            "How the four carpenters in the Gerudo Fortress start. With Normal, Link frees all four, as in the game. With Fast, freeing any one frees all four and earns the membership card, and the other thieves still guard their cells. With Freed, all four are free from the start, with the membership card in hand, the guards standing down and the valley bridge up. Their thieves still stand, and beating one opens her cell without freeing anyone twice",
+            "How the four carpenters in the Gerudo Fortress start. With Normal, all four are jailed, as in the game. With Fast, only the one in the 1 Torch Jail, off the fortress floor, is: the other three cells start open, their carpenters at the valley camp, and freeing the last earns the membership card. With Freed, every cell starts open, with the membership card in hand, the guards standing down and the valley bridge up. A cell that starts open has no thief, so her check and her key leave the pool. The cell pots stay checks",
             GerudoFortress::label,
         ),
         toggle(
@@ -332,12 +332,16 @@ fn dungeon_defs() -> Vec<SettingDef> {
             "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. With Rings or Keysanity, each dungeon rolls its own from the seed: its small keys come as one ring, or one at a time. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         ),
-        choice(
-            FORTRESS_KEYS,
-            place::DUNGEONS,
-            "Fortress Keys",
-            "With Start, Link holds the four Gerudo Fortress keys from the start, so every cell opens whatever the thieves drop. With Keysanity, each key turns up at a random check, anywhere. Either way, the four keys the thieves carry become checks",
-            FortressKeys::label,
+        unless(
+            GERUDO_FORTRESS,
+            FORTRESS_FREED_PICK,
+            choice(
+                FORTRESS_KEYS,
+                place::DUNGEONS,
+                "Fortress Keys",
+                "One Gerudo Fortress key for each cell left jailed: four with Normal, one with Fast, none with Freed. With Start, Link holds them from the start, so every cell opens whatever the thieves drop. With Key rings, one ring opens every jailed cell. With Keysanity, each key comes on its own. With Rings or Keysanity, the seed rolls which. The ring or keys turn up at a random check, anywhere. Except with Vanilla, the keys the thieves carry become checks",
+                FortressKeys::label,
+            ),
         ),
         toggle(
             BOSS_HEARTS,

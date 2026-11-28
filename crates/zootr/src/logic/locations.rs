@@ -163,7 +163,7 @@ impl Build<'_> {
         };
         let keys = [
             keys::dungeon_need(check, &ctx.keys),
-            keys::fortress_need(&check.item, ctx),
+            crate::carpenters::logic::check_need(self.book, ctx, check.hash, &check.item)?,
         ];
         Ok(match keys.into_iter().flatten().collect::<Vec<_>>() {
             keys if keys.is_empty() => need,

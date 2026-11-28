@@ -304,12 +304,7 @@ impl<'a> Dealer<'a, '_> {
         let cow = |i: usize| cows.contains(&from[i]);
         bottles.apply(&mut items, cow, placed.iter().map(|p| p.item))?;
         let fixed: Vec<_> = placed.iter().map(|p| p.item).collect();
-        keys::deal_copies(
-            &mut items,
-            &new_game.key_modes(),
-            new_game.fortress_keys,
-            &fixed,
-        )?;
+        keys::deal_copies(&mut items, &new_game.key_modes(), &fixed)?;
         Ok((started, items))
     }
 }
