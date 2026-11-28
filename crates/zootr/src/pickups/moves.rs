@@ -9,10 +9,10 @@ use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use super::drops::{pickup_for, template_for};
 use super::{DROP, Kind, NEW, SKULLTULAS, kind_of, seats, stale, steps};
-use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE};
-use crate::known::{actor, item};
+use crate::checks::{Drop, GYAML, ItemCheck};
+use crate::known::actor;
 use crate::settings::NewGame;
-use crate::standins::{StandIn, Tables, item_pack, table_floor};
+use crate::standins::{Placed, Stand, StandIn, Tables, item_pack, placed_rise};
 use crate::{ammo, gifts};
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -24,6 +24,8 @@ pub struct Moved<'a> {
     pub of: u64,
     /// What the holder was.
     pub vanilla: &'a str,
+    /// The actor placed at its check: what a placed item's height meets.
+    pub holder: &'a str,
     /// What it now holds.
     pub item: &'a str,
     pub(super) field: &'static str,
@@ -64,11 +66,12 @@ pub fn moved<'a>(
                 kind_of(c)?.field,
                 seats::holds(c),
                 SKULLTULAS.holds(c),
+                c.holder.as_str(),
             ))
         })
         .collect();
     let mut out = Vec::new();
-    for (n, (of, vanilla, field, seated, hovering)) in holders.into_iter().enumerate() {
+    for (n, (of, vanilla, field, seated, hovering, holder)) in holders.into_iter().enumerate() {
         let item = gifts::item_at(drops, of, vanilla);
         if item == vanilla && !seated && ammo::need(item, progressive).is_none() {
             continue;
@@ -81,6 +84,7 @@ pub fn moved<'a>(
             hash,
             of,
             vanilla,
+            holder,
             item,
             field,
             actor,
@@ -149,24 +153,36 @@ pub fn write(
         .then(|| ActorPack::load(romfs, super::drops::DROPPED))
         .transpose()?;
     for m in moved {
-        if m.built() {
+        // A placed item reaches down to where the actor placed there did.
+        // A falling or hovering one moves its body instead.
+        let goods = (m.field == GYAML)
+            .then(|| ActorPack::load(romfs, m.holder))
+            .transpose()?;
+        let placed = if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
                 template: ActorPack::load(romfs, m.template)?,
                 item: item_pack(romfs, m.item, new_game)?,
                 price: None,
+                stand: goods.map_or(Stand::Body, Stand::Placed),
             };
             pickup
                 .build_with_drop_ai(builder, tables, drop_ai.as_ref().filter(|_| m.hovering))
-                .with_context(|| format!("{} becoming {}", m.hash, m.item))?;
-        }
+                .with_context(|| format!("{} becoming {}", m.hash, m.item))?
+        } else {
+            match goods {
+                Some(goods) => {
+                    let own = ActorPack::load(romfs, &m.actor)?;
+                    Placed {
+                        rise: placed_rise(tables, &goods, &own, &own)?,
+                        rotate: None,
+                    }
+                }
+                None => Placed::default(),
+            }
+        };
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
-        // A placed token's model extends below its origin. Raise it by
-        // the model's depth, as the shelf placement does.
-        if m.field == GYAML && m.item == item::TOKEN_GOLD {
-            let rise = -table_floor(&tables.actor, m.item)?;
-            fields.push(format!("{}.{TRANSLATE}.1+={rise}", m.hash));
-        }
+        fields.extend(placed.fields(m.hash));
     }
     // A holder keeping its own drop needs a fixed drop because its table
     // goes (`tabled`). Ammo's drops were already written as steps above.

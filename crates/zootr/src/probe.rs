@@ -19,6 +19,7 @@ mod exefs;
 mod filter;
 mod formats;
 mod gamedata;
+mod heights;
 mod hurts;
 mod logic;
 mod map;
@@ -142,14 +143,15 @@ pub enum Probe {
     /// contains this, and the scale, rotation (radians) and translation it
     /// gives each bone at its first frame.
     Poses { path: String },
-    /// How far below its origin each pool item's model reaches on a
-    /// shelf, in the pose it plays there: the source of `shops/floors/table.rs`.
-    Floors,
-    /// Each shelf slot's own goods: where its placement stands, how low its
-    /// model reaches in the pose and turn it plays, the plank that follows,
-    /// and the gap up to the plank above. `--try` adds what an item would do
-    /// there, the steepest turn that fits the gap and the rise that sets it
-    /// on the plank.
+    /// The hull of every model a holder can show and the root's frames in
+    /// every pose it can play: the source of `heights/table.rs`. Rows it
+    /// fills from a box or the origin, and models posed by the root alone,
+    /// go to stderr.
+    Heights,
+    /// Each shop slot as a seed stocks it, from the heights table: where
+    /// its goods reach down to and the gap up to the shelf above. `--try`
+    /// adds what an item would do there: the pose it plays, its rise and
+    /// the turn it leans by.
     Shelves {
         /// Item names to try at each slot, as the pool holds them.
         #[arg(long = "try")]
@@ -653,10 +655,8 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Strings { path } => names(romfs, game, &path),
         Probe::Poses { path } => poses::poses(romfs, game, &path),
         Probe::Bounds { path, pose } => poses::bounds(romfs, game, &path, pose.as_deref()),
-        Probe::Floors => poses::floors(romfs, game),
-        Probe::Shelves { try_items, shop } => {
-            poses::shelves(romfs, game, &try_items, shop.as_deref())
-        }
+        Probe::Heights => heights::heights(romfs, game),
+        Probe::Shelves { try_items, shop } => heights::shelves(romfs, &try_items, shop.as_deref()),
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),

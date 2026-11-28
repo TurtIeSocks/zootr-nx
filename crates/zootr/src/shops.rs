@@ -2,9 +2,7 @@
 //! own, built from its vanilla goods' pack and the seed's item, that sells
 //! the item once at a price rolled from the seed.
 
-mod floors;
 mod goods;
-pub(crate) mod planks;
 pub mod rupees;
 mod signs;
 pub mod sold;
@@ -15,7 +13,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 use ounce_formats::{ActorPack, Byml, BymlDoc, ModBuilder, Romfs};
 
-use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE, actors, bancs, hash_of, str_field, vec3};
+use crate::checks::{Drop, GYAML, ItemCheck, actors, bancs, hash_of, str_field, vec3};
 use crate::gifts;
 use crate::known::{Name, actor, field, flag, item, scene};
 use crate::names::{ITEMS, name_label};
@@ -24,11 +22,11 @@ use crate::per_dump::PerDump;
 use crate::rng::Rng;
 use crate::rules::Need;
 
+use crate::heights::{self, Role};
 use crate::settings::NewGame;
-use crate::standins::{self, StandIn, Tables, item_pack};
+use crate::standins::{Stand, StandIn, Tables, item_pack};
 use crate::text::{Copies, CopyLine};
 use crate::world::{Presence, presence_of};
-pub(crate) use floors::{floor, stands};
 pub use steps::Shelves;
 
 /// A shop check's `file`, since its slot spans several map files.
@@ -417,6 +415,10 @@ pub fn write(
 ) -> Result<Vec<String>> {
     let mut fields = Vec::new();
     stock_once(romfs, builder, shelves.sold.iter().copied())?;
+    let gaps = match shelves.stands.is_empty() {
+        true => HashMap::new(),
+        false => gaps(romfs, tables, &slots(romfs)?)?,
+    };
     for stand in &shelves.stands {
         let (slot, item, name) = (stand.slot, stand.item, &stand.actor);
         let sale = StandIn {
@@ -424,17 +426,16 @@ pub fn write(
             template: ActorPack::load(romfs, &slot.goods)?,
             item: item_pack(romfs, item, new_game)?,
             price: Some(price(new_game.seed, slot.hash())),
+            stand: Stand::Shelf {
+                turn: slot.rotate.unwrap_or_default(),
+                gap: gaps.get(&slot.hash()).copied(),
+            },
         };
-        sale.build(builder, tables)
+        let placed = (sale.build(builder, tables))
             .with_context(|| format!("{} selling {item}", slot.holder()))?;
-        let plank = planks::plank(slot.shop, slot.number)
-            .with_context(|| format!("no plank measured for {}", slot.holder()))?;
-        let rise = rise(tables, plank, item)?;
         for h in &stand.placements {
             fields.push(format!("{h}.{GYAML}={name}"));
-            if rise != 0.0 {
-                fields.push(format!("{h}.{TRANSLATE}.1+={rise}"));
-            }
+            fields.extend(placed.fields(*h));
         }
         if let Some(tag) = &stand.sign {
             fields.extend(stand.signs.iter().map(|h| format!("{h}.{GYAML}={tag}")));
@@ -443,16 +444,48 @@ pub fn write(
     Ok(fields)
 }
 
-/// How far a placed stand-in rises to rest on a shelf `plank` metres
-/// above its placement: the plank, less how far above its origin the
-/// item's model starts in the pose it plays there (`floor`, else its
-/// `ActorInfo` row).
-fn rise(tables: &Tables, plank: f32, item: &str) -> Result<f32> {
-    let bottom = match floor(item) {
-        Some(bottom) => bottom,
-        None => standins::table_floor(&tables.actor, item)?,
+/// Above this, a slot sits a row up from another.
+const ROW: f32 = 0.2;
+/// Within this across, a slot stands over another.
+const COLUMN: f32 = 0.3;
+
+/// Each slot's room up to the shelf above, by its hash: from where its
+/// goods reach down to where the goods of the slot over it in the same
+/// shop do. A top row has no shelf above it measured, so it takes the gap
+/// of the row below it. A slot alone in its column has none.
+pub(crate) fn gaps(romfs: &Romfs, tables: &Tables, slots: &[Slot]) -> Result<HashMap<u64, f32>> {
+    let mut bottoms = HashMap::new();
+    for slot in slots {
+        let goods = ActorPack::load(romfs, &slot.goods)?;
+        let hull =
+            heights::shown(&goods, &goods, Role::Shelf, None)?.hull(&tables.actor, &slot.goods)?;
+        let turn = heights::euler(slot.rotate.unwrap_or_default());
+        bottoms.insert(slot.hash(), slot.pos[1] + hull.lo(&turn));
+    }
+    let over = |slot: &Slot| {
+        (slots.iter())
+            .filter(|o| o.shop == slot.shop && o.pos[1] > slot.pos[1] + ROW)
+            .map(|o| (crate::checks::flat(o.pos, slot.pos), o))
+            .filter(|(across, _)| *across < COLUMN)
+            .min_by(|(a, x), (b, y)| a.total_cmp(b).then(x.pos[1].total_cmp(&y.pos[1])))
+            .map(|(_, o)| o)
     };
-    Ok(plank - bottom)
+    let mut gaps = HashMap::new();
+    for slot in slots {
+        if let Some(o) = over(slot) {
+            gaps.insert(slot.hash(), bottoms[&o.hash()] - bottoms[&slot.hash()]);
+        }
+    }
+    for slot in slots {
+        if gaps.contains_key(&slot.hash()) {
+            continue;
+        }
+        let below = (slots.iter()).find(|b| over(b).is_some_and(|o| o.hash() == slot.hash()));
+        if let Some(gap) = below.and_then(|b| gaps.get(&b.hash()).copied()) {
+            gaps.insert(slot.hash(), gap);
+        }
+    }
+    Ok(gaps)
 }
 
 /// Give each of `slots` a stock of one in its keepers' goods lists, so the
@@ -523,15 +556,24 @@ mod tests {
 
     #[test]
     fn a_shield_stands_up_on_a_shelf_and_the_rupee_lies_as_its_vertices_say() {
-        needs_names!();
-        let at = |item: &Name| floor(item).unwrap();
+        let Some(romfs) = dev_dump() else { return };
+        let tables = Tables::load(&romfs).unwrap();
+        let at = |item: &Name| {
+            let pack = ActorPack::load(&romfs, item).unwrap();
+            let pose = vanilla_pose(&tables.actor, item).unwrap();
+            let shown = heights::shown(&pack, &pack, Role::Shelf, Some(&pose)).unwrap();
+            shown
+                .hull(&tables.actor, item)
+                .unwrap()
+                .lo(&heights::UPRIGHT)
+        };
         // Posed in their own shop poses, they stand on their rims.
         assert!((at(actor::T_BOX_SHIELD_DEKU) - 0.022).abs() < 0.001);
         assert!((at(actor::T_BOX_SHIELD_HYLIAN) - 0.004).abs() < 0.001);
         // The token's pose leaves the rupee centred on its origin.
         assert!((at(actor::T_BOX_RUPEE_RED) + 0.191).abs() < 0.001);
-        assert_eq!(floor("FakeItem_Nothing"), None);
     }
+
     #[test]
     fn sixty_four_slots_in_eight_shops() {
         let Some(romfs) = dev_dump() else { return };
@@ -740,18 +782,27 @@ mod tests {
         let placed = |s: &Slot| (s.number == 1) as usize * s.placements.len();
         let placed: usize = slots.iter().map(placed).sum();
         assert!(fields.contains(&format!("{}.Gyaml={name}", goron.hash())));
-        // The Hookshot reaches 0.15 below its origin, so it rises that much
-        // past the slot's plank.
+        // The Hookshot rises so its lowest point meets the bomb bundle's.
         let raised = format!("{}.Translate.1+=", goron.hash());
         let rise: f32 = (fields.iter())
             .find_map(|f| f.strip_prefix(&raised))
             .unwrap()
             .parse()
             .unwrap();
-        let plank = planks::plank(goron.shop, goron.number).unwrap();
-        assert!((plank + 0.1..plank + 0.2).contains(&rise), "{rise}");
-        let rises = fields.iter().filter(|f| f.contains("+=")).count();
-        assert_eq!(fields.len() - rises, placed);
+        let fit = crate::standins::fit(
+            &tables,
+            &ActorPack::load(&romfs, &goron.goods).unwrap(),
+            &ActorPack::load(&romfs, item::HOOKSHOT).unwrap(),
+            goron.rotate.unwrap_or_default(),
+            gaps(&romfs, &tables, &slots)
+                .unwrap()
+                .get(&goron.hash())
+                .copied(),
+        )
+        .unwrap();
+        assert_eq!(rise, fit.rise);
+        let placing = |f: &&String| f.contains("+=") || f.contains(".Rotate.");
+        assert_eq!(fields.len() - fields.iter().filter(placing).count(), placed);
         // One Hookshot: no sign names a count, so no sign is renamed. Each
         // stands gated off, which `steps.rs` reads.
         assert!(!goron.signs.is_empty());

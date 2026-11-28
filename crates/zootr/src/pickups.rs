@@ -35,6 +35,10 @@ pub mod taken;
 pub(crate) mod variants;
 
 use drops::own_drop;
+pub(crate) use drops::pickup_for;
+
+/// Every actor a pickup stand-in is built on: placed, dropped, hovering.
+pub(crate) const TEMPLATES: [&Name; 3] = [drops::TEMPLATE, drops::DROPPED, actor::OBJ_TOKEN_GOLD];
 pub use moves::{moved, stand_ins, tabled, write};
 pub use seats::{BOULDERS, RED_BOULDERS, SILVER_ROCKS};
 

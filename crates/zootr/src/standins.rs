@@ -6,6 +6,7 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
 use roead::sarc::SarcWriter;
 
+use crate::heights::{self, Hull, Role, UPRIGHT};
 use crate::keys::KeyModes;
 use crate::known::{Name, actor, field, flag, item};
 use crate::medallions;
@@ -34,8 +35,8 @@ const ARCHIVE: &Name = field::MODEL_PROJECT_NAME;
 /// 2026-11-15), save for an item a vanilla shop sells in a pose of its
 /// own, which keeps it (2026-11-16): the token's laid the Deku Shield
 /// flat. A third archive crashed the game as the shop loaded.
-const SPIN: &Name = item::COMMON_ANIMATION;
-const TOKEN_POSE: &Name = actor::OBJ_TOKEN_GOLD_ANIMATION;
+pub(crate) const SPIN: &Name = item::COMMON_ANIMATION;
+pub(crate) const TOKEN_POSE: &Name = actor::OBJ_TOKEN_GOLD_ANIMATION;
 /// An item's own pose archive is its model's name and this.
 const OWN_POSE: &str = "_Animation";
 /// Shop goods' `ActorInfo` rows start with this.
@@ -71,7 +72,6 @@ const SHAPE_FILE: &Name = field::FILE_PATH;
 const BODY: &str = "Body";
 /// Shape members that aren't points, and stay when the shape is lowered.
 const UNMOVED: [&str; 2] = ["Axis", "Tensor"];
-const MODEL_MIN: &Name = field::MODEL_AABB_MIN;
 /// An effect or sound link: the component naming its user, and the
 /// `ActorInfo` field naming the same user.
 type Link = (&'static Name, &'static Name);
@@ -102,6 +102,9 @@ const HEAPS: [&Name; 2] = [
     field::PRE_ACTOR_RENDER_INFO_HEAP_SIZE,
 ];
 
+/// Closer than this, in metres, a body stays where it is.
+const LEVEL: f32 = 1e-4;
+
 /// One new actor.
 pub struct StandIn<'a> {
     pub name: &'a str,
@@ -111,6 +114,118 @@ pub struct StandIn<'a> {
     pub item: ActorPack,
     /// What a shop sells it for. Without one it keeps the item's own table.
     pub price: Option<i32>,
+    /// Where it stands, which sets how high it shows.
+    pub stand: Stand,
+}
+
+/// Where a stand-in stands. Its item reaches down to where the goods the
+/// game put there reached ([`heights`]).
+pub enum Stand {
+    /// A shop slot, its goods the template: the slot placement's turn
+    /// (Euler X, Y, Z) and the room up to the shelf above, if one is.
+    Shelf { turn: [f32; 3], gap: Option<f32> },
+    /// Placed where this actor stood.
+    Placed(ActorPack),
+    /// Falling or hovering, so its body sets its height.
+    Body,
+}
+
+/// What a holder writes on a stand-in's placement: how far it rises, and
+/// on a shelf the turn it leans by.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Placed {
+    pub rise: f32,
+    pub rotate: Option<[f32; 3]>,
+}
+
+impl Placed {
+    /// Its placement fields, `HASH.PATH=VALUE`, on placement `hash`.
+    pub fn fields(&self, hash: u64) -> Vec<String> {
+        let mut out = Vec::new();
+        if self.rise != 0.0 {
+            out.push(format!(
+                "{hash}.{}.1+={}",
+                crate::checks::TRANSLATE,
+                self.rise
+            ));
+        }
+        if let Some(rotate) = self.rotate {
+            out.extend((0..3).map(|i| format!("{hash}.{ROTATE}.{i}={}", rotate[i])));
+        }
+        out
+    }
+}
+
+/// A placement's turn.
+const ROTATE: &str = "Rotate";
+
+/// How a shelf item stands at a slot: the pose it plays, how far it rises
+/// and the turn its placement takes.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct Fit {
+    pub pose: String,
+    pub rise: f32,
+    pub rotate: Option<[f32; 3]>,
+}
+
+/// How `item` stands in place of the shelf `goods`, at a slot turned by
+/// `turn` with `gap` up to the shelf above. It plays its own shop pose if
+/// a vanilla shop sells it in one, else the token's, and a model lying
+/// flat there stands up in the Deku Shield's. While its spin's sweep
+/// passes the gap it leans ([`heights::lean`]), and with no lean that
+/// fits it lies flat again. Its lowest point then meets the goods'.
+pub(crate) fn fit(
+    tables: &Tables,
+    goods: &ActorPack,
+    item: &ActorPack,
+    turn: [f32; 3],
+    gap: Option<f32>,
+) -> Result<Fit> {
+    let place = heights::euler(turn);
+    let anchor = heights::shown(goods, goods, Role::Shelf, None)?
+        .hull(&tables.actor, &goods.name)?
+        .lo(&place);
+    let hull = |pose: &str| -> Result<Hull> {
+        heights::shown(goods, item, Role::Shelf, Some(pose))?.hull(&tables.actor, &item.name)
+    };
+    let vanilla = vanilla_pose(&tables.actor, &item.name)?;
+    let flat = vanilla == **TOKEN_POSE && hull(&vanilla)?.flat();
+    let upright = if flat { stand_pose() } else { vanilla.clone() };
+    let standing = hull(&upright)?;
+    let lean = match gap {
+        Some(gap) => heights::lean(&standing, &place, gap),
+        None => Some(0.0),
+    };
+    let (pose, shown, lean) = match lean {
+        Some(lean) => (upright, standing, lean),
+        None if flat => (vanilla.clone(), hull(&vanilla)?, 0.0),
+        None => (upright, standing, 0.0),
+    };
+    let turned = heights::leaned(&place, lean);
+    Ok(Fit {
+        pose,
+        rise: anchor - shown.lo(&turned),
+        rotate: (lean != 0.0).then(|| heights::angles(&turned)),
+    })
+}
+
+/// How far `item`, built on `template`, rises where `goods` stood, so its
+/// lowest point meets theirs. A placement's turn here is a yaw, which
+/// moves neither.
+pub(crate) fn placed_rise(
+    tables: &Tables,
+    goods: &ActorPack,
+    template: &ActorPack,
+    item: &ActorPack,
+) -> Result<f32> {
+    let at_rest = |template: &ActorPack, item: &ActorPack| -> Result<Hull> {
+        heights::shown(template, item, Role::Rest, None)?.hull(&tables.actor, &item.name)
+    };
+    Ok(heights::rise(
+        &at_rest(goods, goods)?,
+        &at_rest(template, item)?,
+        &UPRIGHT,
+    ))
 }
 
 /// A pack file's path as a `$parent` names it: `Work/…`, text YAML.
@@ -124,17 +239,6 @@ fn archive(name: &str) -> Byml {
     let mut entry = BymlMap::default();
     entry.insert(ARCHIVE.get().into(), Byml::String(name.into()));
     Byml::Map(entry)
-}
-
-/// The pose `item` plays on a shelf: its model's own where some vanilla
-/// shop goods play it, else the gold token's. By the model, so a chest's
-/// form of the item finds the same pose.
-pub(crate) fn shelf_pose(actor: &BymlDoc, item: &str) -> Result<String> {
-    let pose = vanilla_pose(actor, item)?;
-    Ok(match pose == **TOKEN_POSE && crate::shops::stands(item) {
-        true => stand_pose(),
-        false => pose,
-    })
 }
 
 /// The Deku Shield's shelf pose, which stands a flat model up: what a
@@ -389,7 +493,7 @@ impl StandIn<'_> {
         self.price.is_none()
     }
 
-    pub fn build(&self, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+    pub fn build(&self, builder: &mut ModBuilder, tables: &mut Tables) -> Result<Placed> {
         self.build_with_drop_ai(builder, tables, None)
     }
 
@@ -400,7 +504,7 @@ impl StandIn<'_> {
         builder: &mut ModBuilder,
         tables: &mut Tables,
         drop_ai: Option<&ActorPack>,
-    ) -> Result<()> {
+    ) -> Result<Placed> {
         let name = self.name;
         let (template, item) = (&self.template, &self.item);
         let template_actor = actor_path(&template.name);
@@ -439,10 +543,21 @@ impl StandIn<'_> {
         }
         refs.insert(POUCH.get().into(), reference(&new_pouch));
         refs.insert(RESPAWN.get().into(), Byml::String(NO_RESPAWN.into()));
-        let shelf = if self.is_pickup() {
-            None
-        } else {
-            Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?)
+        let mut placed = Placed::default();
+        let shelf = match &self.stand {
+            Stand::Shelf { turn, gap } => {
+                let fit = fit(tables, template, item, *turn, *gap)?;
+                placed = Placed {
+                    rise: fit.rise,
+                    rotate: fit.rotate,
+                };
+                Some(self.animate(name, &fit.pose, &like, &mut refs, &mut new_files)?)
+            }
+            Stand::Placed(goods) => {
+                placed.rise = placed_rise(tables, goods, template, item)?;
+                None
+            }
+            Stand::Body => None,
         };
         let links = self.links(drop_ai.is_some())?;
         for (key, _) in links {
@@ -458,9 +573,10 @@ impl StandIn<'_> {
             if let Some(table) = component(&given, TABLE) {
                 refs.insert(TABLE.get().into(), Byml::String(table.into()));
             }
+            self.lift(name, tables, true, &mut refs, &mut new_files)?;
         } else {
             if self.is_pickup() && self.falls()? {
-                self.lift(name, tables, &mut refs, &mut new_files)?;
+                self.lift(name, tables, false, &mut refs, &mut new_files)?;
             }
             let new_table = self.table(name, &like, &mut new_files)?;
             refs.insert(TABLE.get().into(), reference(&new_table));
@@ -514,24 +630,23 @@ impl StandIn<'_> {
             // loaded while the drop spawns.
             tables.add_heaps(name, &template.name)?;
         }
-        match shelf {
-            Some(animations) => tables.animate(name, animations),
-            None => Ok(()),
+        if let Some(animations) = shelf {
+            tables.animate(name, animations)?;
         }
+        Ok(placed)
     }
 
     /// Its animations on a shelf. Returns them for its row.
     fn animate<'a>(
         &'a self,
         name: &str,
-        tables: &Tables,
+        pose: &str,
         like: &BymlDoc,
         refs: &mut BymlMap,
         new_files: &mut Vec<NewFile<'a>>,
     ) -> Result<Byml> {
         let template = &self.template;
-        let pose = shelf_pose(&tables.actor, &self.item.name)?;
-        let animations = Byml::Array(vec![archive(SPIN), archive(&pose)]);
+        let animations = Byml::Array(vec![archive(SPIN), archive(pose)]);
         let template_param = path_of(template, ANIMATION)?;
         let mut param = resolved(template, &template_param)?;
         param.insert(ANIMATIONS.get().into(), animations.clone());
@@ -569,21 +684,28 @@ impl StandIn<'_> {
         Ok(FALLS.iter().all(|&key| component(&own, key).is_some()))
     }
 
-    /// Its body, lowered so the item's model rests its base on the floor:
-    /// the template's body sits under its own model, and a token's,
-    /// medallion's or Hookshot's model is centred on its origin, so on the
-    /// template's body they lay half in the floor (maintainer, 2026-11-14).
+    /// Its body, moved under its model so the model's lowest point, in the
+    /// clip it plays at rest, rests on the floor, or with `hovering` where
+    /// the template's (the token's) hovered. The template's body sits
+    /// under its own model, and a token's, medallion's or Hookshot's model
+    /// is centred on its origin, so on the template's body they lay half in
+    /// the floor (maintainer, 2026-11-14). It moves both ways: a pose that
+    /// lifts a model above its raw bottom, as the Deku Shield's lifts the
+    /// Ice Arrow, otherwise floats it.
     fn lift<'a>(
         &'a self,
         name: &str,
         tables: &Tables,
+        hovering: bool,
         refs: &mut BymlMap,
         new_files: &mut Vec<NewFile<'a>>,
     ) -> Result<()> {
         let template = &self.template;
-        let Some(base) = model_floor(&row(&tables.actor, &self.item.name)?) else {
-            return Ok(());
+        let at_rest = |item: &ActorPack| -> Result<f32> {
+            let shown = heights::shown(template, item, Role::Rest, None)?;
+            Ok(shown.hull(&tables.actor, &item.name)?.lo(&UPRIGHT))
         };
+        let base = at_rest(&self.item)?;
         let physics = path_of(template, PHYSICS)?;
         let set = resolved(template, &physics)?;
         let set = pack_path(
@@ -597,8 +719,11 @@ impl StandIn<'_> {
             let shape = BymlDoc::parse(&raw(template, path)?)?;
             bottom = bottom.min(shape_bottom(shape.root.as_map()?).context("no sphere")?);
         }
-        let by = bottom - base;
-        if by <= 0.0 {
+        let by = match hovering {
+            true => at_rest(template)? - base,
+            false => bottom - base,
+        };
+        if by.abs() < LEVEL {
             return Ok(());
         }
         let mut shapes = Vec::new();
@@ -739,7 +864,7 @@ pub(crate) fn renamed(path: &str, name: &str) -> String {
     format!("{dir}/{name}.{kind}")
 }
 
-fn float(b: &Byml) -> Option<f32> {
+pub(crate) fn float(b: &Byml) -> Option<f32> {
     match b {
         Byml::Float(f) => Some(*f),
         Byml::Double(f) => Some(*f as f32),
@@ -783,18 +908,6 @@ fn shape_bottom(shape: &BymlMap) -> Option<f32> {
         .reduce(f32::min)
 }
 
-/// How far above its origin `item`'s model starts, by its `ActorInfo`
-/// row: the raw model for some items, posed in its own pose for others.
-/// 0 when the row has no bounds.
-pub(crate) fn table_floor(actor: &BymlDoc, item: &str) -> Result<f32> {
-    Ok(model_floor(&row(actor, item)?).unwrap_or(0.0))
-}
-
-/// How far above its origin an `ActorInfo` row's model starts.
-fn model_floor(row: &BymlMap) -> Option<f32> {
-    float(row.get(MODEL_MIN.get())?.as_map().ok()?.get("Y")?)
-}
-
 /// Every point in a shape, `by` lower.
 fn lower(shape: &mut BymlMap, by: f32) {
     let point = shape.contains_key("X") && shape.contains_key("Z");
@@ -826,7 +939,7 @@ mod tests {
     fn a_shield_keeps_its_own_shelf_pose_and_a_medallion_takes_the_tokens() {
         let Some(romfs) = dev_dump() else { return };
         let tables = Tables::load(&romfs).unwrap();
-        let pose = |i: &Name| shelf_pose(&tables.actor, i).unwrap();
+        let pose = |i: &Name| vanilla_pose(&tables.actor, i).unwrap();
         let shield = format!("{}{OWN_POSE}", actor::WEAPON_SHIELD_DEKU);
         assert_eq!(pose(actor::WEAPON_SHIELD_DEKU), shield);
         assert_eq!(pose(actor::T_BOX_SHIELD_DEKU), shield);

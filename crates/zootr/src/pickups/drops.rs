@@ -28,7 +28,7 @@ pub(super) const LANDS: &str = "Phive/ContactCollectionEntityParam/HitOnlyGround
 
 /// The pickup a holder places for `item` as it is, when there is one that
 /// shows where it's put: one that lands, when the holder `dropped` it.
-pub(super) fn pickup_for(item: &str, dropped: bool) -> Option<String> {
+pub(crate) fn pickup_for(item: &str, dropped: bool) -> Option<String> {
     let pickup = match item.strip_prefix(CHEST_RUPEE) {
         Some(color) => format!("{FLOOR_RUPEE}{color}"),
         None => item.starts_with(PICKUP).then(|| item.to_owned())?,
