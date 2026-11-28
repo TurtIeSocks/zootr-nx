@@ -74,6 +74,17 @@ fn capping(bombchus: Bombchus) -> Option<fn(&mut BymlMap)> {
     }
 }
 
+/// What Link owns before a holder gives Bombchus in a seed with
+/// `bombchus`: whatever caps them. Until then it gives a Red Rupee
+/// (`ammo::NEEDS`). Free Bombchus need nothing.
+pub fn fires(bombchus: Bombchus) -> Option<&'static Name> {
+    match bombchus {
+        Bombchus::BombBag => Some(item::BOMB_BAG_SMALL),
+        Bombchus::Free => None,
+        Bombchus::Bag => Some(bombchu_bags::SMALL),
+    }
+}
+
 /// `pouch` as `bombchus` caps them, as [`write`] writes the table.
 pub fn seed(pouch: &mut crate::inventory::Pouch, bombchus: Bombchus) {
     let chus = item::BOMBCHU.get();

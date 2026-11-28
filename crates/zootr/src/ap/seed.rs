@@ -173,7 +173,9 @@ fn lines(new_game: &NewGame, open: &BTreeSet<String>) -> Lines {
     let mut lines = Lines::of(new_game);
     lines.nut_bag |= open.contains(SHUFFLE_NUT_BAG);
     lines.stick_bag |= open.contains(SHUFFLE_STICK_BAG);
-    lines.bombchu_bags |= open.contains(&value_word(BOMBCHUS, "bag"));
+    if open.contains(&value_word(BOMBCHUS, "bag")) {
+        lines.bombchus = crate::settings::Bombchus::Bag;
+    }
     lines.magic_meter |= open.contains(MAGIC_WITH_FIRST_ITEM);
     lines
 }

@@ -116,10 +116,16 @@ fn build(romfs: &Romfs, game: &Path, part: &Path) -> Result<()> {
             write(part, name, decode(&data).first())?;
         }
     }
-    // The Magic Meter is ours: its icon is painted, as the seed paints it.
+    // The Magic Meter and the Bombchu Bags are ours: their icons are
+    // painted, as the seed paints them.
     if wanted.contains(crate::magic::meter::NAME) {
         let icon = crate::magic::meter::icon(romfs)?;
         write(part, crate::magic::meter::NAME, Some(&icon))?;
+    }
+    for (at, bag) in crate::bombchu_bags::BAGS.iter().enumerate() {
+        if wanted.contains(bag) {
+            write(part, bag, Some(&crate::bombchu_bags::icon(romfs, at)?))?;
+        }
     }
     let renamed = |tex: &str| RENAMES.iter().find(|(t, _)| *t == tex).map(|r| r.1);
     for (path, data) in game::search(game, LAYOUT)? {

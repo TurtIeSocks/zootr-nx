@@ -11,7 +11,8 @@ use crate::progressive::{self, Lines};
 use crate::standins::{Tables, actor_path, raw, write_clone};
 
 /// Each resource and what fires it. A starter bag's rows count only in a
-/// seed that shuffles the bag ([`need`]).
+/// seed that shuffles the bag ([`need`]). The Bombchu rows name the Bombchu
+/// Bag for whatever caps Bombchus in the seed ([`crate::bombchus::fires`]).
 pub const NEEDS: [(&Name, &Name); 12] = [
     (item::BOMB_BUNDLE_SMALL, item::BOMB_BAG_SMALL),
     (actor::T_BOX_ARROW_BUNDLE_SMALL, item::RANGE_BOW),
@@ -32,8 +33,12 @@ pub const WITHOUT: &Name = actor::T_BOX_RUPEE_RED;
 /// `item`'s row, if it's a resource `lines`' seed holds back: one whose
 /// firing item the seed has ([`Lines::has`]).
 pub fn need(item: &str, lines: Lines) -> Option<(&'static Name, &'static Name)> {
-    let row = NEEDS.iter().find(|(i, _)| *i == item)?;
-    lines.has(row.1).then_some(*row)
+    let &(ammo, fires) = NEEDS.iter().find(|(i, _)| *i == item)?;
+    let fires = match fires == bombchu_bags::SMALL {
+        true => crate::bombchus::fires(lines.bombchus)?,
+        false => fires,
+    };
+    lines.has(fires).then_some((ammo, fires))
 }
 
 /// A chest holding `item` drops it once Link has what it needs.
@@ -75,11 +80,12 @@ pub fn copied(name: &str) -> Option<&'static str> {
     of.map(|(a, _)| a.get())
 }
 
-/// The hook's keyed line for a prize chest holding `item`: its copy, then
-/// `item` once Link owns any pouch name that fires it. The copy's own
-/// pouch name is the first of those, so the level after it is the ammo.
-pub fn line(item: &str) -> Option<Vec<(String, String)>> {
-    let &(bundle, fires) = NEEDS.iter().find(|(a, _)| *a == item)?;
+/// The hook's keyed line for a prize chest holding `item` in a seed with
+/// `lines`: its copy, then `item` once Link owns any pouch name that fires
+/// it. The copy's own pouch name is the first of those, so the level after
+/// it is the ammo.
+pub fn line(item: &str, lines: Lines) -> Option<Vec<(String, String)>> {
+    let (bundle, fires) = need(item, lines)?;
     let fired: Vec<_> = pouches(fires.get()).collect();
     let bottom = (
         copy(item, Lines::widest(false))?,
@@ -156,7 +162,7 @@ mod tests {
             return;
         };
         let arrows = actor::T_BOX_ARROW_BUNDLE_SMALL.get();
-        let line = line(arrows).unwrap();
+        let line = line(arrows, Lines::default()).unwrap();
         let bows: Vec<_> = pouches(item::RANGE_BOW.get()).collect();
         assert!(bows.len() > 1, "the bow's line");
         assert_eq!(
@@ -169,7 +175,7 @@ mod tests {
             .collect();
         let want: Vec<_> = bows.iter().map(|&p| (arrows, p)).collect();
         assert_eq!(rest, want);
-        assert_eq!(super::line(item::HOOKSHOT.get()), None);
+        assert_eq!(super::line(item::HOOKSHOT.get(), Lines::default()), None);
     }
 
     #[test]
@@ -178,7 +184,6 @@ mod tests {
         let rows = [
             (actor::T_BOX_DEKU_NUT_BUNDLE, item::NUT_BAG_SMALL),
             (item::DEKU_STICK_BUNDLE_SMALL, item::STICK_BAG_SMALL),
-            (item::BOMBCHU_BUNDLE_MEDIUM, bombchu_bags::SMALL),
         ];
         for (ammo, bag) in rows {
             assert_eq!(need(ammo, Lines::default()), None, "{ammo}");
@@ -191,6 +196,55 @@ mod tests {
         assert!(need(rows[0].0, nuts).is_some() && need(rows[1].0, nuts).is_none());
         // Arrows wait for the bow in every seed.
         assert!(need(actor::T_BOX_ARROW_BUNDLE_SMALL, Lines::default()).is_some());
+    }
+
+    #[test]
+    fn bombchus_wait_for_whatever_caps_them() {
+        needs_names!();
+        use crate::settings::Bombchus;
+        let lines = |bombchus| Lines {
+            bombchus,
+            ..Lines::default()
+        };
+        let bundles = [
+            item::BOMBCHU_BUNDLE_SMALL,
+            item::BOMBCHU_BUNDLE_MEDIUM,
+            item::BOMBCHU_BUNDLE_LARGE,
+        ];
+        for chus in bundles {
+            let bomb_bag = need(chus, lines(Bombchus::BombBag));
+            assert_eq!(bomb_bag, Some((chus, item::BOMB_BAG_SMALL)), "{chus}");
+            let bag = need(chus, lines(Bombchus::Bag));
+            assert_eq!(bag, Some((chus, bombchu_bags::SMALL)), "{chus}");
+            assert_eq!(need(chus, lines(Bombchus::Free)), None, "{chus}");
+        }
+        // The game's own: Bombchus wait for the bomb bag, as bombs do.
+        assert!(need(bundles[0], Lines::default()).is_some());
+    }
+
+    #[test]
+    fn a_bombchu_prize_line_keys_on_what_caps_them() {
+        let Some(_) = crate::game::dev_dump() else {
+            return;
+        };
+        use crate::settings::Bombchus;
+        let chus = item::BOMBCHU_BUNDLE_MEDIUM.get();
+        let keyed = |bombchus| {
+            let lines = Lines {
+                bombchus,
+                ..Lines::default()
+            };
+            let line = line(chus, lines)?;
+            Some(line.into_iter().map(|(_, p)| p).collect::<Vec<_>>())
+        };
+        let bomb_bags: Vec<_> = pouches(item::BOMB_BAG_SMALL.get()).collect();
+        let chu_bags: Vec<_> = pouches(bombchu_bags::SMALL.get()).collect();
+        fn want<'a>(bags: &[&'a str]) -> Vec<&'a str> {
+            [&bags[..1], bags].concat()
+        }
+        assert_eq!(keyed(Bombchus::BombBag).unwrap(), want(&bomb_bags));
+        assert_eq!(keyed(Bombchus::Bag).unwrap(), want(&chu_bags));
+        assert_eq!(keyed(Bombchus::Free), None);
     }
 
     /// The swap turns the holder into a substitute chest, which would

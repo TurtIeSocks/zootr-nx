@@ -87,7 +87,9 @@ pub fn worn(level: &str) -> Option<&'static Name> {
 pub struct Lines {
     pub nut_bag: bool,
     pub stick_bag: bool,
-    pub bombchu_bags: bool,
+    /// What caps Bombchus: Bombchu Bags make a line of their own, and
+    /// whatever caps them holds Bombchus back ([`crate::bombchus::fires`]).
+    pub bombchus: Bombchus,
     pub magic_meter: bool,
     pub progressive: bool,
 }
@@ -108,7 +110,7 @@ impl Lines {
         Self {
             nut_bag: new_game.shuffle_nut_bag,
             stick_bag: new_game.shuffle_stick_bag,
-            bombchu_bags: new_game.bombchus == Bombchus::Bag,
+            bombchus: new_game.bombchus,
             magic_meter: !new_game.magic_with_first_item || new_game.progressive,
             progressive: new_game.progressive,
         }
@@ -120,7 +122,7 @@ impl Lines {
         Self {
             nut_bag: true,
             stick_bag: true,
-            bombchu_bags: true,
+            bombchus: Bombchus::Bag,
             magic_meter: true,
             progressive,
         }
@@ -146,7 +148,7 @@ impl Lines {
         let unshuffled = (first == item::NUT_BAG_SMALL && !self.nut_bag)
             || (first == item::STICK_BAG_SMALL && !self.stick_bag)
             || (first == meter::METER && !self.magic_meter);
-        let gone = first == bombchu_bags::SMALL && !self.bombchu_bags;
+        let gone = first == bombchu_bags::SMALL && self.bombchus != Bombchus::Bag;
         (!gone).then_some(&line[usize::from(unshuffled)..])
     }
 

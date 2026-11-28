@@ -276,7 +276,7 @@ pub fn write_mod(
     let files = builder.finish()?.len();
     run.mark_replaced();
     let keyed: Vec<_> = (parts.rupees.iter())
-        .filter_map(|r| ammo::line(ammo::copied(r)?))
+        .filter_map(|r| ammo::line(ammo::copied(r)?, Lines::of(new_game)))
         .collect();
     let release = Release::of(romfs.root());
     let table = patch::SeedTable {

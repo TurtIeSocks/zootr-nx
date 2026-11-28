@@ -140,7 +140,7 @@ const GRID: &[Slot] = &[
     slot(Upgrades, "Scale", &[item::SCALE_SILVER, item::SCALE_GOLD]),
     slot(Upgrades, "Wallet", &[item::WALLET_SMALL, item::WALLET_MEDIUM, item::WALLET_LARGE]),
     slot(Upgrades, "Bomb Bag", &[item::BOMB_BAG_SMALL, item::BOMB_BAG_MEDIUM, item::BOMB_BAG_LARGE]),
-    Slot { icon: Some(item::BOMBCHU), ..slot(Upgrades, "Bombchu Bag", &[bombchu_bags::SMALL, bombchu_bags::MEDIUM, bombchu_bags::LARGE]) },
+    slot(Upgrades, "Bombchu Bag", &[bombchu_bags::SMALL, bombchu_bags::MEDIUM, bombchu_bags::LARGE]),
     slot(Upgrades, "Quiver", &[item::QUIVER_SMALL, item::QUIVER_MEDIUM, item::QUIVER_LARGE]),
     slot(Upgrades, "Bullet Bag", &[item::BULLET_BAG_SMALL, item::BULLET_BAG_MEDIUM, item::BULLET_BAG_LARGE]),
     slot(Upgrades, "Stick Capacity", &[item::STICK_BAG_SMALL, item::STICK_BAG_MEDIUM, item::STICK_BAG_LARGE]),
