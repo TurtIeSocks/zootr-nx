@@ -13,15 +13,17 @@ use ounce_formats::Romfs;
 use crate::config::Config;
 use crate::progress::Run;
 use crate::{events, flows, game, generate, spawn, world};
-use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport, SweepReport};
+use args::{ApCommand, AudioCommand, Cli, ColorsCommand, Command, DrillReport};
 use play::{
-    Shoot, Sweep, boot_command, drill, drill_report, look, photo, play, sweep, sweep_report,
+    Shoot, Sweep, boot_command, drill, drill_report, gauntlet_run, look, photo, play, sweep,
+    sweep_report,
 };
 use research::{census, chest_events, cutscenes, flags, flow, items, logic, logic_set};
 use running::{ap_connect, dev, give, live, mem, set};
 use save::save_command;
 use seed::{print_written, shuffle};
 use selftest::selftest;
+use sweep_args::{SweepArgs, SweepReport};
 use target::target_command;
 use turn::turn;
 
@@ -37,6 +39,7 @@ mod running;
 mod save;
 mod seed;
 mod selftest;
+mod sweep_args;
 mod target;
 mod turn;
 
@@ -263,7 +266,7 @@ pub fn run() -> Result<()> {
             stall,
             start,
         } => play(&romfs()?, &script, attach, stall, start),
-        Command::Sweep {
+        Command::Sweep(SweepArgs {
             report:
                 Some(SweepReport::Report {
                     out,
@@ -272,11 +275,11 @@ pub fn run() -> Result<()> {
                     drills,
                 }),
             ..
-        } => {
+        }) => {
             dump()?;
             sweep_report(&out, from, to, &drills)
         }
-        Command::Sweep {
+        Command::Sweep(SweepArgs {
             out: Some(out),
             rounds,
             limit,
@@ -287,7 +290,7 @@ pub fn run() -> Result<()> {
             sides,
             judge,
             ..
-        } => {
+        }) => {
             let (romfs, path) = dump()?;
             let night = Sweep {
                 rounds,
@@ -315,7 +318,12 @@ pub fn run() -> Result<()> {
             let (romfs, path) = dump()?;
             drill(&romfs, &path, judge, out, skill, name.as_deref(), repeat)
         }
-        Command::Sweep { .. } | Command::Drill { .. } => bail!("--out is required"),
+        Command::Gauntlet(args) => {
+            let (romfs, path) = dump()?;
+            let (g, out, saves) = args.gauntlet();
+            gauntlet_run(&romfs, &path, g, out, saves)
+        }
+        Command::Sweep(_) | Command::Drill { .. } => bail!("--out is required"),
     }
 }
 

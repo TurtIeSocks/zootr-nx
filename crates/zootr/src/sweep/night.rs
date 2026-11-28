@@ -224,6 +224,9 @@ pub struct Night<'a, I, J> {
     /// A save folder copied over the target's before each start, so every
     /// start is the same game.
     pub pristine: Option<PathBuf>,
+    /// With no pristine save, start each game on a new file instead of
+    /// the target's own saves.
+    pub fresh: bool,
     /// Spots a round at most, for a short run. `None` for all.
     pub limit: Option<usize>,
     /// The mix every round sweeps, by its place in [`MIXES`]. `None` for
@@ -408,7 +411,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     /// Sweep one spot and record its row.
-    fn spot(
+    pub(super) fn spot(
         &mut self,
         dev: &Dev,
         at: &Round,
@@ -443,7 +446,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
     }
 
     /// Quit the game if it runs.
-    fn stop(&mut self) {
+    pub(super) fn stop(&mut self) {
         if self.input.running() {
             let _ = self.input.quit();
             sleep(LOOK * 2);
@@ -455,6 +458,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         self.stop();
         let save = match &self.pristine {
             Some(p) => Some(boot::prepare(&Start::Save(p.clone()), "sweep")?),
+            None if self.fresh => Some(boot::prepare(&Start::New, "sweep")?),
             None => None,
         };
         boot::boot(&mut self.input, self.target, save.as_deref(), boot::LIMIT)?;
@@ -505,13 +509,13 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         }
     }
 
-    fn results(&self) -> PathBuf {
+    pub(super) fn results(&self) -> PathBuf {
         self.dir.join(RESULTS)
     }
 
     /// What the rows of every night beside this one, oldest first, tell of
     /// each spot.
-    fn known(&self) -> Known {
+    pub(super) fn known(&self) -> Known {
         let mut nights: Vec<PathBuf> = (self.dir.parent())
             .and_then(|all| std::fs::read_dir(all).ok())
             .into_iter()
@@ -539,7 +543,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
 }
 
 /// Add `row` to the JSON lines file `rows`.
-fn append(rows: &Path, row: &serde_json::Value) -> Result<()> {
+pub(super) fn append(rows: &Path, row: &serde_json::Value) -> Result<()> {
     let mut file = OpenOptions::new().create(true).append(true).open(rows)?;
     writeln!(file, "{row}")?;
     Ok(())
@@ -547,7 +551,7 @@ fn append(rows: &Path, row: &serde_json::Value) -> Result<()> {
 
 /// The game as a round plays it, and the setups in a row that failed.
 pub(super) struct Live {
-    dev: Dev,
+    pub dev: Dev,
     fails: usize,
 }
 
@@ -563,7 +567,7 @@ pub(super) fn next_round(results: &str) -> usize {
 /// Whether a spot failed because the game took a teleport and never moved,
 /// or never took it: only a restart gets it out, so the spot goes again
 /// after one.
-fn stuck(verdict: &Verdict) -> bool {
+pub(super) fn stuck(verdict: &Verdict) -> bool {
     let stuck = |why: &str| {
         [dev::NEVER_LANDED, dev::NOT_TAKEN]
             .iter()

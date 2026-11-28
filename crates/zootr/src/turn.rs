@@ -119,6 +119,21 @@ pub fn kept(session: String, every: std::time::Duration) -> std::sync::mpsc::Rec
     keeping(every, move || hold(&session))
 }
 
+/// Give back the game Claude session `session` holds, once its run has
+/// quit it: to the queue's next in line, or free in the local turn file.
+pub fn free(session: &str) -> Result<()> {
+    let config = crate::config::Config::load()?.turn;
+    if config.remote() {
+        config.ask(Ask::Free {
+            session: session.into(),
+        })?;
+        return Ok(());
+    }
+    let now = jiff::Timestamp::now().as_second();
+    let freed = Turn::load()?.hand(None, String::new(), session.into(), now, true, false)?;
+    freed.save()
+}
+
 /// [`kept`] for a harness run (the drill ladder), from any shell: a
 /// systemd unit isn't Claude's shell, yet its run must hold its turn like
 /// one. Refused unless `session` holds this machine's game now.

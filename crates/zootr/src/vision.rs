@@ -230,24 +230,35 @@ fn out_of_memory(error: &Value) -> bool {
     error.to_string().contains("out of memory")
 }
 
+/// A reader of `png` that gives every frame as 8-bit samples.
+pub(crate) fn reader8(png: &[u8]) -> Result<png::Reader<std::io::Cursor<&[u8]>>> {
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    Ok(decoder.read_info()?)
+}
+
+/// The next frame `reader` gives, and how it's laid out.
+pub(crate) fn frame8(
+    reader: &mut png::Reader<std::io::Cursor<&[u8]>>,
+) -> Result<(Vec<u8>, png::OutputInfo)> {
+    let size = reader
+        .output_buffer_size()
+        .context("the frame is too big")?;
+    let mut buf = vec![0; size];
+    let info = reader.next_frame(&mut buf)?;
+    Ok((buf, info))
+}
+
 /// `png` shrunk by a whole factor to at most `width` pixels wide, each
 /// pixel the average of the block it stands for. A full Mac frame is
 /// 2560 wide, which a vision model reads slowly or fails on.
 pub fn fit(png: &[u8], width: u32) -> Result<Vec<u8>> {
-    let mut decoder = png::Decoder::new(std::io::Cursor::new(png));
-    decoder.set_transformations(png::Transformations::normalize_to_color8());
-    let mut reader = decoder.read_info()?;
+    let mut reader = reader8(png)?;
     let by = reader.info().width.div_ceil(width);
     if by <= 1 {
         return Ok(png.to_vec());
     }
-    let mut buf = vec![
-        0;
-        reader
-            .output_buffer_size()
-            .context("the frame is too big")?
-    ];
-    let info = reader.next_frame(&mut buf)?;
+    let (buf, info) = frame8(&mut reader)?;
     let (w, h) = (info.width / by, info.height / by);
     let samples = info.color_type.samples();
     let mut out = Vec::with_capacity((w * h) as usize * samples);
@@ -400,11 +411,7 @@ mod tests {
         });
         let small = fit(&checker, 960).unwrap();
         assert_eq!(size(&small), (853, 480));
-        let mut decoder = png::Decoder::new(std::io::Cursor::new(&small[..]));
-        decoder.set_transformations(png::Transformations::normalize_to_color8());
-        let mut reader = decoder.read_info().unwrap();
-        let mut buf = vec![0; reader.output_buffer_size().unwrap()];
-        reader.next_frame(&mut buf).unwrap();
+        let (buf, _) = frame8(&mut reader8(&small).unwrap()).unwrap();
         // Columns 0 to 2 hold two black pixels and one colored one.
         assert_eq!(&buf[..3], &[66, 33, 16]);
         let small_already = frame(800, 450, |_, _| [1, 2, 3]);
