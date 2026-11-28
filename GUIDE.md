@@ -167,8 +167,8 @@ Each page under Randomizer in the app's sidebar, with what every setting does. E
 | Clock runs | Time passes from the start, as it does once Link first walks into Hyrule Field |
 | No tutorials | Every guide screen counts as already shown, except the Great Fairy's |
 | Chest size | All small makes every chest a small one, which opens without the big chest's long animation. What a chest holds doesn't change |
-| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Minigame prize chests give the level too, as any chest does, and a Red Rupee in place of arrows, seeds or bombs until Link has what fires them. A shop shelf shows the level Link would get, moves up once he buys one elsewhere, and keeps the level it sold. The spoiler calls each strength level Strength |
-| Bombchus without a bomb bag | Bombchus hold up to 50 on their own, so they open the same checks bombs do |
+| Progressive items | Upgrade chests and gifts give the next level Link doesn't have: Hookshot then Longshot, the Goron Bracelet then Silver and Gold Gauntlets, Silver then Gold Scale, Fairy Ocarina then Time, and each bag, quiver and wallet up a size. Business scrubs, cows and the three merchants give the level too, and a scrub's offer names it. Minigame prize chests give the level too, as any chest does, and a Red Rupee in place of arrows, seeds, bombs or Bombchus until Link has what fires them. A shop shelf shows the level Link would get, moves up once he buys one elsewhere, and keeps the level it sold. The spoiler calls each strength level Strength |
+| Bombchus | What caps the Bombchus Link holds. The bomb bag's, as in the game. Their own cap of 40, so they open the same checks bombs do without waiting on the bag. Or three Bombchu Bags in the pool, holding 20, 30 and 40. Until Link has what caps them, a check holding Bombchus gives a Red Rupee, as bombs do before the bag |
 | Quiet Navi | Navi never stops Link to talk on her own. Hints you ask her for still work |
 | Gossip stone hints | Each gossip stone names where an item Link needs is hidden, without the Mask of Truth or any small talk |
 
@@ -206,12 +206,12 @@ The Save Editor's item grid and two of its Status fields, on a new game. Click a
 |---|---|
 | Chests | Each chest is a check. Off, each chest holds what it always does and the other checks shuffle among themselves. A gift that can't give its item by what Link has, like a pot holding a bag upgrade, keeps it too |
 | Business scrubs | Every Business Scrub outside the Dream World sells a check once, at a price you pick from 10 to 90 rupees |
-| NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet. A gift dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them, as a chest does |
+| NPC gifts | Heart pieces and items people hand over become checks, from the Skull Kid to Darunia's bracelet. A gift dealt arrows, seeds, bombs or Bombchus gives a Red Rupee until Link has what fires them, as a chest does |
 | Songs | Twelve songs become checks, given without the lesson. The Scarecrow's Song stays where it is |
-| Shopsanity | 1 to 8 slots in each of the eight shops sell a check once, at a random price. A slot dealt arrows, seeds or bombs shows a Red Rupee until Link has what fires them |
+| Shopsanity | 1 to 8 slots in each of the eight shops sell a check once, at a random price. A slot dealt arrows, seeds, bombs or Bombchus shows a Red Rupee until Link has what fires them |
 | Freestanding heart pieces | The fourteen heart pieces lying out in the world are checks |
-| Cows | Each of the eight cows gives a check once, for Epona's Song. A cow dealt arrows, seeds or bombs gives a Red Rupee until Link has what fires them |
-| Merchants | Medigoron's Giant's Knife, the carpet merchant's Bombchus and the bean seller's first bean are checks. A merchant dealt arrows, seeds or bombs sells a Red Rupee until Link has what fires them |
+| Cows | Each of the eight cows gives a check once, for Epona's Song. A cow dealt arrows, seeds, bombs or Bombchus gives a Red Rupee until Link has what fires them |
+| Merchants | Medigoron's Giant's Knife, the carpet merchant's Bombchus and the bean seller's first bean are checks. A merchant dealt arrows, seeds, bombs or Bombchus sells a Red Rupee until Link has what fires them |
 | Gold Skulltulas | Each of the 100 Gold Skulltulas drops a check, and a token for each goes in the pool |
 | Pots | Each pot placed with a drop is a check. A broken pot may come back when the area reloads, and its item with it |
 | Crates | Each wooden crate placed with a drop is a check. Link breaks one by rolling into it |
