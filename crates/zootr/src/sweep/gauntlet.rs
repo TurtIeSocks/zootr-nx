@@ -331,9 +331,10 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             // A holder that deadlocks its map's load hangs it from every
             // spot, while a bad spot hangs only itself (the tour's to
             // find): a load fails once every try hung.
-            let spots = places.iter().filter(|p| p.map == **map);
+            let spots: Vec<&Place> = places.iter().filter(|p| p.map == **map).collect();
+            let most = spots.len().clamp(*LOAD_TRIES.start(), *LOAD_TRIES.end());
             let (mut watched, mut tries) = (None, vec![]);
-            for (t, place) in spots.cycle().take(LOAD_TRIES).enumerate() {
+            for (t, place) in spots.iter().cycle().take(most).enumerate() {
                 if self.turn_lost(g)? {
                     return Ok(Go::Stop);
                 }
@@ -346,7 +347,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 if !hung {
                     break;
                 }
-                if t + 1 < LOAD_TRIES {
+                if t + 1 < most {
                     dump(&mut self.input);
                     live = self.start()?;
                 }
@@ -513,8 +514,10 @@ fn load_pins(round: &[Load]) -> Vec<Pin> {
     round.iter().map(|l| (l.holder, l.item_kind)).collect()
 }
 
-/// How many times a load lands in a map before its hang counts.
-const LOAD_TRIES: usize = 2;
+/// How many times a load lands in a map before its hang counts: once
+/// from each of its spots, twice at least (a map of one spot tries it
+/// again) and five at most. Zora's Fountain loads only from its fourth.
+const LOAD_TRIES: std::ops::RangeInclusive<usize> = 2..=5;
 
 /// How far load rounds' seeds sit from the grid's, so neither repeats
 /// the other's.
