@@ -39,6 +39,8 @@ pub struct PageUp {
     /// Between the page's build and its leaving (a page change or the
     /// menu closing).
     pub up: bool,
+    /// How many times the page was built: each build draws its cells anew.
+    pub builds: u32,
 }
 
 /// One slot's cycle, what the menu showed of it last frame, and Link's
@@ -51,6 +53,10 @@ pub struct SlotState {
     /// Link's choice for a child and an adult, as a table index plus one,
     /// 0 for none.
     choice: [u8; 2],
+    /// The page build ([`PageUp::builds`]) the slot's cells were last drawn
+    /// on, and how many frames more they redraw after it.
+    pub drawn: u32,
+    pub redraws: u8,
 }
 
 impl SlotState {

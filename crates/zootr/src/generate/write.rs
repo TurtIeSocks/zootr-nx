@@ -267,6 +267,7 @@ pub fn write_mod(
     gamedata::add_bools(&mut data.root, &pickups::taken::flags(builder.written()))?;
     builder.write(gamedata::PATH, &data.to_binary())?;
     bombs::write(&mut builder)?;
+    crate::menu_slots::write(&mut builder)?;
     dig::write(romfs, &mut builder, drops, new_game)?;
     // After ageless items, which add to the same sound users.
     crate::audio::write(&mut builder, &new_game.audio, new_game.seed)?;
