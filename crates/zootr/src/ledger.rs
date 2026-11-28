@@ -254,9 +254,10 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
     let breakable = breakables(romfs)?;
     let others = census(romfs, &breakable)?;
     let open = Let::of(&new_game);
-    for c in others.iter().filter(|c| {
-        crate::pickups::variants::canonical(c.hash) == c.hash && seen.insert(c.hash)
-    }) {
+    for c in others
+        .iter()
+        .filter(|c| crate::pickups::variants::canonical(c.hash) == c.hash && seen.insert(c.hash))
+    {
         let why = narrowing::left_out(c, open).map_or(Why::Unknown, Why::of);
         let why = match why {
             Why::Unknown => explain(c, &new_game, &breakable),

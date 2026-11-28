@@ -824,7 +824,9 @@ fn blue_warps_keep_age_with_the_adult_deku_tree() {
 
 #[test]
 fn the_pool_uses_one_check_per_linked_rock_and_excludes_missable_holders() {
-    let Some(romfs) = crate::game::dev_dump() else { return };
+    let Some(romfs) = crate::game::dev_dump() else {
+        return;
+    };
     let game = NewGame {
         rocks: true,
         pots: true,

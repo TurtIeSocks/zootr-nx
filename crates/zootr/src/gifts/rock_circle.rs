@@ -89,8 +89,13 @@ mod tests {
         let (asked, clear, not_clear) = switch(&flow, unpaid);
         let all_broken = flag::KOKIRI_FOREST_NPC_KOKIRI_008_CHILD_LIFT_ROCK_ALL_BROKEN;
         assert_eq!(asked, all_broken.get());
-        assert_eq!(not_clear, was, "an uncleared circle runs the talk as it was");
-        let EventKind::SubFlow { entry_point, next, .. } = &flow.events[clear as usize].kind
+        assert_eq!(
+            not_clear, was,
+            "an uncleared circle runs the talk as it was"
+        );
+        let EventKind::SubFlow {
+            entry_point, next, ..
+        } = &flow.events[clear as usize].kind
         else {
             panic!("a clear circle runs no call");
         };

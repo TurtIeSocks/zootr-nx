@@ -60,10 +60,16 @@ fn a_released_id_keeps_its_name_and_class() {
         .iter()
         .copied()
         .chain(variants::LINKED.iter().map(|&(alternate, _)| alternate))
-        .map(|hash| ids.location_id(hash).expect("retired locations keep their reserved IDs"))
+        .map(|hash| {
+            ids.location_id(hash)
+                .expect("retired locations keep their reserved IDs")
+        })
         .collect();
     for id in &retired {
-        assert!(!locations.contains_key(id), "retired location {id} is active");
+        assert!(
+            !locations.contains_key(id),
+            "retired location {id} is active"
+        );
     }
 
     let mut changed = Vec::new();

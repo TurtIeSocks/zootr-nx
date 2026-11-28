@@ -512,9 +512,12 @@ impl<'a> Parts<'a> {
         gamedata::add_ints(root, &new_game.ints)?;
         gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
         let mut keyed = picked::pairs(&self.picked);
-        keyed.extend(self.copies.iter().copied().filter(|&(of, _)| {
-            pickups::variants::canonical(of) == of
-        }));
+        keyed.extend(
+            self.copies
+                .iter()
+                .copied()
+                .filter(|&(of, _)| pickups::variants::canonical(of) == of),
+        );
         keyed.extend(trap_chests::keyed(self.drops));
         gamedata::add_keys(root, &keyed)?;
         trap_chests::game_data(root, self.drops)?;

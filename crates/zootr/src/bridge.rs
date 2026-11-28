@@ -90,7 +90,11 @@ fn pots_after_barriers(data: Vec<u8>) -> Result<Vec<u8>> {
         })
         .map(|(i, _)| i)
         .collect();
-    ensure!(pots.len() == 4, "expected four barrier pots, found {}", pots.len());
+    ensure!(
+        pots.len() == 4,
+        "expected four barrier pots, found {}",
+        pots.len()
+    );
     for pot in pots {
         patch.relink(pot, create, 0, clear, "Bool")?;
     }
@@ -273,11 +277,17 @@ mod tests {
             4656702765770784238,
             9619715366192254862,
         ] {
-            let rule = book.check(hash).unwrap_or_else(|| panic!("no rule for pot {hash}"));
+            let rule = book
+                .check(hash)
+                .unwrap_or_else(|| panic!("no rule for pot {hash}"));
             let cleared = book.need(&rule.needs, &all_six).unwrap();
             assert!(!cleared.met(&empty, Era::Adult));
             assert!(cleared.met(&tools, Era::Adult));
-            assert!(book.need(&rule.needs, &done).unwrap().met(&empty, Era::Adult));
+            assert!(
+                book.need(&rule.needs, &done)
+                    .unwrap()
+                    .met(&empty, Era::Adult)
+            );
         }
     }
 

@@ -210,10 +210,7 @@ impl<'a> Dealer<'a, '_> {
 
     /// The checks kept holding their own item, the free checks, and the
     /// pool to deal them: one item per free check, less what `placed` took.
-    fn pool(
-        &self,
-        placed: &[Placement<'a>],
-    ) -> Result<(Checks<'a>, Checks<'a>, Pool<'a>)> {
+    fn pool(&self, placed: &[Placement<'a>]) -> Result<(Checks<'a>, Checks<'a>, Pool<'a>)> {
         let (new_game, open) = (self.new_game, self.open);
         let occupied: HashSet<_> = placed.iter().map(|p| p.check.hash).collect();
         // With chests kept, a gift that may not hold its own item keeps it
@@ -238,7 +235,10 @@ impl<'a> Dealer<'a, '_> {
         for p in placed.iter().filter(|p| shuffleable(p.check, open)) {
             pool.take(p.item, pooled(p.check));
         }
-        let free: Vec<_> = chests.into_iter().filter(|c| !occupied.contains(&c.hash)).collect();
+        let free: Vec<_> = chests
+            .into_iter()
+            .filter(|c| !occupied.contains(&c.hash))
+            .collect();
         if new_game.vanilla {
             pool = Pool::of(&free, |c| self.own(c));
         } else {
