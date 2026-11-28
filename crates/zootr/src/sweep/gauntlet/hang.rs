@@ -466,6 +466,12 @@ mod tests {
         let hang = probe(&crate::nav::sim::dev(), &mut { UP }, LIMITS, &shot);
         assert!(matches!(hang, Some(Hang::Black { .. })), "{hang:?}");
         assert!(shot.exists());
+        // Every shot torn: the reads' 5 s hang, and the last probe's frame
+        // isn't passed off as this one's.
+        let torn = &mut Up { torn: true, ..UP };
+        let hang = probe(&crate::nav::sim::dev(), torn, LIMITS, &shot);
+        assert!(matches!(hang, Some(Hang::Unread { .. })), "{hang:?}");
+        assert!(!shot.exists());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
