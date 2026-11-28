@@ -149,7 +149,9 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
                 holders.push(h);
             }
             let rounds = loads::rounds(&holders, &kinds);
-            eprintln!("loads: {} holders, {} rounds", holders.len(), rounds.len());
+            let maps: BTreeSet<_> = landed.values().map(|p| &p.map).collect();
+            let (h, m, r) = (holders.len(), maps.len(), rounds.len());
+            eprintln!("loads: {h} holders in {m} maps, {r} rounds");
             for (r, round) in rounds.iter().enumerate() {
                 let at = (r, seed.wrapping_add(LOAD_SEEDS + r as u64));
                 let ran = self.load_round(g, at, round, (&settings, &landed), &places);
