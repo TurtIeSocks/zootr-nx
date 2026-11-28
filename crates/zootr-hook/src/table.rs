@@ -373,6 +373,18 @@ pub fn pick<'a>(levels: Levels<'a>, owns: impl Fn(&[u8]) -> bool) -> Option<&'a 
     give
 }
 
+/// What a chest opening gives: [`pick`], with a pouch name the open's own
+/// event already added (`fresh`, by [`fnv`]) counted as not owned. A get
+/// can add before its main grant is picked (a Bomb Bag's bomb fill puts the
+/// Small Bomb Bag), and that mustn't move the grant up a level.
+pub fn pick_opening<'a>(
+    levels: Levels<'a>,
+    owns: &impl Fn(&[u8]) -> bool,
+    fresh: &[u32],
+) -> Option<&'a [u8]> {
+    pick(levels, |p| owns(p) && !fresh.contains(&fnv(p)))
+}
+
 /// `pick`, with the pouch name `also` owned too.
 pub fn pick_with<'a>(
     levels: Levels<'a>,
@@ -580,6 +592,31 @@ mod tests {
     #[test]
     fn names_outside_every_line_are_left_alone() {
         assert_eq!(give(&[], "Fake_Arrow_Fire"), None);
+    }
+
+    fn opening(owned: &[&str], fresh: &[&str], name: &str) -> Option<String> {
+        with_table(|t| {
+            let (_, line, _) = t.find(name.as_bytes())?;
+            let owns = |l: &[u8]| owned.iter().any(|o| o.as_bytes() == l);
+            let fresh: Vec<_> = fresh.iter().map(|f| fnv(f.as_bytes())).collect();
+            let give = pick_opening(line, &owns, &fresh)?;
+            Some(String::from_utf8(give.to_vec()).unwrap())
+        })
+    }
+
+    #[test]
+    fn an_open_keeps_the_level_its_own_event_added() {
+        assert_eq!(opening(&["Bag_S"], &["Bag_S"], "Bag_S").unwrap(), "Bag_S");
+        assert_eq!(
+            opening(&["Bag_S", "Bag_M"], &["Bag_M"], "Bag_M").unwrap(),
+            "Bag_M"
+        );
+    }
+
+    #[test]
+    fn an_open_climbs_past_a_level_an_earlier_event_added() {
+        assert_eq!(opening(&["Bag_S"], &[], "Bag_S").unwrap(), "Bag_M");
+        assert_eq!(opening(&["Bag_S"], &["Hook"], "Bag_S").unwrap(), "Bag_M");
     }
 
     fn granted(owned: &[&str], added: &str) -> Option<(u16, String)> {

@@ -427,7 +427,7 @@ unsafe fn pick<'a>(main: usize, mail: &'a Mailbox, picked: &'a mut [u8; NAME]) -
         };
     }
     let now = unsafe { name(item.as_ptr()) };
-    let Some(level) = now.and_then(|now| unsafe { level_for(main, &table, now) }) else {
+    let Some(level) = now.and_then(|now| unsafe { level_for(main, &table, now, &[]) }) else {
         return item;
     };
     if level.len() >= NAME {

@@ -57,7 +57,7 @@ pub use mailbox::{
     ARG_ACTOR, ARG_CHALLENGE, ARG_EQUIP, ARG_GIVE, ARG_MIXED, ARG_NOTICE, ARG_STEP_NAME,
     ARG_SUMMARY, Ask, DEV_EVENT, GUARD, MAILBOX, Mailbox, NAME, Notice, Outcome, play_event,
 };
-pub use shared::{CHESTS, Chest, Credited, List, Shared, Swap};
+pub use shared::{ADDED, CHESTS, Chest, Credited, List, Shared, Swap};
 pub use spots::{REACH, SPOT_KEY, Spot, nearest};
 pub use switches::SWITCHES;
 #[cfg(not(target_os = "none"))]
@@ -67,7 +67,7 @@ pub use table::encode;
 pub use table::{
     BOMBCHU_BAG, BUNNY_HOOD, Credit, DEV, FREE_BOMBCHUS, Found, HEADER, Header, ICE_TRAPS, Level,
     Levels, MAGIC, MENU_CYCLE, ONE_TAP_SONGS, SHUFFLED_NUT_BAG, SHUFFLED_STICK_BAG, Slot, Table,
-    after_grant, fnv, pick, pick_with,
+    after_grant, fnv, pick, pick_opening, pick_with,
 };
 
 /// The build everything here is made for: the hook is compiled against it,

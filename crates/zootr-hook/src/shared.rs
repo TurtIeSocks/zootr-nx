@@ -47,6 +47,9 @@ pub struct Chest {
     pub done: bool,
 }
 
+/// How many pouch names added in one event [`List`] keeps.
+pub const ADDED: usize = 4;
+
 /// The chests of the loaded map, and the last key copy credited.
 #[repr(C)]
 pub struct List {
@@ -56,6 +59,9 @@ pub struct List {
     credited: Credited,
     /// The name hash of the item an AP notice's popup shows, 0 for none.
     noticed: u32,
+    /// The pouch names added since the last event-free frame, by
+    /// [`crate::fnv`], newest first, 0 for none.
+    added: [u32; ADDED],
 }
 
 /// A key copy credited: its name's hash, and whether the pickup window
@@ -71,6 +77,7 @@ impl List {
     pub fn clear(&mut self) {
         self.count = 0;
         self.needs_refresh = false;
+        self.added = [0; ADDED];
     }
 
     pub fn chests(&mut self) -> &mut [Chest] {
@@ -121,9 +128,27 @@ impl List {
         self.needs_refresh = true;
     }
 
-    /// Forget the last credit and report any grants since the last idle frame.
+    /// An event added the pouch name hashed `name`: its chests are remade
+    /// once it ends, and a chest it opens doesn't count the name as owned
+    /// ([`crate::pick_opening`]). Full, the oldest goes.
+    pub fn added_in_event(&mut self, name: u32) {
+        self.needs_refresh = true;
+        if !self.added.contains(&name) {
+            self.added.rotate_right(1);
+            self.added[0] = name;
+        }
+    }
+
+    /// The pouch names added since the last event-free frame.
+    pub fn added(&self) -> [u32; ADDED] {
+        self.added
+    }
+
+    /// Forget the last credit and what the last event added, and report
+    /// any grants since the last idle frame.
     pub fn idle(&mut self) -> bool {
         self.credited = Credited::default();
+        self.added = [0; ADDED];
         core::mem::take(&mut self.needs_refresh)
     }
 
@@ -325,6 +350,23 @@ mod tests {
             assert!(!l.idle());
             l.inventory_changed();
             l.clear();
+            assert!(!l.idle());
+        });
+    }
+
+    #[test]
+    fn an_events_adds_are_kept_until_it_ends() {
+        list().with(|l| {
+            l.added_in_event(7);
+            l.added_in_event(7);
+            l.added_in_event(8);
+            assert_eq!(l.added(), [8, 7, 0, 0]);
+            assert!(l.idle(), "remade once the event ends");
+            assert_eq!(l.added(), [0; ADDED]);
+            (1..=5).for_each(|n| l.added_in_event(n));
+            assert_eq!(l.added(), [5, 4, 3, 2], "the oldest goes");
+            l.clear();
+            assert_eq!(l.added(), [0; ADDED]);
             assert!(!l.idle());
         });
     }

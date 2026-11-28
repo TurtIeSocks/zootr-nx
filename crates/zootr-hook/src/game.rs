@@ -451,10 +451,14 @@ pub unsafe extern "C" fn content_name(
             return setter(request, key, value);
         };
         let give = if name(*key).is_some_and(|k| *k == *KEY) {
-            if let Some(actor) = at(node, 8).and_then(|n| at(n, 8)) {
-                shared(main).with(|l| l.opened(actor));
-            }
-            name(*value).and_then(|now| level_for(main, &table, now))
+            let actor = at(node, 8).and_then(|n| at(n, 8));
+            let fresh = shared(main).with(|l| {
+                if let Some(actor) = actor {
+                    l.opened(actor);
+                }
+                l.added()
+            });
+            name(*value).and_then(|now| level_for(main, &table, now, &fresh))
         } else {
             None
         };
@@ -674,7 +678,9 @@ unsafe extern "C" fn chest_made(node: usize) {
 /// `name` is about to be added to the pouch: credit it, then remake the
 /// closed chests of its line. Every holder that adds to the pouch passes
 /// here once, so a copy credits its dungeon once. [`picked`] also handles
-/// the pickup window.
+/// the pickup window. During an event the remake waits for it to end
+/// (`link_update`'s refresh): a chest's get adds before its open marks it
+/// opened, and remaking it then would change its model mid-get.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -683,7 +689,11 @@ unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
     hooked(|main, table| unsafe {
         if let Some(added) = name(*added) {
             credit(main, table, added, false);
-            recreate(main, table, added);
+            if dev::playing(main, table.offsets) == Some(true) {
+                shared(main).with(|l| l.added_in_event(fnv(added)));
+            } else {
+                recreate(main, table, added);
+            }
             menu::granted(main, table, added);
         }
     })

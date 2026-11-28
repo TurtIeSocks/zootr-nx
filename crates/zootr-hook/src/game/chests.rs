@@ -5,7 +5,7 @@ use core::ffi::CStr;
 
 use super::{Hash, MAX, at, dev, func, name, shared};
 use crate::traps::COMPONENTS;
-use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick, pick_with};
+use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick, pick_opening};
 
 type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
 type Delete = unsafe extern "C" fn(usize, usize) -> bool;
@@ -184,7 +184,7 @@ pub(super) unsafe fn drop_value(placement: usize) -> Option<*mut u8> {
 /// `value` is a placement param's string buffer.
 pub(super) unsafe fn rewrite(main: usize, table: &Table, value: *mut u8) {
     let Some(give) =
-        (unsafe { name(value) }).and_then(|now| unsafe { level_for(main, table, now) })
+        (unsafe { name(value) }).and_then(|now| unsafe { level_for(main, table, now, &[]) })
     else {
         return;
     };
@@ -247,12 +247,20 @@ unsafe fn owns_flag(main: usize, o: &Offsets, gd: usize, pouch: &[u8]) -> bool {
     unsafe { dev::get_bool(main, o, gd, hash) == Some(true) }
 }
 
-/// The level to give in place of `now`, when it needs changing.
+/// The level to give in place of `now`, when it needs changing, with the
+/// pouch names `fresh` counted as not owned ([`pick_opening`]).
 ///
 /// # Safety
 /// The table's offsets are this build's.
-pub(super) unsafe fn level_for<'a>(main: usize, table: &Table<'a>, now: &[u8]) -> Option<&'a [u8]> {
+#[inline(never)]
+#[unsafe(link_section = ".far")]
+pub(super) unsafe fn level_for<'a>(
+    main: usize,
+    table: &Table<'a>,
+    now: &[u8],
+    fresh: &[u32],
+) -> Option<&'a [u8]> {
     let owns = unsafe { progression_owned(main, table.offsets) }?;
     let (_, levels, _) = table.find(now)?;
-    pick_with(levels, b"", &owns).filter(|&give| give != now)
+    pick_opening(levels, &owns, fresh).filter(|&give| give != now)
 }
