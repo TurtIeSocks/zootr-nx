@@ -27,7 +27,8 @@ pub struct Limits {
 
 /// How long Link must stand in play, the screen lit, for a load to count.
 const SETTLED: Duration = Duration::from_secs(3);
-/// How often a frame is taken and the game read.
+/// The pause between looks (a frame and a read); a slow shot stretches
+/// the period.
 const TICK: Duration = Duration::from_millis(400);
 /// How long reads may fail, or frames not come, in a row before the game
 /// counts as hung.
@@ -58,7 +59,7 @@ pub enum Hang {
     /// Still loading after the load limit. `secs` here and below count
     /// from the watch's start, just after the teleport answered.
     Loading { secs: f32, map: String },
-    /// Settled on another map than the one asked for.
+    /// On another map than the one asked for, past the load limit.
     WrongMap { map: String, want: String },
     /// An event played through the load limit.
     Event { secs: f32, map: String },
