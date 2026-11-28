@@ -21,7 +21,7 @@ mod songbook;
 mod swap;
 mod weapon_bags;
 
-use chests::{drop_value, level_for, owned, record, recreate, rewrite};
+use chests::{Count, drop_value, level_for, owned, record, recreate, rewrite};
 
 type Childhood = unsafe extern "C" fn(usize) -> bool;
 /// The equipment menu's test of whether the cell named by its second
@@ -155,6 +155,7 @@ global_asm!(
     "b gear_mark_entry",
     "b ocarina_input_entry",
     "b select_drops_entry",
+    "b pickup_count",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -524,6 +525,35 @@ pub unsafe extern "C" fn seed_guide(link: usize) -> bool {
     }
 }
 
+/// Called in place of the pickup window's pouch count of the item Link
+/// got, with its arguments: the number the window shows. A key copy (a
+/// ring, or a key outside its own dungeon) has no pouch count of its own,
+/// so it shows its dungeon's key counter. Otherwise the game's own count.
+///
+/// # Safety
+/// Only the game calls this, from the rewritten call site.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+pub unsafe extern "C" fn pickup_count(
+    manager: usize,
+    got: *const *const u8,
+    a: u32,
+    b: u32,
+) -> i32 {
+    unsafe {
+        if let Some((main, table)) = table()
+            && let Some(Credit::Int(counter, _) | Credit::Add(counter, _)) =
+                name(*got).and_then(|got| table.credit(got))
+            && let Some(gd) = dev::single(main, table.offsets.gamedata)
+            && let Some(keys) = refill::get_int(gd, counter)
+        {
+            return keys;
+        }
+        let count: Count = func(main(), OFFSETS.funcs.count);
+        count(manager, got, a, b)
+    }
+}
+
 /// The equipment slots' child test, at both of its gates (the equip
 /// request and the actor it makes), each with the slot in `w20`: whether
 /// Link counts as a child for `slot`. Not for the boots in a seed with
@@ -719,6 +749,7 @@ const PICKED_NAME: usize = 0x20;
 ///
 /// # Safety
 /// The table's offsets are this build's.
+#[unsafe(link_section = ".far")]
 unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
     let Some(credit) = table.credit(added) else {
         return;

@@ -86,6 +86,8 @@ fn reads(b: &Build, callee: u32) -> Reads {
         c if c == f.childhood => Reads(1, 0, 16),
         // The run node's speed setter: (state, dir) and the speed in s0.
         c if c == f.run_setter => Reads(2, 1, 0),
+        // The pouch count: (manager, name, two flags) -> an int.
+        c if c == f.count => Reads(4, 0, 32),
         // nn::hid::GetNpadStates' stubs: (states, count, id) -> an int.
         c if [i.npad_full, i.npad_handheld, i.npad_dual].contains(&c) => Reads(3, 0, 32),
         _ => panic!("what does {callee:#x} read?"),
@@ -374,6 +376,60 @@ fn baba_drops_wait_for_only_their_own_shuffled_bag() {
                         assert!(m.changed(&set, &INTS).is_empty(), "{what}");
                     }
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn the_pickup_window_shows_a_key_copy_s_dungeon_counter() {
+    use zootr_hook::Credit;
+    use zootr_hook::switches::{COUNT, ENTRIES, INT, MAP, MAP_SIZE, TABLE};
+
+    const RING: &str = "Item_FakeKeyRing";
+    for mut m in machines() {
+        let b = m.h.build;
+        let (cell, gd, map, entries, got) = (
+            SCRATCH + 0x1000,
+            SCRATCH + 0x2000,
+            SCRATCH + 0x3000,
+            SCRATCH + 0x4000,
+            SCRATCH + 0x5000,
+        );
+        let (slot, _, value) = INT;
+        let table = gd + 8 + (slot * TABLE) as u64;
+        // The Forest Temple's key counter, holding 5.
+        let counter: u32 = 0x9023_7092;
+        let mut write =
+            |address, value: u64| m.uc.mem_write(address, &value.to_le_bytes()).unwrap();
+        write(at(b.got.gamedata), cell);
+        write(cell, gd);
+        write(table + COUNT as u64, 1);
+        write(table + ENTRIES as u64, entries);
+        write(table + MAP as u64, map);
+        write(table + MAP_SIZE as u64, 1);
+        write(map, counter.into());
+        write(entries + value as u64, 5);
+        write(got, got + 0x10);
+        let credits = [(RING, Credit::Int(counter, 8))];
+        let header = encode(0, &[], &[], &credits, &[], &[], None);
+        m.uc.mem_write(at(b.regions.table), &header).unwrap();
+        let site = b.calls.pickup_count;
+        let what = format!("{} pickup window count", m.h.release.name());
+        for (name, shows) in [(RING, Some(5)), ("Item_FakeOther", None)] {
+            m.uc.mem_write(got + 0x10, &[name.as_bytes(), &[0]].concat())
+                .unwrap();
+            let set = m.set_registers();
+            m.uc.reg_write(R::X1, got).unwrap();
+            match shows {
+                // A key copy: its dungeon's counter, no pouch count run.
+                Some(keys) => {
+                    m.run(at(site), at(site + 4), &what);
+                    assert_eq!(m.uc.reg_read(R::X0).unwrap() as u32, keys, "{what}");
+                    assert_eq!(m.changed(&set, &KEPT), [""; 0], "{what}");
+                }
+                // Any other name: the game's own pouch count.
+                None => m.run(at(site), at(m.callee(site)), &what),
             }
         }
     }

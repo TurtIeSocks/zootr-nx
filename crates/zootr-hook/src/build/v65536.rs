@@ -78,6 +78,7 @@ pub const V65536: Build = Build {
         gear_create3: 0x2da_dac8,
         gear_create4: 0x2da_e1f4,
         gear_create5: 0x2da_e8d4,
+        pickup_count: 0x2f_125c,
     },
     branches: Branches {
         gate: 0x178_fcbc,

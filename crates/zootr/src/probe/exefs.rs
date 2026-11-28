@@ -8,7 +8,9 @@ use nup_format::nso::{SEGMENTS, build_id_hex};
 use zootr_hook::V131072;
 
 use crate::game::{Release, main_image};
-use crate::port::{CONFIRMED, Image, LIKE, base_source, liked, port as map, usual};
+use crate::port::{
+    CONFIRMED, Image, LIKE, SOLE_CALLS, base_source, hand, liked, port as map, sole_calls, usual,
+};
 
 /// Writes `build`'s `main` flat to `out` and prints its build ID, where
 /// each segment lies and how it was stored, and MOD0.
@@ -54,7 +56,8 @@ pub(super) fn port(game: &Path, to: Release, report: Option<&Path>, out: &Path) 
         crate::patch::needs(),
     );
     let liked = liked(&from, &V131072, &into, CONFIRMED);
-    let text = ported.report("1.1.1", to.name(), CONFIRMED, &liked);
+    let sole = sole_calls(&from, &V131072, &into, &ported);
+    let text = ported.report("1.1.1", to.name(), CONFIRMED, &liked, &sole);
     match report {
         Some(path) => {
             std::fs::write(path, &text).with_context(|| format!("writing {}", path.display()))?
@@ -65,7 +68,10 @@ pub(super) fn port(game: &Path, to: Release, report: Option<&Path>, out: &Path) 
     if let Some(((name, ..), l)) = rows.into_iter().find(|(_, l)| **l < LIKE) {
         bail!("{name} is only {l:.3} like its 1.1.1 code, under {LIKE}: not confirmed");
     }
-    let build = ported.build(CONFIRMED)?;
+    if let Some(((name, ..), _)) = SOLE_CALLS.iter().zip(&sole).find(|(_, h)| !**h) {
+        bail!("{name} isn't the sole call where it sits: not confirmed");
+    }
+    let build = ported.build(&hand())?;
     if let Some(dir) = out.parent() {
         std::fs::create_dir_all(dir).with_context(|| format!("making {}", dir.display()))?;
     }

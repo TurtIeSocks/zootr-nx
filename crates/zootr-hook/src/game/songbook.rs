@@ -7,7 +7,7 @@
 use core::slice;
 
 use super::dev::{clock, single};
-use super::refill::entry;
+use super::refill::{entry, get_int};
 use super::{hooked, shared};
 use crate::switches::{INT, UINT_ARRAY};
 use crate::ui::songs::{Book, MAX_NOTES, Notes, Seen, Song};
@@ -68,7 +68,7 @@ unsafe fn book(main: usize, table: &Table, ocarina: usize) -> Book {
 /// As [`book`].
 unsafe fn hovered(main: usize, table: &Table, ocarina: usize) -> Option<Notes> {
     let gd = unsafe { single(main, table.offsets.gamedata)? };
-    let index = unsafe { *(entry(gd, INT, HOVERED)? as *const i32) };
+    let index = unsafe { get_int(gd, HOVERED)? };
     let song = Song::from_index(usize::try_from(index).ok()?)?;
     let owned = unsafe { *((ocarina + OWNED + song as usize) as *const u8) };
     if owned != 1 {

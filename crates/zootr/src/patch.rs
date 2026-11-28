@@ -86,15 +86,18 @@ const fn skips(b: &Build) -> [(u32, u32); 3] {
 /// chest sets its `ContentName`, go to `content_name`. The drop reader's
 /// calls, where a loading room reads a chest's placement, go to
 /// `drop_actor`. The bow draw's child test, which picks its guide, goes
-/// to `seed_guide`, so a child Bow says "Shoot Arrow". The gear sites
-/// are [`gear::sites`].
-const fn calls(b: &Build) -> [(u32, u32); 5] {
+/// to `seed_guide`, so a child Bow says "Shoot Arrow". The pickup
+/// window's pouch count of the item Link got goes to `pickup_count`, so a
+/// key copy shows its dungeon's key counter, not 0. The gear sites are
+/// [`gear::sites`].
+const fn calls(b: &Build) -> [(u32, u32); 6] {
     [
         (b.calls.content1, entry::CONTENT_NAME),
         (b.calls.content2, entry::CONTENT_NAME),
         (b.calls.drop1, entry::DROP_ACTOR),
         (b.calls.drop2, entry::DROP_ACTOR),
         (b.calls.seed_guide, entry::SEED_GUIDE),
+        (b.calls.pickup_count, entry::PICKUP_COUNT),
     ]
 }
 /// The run node's call to the speed setter and the hook entry it goes to,
@@ -726,14 +729,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0xbf38_302c_4ecb_cd3e),
-            ("far", 0x9160_9b71_99c7_9187),
-            ("code", 0x4e33_811b_4143_3602),
-            ("sites", 0x40f9_7452_8681_f71b),
-            ("patches", 0x79d2_0045_5d80_134d),
-            ("pchtxt", 0x3ac6_612b_3083_c995),
-            ("ips", 0x7e39_95a0_911c_5cda),
-            ("cheat", 0x3864_199e_de33_58b2),
+            ("hook", 0x9d82_647d_ce83_16dc),
+            ("far", 0xe794_2609_7299_cc13),
+            ("code", 0x07d6_f2de_df78_55af),
+            ("sites", 0x85b3_df54_0482_256f),
+            ("patches", 0x93d6_7836_7a32_7850),
+            ("pchtxt", 0x3aae_0c28_499d_74a2),
+            ("ips", 0xaad8_37f9_3fb4_20eb),
+            ("cheat", 0xe07f_0b32_1c4b_1de4),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -744,14 +747,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0x5c0d_3700_367a_5221),
-            ("far", 0x8d65_91bc_5d67_46ce),
-            ("code", 0xa180_9b58_5d3c_1f95),
-            ("sites", 0xb0b6_ec86_4c84_29df),
-            ("patches", 0xe88d_3595_83f6_de12),
-            ("pchtxt", 0xf510_da4f_171b_3bea),
-            ("ips", 0x2ac8_652b_02e2_85f9),
-            ("cheat", 0x8aab_4850_0d06_d5de),
+            ("hook", 0x4cca_64cb_9461_a791),
+            ("far", 0xc713_ceae_08c9_9cec),
+            ("code", 0x64eb_b710_6ad1_8526),
+            ("sites", 0xf278_02fe_29d2_f375),
+            ("patches", 0x6066_134d_79ec_bf0d),
+            ("pchtxt", 0x3fc7_ff2b_f746_d1c3),
+            ("ips", 0x3ae9_a2f0_2ab4_0628),
+            ("cheat", 0x8bf0_26c2_bba6_a977),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -803,6 +806,7 @@ mod tests {
             f.reader,
             f.reader,
             f.childhood,
+            f.count,
             f.run_setter,
         ];
         for ((at, _), to) in calls(b).into_iter().chain([run_call(b)]).zip(callees) {

@@ -164,6 +164,7 @@ rows! {
         gear_create3: Code,
         gear_create4: Code,
         gear_create5: Code,
+        pickup_count: Code,
     }
     branches: Branches {
         gate: Code,

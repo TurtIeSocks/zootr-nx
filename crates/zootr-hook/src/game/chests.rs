@@ -7,7 +7,8 @@ use super::{Hash, MAX, at, dev, func, name, shared};
 use crate::traps::COMPONENTS;
 use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick, pick_with};
 
-type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
+/// The pouch count of a name.
+pub(super) type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
 type Delete = unsafe extern "C" fn(usize, usize) -> bool;
 type Create = unsafe extern "C" fn(usize, usize, *const usize, usize) -> bool;
 

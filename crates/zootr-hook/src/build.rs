@@ -191,6 +191,9 @@ pub struct Calls {
     pub gear_create3: u32,
     pub gear_create4: u32,
     pub gear_create5: u32,
+    /// The pickup window's pouch count of the item Link got, the number it
+    /// shows.
+    pub pickup_count: u32,
 }
 
 /// The branches the patch rewrites into `b`s: each where it is, and where
@@ -470,6 +473,7 @@ pub const V131072: Build = Build {
         gear_create3: 0x2e0_2208,
         gear_create4: 0x2e0_2934,
         gear_create5: 0x2e0_3014,
+        pickup_count: 0xa6_8784,
     },
     branches: Branches {
         gate: 0x17d_59bc,
