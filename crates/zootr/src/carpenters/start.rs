@@ -11,7 +11,8 @@
 //!
 //! The counts follow: freed cells helped, and the rest still to free, so
 //! the last rescue plays the clear event as in the game. Gerudo Fortress
-//! Freed also starts with the clear event's results.
+//! Freed also starts with the clear event's results, and with the head
+//! carpenter's intro played: it asks Link to free the four.
 
 use anyhow::{Context, Result};
 use ounce_formats::murmur3;
@@ -27,7 +28,8 @@ const HELPED: &Name = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTE
 const LEFT: &Name = field::GERUDO_FORTRESS_MEET_FOUR_CARPENTER_NUM_OF_CARPENTER_HELPED_02;
 
 /// The edits a new game under `mode` makes: each freed cell's state, the
-/// counts, and under Freed the clear event's results. Nothing under Normal.
+/// counts, and under Freed the clear event's results and the head
+/// carpenter's intro. Nothing under Normal.
 pub fn edits(gd: &GameData, mode: GerudoFortress) -> Result<Vec<String>> {
     let freed: Vec<&Cell> = CELLS.iter().filter(|c| !jailed(mode, c)).collect();
     if freed.is_empty() {
@@ -43,6 +45,7 @@ pub fn edits(gd: &GameData, mode: GerudoFortress) -> Result<Vec<String>> {
     edits.push(format!("{LEFT}={}", CELLS.len() - freed.len()));
     if freed.len() == CELLS.len() {
         edits.extend(cleared());
+        edits.extend(introduced());
     }
     Ok(edits)
 }
@@ -78,6 +81,23 @@ fn cleared() -> Vec<String> {
         "true",
     ));
     edits
+}
+
+/// What the head carpenter's intro, stopping Link in front of the fortress,
+/// leaves: the valley's logic deletes the area that starts it once he has
+/// introduced the Gerudo, and his reaction to Cojiro is on. Its own played
+/// flag doesn't stop it.
+fn introduced() -> [String; 2] {
+    [
+        format!(
+            "{}=true",
+            flag::GERUDO_VALLEY_NPC_HYLIA_012_ADULT_GARUDO_INTRODUCE
+        ),
+        format!(
+            "{}=false",
+            flag::GET_SWORD_BIG_GORON_OYAKATA_ADULT_UNREACT_COJIRO
+        ),
+    ]
 }
 
 /// `cell`'s door Bool, which the game sets as its lock breaks: the member
@@ -118,6 +138,7 @@ mod tests {
         assert!(edits.contains(&format!("{HELPED}=3")));
         assert!(edits.contains(&format!("{LEFT}=1")));
         assert!(!edits.contains(&format!("{}=true", super::super::valley::played())));
+        assert!(introduced().iter().all(|e| !edits.contains(e)));
     }
 
     #[test]
@@ -133,6 +154,7 @@ mod tests {
         assert!(edits.contains(&format!("{HELPED}=4")));
         assert!(edits.contains(&format!("{LEFT}=0")));
         assert!(edits.contains(&format!("{}=true", super::super::valley::played())));
+        assert!(introduced().iter().all(|e| edits.contains(e)));
         assert_eq!(
             progress(GerudoFortress::Freed),
             [(flow::SAGE_OF_SPIRIT.to_string(), CLEARED.to_owned())]
@@ -180,6 +202,26 @@ mod tests {
                     "the rescue never sets {f}"
                 );
             }
+        }
+    }
+
+    /// The intro's edits are values the head carpenter's own flow writes:
+    /// a start never invents a state of its own.
+    #[test]
+    fn the_intro_is_left_as_the_head_carpenter_leaves_it() {
+        let Some(g) = crate::flagmap::Graph::dev() else {
+            return;
+        };
+        let carpenter = crate::known::actor::NPC_HYLIA_012_ADULT.get();
+        for edit in introduced() {
+            let (name, value) = edit.split_once('=').unwrap();
+            let node = g.find(&format!("state:{name}")).unwrap();
+            let writers = g.writers(node);
+            assert!(
+                writers.edges.iter().any(|e| e.file.contains(carpenter)
+                    && e.label.ends_with(&format!("= {value}"))),
+                "the head carpenter never sets {edit}"
+            );
         }
     }
 }
