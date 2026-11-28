@@ -1,0 +1,124 @@
+# Goron City. OoTR's name wherever the remake keeps the spot. OoTR's
+# pots are one check for both ages; the remake has a copy in each age map.
+# A spot with a copy in each age map names both, the age before the kind
+# ("Child Rock 1", "Adult Rock 1"), as OoTR's Market Guard House pots do.
+# Numbered west to east.
+
+# Gold Skulltulas, matched by the remake guides
+569390966671955163 = "GC GS Boulder Maze"
+18139423190738716302 = "GC GS Center Platform"
+
+# The spinning pot
+14691060592470890818 = "GC Pot Freestanding PoH"
+
+# The boulder maze on the top floor, west. OoTR has three chests here
+# (Left, Center, Right) with other rupees; the remake has four.
+4402942101476009858 = "GC Maze Chest 1" # guess: four chests where OoTR has three, so ours
+14647422914070455120 = "GC Maze Chest 2" # guess: four chests where OoTR has three, so ours
+1176975953041865014 = "GC Maze Chest 3" # guess: four chests where OoTR has three, so ours
+3870071239709713434 = "GC Maze Chest 4" # guess: four chests where OoTR has three, so ours
+8694345348366441423 = "GC Boulder Maze Crate"
+1632991845137831542 = "GC Boulder Maze Child Rock"
+12582170880756375404 = "GC Boulder Maze Adult Rock"
+
+# The grotto on the lava platform, reached by Hookshot. OoTR's scrub
+# grotto; the remake puts two chests behind its signs instead.
+10944569637726152230 = "GC Grotto Purple Rupee Chest"
+9159710900681116662 = "GC Grotto Green Rupee Chest"
+
+# Pots: three in Darunia's room, one by Medigoron, two below the way in
+# from the trail and two on the floor above them, west
+10324626920382966851 = "GC Darunia Pot 1"
+15844472277169991248 = "GC Darunia Pot 2"
+5321285816867041493 = "GC Darunia Pot 3"
+5019133693822726830 = "GC Medigoron Child Pot"
+13689358890044195995 = "GC Medigoron Adult Pot"
+7233425345132106189 = "GC Lower Staircase Child Pot 1" # guess: the pots on the lowest floor by the way down
+16954699510563627060 = "GC Lower Staircase Child Pot 2" # guess: the pots on the lowest floor by the way down
+14670334697383013841 = "GC Lower Staircase Adult Pot 1" # guess: the pots on the lowest floor by the way down
+16601055785856579612 = "GC Lower Staircase Adult Pot 2" # guess: the pots on the lowest floor by the way down
+9364468317723295924 = "GC Upper Staircase Child Pot 1" # guess: OoTR has three here, the remake two
+6278492438802004667 = "GC Upper Staircase Child Pot 2" # guess: OoTR has three here, the remake two
+16213152929515968146 = "GC Upper Staircase Adult Pot 1" # guess: OoTR has three here, the remake two
+12642822393763357575 = "GC Upper Staircase Adult Pot 2" # guess: OoTR has three here, the remake two
+
+# People
+17308229828817913695 = "GC Darunias Joy"
+2241127569139982769 = "GC Rolling Goron as Child"
+13001102097072792655 = "GC Rolling Goron as Adult"
+16722769607033707959 = "GC Medigoron"
+
+# Goron Shop, by shelf slot as OoTR counts them
+14612795868360326117 = "GC Shop Item 1"
+9587346236695312499 = "GC Shop Item 2"
+16994919311159696078 = "GC Shop Item 3"
+9081723785715040392 = "GC Shop Item 4"
+2540830164358535343 = "GC Shop Item 5"
+10981256749588857721 = "GC Shop Item 6"
+3512162152062029293 = "GC Shop Item 7"
+5465750003560413462 = "GC Shop Item 8"
+
+# Boulders: the maze's cracked ones (bombs or the hammer) and red ones
+# (the hammer), four more on the top floor by the upper staircase, and
+# one on the middle floor with a copy in each age map. Ours, as OoTR has
+# none. Numbered west to east.
+13404489088146365032 = "GC Maze Boulder 1"
+15677699532769498187 = "GC Maze Boulder 2"
+350218654240957402 = "GC Maze Boulder 3"
+13752329688808041417 = "GC Maze Boulder 4"
+1326474780527120523 = "GC Maze Boulder 5"
+1493583863851704702 = "GC Maze Boulder 6"
+568594831719413463 = "GC Maze Boulder 7"
+16929684490549965748 = "GC Maze Boulder 8"
+6224093172612549845 = "GC Maze Boulder 9"
+3559172832032073716 = "GC Maze Red Boulder 1"
+6958775698257163131 = "GC Maze Red Boulder 2"
+2748115100431371354 = "GC Maze Red Boulder 3"
+12350172607562201215 = "GC Maze Red Boulder 4"
+2214331431043654664 = "GC Maze Red Boulder 5"
+14465858715163701812 = "GC Maze Red Boulder 6"
+16561044195918001352 = "GC Upper Staircase Boulder 1"
+1144847674319821543 = "GC Upper Staircase Boulder 2"
+3721220525082878677 = "GC Upper Staircase Boulder 3"
+3009822989781876601 = "GC Upper Staircase Boulder 4"
+8438942300162055419 = "GC Middle Floor Child Boulder"
+8668774813841012997 = "GC Middle Floor Adult Boulder"
+
+# Silver rocks in the maze (the Silver Gauntlets), the same 18 in each
+# age map. Ours, as OoTR has none. Numbered west to east.
+14579027738236428127 = "GC Maze Child Silver Rock 1"
+38670353231231228 = "GC Maze Child Silver Rock 2"
+10821248355098448742 = "GC Maze Child Silver Rock 3"
+545076192133350996 = "GC Maze Child Silver Rock 4"
+11637168303145778371 = "GC Maze Child Silver Rock 5"
+11492358040392662459 = "GC Maze Child Silver Rock 6"
+17416500912328700779 = "GC Maze Child Silver Rock 7"
+16175312741172529423 = "GC Maze Child Silver Rock 8"
+11305720140610233108 = "GC Maze Child Silver Rock 9"
+15781396066988928273 = "GC Maze Child Silver Rock 10"
+6498511388530733920 = "GC Maze Child Silver Rock 11"
+7556337954071136043 = "GC Maze Child Silver Rock 12"
+1916559377689826651 = "GC Maze Child Silver Rock 13"
+12491554049947605427 = "GC Maze Child Silver Rock 14"
+12963031563960909618 = "GC Maze Child Silver Rock 15"
+2422338022893952129 = "GC Maze Child Silver Rock 16"
+6785494683290852906 = "GC Maze Child Silver Rock 17"
+11484764291747851444 = "GC Maze Child Silver Rock 18"
+7587980043199731531 = "GC Maze Adult Silver Rock 1"
+11667504005524267399 = "GC Maze Adult Silver Rock 2"
+3321005994909014883 = "GC Maze Adult Silver Rock 3"
+12663712343267843154 = "GC Maze Adult Silver Rock 4"
+13961964070919136206 = "GC Maze Adult Silver Rock 5"
+2852929314039658159 = "GC Maze Adult Silver Rock 6"
+1270547072074120036 = "GC Maze Adult Silver Rock 7"
+11319019839937808 = "GC Maze Adult Silver Rock 8"
+2644481534053964786 = "GC Maze Adult Silver Rock 9"
+7786742868332468713 = "GC Maze Adult Silver Rock 10"
+18014792176135301990 = "GC Maze Adult Silver Rock 11"
+9809940516740063028 = "GC Maze Adult Silver Rock 12"
+12319196803136020804 = "GC Maze Adult Silver Rock 13"
+15323459835074052276 = "GC Maze Adult Silver Rock 14"
+17551874513910786007 = "GC Maze Adult Silver Rock 15"
+4657754202940185213 = "GC Maze Adult Silver Rock 16"
+17755712064836129824 = "GC Maze Adult Silver Rock 17"
+2869001768010422195 = "GC Maze Adult Silver Rock 18"

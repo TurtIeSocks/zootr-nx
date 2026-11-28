@@ -11,12 +11,68 @@ use anyhow::{Context, Result, ensure};
 /// Every names file, by name. A test keeps this in step with `logic/names/`.
 const FILES: &[(&str, &str)] = &[
     (
+        "bottom-of-the-well.toml",
+        include_str!("../logic/names/bottom-of-the-well.toml"),
+    ),
+    (
+        "death-mountain-crater.toml",
+        include_str!("../logic/names/death-mountain-crater.toml"),
+    ),
+    (
         "death-mountain-trail.toml",
         include_str!("../logic/names/death-mountain-trail.toml"),
     ),
     (
+        "deku-tree.toml",
+        include_str!("../logic/names/deku-tree.toml"),
+    ),
+    (
+        "desert-colossus.toml",
+        include_str!("../logic/names/desert-colossus.toml"),
+    ),
+    (
+        "dodongos-cavern.toml",
+        include_str!("../logic/names/dodongos-cavern.toml"),
+    ),
+    (
+        "dream-world.toml",
+        include_str!("../logic/names/dream-world.toml"),
+    ),
+    (
+        "fire-temple.toml",
+        include_str!("../logic/names/fire-temple.toml"),
+    ),
+    (
+        "forest-temple.toml",
+        include_str!("../logic/names/forest-temple.toml"),
+    ),
+    (
+        "ganons-castle.toml",
+        include_str!("../logic/names/ganons-castle.toml"),
+    ),
+    (
+        "gerudo-training-ground.toml",
+        include_str!("../logic/names/gerudo-training-ground.toml"),
+    ),
+    (
+        "gerudo-valley.toml",
+        include_str!("../logic/names/gerudo-valley.toml"),
+    ),
+    (
+        "gerudos-fortress.toml",
+        include_str!("../logic/names/gerudos-fortress.toml"),
+    ),
+    (
+        "goron-city.toml",
+        include_str!("../logic/names/goron-city.toml"),
+    ),
+    (
         "graveyard.toml",
         include_str!("../logic/names/graveyard.toml"),
+    ),
+    (
+        "haunted-wasteland.toml",
+        include_str!("../logic/names/haunted-wasteland.toml"),
     ),
     (
         "hyrule-castle.toml",
@@ -25,6 +81,14 @@ const FILES: &[(&str, &str)] = &[
     (
         "hyrule-field.toml",
         include_str!("../logic/names/hyrule-field.toml"),
+    ),
+    (
+        "ice-cavern.toml",
+        include_str!("../logic/names/ice-cavern.toml"),
+    ),
+    (
+        "jabu-jabus-belly.toml",
+        include_str!("../logic/names/jabu-jabus-belly.toml"),
     ),
     (
         "kakariko-village.toml",
@@ -48,8 +112,28 @@ const FILES: &[(&str, &str)] = &[
         include_str!("../logic/names/sacred-forest-meadow.toml"),
     ),
     (
+        "shadow-temple.toml",
+        include_str!("../logic/names/shadow-temple.toml"),
+    ),
+    (
+        "spirit-temple.toml",
+        include_str!("../logic/names/spirit-temple.toml"),
+    ),
+    (
         "water-temple.toml",
         include_str!("../logic/names/water-temple.toml"),
+    ),
+    (
+        "zoras-domain.toml",
+        include_str!("../logic/names/zoras-domain.toml"),
+    ),
+    (
+        "zoras-fountain.toml",
+        include_str!("../logic/names/zoras-fountain.toml"),
+    ),
+    (
+        "zoras-river.toml",
+        include_str!("../logic/names/zoras-river.toml"),
     ),
 ];
 
@@ -58,13 +142,14 @@ const FILES: &[(&str, &str)] = &[
 /// Archipelago name (`ap::names::area`). The remake's Hyrule Field map
 /// holds Lake Hylia and Lon Lon Ranch too, so its checks take whichever
 /// of the three they stand in. Kokiri Forest's map holds the bridge to the
-/// Lost Woods, where OoTR's `LW Gift from Saria` stands.
+/// Lost Woods, where OoTR's `LW Gift from Saria` stands. Desert Colossus's
+/// map holds the Spirit Temple's two hand chests, which keep OoTR's names.
 const PREFIXES: &[(&str, &[&str])] = &[
-    ("Bottom of the Well", &["Bottom of the Well"]),
+    ("Bottom of the Well", &["BotW"]),
     ("Death Mountain Crater", &["DMC"]),
     ("Death Mountain Trail", &["DMT"]),
     ("Deku Tree", &["Deku Tree"]),
-    ("Desert Colossus", &["Colossus"]),
+    ("Desert Colossus", &["Colossus", "Spirit Temple"]),
     ("Dodongo's Cavern", &["Dodongos Cavern"]),
     ("Dream World", &["Dream World"]),
     ("Fire Temple", &["Fire Temple"]),
@@ -79,7 +164,7 @@ const PREFIXES: &[(&str, &[&str])] = &[
     ("Hyrule Castle", &["HC"]),
     ("Hyrule Field", &["HF", "LH", "LLR"]),
     ("Ice Cavern", &["Ice Cavern"]),
-    ("Jabu-Jabu's Belly", &["Jabu Jabus Belly"]),
+    ("Jabu-Jabu's Belly", &["Jabu"]),
     ("Kakariko Village", &["Kak"]),
     ("Kokiri Forest", &["KF", "LW"]),
     ("Lost Woods", &["LW"]),
@@ -165,22 +250,22 @@ mod tests {
         assert_eq!(on_disk, built);
     }
 
-    /// Every name is a check the export deals, starting with its area's
-    /// prefix.
+    /// Every check the export deals has a name, and every name is a dealt
+    /// check starting with its area's prefix.
     #[test]
-    fn every_name_is_a_dealt_check_under_its_area_s_prefix() {
+    fn names_and_dealt_checks_match_one_to_one() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
         let names = parse(FILES).unwrap();
-        if names.is_empty() {
-            return;
-        }
         let checks = crate::ap::export::checks(&romfs).unwrap();
         let areas: BTreeMap<u64, &str> = (checks.iter())
             .map(|c| (c.hash, crate::ap::names::area(&c.area).unwrap()))
             .collect();
-        let mut wrong = Vec::new();
+        let mut wrong: Vec<String> = (checks.iter())
+            .filter(|c| !names.contains_key(&c.hash))
+            .map(|c| format!("{} in {} has no name", c.hash, c.area))
+            .collect();
         for (hash, name) in &names {
             match areas.get(hash) {
                 None => wrong.push(format!("{hash} ({name}) isn't a dealt check")),

@@ -23,10 +23,14 @@ the result as a mod.
 ## Shuffle more than chests
 
 Songs, NPC gifts, Business Scrubs, shops, cows, Gold Skulltulas, dungeon
-rewards, boss hearts, even pots, crates, rocks and beehives. Each dungeon's
-small keys can come as one key ring, shuffled with the boss keys. Glitchless
-logic makes sure every seed can be beaten, and a share code passes a seed and
-its settings to a friend.
+rewards, boss hearts, even pots, crates, rocks and beehives. The rupees and
+Recovery Hearts lying around, the boulders and silver rocks, and the chests
+that hold ice traps can be checks too. Each dungeon's small keys can come as
+one key ring, shuffled with the boss keys.
+
+Every check has a hand-written name, and a chest's size and look can match what
+it holds. Glitchless logic makes sure every seed can be beaten, and a share
+code passes a seed and its settings to a friend.
 
 ![The Shuffles settings page](assets/shuffles.png)
 
@@ -40,6 +44,14 @@ from Saria". Hosting one takes Archipelago and `znx.apworld`, and the
 
 ![The Archipelago tab, connected to a room, with items arriving from other players](assets/archipelago.png)
 
+## Pin items to checks
+
+Plando puts the items you choose at the checks you choose, and the shuffle
+fills in the rest around them. Save a set of pins under a name to use it
+again.
+
+![The Plando page, with three items pinned](assets/plando.png)
+
 ## Custom models
 
 A song placed in the world shows its own medallion, in the song's color
@@ -47,21 +59,37 @@ with its icon on the face, where the game would show a rupee. Keys take
 their dungeon's color, so a key found far from home says where it belongs.
 zootr builds each model from your dump when it writes a seed.
 
-## Less waiting
+## Enhancements
 
-Skip the cutscenes and tutorials, open every chest the quick way, and keep
-Navi quiet unless you ask her.
+Comfort skips the cutscenes and tutorials, opens every chest the quick way,
+and keeps Navi quiet unless you ask her. Gameplay speeds Link up in the Bunny
+Hood, brings out the night Gold Skulltulas by day, and makes pots and grass
+come back each time Link enters an area. Both Ages lets either Link use each
+item, one toggle per item.
 
-![The General settings page](assets/settings.png)
+![The Enhancements page, with Gameplay and Both Ages open](assets/enhancements.png)
+
+## Cosmetics
+
+Colors recolors Link's tunics, his gear, Navi and the HUD. Pick a color,
+draw one at random, or keep the game's.
+
+![The Colors page, with the three tunics recolored](assets/colors.png)
+
+Audio shuffles the music within each pool (area, battle, event, fanfare,
+ocarina), Link's voice and the NPCs' voices. Any track can keep its own song
+or take one you pick. Both save as named sets.
+
+![The Audio page, with the area music shuffled and one song picked](assets/audio.png)
 
 ## A spoiler that shows its working
 
-Rounds lay out what Link can reach after each find. Pick a check to see
-what it needs, and Way of the Hero stars everything Link can't finish
-without. The installed seed's stays covered until you reveal it, so a
+Rounds lay out what Link can reach after each find. Pick a check and what
+it needs glows gold, and what it opens up glows blue. Way of the Hero stars
+everything Link can't finish without. The installed seed's stays covered until you reveal it, so a
 glance doesn't spoil the run.
 
-![The spoiler's rounds, with one check's needs below](assets/spoiler.png)
+![The spoiler's rounds, with one check picked and the checks it opens in blue](assets/spoiler.png)
 
 ## Track the run
 
@@ -75,9 +103,9 @@ dump if you turn that on.
 
 The checks list reads the running game and ticks each check off as Link
 gets it, with nothing to click. What a check holds stays hidden until
-then.
+then. Filter it by area or name, and leave yourself a note on any check.
 
-![The checks list, by area](assets/checks.png)
+![The checks list, filtered to Kokiri Forest, with a note on one check](assets/checks.png)
 
 ## Edit a save
 
@@ -102,7 +130,7 @@ a flag does.
    - Linux: [zootr-nx-linux-x86_64.AppImage](https://github.com/TurtIeSocks/zootr-nx/releases/latest/download/zootr-nx-linux-x86_64.AppImage),
      or the `.deb` or `.rpm` from the
      [Releases page](https://github.com/TurtIeSocks/zootr-nx/releases/latest)
-2. Point it at your own dump of the game with the 1.1.1 update.
+2. Point it at your own dump of the game with the 1.0.0 or 1.1.1 update.
 3. Add a target: the app that runs the game and the mod folder it loads.
 4. Generate a seed and press Play.
 
@@ -116,7 +144,7 @@ the CLI.
 
 Early. Expect seeds that break and settings that change.
 
-- zootr reads the 1.1.1 update of the game only.
+- zootr has only been tested with the 1.0.0 and 1.1.1 versions of the game.
 - macOS is the main platform. Windows and Linux builds exist but are barely
   tested.
 - The tracker, the Live log, the checks list and the Archipelago client

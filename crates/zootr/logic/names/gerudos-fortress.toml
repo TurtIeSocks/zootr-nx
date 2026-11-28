@@ -1,0 +1,78 @@
+# Gerudo's Fortress, the Thieves' Hideout inside it included. OoTR's name
+# wherever the remake keeps the spot: matched by position, the rooms'
+# furniture, the arrival points and the remake guides. OoTR's Hideout
+# names keep their words after the area prefix.
+#
+# The four jails are told apart by what they hold, against OoTR's: the
+# remake's thieves number theirs 1 to 4 in another order. Numbers count
+# west to east within one spot.
+
+# The 1 Torch Jail, at the fortress's south end: its thief's key, three
+# pots and a crate, as OoTR's has.
+7337789119684854050 = "GF Hideout 1 Torch Jail Gerudo Key" # guess: the jail whose pots and crate match OoTR's 1 Torch Jail
+12036531709858383178 = "GF Hideout 1 Torch Jail Pot 1"
+940439159177345831 = "GF Hideout 1 Torch Jail Pot 2"
+6163979871466990965 = "GF Hideout 1 Torch Jail Pot 3"
+12014882968213567359 = "GF Hideout 1 Torch Jail Crate"
+
+# The 2 Torches Jail, the lowest: its key, three pots and two crates, as
+# OoTR's has. OoTR's four in-cell pots become a room below the cell,
+# down a hole in its floor, with three flying pots, a pot and a chest.
+5126034700935231136 = "GF Hideout 2 Torches Jail Gerudo Key" # guess: the jail whose pots and crates match OoTR's 2 Torches Jail
+17564413325240842430 = "GF Hideout 2 Torch Jail Pot 1"
+14446042898084265136 = "GF Hideout 2 Torch Jail Pot 2"
+10284629266025908616 = "GF Hideout 2 Torch Jail Pot 3"
+4127942712380630686 = "GF Hideout 2 Torch Jail Crate 2"
+8243865802736975992 = "GF Hideout 2 Torch Jail Crate 1"
+13384456307225149229 = "GF Hideout 2 Torch Jail Below Cell Flying Pot 1"
+1503765887478653725 = "GF Hideout 2 Torch Jail Below Cell Flying Pot 3"
+10448629319757216336 = "GF Hideout 2 Torch Jail Below Cell Flying Pot 2"
+12401477347800941236 = "GF Hideout 2 Torch Jail Below Cell Pot"
+16619432200060282313 = "GF Hideout 2 Torch Jail Below Cell Chest"
+
+# A storeroom above the 2 Torches Jail's cell: two crates and a pot.
+9507282379367090849 = "GF Hideout Above 2 Torch Jail Crate 2" # guess: named for the jail below it
+11192137055889843513 = "GF Hideout Above 2 Torch Jail Crate 1" # guess: named for the jail below it
+16052743231004465758 = "GF Hideout Above 2 Torch Jail Pot" # guess: named for the jail below it
+
+# The 3 Torches Jail, at the north end: its key, a pot by the cell and
+# two crates in the corridor outside.
+12946017077004046962 = "GF Hideout 3 Torches Jail Gerudo Key" # guess: the jail left once the others match OoTR's
+2601738864413660498 = "GF Hideout 3 Torch Jail Pot" # guess: the jail left once the others match OoTR's
+16214070848493878572 = "GF Hideout 3 Torch Jail Crate 1" # guess: the jail left once the others match OoTR's
+2651615114908793933 = "GF Hideout 3 Torch Jail Crate 2" # guess: the jail left once the others match OoTR's
+
+# The 4 Torches Jail, at the west side: its key, two pots as OoTR's has,
+# and a crate.
+18396961731144479654 = "GF Hideout 4 Torches Jail Gerudo Key" # guess: the jail whose two pots match OoTR's 4 Torches Jail
+5950791967684866655 = "GF Hideout 4 Torch Jail Pot 2"
+14149922038181651872 = "GF Hideout 4 Torch Jail Pot 1"
+12729353069388613701 = "GF Hideout 4 Torch Jail Crate"
+
+# The kitchen with its cauldron, and the break room with its chairs and
+# chandelier: two pots each, and the break room's two crates.
+2056417943849283718 = "GF Hideout Kitchen Pot 1"
+18403153827746969167 = "GF Hideout Kitchen Pot 2"
+7637566006997697590 = "GF Hideout Break Room Pot 1"
+16326193461159913374 = "GF Hideout Break Room Pot 2"
+8713486340033920524 = "GF Hideout Break Room Crate 2"
+1693186935826757463 = "GF Hideout Break Room Crate 1"
+
+# The membership card, once the carpenters are free.
+18277160726242923509 = "GF Hideout Gerudo Membership Card"
+
+# Outside, up the fortress: two crates by the small tent on the west
+# ledge, OoTR's crate on top of the jail Link wakes in, the roof chest
+# and the Skulltula on the top floor.
+2299167504535204510 = "GF Tent Crate 2" # guess: named for the small tent beside them
+4589862650167016326 = "GF Tent Crate 1" # guess: named for the small tent beside them
+2817669269036620933 = "GF Above Jail Crate"
+12343753510713797715 = "GF Chest"
+9362225887419425752 = "GF GS Top Floor"
+
+# The horseback archery range: its two prizes, the Skulltula behind the
+# north target, and a cow in the stable.
+9443244066451772166 = "GF HBA 1000 Points"
+14512106089570646515 = "GF HBA 1500 Points"
+13037049463363052038 = "GF GS Archery Range"
+11341244778524449886 = "GF Cow" # OoTR has no cow here, so the name is ours

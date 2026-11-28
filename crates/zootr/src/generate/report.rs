@@ -200,6 +200,11 @@ pub struct Report {
     /// Each shuffled dungeon door. Empty while doors stay put.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entrances: Vec<Door>,
+    /// Each dungeon whose small keys come as one ring. Empty unless the
+    /// seed rolls which dungeons take a ring and which take their keys one
+    /// at a time.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub key_rings: Vec<String>,
 }
 
 /// A dungeon door and the dungeon behind it.
@@ -285,6 +290,14 @@ impl Report {
             for door in &self.entrances {
                 out += &format!("  {:<width$}  -> {}\n", door.name(), door.dungeon_name);
             }
+        }
+        if !self.key_rings.is_empty() {
+            out += "\nKey rings\n";
+            out += &self
+                .key_rings
+                .iter()
+                .map(|d| format!("  {d}\n"))
+                .collect::<String>();
         }
         let mut area = None;
         for s in &self.spots {
@@ -388,6 +401,7 @@ mod tests {
             unprovable: vec![],
             start: Default::default(),
             entrances: vec![],
+            key_rings: vec![],
             spots: vec![Spot {
                 hash: u64::MAX - 1,
                 area: "Area".into(),

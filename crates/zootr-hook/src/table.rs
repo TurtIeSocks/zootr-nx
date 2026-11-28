@@ -33,6 +33,9 @@ pub const BOMBCHU_BAG: u32 = 32;
 /// The header's flag for a seed where A on a songbook song plays it
 /// (`ui::songs`). 64 is [`crate::CHILD_GEAR`].
 pub const ONE_TAP_SONGS: u32 = 128;
+/// The seed shuffles these bags, so a Baba's ammo needs its bag first.
+pub const SHUFFLED_NUT_BAG: u32 = 256;
+pub const SHUFFLED_STICK_BAG: u32 = 512;
 pub const HEADER: usize = size_of::<Header>();
 
 /// The table's start, little endian like the game.
@@ -139,7 +142,7 @@ impl<'a> Table<'a> {
     }
 
     /// Each line: its number, whether it's [`KEYED`], and its levels.
-    fn lines(&self) -> impl Iterator<Item = (u16, bool, Levels<'a>)> {
+    pub(crate) fn lines(&self) -> impl Iterator<Item = (u16, bool, Levels<'a>)> {
         let mut rest = self.lines;
         (0..).map_while(move |i| {
             let (&n, after) = rest.split_first()?;

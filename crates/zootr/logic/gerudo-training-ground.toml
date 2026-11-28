@@ -114,6 +114,13 @@ hash = 3750231902048775592
 name = "Gerudo Training Ground Bombs (5) Chest"
 needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens"
 
+# Room 10, Like Like Room: the ice trap's chest on the ledge, dealt as a
+# plain chest. The room's rule, as the chests beside it.
+[[check]]
+hash = 7881496104962067240
+name = "Gerudo Training Ground Heavy Block Fifth Chest"
+needs = "(adult-sword or kokiri-sword or hammer or bombchus or bow) and hookshot and silver-gauntlets and lens"
+
 # Room 10, Like Like Room: the chest shows only with the Lens of Truth, and the Like Like must be got past with the Hookshot.
 [[check]]
 hash = 5329807728555596183

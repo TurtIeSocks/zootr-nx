@@ -7,8 +7,10 @@
 //! setting shuffles them, so a seed's own [`Lines`] drops them then. The
 //! quiver and bullet bag lines start at the bow and slingshot, since the
 //! Small levels have no get text and a chest giving one hangs the game.
-//! The magic line starts at our Magic Meter, which only seeds where magic
-//! doesn't come with the first magic item have.
+//! The magic line starts at our Magic Meter, which seeds where magic
+//! doesn't come with the first magic item have, and every seed with
+//! progressive items, so a progressive seed never gives the double before
+//! the meter.
 use crate::bombchu_bags;
 use crate::known::{Name, actor, item};
 use crate::magic::meter;
@@ -63,11 +65,24 @@ pub const LINES: [&[(&Name, &Name)]; 12] = [
 /// One level of a line: the actor a chest drops, then its pouch name.
 pub type Level = (&'static Name, &'static Name);
 
+/// The game actor a level of our own wears: the model and the pose it shows
+/// are that one's, so a holder showing it measures against it. `None` for a
+/// level the game ships.
+pub fn worn(level: &str) -> Option<&'static Name> {
+    (bombchu_bags::copies().into_iter())
+        .find(|(bag, _)| *bag == level)
+        .map(|(_, bag)| bag)
+        .or(match level == meter::NAME {
+            true => Some(meter::LIKE),
+            false => None,
+        })
+}
+
 /// The levels a seed's lines hold: [`LINES`] less the small nut or stick
 /// bag the first nut or stick brings, less the Bombchu Bags in a seed
 /// without them, and less the Magic Meter where magic comes with the first
-/// magic item. With `progressive` on, a holder of any level gives the
-/// next one Link doesn't have.
+/// magic item and progressive items are off. With `progressive` on, a
+/// holder of any level gives the next one Link doesn't have.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Lines {
     pub nut_bag: bool,
@@ -94,7 +109,7 @@ impl Lines {
             nut_bag: new_game.shuffle_nut_bag,
             stick_bag: new_game.shuffle_stick_bag,
             bombchu_bags: new_game.bombchus == Bombchus::Bag,
-            magic_meter: !new_game.magic_with_first_item,
+            magic_meter: !new_game.magic_with_first_item || new_game.progressive,
             progressive: new_game.progressive,
         }
     }
@@ -210,6 +225,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_level_of_our_own_wears_the_actor_it_copies() {
+        needs_names!();
+        assert_eq!(worn(bombchu_bags::LARGE.get()), Some(item::BOMB_BAG_LARGE));
+        assert_eq!(worn(meter::NAME), Some(meter::LIKE));
+        // A level the game ships.
+        assert_eq!(worn(item::OCARINA_TIME.get()), None);
+    }
+
+    #[test]
     fn a_line_left_with_one_level_is_not_climbed() {
         needs_names!();
         let double = item::FAIRY_BLESS_MP_DOUBLE.get();
@@ -225,6 +249,28 @@ mod tests {
             ..Lines::climbing()
         };
         assert_eq!(shuffled.climbs(double).map(<[_]>::len), Some(2));
+    }
+
+    #[test]
+    fn progressive_items_keep_the_magic_line_full_even_with_magic_from_the_first_item() {
+        needs_names!();
+        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
+        let game = NewGame {
+            magic_with_first_item: true,
+            progressive: true,
+            ..Default::default()
+        };
+        // The meter stays in the line, so the hook gives it before the
+        // double at any holder.
+        assert!(Lines::of(&game).magic_meter);
+        assert_eq!(Lines::of(&game).climbs(double).map(<[_]>::len), Some(2));
+        // Without progressive items the line stays a lone Doubled Magic.
+        let off = NewGame {
+            progressive: false,
+            ..game
+        };
+        assert!(!Lines::of(&off).magic_meter);
+        assert_eq!(Lines::of(&off).climbs(double), None);
     }
 
     #[test]

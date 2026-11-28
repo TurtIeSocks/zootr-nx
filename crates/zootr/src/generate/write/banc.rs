@@ -11,7 +11,7 @@ use crate::checks::{self, Drop, Watched};
 use crate::events::Flows;
 use crate::{
     adult_jabu, carpenters, chest_looks, chest_size, enemies, entrances, fortress, gifts,
-    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins,
+    goron_pot, jabu_mood, key_tints, picked, pickups, scrubs, shops, twins, water_temple,
 };
 
 /// The map pass's inputs, worked out once, and what it gathers map by map.
@@ -34,6 +34,9 @@ pub(super) struct Banc<'p, 'a> {
     /// A loud holder's copies, which get nodes of their own instead.
     loud: Vec<(u64, u64)>,
     creators: HashMap<u64, Vec<(String, usize)>>,
+    /// Each step copy that stands by its module's own gate instead, so it gets
+    /// no name in the group and no node (`pickups::nodes::gates`).
+    unbound: HashSet<u64>,
     wiring: pickups::nodes::Wiring,
     /// The holders whose tables go, a step's copy's with its holder's.
     tabled: HashSet<u64>,
@@ -78,6 +81,13 @@ impl<'p, 'a> Banc<'p, 'a> {
             true => HashMap::new(),
             false => pickups::nodes::creators(romfs)?,
         };
+        // A copy of a holder that lies until picked, whose module's gate a
+        // program can read, stands by that gate: naming it in the module's
+        // group or duplicating its node hung the map's load (issue #539).
+        let unbound: HashSet<u64> = (steps.copies.iter())
+            .filter(|(of, _)| parts.gates.contains_key(of))
+            .map(|(_, copy)| *copy)
+            .collect();
         let mut tabled = pickups::tabled(pieces);
         // A step's copy is placed with its holder's table, which goes too.
         let copied = steps.copies.iter().filter(|(of, _)| tabled.contains(of));
@@ -96,6 +106,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             ran,
             loud,
             creators,
+            unbound,
             wiring: pickups::nodes::Wiring::default(),
             tabled,
             kept: match parts.new_game.quiet_enemies {
@@ -128,15 +139,20 @@ impl<'p, 'a> Banc<'p, 'a> {
         let twinned = twins::place(&rel, root, &parts.twins)? > 0;
         // Before the fields, so each twin keeps its holder's vanilla drop.
         let paired = picked::place(root, &parts.picked)? > 0;
+        // Before the step gates and the fields, which give each seat its
+        // gate and its pickup.
+        let seated = parts.seats.place(root)?;
         // After the twins, so each step is a copy of a holder standing until
         // picked, and before the fields, which give each step its stand-in.
         let stepped = parts.steps.place(root)?;
         let grouped = pickups::groups::copy(root, &self.ran)?
-            | self.wiring.refer(root, &self.loud, &self.creators)?;
+            | self
+                .wiring
+                .refer(root, &self.loud, &self.creators, &self.unbound)?;
         // Before the fields, which give each step's copy its stand-in.
         let shelved = self.shelves.place(root)?;
         let mut changed = checks::set_fields(root, self.fields)?;
-        let copies = &parts.steps.copies;
+        let copies = &parts.copies;
         self.spots
             .extend(picked::spots(root, &parts.picked, copies)?);
         changed.extend(checks::gone_once(root, &parts.gone)?);
@@ -145,6 +161,9 @@ impl<'p, 'a> Banc<'p, 'a> {
         if let Some(kept) = &self.kept {
             changed.extend(enemies::hide(root, kept)?);
         }
+        // The wall over the temple's mouth, so the entrance is reachable the
+        // way its logic rule already says it is (`water_temple`).
+        let mouth = water_temple::open(root)?;
         changed.extend(checks::clear_drops(root, self.carried)?);
         changed.extend(checks::clear_tables(root, &self.tabled)?);
         let (all, posed) = (self.all, &mut self.posed);
@@ -171,6 +190,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         if jabu
             || twinned
             || paired
+            || seated
             || stepped
             || grouped
             || shelved
@@ -179,6 +199,7 @@ impl<'p, 'a> Banc<'p, 'a> {
             || levelled
             || looked
             || doors
+            || mouth
             || bridged > 0
             || !changed.is_empty()
         {

@@ -169,10 +169,10 @@ fn played(dir: &Path) -> Result<Option<u32>> {
     Ok(most)
 }
 
-/// Shuffle `seed` with `settings` and `extras` (plando), install it on
-/// `target` the way every seed is installed (so a game that builds the
-/// patch in keeps one patch for every seed), and plan each spot, the ones
-/// in a map without one of `places` skipped.
+/// Shuffle `seed` with `settings` and `extras`, install it on `target`
+/// the way every seed is installed (so a game that builds the patch in
+/// keeps one patch for every seed), and plan each spot, the ones in a map
+/// without one of `places` skipped.
 pub fn pool(
     romfs: &Romfs,
     target: &Target,
@@ -182,8 +182,8 @@ pub fn pool(
 ) -> Result<Vec<Planned>> {
     let release = Release::of(romfs.root());
     let one = std::slice::from_ref(target);
-    let rolled = roll(romfs, seed, settings, extras);
-    let report = generate::install(one, release, &Run::silent(), rolled)?;
+    let write = roll(romfs, seed, settings, extras);
+    let report = generate::install(one, release, &Run::silent(), write)?;
     planned(romfs, &report, places)
 }
 
@@ -314,8 +314,13 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             return Ok(Ended::Yielded);
         }
         self.stop();
-        let none = Extras::default();
-        let mut planned = pool(self.romfs, self.target, seed, (&settings, &none), places)?;
+        let mut planned = pool(
+            self.romfs,
+            self.target,
+            seed,
+            (&settings, &Extras::default()),
+            places,
+        )?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
         order(&mut planned, &known, seed);
@@ -703,9 +708,7 @@ mod tests {
             release: None,
         };
         let (_, mut wide) = mix(pinned("everything").unwrap());
-        for (id, on) in [("shuffle-items", true), ("chests", true)] {
-            wide.insert(id.into(), on.into());
-        }
+        wide.insert("chests".into(), true.into());
         wide.insert("keys".into(), "singles".into());
         let places = dev::places(&romfs).unwrap();
         let h = crate::patch::Hook::of(Release::of(romfs.root()));

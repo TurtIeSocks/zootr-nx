@@ -12,3 +12,6 @@ zootr:
 # make live ARGS="--grep Rupee"
 live: zootr
 	$(ZOOTR) live $(ARGS)
+
+dev-app:
+	cd app && pnpm install && pnpm tauri dev

@@ -1,0 +1,19 @@
+# Dream World, the remake's boss rush (the game calls it the Hall of
+# Fallen Foes). OoTR has nothing like it, so every name here is ours.
+#
+# Ten chests share one spot in the rest room between the boss fights,
+# each a Gold Rupee chest that opens again and again. Nothing in their
+# placements tells them apart, so they are numbered in the order the
+# map file lists them.
+
+# The rest room between the boss fights.
+7589985979641292928 = "Dream World Boss Rush Chest 1" # guess: numbered by file order, which may not follow the rush's rounds
+7234638808238324101 = "Dream World Boss Rush Chest 2" # guess: numbered by file order, which may not follow the rush's rounds
+15858708076894317041 = "Dream World Boss Rush Chest 3" # guess: numbered by file order, which may not follow the rush's rounds
+4529748032854378492 = "Dream World Boss Rush Chest 4" # guess: numbered by file order, which may not follow the rush's rounds
+566103236844767323 = "Dream World Boss Rush Chest 5" # guess: numbered by file order, which may not follow the rush's rounds
+3522439980243161940 = "Dream World Boss Rush Chest 6" # guess: numbered by file order, which may not follow the rush's rounds
+7346745174625046398 = "Dream World Boss Rush Chest 7" # guess: numbered by file order, which may not follow the rush's rounds
+7458365564915336038 = "Dream World Boss Rush Chest 8" # guess: numbered by file order, which may not follow the rush's rounds
+2854211238375368215 = "Dream World Boss Rush Chest 9" # guess: numbered by file order, which may not follow the rush's rounds
+9947351236862205040 = "Dream World Boss Rush Chest 10" # guess: numbered by file order, which may not follow the rush's rounds

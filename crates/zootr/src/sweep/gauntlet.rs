@@ -70,7 +70,6 @@ pub fn settings() -> Result<Settings> {
     s.insert(settings::KEYS.into(), "singles".into());
     s.insert(settings::ICE_TRAPS.into(), "some".into());
     for id in [
-        settings::SHUFFLE_ITEMS,
         // Keys one by one take the place of the key chests' rupees.
         settings::CHESTS,
         settings::PROGRESSIVE,

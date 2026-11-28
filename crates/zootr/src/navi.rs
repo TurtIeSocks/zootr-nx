@@ -149,7 +149,35 @@ fn silence(flow: &mut Flowchart, entries: &[&Name]) -> Result<()> {
             }
         }
     }
+    // A Yes/No she asks went with her talk: take its first answer.
+    for at in reached(flow, entries)? {
+        if !kept.contains(&at) && asks(flow, at) {
+            let EventKind::Switch { cases, .. } = &flow.events[at as usize].kind else {
+                unreachable!()
+            };
+            let yes = cases.iter().find(|c| c.0 == 0).map(|c| c.1);
+            let yes = yes.with_context(|| format!("choice {at} has no first answer"))?;
+            for link in flow.links_to(at) {
+                flow.link(link, Some(yes))?;
+            }
+        }
+    }
     Ok(())
+}
+
+/// Whether `e` asks which answer Link chose in a talk.
+fn asks(flow: &Flowchart, e: u16) -> bool {
+    let EventKind::Switch { actor, query, .. } = &flow.events[e as usize].kind else {
+        return false;
+    };
+    let query = &flow.actor_of(*actor).queries[*query as usize];
+    [
+        flow::EVENT_QUERY_TALK_CHOICE2,
+        flow::EVENT_QUERY_TALK_CHOICE3,
+        flow::EVENT_QUERY_TALK_CHOICE4,
+    ]
+    .iter()
+    .any(|n| ***n == **query)
 }
 
 /// Every event `entries` can run, through calls into the flow's own
@@ -300,6 +328,24 @@ mod tests {
             let before = flows::load(&romfs, name).unwrap().unwrap();
             assert!(talks(&before, entries) > 0, "{name} had nothing to quiet");
             assert_eq!(talks(&parse(&rewrites, name), entries), 0, "{name}");
+        }
+    }
+
+    /// A Yes/No Navi asks is stepped over with her talk, so nothing may ask
+    /// for its answer after (the training ground's exit).
+    #[test]
+    fn forced_entries_ask_no_choice() {
+        let Some((_, rewrites)) = quieted() else {
+            return;
+        };
+        for (name, entries) in FORCED {
+            let flow = parse(&rewrites, name);
+            let asked: Vec<u16> = reached(&flow, entries)
+                .unwrap()
+                .into_iter()
+                .filter(|&e| asks(&flow, e))
+                .collect();
+            assert!(asked.is_empty(), "{name} asks at {asked:?}");
         }
     }
 

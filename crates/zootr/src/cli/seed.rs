@@ -76,7 +76,6 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
             settings::SKIP_ALL => flag("skip", Some("all".into())),
             id if on && id.starts_with("skip-") => flag("skip", Some(id["skip-".len()..].into())),
             settings::CHEST_SIZE => flag("chest-size", Some(text)),
-            settings::SHUFFLE_ITEMS if !on => flag("vanilla", None),
             id => flag("setting", Some(format!("{id}={text}"))),
         }
     }
@@ -90,8 +89,12 @@ pub fn shuffle_command(settings: &Settings, extras: &generate::Extras) -> String
         release,
         colors,
         audio,
+        vanilla,
         ..
     } = extras;
+    if *vanilla {
+        flag("vanilla", None);
+    }
     spawn.iter().for_each(|s| flag("spawn", Some(s.clone())));
     give.iter().for_each(|g| flag("give", Some(g.clone())));
     progress
@@ -234,7 +237,6 @@ mod tests {
             (settings::SKIP_INTRO.into(), true.into()),
             ("skip-owl".into(), true.into()),
             (settings::CHEST_SIZE.into(), "small".into()),
-            (settings::SHUFFLE_ITEMS.into(), true.into()),
             ("progressive-items".into(), true.into()),
             (
                 starting::SETTING.into(),

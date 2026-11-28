@@ -18,7 +18,7 @@ use crate::progressive::Lines;
 use crate::rules::{Book, Ctx, Have};
 use crate::settings::{
     BOMBCHUS, CHESTS, IceTraps, Kind, MAGIC_WITH_FIRST_ITEM, NewGame, RUNNING_RACE, SCRUBS,
-    SHUFFLE_ITEMS, SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, Settings, schema, value_word,
+    SHUFFLE_NUT_BAG, SHUFFLE_STICK_BAG, Settings, schema, value_word,
 };
 use crate::shuffle::{self, Fixed};
 use crate::starting;
@@ -129,7 +129,12 @@ impl Dealt {
 
     /// [`Dealt::new`] from every check, as [`checks::all`] gives them.
     fn of(romfs: &Romfs, all: Vec<ItemCheck>, settings: &Settings) -> Result<Self> {
-        let new_game = NewGame::from_settings(settings, &[])?;
+        // Every world has Saria's and Zelda's ocarinas as locations,
+        // whatever NPC Gifts says.
+        let new_game = NewGame {
+            keep_gifts: false,
+            ..NewGame::from_settings(settings, &[])?
+        };
         let checks = checks::dealt_of(romfs, all, &new_game)?;
         let fixed = Fixed::new();
         let deal = shuffle::deal(&checks, &fixed, &new_game)?;
@@ -279,13 +284,11 @@ impl Seed {
 }
 
 /// Settings the base holds at their own value, whatever the app's default,
-/// so a seed from an older world still opens: items shuffled, as there'd be
-/// nothing to share otherwise; chests, Business Scrubs and the running
+/// so a seed from an older world still opens: chests, Business Scrubs and the running
 /// man's race are locations those worlds always held, and Link starts with
 /// nothing.
 pub(super) fn pinned() -> Settings {
     Settings::from([
-        (SHUFFLE_ITEMS.into(), Value::Bool(true)),
         (CHESTS.into(), Value::Bool(true)),
         (SCRUBS.into(), Value::Bool(true)),
         (RUNNING_RACE.into(), Value::Bool(true)),
@@ -510,8 +513,9 @@ mod tests {
         assert_eq!(gives(&[], nuts), nuts.get());
         assert_eq!(gives(&[SHUFFLE_NUT_BAG], nuts), item::NUT_BAG_SMALL.get());
         assert_eq!(gives(&[], meter), meter.get());
-        let double = item::FAIRY_BLESS_MP_DOUBLE.get();
-        assert_eq!(gives(&[MAGIC_WITH_FIRST_ITEM], meter), double);
+        // Progressive items keep the meter in the line even with the
+        // setting on, so the line's first level is the meter.
+        assert_eq!(gives(&[MAGIC_WITH_FIRST_ITEM], meter), meter.get());
     }
 
     /// A file from a world before these options opens with what that

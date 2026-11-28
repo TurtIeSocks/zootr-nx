@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use clap::ValueEnum;
 use clap::builder::{PossibleValue, PossibleValuesParser};
 use serde::Serialize;
@@ -253,7 +253,6 @@ const SKIP_ARRIVALS: &str = "skip-arrivals";
 pub(crate) const CHEST_SIZE: &str = "chest-size";
 pub(crate) const CHEST_LOOKS: &str = "chest-looks";
 pub(crate) const LOGIC: &str = "logic";
-pub(crate) const SHUFFLE_ITEMS: &str = "shuffle-items";
 pub(crate) const CHESTS: &str = "chests";
 pub(crate) const PROGRESSIVE: &str = "progressive-items";
 pub(crate) const BOMBCHUS: &str = "bombchus";
@@ -370,10 +369,9 @@ fn requires(id: &'static str, def: SettingDef) -> SettingDef {
     }
 }
 
-/// Settings the CLI takes but the app leaves out for now. Shuffle items
-/// off undoes every other shuffle, which no one turning it off expected.
-/// Quiet enemies is for the harness's seeds.
-const HIDDEN: [&str; 2] = [SHUFFLE_ITEMS, QUIET_ENEMIES];
+/// Settings the CLI takes but the app leaves out. Quiet enemies is for
+/// the harness's seeds.
+const HIDDEN: [&str; 1] = [QUIET_ENEMIES];
 
 /// The settings the app shows.
 pub fn shown() -> Vec<SettingDef> {

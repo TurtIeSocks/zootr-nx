@@ -1,0 +1,27 @@
+# Haunted Wasteland. OoTR's name wherever the remake keeps the spot:
+# matched by position, the arrival points nearby and the remake guides.
+#
+# The child and adult maps each hold their own copy of the pots and the
+# crate, as separate checks, so their names say which age's they are, as
+# OoTR's Market Guard House Child Pot does. Numbers count west to east
+# within one spot.
+
+# The carpet merchant, before the Lens of Truth stretch.
+17038515111946271548 = "Wasteland Bombchu Salesman"
+
+# The ruined shelter's basement, down its ladder: OoTR's chest and
+# Skulltula, and four pots in each age's map where OoTR has three.
+8825521833684392638 = "Wasteland Chest"
+14910672274965350769 = "Wasteland GS"
+7610536230682784975 = "Wasteland Near GS Child Pot 1"
+4476280516446896621 = "Wasteland Near GS Child Pot 2"
+2769366735314972197 = "Wasteland Near GS Child Pot 3"
+15199213860662802000 = "Wasteland Near GS Child Pot 4"
+2709540841225524749 = "Wasteland Near GS Adult Pot 1"
+5411720365708262050 = "Wasteland Near GS Adult Pot 2"
+5947730631239458151 = "Wasteland Near GS Adult Pot 3"
+14313291033423603590 = "Wasteland Near GS Adult Pot 4"
+
+# The crate near the way down to the Desert Colossus.
+17072091790119450948 = "Wasteland Near Colossus Child Crate"
+12727181966767362695 = "Wasteland Near Colossus Adult Crate"

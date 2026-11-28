@@ -133,11 +133,13 @@ mod text;
 mod tools;
 pub mod tracker;
 mod trade_chain;
+mod trap_chests;
 pub mod turn;
 mod twins;
 pub mod value;
 pub mod vision;
 pub mod warp;
+mod water_temple;
 mod world;
 
 pub mod cli;

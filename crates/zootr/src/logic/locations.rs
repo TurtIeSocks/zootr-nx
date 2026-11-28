@@ -141,10 +141,12 @@ impl Build<'_> {
             }
         };
         // A room rule measured what hits a gold skulltula, which the
-        // kind's blanket word would only narrow.
+        // kind's blanket word would only narrow. It measures reaching a
+        // boulder, not breaking it, so a boulder's word stands.
+        let measured = rule.is_some_and(|r| r.room) && !pickups::seats::holds(check);
         let kind = match scrubs::of(check) {
             Some(_) => Some(STUN_SCRUB),
-            None if rule.is_some_and(|r| r.room) => None,
+            None if measured => None,
             None => pickups::kind_of(check).and_then(|k| k.needs),
         };
         let need = match kind {
@@ -152,7 +154,7 @@ impl Build<'_> {
             None => need,
         };
         let keys = [
-            keys::dungeon_need(check, ctx.keys),
+            keys::dungeon_need(check, &ctx.keys),
             keys::fortress_need(&check.item, ctx),
         ];
         Ok(match keys.into_iter().flatten().collect::<Vec<_>>() {

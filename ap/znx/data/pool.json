@@ -124,7 +124,14 @@
           "Magic Meter"
         ],
         "when": {
-          "setting": "magic-with-first-item=off"
+          "any": [
+            {
+              "setting": "magic-with-first-item=off"
+            },
+            {
+              "setting": "progressive-items"
+            }
+          ]
         }
       },
       {
@@ -475,7 +482,7 @@
       }
     },
     {
-      "count": 2,
+      "count": 3,
       "item": "Arrows (5)",
       "trappable": true
     },
@@ -6766,7 +6773,7 @@
       }
     },
     {
-      "count": 6,
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6787,7 +6794,7 @@
       }
     },
     {
-      "count": 1,
+      "count": 32,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6796,7 +6803,7 @@
             "setting": "loose-items"
           },
           {
-            "setting": "crates"
+            "setting": "rocks"
           },
           {
             "setting": "pots"
@@ -6805,7 +6812,7 @@
       }
     },
     {
-      "count": 6,
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6814,54 +6821,7 @@
             "setting": "loose-items"
           },
           {
-            "all": [
-              {
-                "setting": "crates"
-              },
-              {
-                "setting": "rocks"
-              }
-            ]
-          },
-          {
-            "setting": "pots"
-          }
-        ]
-      }
-    },
-    {
-      "count": 26,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "setting": "loose-items"
-          },
-          {
-            "setting": "pots"
-          }
-        ]
-      }
-    },
-    {
-      "count": 6,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "setting": "loose-items"
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "rocks"
-              }
-            ]
+            "setting": "rocks"
           },
           {
             "all": [
@@ -6877,7 +6837,7 @@
       }
     },
     {
-      "count": 1,
+      "count": 35,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6886,26 +6846,29 @@
             "setting": "loose-items"
           },
           {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "crates"
-              }
-            ]
+            "setting": "rocks"
           }
         ]
       }
     },
     {
-      "count": 6,
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
         "any": [
           {
-            "setting": "loose-items"
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
           },
           {
             "all": [
@@ -6913,10 +6876,7 @@
                 "setting": "pots"
               },
               {
-                "setting": "crates"
-              },
-              {
-                "setting": "rocks"
+                "setting": "loose-items"
               }
             ]
           }
@@ -6924,15 +6884,29 @@
       }
     },
     {
-      "count": 29,
+      "count": 23,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
-        "setting": "loose-items"
+        "any": [
+          {
+            "setting": "rocks"
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
       }
     },
     {
-      "count": 6,
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6953,7 +6927,7 @@
                 "setting": "crates"
               },
               {
-                "setting": "loose-items"
+                "setting": "rocks"
               }
             ]
           },
@@ -6966,12 +6940,22 @@
                 "setting": "loose-items"
               }
             ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
           }
         ]
       }
     },
     {
-      "count": 1,
+      "count": 2,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -6979,7 +6963,7 @@
           {
             "all": [
               {
-                "setting": "crates"
+                "setting": "rocks"
               },
               {
                 "setting": "loose-items"
@@ -6995,12 +6979,140 @@
                 "setting": "loose-items"
               }
             ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
           }
         ]
       }
     },
     {
-      "count": 6,
+      "count": 7,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 23,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 7,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "any": [
+          {
+            "all": [
+              {
+                "setting": "rocks"
+              },
+              {
+                "setting": "loose-items"
+              }
+            ]
+          },
+          {
+            "all": [
+              {
+                "setting": "pots"
+              },
+              {
+                "setting": "crates"
+              },
+              {
+                "setting": "rocks"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "count": 35,
+      "item": "Green Rupee (1)",
+      "trappable": true,
+      "when": {
+        "all": [
+          {
+            "setting": "rocks"
+          },
+          {
+            "setting": "loose-items"
+          }
+        ]
+      }
+    },
+    {
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -7024,6 +7136,9 @@
                 "setting": "pots"
               },
               {
+                "setting": "rocks"
+              },
+              {
                 "setting": "loose-items"
               }
             ]
@@ -7032,7 +7147,7 @@
       }
     },
     {
-      "count": 26,
+      "count": 32,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -7041,57 +7156,7 @@
             "setting": "pots"
           },
           {
-            "setting": "loose-items"
-          }
-        ]
-      }
-    },
-    {
-      "count": 6,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "any": [
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "rocks"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          },
-          {
-            "all": [
-              {
-                "setting": "pots"
-              },
-              {
-                "setting": "crates"
-              },
-              {
-                "setting": "loose-items"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "count": 1,
-      "item": "Green Rupee (1)",
-      "trappable": true,
-      "when": {
-        "all": [
-          {
-            "setting": "pots"
-          },
-          {
-            "setting": "crates"
+            "setting": "rocks"
           },
           {
             "setting": "loose-items"
@@ -7100,7 +7165,7 @@
       }
     },
     {
-      "count": 6,
+      "count": 7,
       "item": "Green Rupee (1)",
       "trappable": true,
       "when": {
@@ -15912,7 +15977,7 @@
       }
     },
     {
-      "count": 19,
+      "count": 10,
       "item": "Recovery Heart",
       "trappable": true,
       "when": {
@@ -25931,7 +25996,7 @@
       }
     },
     {
-      "count": 26,
+      "count": 34,
       "item": "Red Rupee (20)",
       "junk": true,
       "trappable": true
@@ -35658,7 +35723,7 @@
       }
     },
     {
-      "count": 58,
+      "count": 55,
       "item": "Small Magic Jar",
       "trappable": true,
       "when": {
@@ -35891,7 +35956,14 @@
       "count": 1,
       "item": "Magic Meter",
       "when": {
-        "setting": "magic-with-first-item=off"
+        "any": [
+          {
+            "setting": "magic-with-first-item=off"
+          },
+          {
+            "setting": "progressive-items"
+          }
+        ]
       }
     },
     {

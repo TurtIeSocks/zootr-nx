@@ -183,10 +183,6 @@ pub const LEFT_OUT: &[(&str, Archipelago)] = &[
     ("chests", Later(CHECK_KINDS)),
     ("shuffle-dungeon-entrances", Later(RULES)),
     (
-        "shuffle-items",
-        Never("off, every check holds what it always does, which leaves nothing to share"),
-    ),
-    (
         "start-inventory",
         Never("Archipelago sets what Link starts with from its own start inventory"),
     ),
@@ -281,6 +277,11 @@ const HELD: &[(&str, &str, &str)] = &[
         "keys",
         "singles",
         " With Keysanity, each small key comes on its own.",
+    ),
+    (
+        "keys",
+        "mixed",
+        " With Rings or Keysanity, each dungeon rolls its own from the seed: its small keys come as one ring, or one at a time.",
     ),
     (
         "keys",
@@ -382,10 +383,9 @@ mod tests {
     #[test]
     fn a_toggle_left_out_but_on_in_every_seed_is_forced() {
         let defs = crate::settings::schema();
-        use super::{AlwaysOn, CHECK_KINDS, Later, Never, OnUntil};
+        use super::{CHECK_KINDS, Later, Never, OnUntil};
         let ap = |id: &str| defs.iter().find(|d| d.id == id).unwrap().archipelago;
         assert_eq!(ap(crate::settings::CHESTS), OnUntil(CHECK_KINDS));
-        assert!(matches!(ap("shuffle-items"), AlwaysOn(_)));
         assert!(matches!(ap("start-inventory"), Never(_)));
         assert!(matches!(ap("shuffle-dungeon-entrances"), Later(_)));
     }

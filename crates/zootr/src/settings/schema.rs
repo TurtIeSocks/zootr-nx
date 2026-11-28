@@ -122,16 +122,10 @@ fn check_defs() -> Vec<SettingDef> {
             IceTraps::label,
         ),
         toggle(
-            SHUFFLE_ITEMS,
-            place::CHECKS,
-            "Shuffle Items",
-            "Every check gives a shuffled item. Off, each gives what it always does, though a starting item's spot still holds a Blue Rupee",
-        ),
-        toggle(
             CHESTS,
             place::CHECKS,
             "Chests",
-            "Each chest is a check. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
+            "Each chest is a check, Dampe's race and the Treasure Chest Game's prize included. Off, a chest holds what it always does and the other checks shuffle among themselves, though a starting item's chest holds a Blue Rupee",
         ),
         toggle(
             SCRUBS,
@@ -311,7 +305,7 @@ fn pool_defs() -> Vec<SettingDef> {
             MAGIC_WITH_FIRST_ITEM,
             place::ITEM_POOL,
             "Magic Comes with the First Magic Item",
-            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool",
+            "The first spell, magic arrow, Lens of Truth or Improved Spin Link finds turns the magic meter on, as in the game. Off, only a Magic Meter or Doubled Magic does, and a Magic Meter joins the pool. With Progressive Items on a Magic Meter joins the pool either way, so the meter always comes before the double",
         ),
     ]
 }
@@ -335,7 +329,7 @@ fn dungeon_defs() -> Vec<SettingDef> {
             KEYS,
             place::DUNGEONS,
             "Keys",
-            "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
+            "With Start, Link holds every dungeon's small keys and boss key from the start. With Key rings, each dungeon's small keys come as one ring that opens all its small-key doors. With Keysanity, each small key comes on its own. With Rings or Keysanity, each dungeon rolls its own from the seed: its small keys come as one ring, or one at a time. Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon. The 43 chests that held a key become checks. With Start each brings a Red Rupee to the pool. With Key rings, one of a dungeon's rupees becomes its ring and another its boss key. The two keys lying in the open stay where they are",
             DungeonKeys::label,
         ),
         choice(

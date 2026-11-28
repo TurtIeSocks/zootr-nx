@@ -9,7 +9,9 @@
 //!   reports/<id>.json.zst
 //! ```
 
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
@@ -106,16 +108,27 @@ pub(super) fn sweep(dir: &Path, ids: &[u32]) -> Result<()> {
     first.map_or(Ok(()), Err)
 }
 
+/// Held while one thread moves the old history, so the app's loads at
+/// startup don't all move it at once.
+static MOVING: Mutex<()> = Mutex::new(());
+
 /// Moves an old `history.json` into `dir` once: every report to its
 /// file, then the index, then the old file renamed `history.json.bak`.
 /// An older app then finds no history rather than one it can't read.
+/// Another process moving it first leaves the old file gone midway,
+/// which counts as moved.
 pub(super) fn move_old(dir: &Path) -> Result<()> {
+    let _moving = MOVING.lock().unwrap_or_else(|e| e.into_inner());
     let old = old_file(dir);
     if index(dir).exists() || !old.exists() {
         return Ok(());
     }
-    let mut json: Value = serde_json::from_slice(&std::fs::read(&old)?)
-        .with_context(|| format!("reading {}", old.display()))?;
+    let bytes = match std::fs::read(&old) {
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(()),
+        read => read.with_context(|| format!("reading {}", old.display()))?,
+    };
+    let mut json: Value =
+        serde_json::from_slice(&bytes).with_context(|| format!("reading {}", old.display()))?;
     let entries = (json.get_mut("entries").and_then(Value::as_array_mut)).into_iter();
     for entry in entries.flatten() {
         let map = entry
@@ -132,7 +145,10 @@ pub(super) fn move_old(dir: &Path) -> Result<()> {
     }
     write_index(dir, &serde_json::to_vec(&json)?)?;
     let bak = old.with_extension("json.bak");
-    std::fs::rename(&old, &bak).with_context(|| format!("renaming {}", old.display()))
+    match std::fs::rename(&old, &bak) {
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(()),
+        renamed => renamed.with_context(|| format!("renaming {}", old.display())),
+    }
 }
 
 #[cfg(test)]
@@ -187,6 +203,28 @@ pub(crate) mod tests {
         assert!(report_path(&dir, 3).exists(), "still settling");
         assert!(reports(&dir).join("notes.txt").exists());
         sweep(&temp("sweep-empty"), &[]).unwrap();
+    }
+
+    #[test]
+    fn loads_at_once_move_an_old_history_once_and_all_succeed() {
+        let dir = temp("move-race");
+        let old = serde_json::json!({
+            "entries": (1..=20)
+                .map(|id| serde_json::json!({ "id": id, "time": id, "settings": {}, "report": report(7) }))
+                .collect::<Vec<_>>(),
+        });
+        std::fs::write(old_file(&dir), old.to_string()).unwrap();
+        let moves: Vec<_> = (0..8)
+            .map(|_| {
+                let dir = dir.clone();
+                std::thread::spawn(move || move_old(&dir).map_err(|e| format!("{e:#}")))
+            })
+            .collect();
+        for moved in moves {
+            moved.join().unwrap().unwrap();
+        }
+        assert!(!old_file(&dir).exists());
+        assert!(index(&dir).exists());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { ExternalLink, Eye, Info, LoaderCircle, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { commands, type IconSize } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
@@ -15,6 +15,7 @@ import { call } from "@/lib/api";
 import { useRequestState } from "@/lib/request";
 import { Page } from "@/shell/page-header";
 import {
+  load,
   type Options,
   setOptions,
   setSections,
@@ -32,6 +33,9 @@ const SIZES: { id: IconSize; label: string }[] = (
 export function ItemsView() {
   const [loaded] = useItems.usePath("loaded");
   const [error] = useItems.usePath("error");
+  useEffect(() => {
+    if (!useItems.getState().loaded) void load();
+  }, []);
   return (
     <LoadGate loaded={loaded} error={error}>
       <Page wide className="min-h-0 flex-1">

@@ -173,6 +173,13 @@ impl GameData {
         self.keys.contains(&hash)
     }
 
+    /// It with a key for placement `hash`, as a seed adds one.
+    #[cfg(test)]
+    pub fn with_key(mut self, hash: u64) -> Self {
+        self.keys.insert(hash);
+        self
+    }
+
     /// Remember `name` if it hashes to an entry or enum value.
     pub fn learn(&mut self, name: &str) {
         let h = murmur3(name.as_bytes());

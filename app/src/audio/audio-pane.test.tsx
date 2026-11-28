@@ -38,6 +38,9 @@ const CATALOG = [
   track("market", "Market", "area", false),
   track("zora-domain", "Zora's Domain", "area"),
   track("enemy-battle", "Enemy battle", "battle"),
+  track("link-adult", "Adult Link", "voice-adult"),
+  track("link-child", "Child Link", "voice-child"),
+  track("navi", "Navi", "npc-voice"),
 ];
 
 vi.mock("@/bindings", () => ({
@@ -80,6 +83,26 @@ test("lists a pool's tracks and saves the pool's mode", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Shuffle" }));
   await waitFor(() =>
     expect(saved()?.audio).toEqual({ pools: { area: "shuffle" } }),
+  );
+});
+
+test("one Voices tab holds Link's voices and the NPCs', each its own mode", async () => {
+  show(full({}));
+  await screen.findByText("Kokiri Forest");
+  expect(
+    screen.queryByRole("tab", { name: /^(Adult|Child|NPC) voice/ }),
+  ).toBeNull();
+  const voices = screen.getByRole("tab", { name: "Voices" });
+  fireEvent.mouseDown(voices);
+  fireEvent.click(voices);
+  for (const name of ["Adult Link", "Child Link", "Navi"])
+    expect(await screen.findByText(name)).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: "Chaos" })).toHaveLength(1);
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Shuffle" })[1] as HTMLElement,
+  );
+  await waitFor(() =>
+    expect(saved()?.audio).toEqual({ pools: { "voice-child": "shuffle" } }),
   );
 });
 

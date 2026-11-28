@@ -30,7 +30,7 @@ use crate::{
     dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress, gamedata, gerudo,
     gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies,
     medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, sheik_crater, shops,
-    spawn, standins, starting, steps, text, tracker, trade_chain, twins,
+    spawn, standins, starting, steps, text, tracker, trade_chain, trap_chests, twins,
 };
 
 /// What both the flows and the mod's files need from the dump for a seed,
@@ -243,7 +243,8 @@ pub fn write_mod(
         0 => Vec::new(),
         _ => shops::slots(romfs)?,
     };
-    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd)?;
+    let mut tables = standins::Tables::load(romfs)?;
+    let shelves = shops::Shelves::new(&slots, drops, new_game, &gd, &tables)?;
     write_text(romfs, &mut builder, drops, new_game, &shelves, hints)?;
     let mut parts = Parts::new(romfs, drops, new_game, reads, &gd)?;
     // Presets and `--default` edits go last, so they win over a skip's.
@@ -251,7 +252,7 @@ pub fn write_mod(
     edits.extend(new_game.defaults.iter().cloned());
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     let defaults = parts.game_data(&mut data.root, &gd, &slots, &shelves, &edits)?;
-    let (fields, look) = parts.assets(&mut builder, &shelves)?;
+    let (fields, look) = parts.assets(&mut builder, &shelves, &mut tables)?;
     let mut maps = banc::Banc::new(&parts, &all, &shelves, &fields)?;
     for (rel, doc) in checks::load_bancs(romfs, checks::banc_files(romfs)?) {
         run.check()?;
@@ -333,7 +334,7 @@ fn write_text(
     lines.push(scrubs::lines(drops, Lines::of(new_game)));
     lines.extend(scrubs::sold_out(drops));
     let fortress = new_game.fortress_keys.copies();
-    let mut key_lines = key_tints::captions(new_game.keys, BOSS_COPIES, fortress);
+    let mut key_lines = key_tints::captions(&new_game.key_modes(), BOSS_COPIES, fortress);
     if maps_move(new_game) {
         key_lines.new.extend(map_copies::captions());
     }
@@ -360,6 +361,13 @@ struct Parts<'a> {
     reads: Reads,
     picked: Vec<picked::Holder>,
     steps: pickups::steps::Steps,
+    /// Each holder whose step copies stand by their module's own gate, with
+    /// the program each waits on (`pickups::nodes::gates`).
+    gates: HashMap<u64, Vec<Op>>,
+    seats: pickups::seats::Seats,
+    /// Every placement copied from a holder's, by the one it copies: each
+    /// step's, then each boulder's seat.
+    copies: Vec<(u64, u64)>,
     stand_ins: Vec<(u64, String)>,
     /// Every dealt check, a kept item's too: its map's alternative needs it.
     dealt: HashSet<u64>,
@@ -368,6 +376,34 @@ struct Parts<'a> {
     gone: Vec<(u64, String)>,
     /// The Red Rupee copies dealt.
     rupees: Vec<String>,
+}
+
+/// Each holder whose step copies can stand by its module's own gate instead
+/// of a duplicated node (`pickups::nodes::gates`): one that lies until picked,
+/// and whose drop no event names and puts in place.
+///
+/// A thief's call picks which step's key to drop by a Switch on each step's
+/// BoolExp, and the flag that lets the key appear is set inside that very
+/// call. A step gated on it reads false at the Switch, so her call always
+/// drops the holder's own step: a key dealt 10 Arrows would hand a Red Rupee
+/// to a Link holding a bow, and one dealt the Hookshot a second Hookshot
+/// instead of the Longshot. The four Fortress keys keep their nodes.
+fn module_gates(
+    romfs: &Romfs,
+    gd: &GameData,
+    pieces: &[ItemCheck],
+    picked: &[picked::Holder],
+) -> Result<HashMap<u64, Vec<Op>>> {
+    Ok((pickups::nodes::gates(romfs, gd)?)
+        .into_iter()
+        .filter(|(hash, _)| {
+            (picked.iter()).any(|h| {
+                h.hash == *hash
+                    && matches!(h.after, picked::After::Taken(_))
+                    && !(pieces.iter()).any(|c| c.hash == *hash && pickups::is_named(c))
+            })
+        })
+        .collect())
 }
 
 impl<'a> Parts<'a> {
@@ -380,7 +416,11 @@ impl<'a> Parts<'a> {
     ) -> Result<Self> {
         let pieces = &reads.pieces;
         let picked = picked::holders(pieces, drops);
-        let steps = pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd)?;
+        let gates = module_gates(romfs, gd, pieces, &picked)?;
+        let steps =
+            pickups::steps::Steps::new(pieces, drops, Lines::of(new_game), &picked, gd, &gates)?;
+        let seats = pickups::seats::Seats::new(pieces, drops, Lines::of(new_game));
+        let copies = [steps.copies.as_slice(), &seats.pairs].concat();
         let stand_ins = pickups::stand_ins(pieces, drops, Lines::of(new_game));
         let dealt: HashSet<u64> = (checks::dealt(romfs, new_game)?.iter())
             .map(|c| c.hash)
@@ -397,6 +437,9 @@ impl<'a> Parts<'a> {
             reads,
             picked,
             steps,
+            gates,
+            seats,
+            copies,
             stand_ins,
             dealt,
             twins,
@@ -463,13 +506,17 @@ impl<'a> Parts<'a> {
         gamedata::add_ints(root, &new_game.ints)?;
         gamedata::add_exps(root, &self.exps(gd, shelves)?)?;
         let mut keyed = picked::pairs(&self.picked);
-        keyed.extend(&self.steps.copies);
+        keyed.extend(&self.copies);
+        keyed.extend(trap_chests::keyed(self.drops));
         gamedata::add_keys(root, &keyed)?;
+        trap_chests::game_data(root, self.drops)?;
         if new_game.breakables_respawn {
             gamedata::respawn_on_load(root)?;
         }
         let fortress = new_game.fortress_keys.copies();
-        for (copy, template, _) in &key_tints::made(new_game.keys.copies(), BOSS_COPIES, fortress) {
+        for (copy, template, _) in
+            &key_tints::made(new_game.key_modes().copies(), BOSS_COPIES, fortress)
+        {
             let names = [copy.clone()];
             gamedata::join_structs(root, template.get(), &names, &[gamedata::IS_GET])?;
         }
@@ -493,6 +540,7 @@ impl<'a> Parts<'a> {
         &mut self,
         builder: &mut ModBuilder,
         shelves: &shops::Shelves,
+        tables: &mut standins::Tables,
     ) -> Result<(Vec<String>, Option<LookSpec>)> {
         let (romfs, drops, new_game) = (self.romfs, self.drops, self.new_game);
         let mut fields = new_game.fields.clone();
@@ -503,13 +551,12 @@ impl<'a> Parts<'a> {
             scrubs::events(drops, &mut events)?;
         }
         fields.extend(cows::fields(&self.reads.cows));
-        let mut tables = standins::Tables::load(romfs)?;
-        self.models(builder, &mut tables)?;
-        cows::write(romfs, builder, &mut tables, &mut events, &self.reads.cows)?;
+        self.models(builder, tables)?;
+        cows::write(romfs, builder, tables, &mut events, &self.reads.cows)?;
         self.reads.levels.events(&mut events)?;
         let look = if ice_traps::springs(new_game) {
             ice_traps::event(&mut events)?;
-            ice_traps::sensor(romfs, builder, &mut tables)?;
+            ice_traps::sensor(romfs, builder, tables)?;
             ice_traps::thaw(builder)?;
             Some(ice_traps::look(romfs, builder)?)
         } else {
@@ -521,13 +568,7 @@ impl<'a> Parts<'a> {
         }
         events.write(builder)?;
         if new_game.shop_slots > 0 {
-            fields.extend(shops::write(
-                romfs,
-                builder,
-                &mut tables,
-                shelves,
-                new_game,
-            )?);
+            fields.extend(shops::write(romfs, builder, tables, shelves, new_game)?);
         }
         if new_game.day_skulltulas {
             day_skulltulas::write(romfs, builder)?;
@@ -538,25 +579,20 @@ impl<'a> Parts<'a> {
         }
         let pieces = &self.reads.pieces;
         fields.extend(pickups::write(
-            romfs,
-            builder,
-            &mut tables,
-            pieces,
-            drops,
-            new_game,
+            romfs, builder, tables, pieces, drops, new_game,
         )?);
         if new_game.fortress_keys.moved() {
             let lines = Lines::of(new_game);
             fields.extend(fortress::fields(romfs, pieces, drops, lines)?);
         }
         self.steps.write(romfs, builder)?;
-        held::write(romfs, builder, &mut tables)?;
+        held::write(romfs, builder, tables)?;
         if new_game.freestanding {
-            goron_pot::write(romfs, builder, &mut tables, drops, new_game)?;
+            goron_pot::write(romfs, builder, tables, drops, new_game)?;
         }
         let boots = Enabled::of(&new_game.on).boots();
         if !boots.is_empty() {
-            ageless::gear::shortcut(&mut tables, &boots)?;
+            ageless::gear::shortcut(tables, &boots)?;
         }
         tables.write(builder)?;
         Ok((fields, look))
@@ -581,7 +617,14 @@ impl<'a> Parts<'a> {
         let items = drops.values().map(|d| d.item.as_str()).chain(shown);
         medallions::write(romfs, builder, tables, items)?;
         let fortress = new_game.fortress_keys.copies();
-        key_tints::write(romfs, builder, tables, BOSS_COPIES, new_game.keys, fortress)?;
+        key_tints::write(
+            romfs,
+            builder,
+            tables,
+            BOSS_COPIES,
+            &new_game.key_modes(),
+            fortress,
+        )?;
         if maps_move(new_game) {
             map_copies::write(romfs, builder, tables)?;
         }
@@ -590,7 +633,13 @@ impl<'a> Parts<'a> {
         crate::marks::write(romfs, builder, tables, &mut tags)?;
         crate::chest_looks::write(romfs, builder, tables, &mut tags)?;
         tags.write(builder)?;
-        foreign::write(romfs, builder, tables, &new_game.foreign, new_game.keys)?;
+        foreign::write(
+            romfs,
+            builder,
+            tables,
+            &new_game.foreign,
+            &new_game.key_modes(),
+        )?;
         ammo::write(romfs, builder, tables, &self.rupees)
     }
 }
@@ -612,7 +661,7 @@ fn levels(
 /// and with maps and compasses moving theirs.
 fn sets(new_game: &NewGame) -> Vec<(String, crate::copies::Sets)> {
     let fortress = new_game.fortress_keys.copies();
-    let mut sets = key_tints::sets(BOSS_COPIES, new_game.keys, fortress);
+    let mut sets = key_tints::sets(BOSS_COPIES, &new_game.key_modes(), fortress);
     if maps_move(new_game) {
         sets.extend(map_copies::sets());
     }
@@ -634,6 +683,8 @@ fn hook_flags(new_game: &NewGame) -> u32 {
             zootr_hook::FREE_BOMBCHUS,
         ),
         (new_game.bombchus == Bombchus::Bag, zootr_hook::BOMBCHU_BAG),
+        (new_game.shuffle_nut_bag, zootr_hook::SHUFFLED_NUT_BAG),
+        (new_game.shuffle_stick_bag, zootr_hook::SHUFFLED_STICK_BAG),
         (new_game.bunny_hood, zootr_hook::BUNNY_HOOD),
         (ice_traps::springs(new_game), zootr_hook::ICE_TRAPS),
         (true, zootr_hook::MENU_CYCLE),
@@ -652,7 +703,46 @@ fn hook_flags(new_game: &NewGame) -> u32 {
 mod tests {
     use super::*;
     use crate::known::actor;
+    use crate::pickups::{BOSS_HEARTS, FORTRESS_KEYS};
     use zootr_hook::{BUNNY_HOOD, FREE_BOMBCHUS, MENU_CYCLE};
+
+    /// A thief dealt ammo keeps its node, and a boss heart dealt the same
+    /// doesn't: her call names each step's key and picks one by its BoolExp,
+    /// and the flag that lets the key appear is set inside that call.
+    #[test]
+    fn a_called_holder_keeps_the_module_gate_out() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let arrows = actor::T_BOX_ARROW_BUNDLE_SMALL.get();
+        let heart = 17948245526767051747;
+        let keys: Vec<ItemCheck> = FORTRESS_KEYS.checks(&romfs).unwrap();
+        let mut pieces: Vec<ItemCheck> = keys.clone();
+        pieces.extend(
+            BOSS_HEARTS
+                .checks(&romfs)
+                .unwrap()
+                .into_iter()
+                .filter(|c| c.hash == heart),
+        );
+        let drops: HashMap<u64, Drop> = (pieces.iter())
+            .map(|c| (c.hash, Drop::from(arrows.to_owned())))
+            .collect();
+        let picked = picked::holders(&pieces, &drops);
+        let gates = module_gates(&romfs, &gd, &pieces, &picked).unwrap();
+        assert!(
+            gates.contains_key(&heart),
+            "a heart dealt ammo stands on Gohma's own flag"
+        );
+        for key in &keys {
+            assert!(
+                !gates.contains_key(&key.hash),
+                "{} waits on her call",
+                key.hash
+            );
+        }
+    }
 
     #[test]
     fn an_adult_start_holds_the_master_sword_only_from_the_start_inventory() {
@@ -701,6 +791,23 @@ mod tests {
         assert_eq!(flags(false, true), BUNNY_HOOD | MENU_CYCLE);
         assert_eq!(flags(true, true), FREE_BOMBCHUS | BUNNY_HOOD | MENU_CYCLE);
         let plain = hook_flags(&NewGame::default());
+        for (nuts, sticks, want) in [
+            (false, false, 0),
+            (true, false, zootr_hook::SHUFFLED_NUT_BAG),
+            (false, true, zootr_hook::SHUFFLED_STICK_BAG),
+            (
+                true,
+                true,
+                zootr_hook::SHUFFLED_NUT_BAG | zootr_hook::SHUFFLED_STICK_BAG,
+            ),
+        ] {
+            let game = NewGame {
+                shuffle_nut_bag: nuts,
+                shuffle_stick_bag: sticks,
+                ..Default::default()
+            };
+            assert_eq!(hook_flags(&game), plain | want);
+        }
         assert_eq!(plain & zootr_hook::CHILD_GEAR, 0);
         let with = |id: &str| {
             hook_flags(&NewGame {

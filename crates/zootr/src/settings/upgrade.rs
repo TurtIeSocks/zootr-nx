@@ -5,13 +5,18 @@ use serde_json::Value;
 
 use super::{
     BOMBCHUS, BRIDGE, Bombchus, Bridge, DOOR_OF_TIME, DoorOfTime, GERUDO_FORTRESS, GerudoFortress,
-    MET_ZELDA, SHUFFLE_ITEMS, Settings, TRIALS, Trials, choice_id,
+    MET_ZELDA, Settings, TRIALS, Trials, choice_id,
 };
 use crate::starting::{self, Start};
 
 /// The toggle that left every item in place, before it became
 /// [`SHUFFLE_ITEMS`] with the opposite sense.
 const VANILLA_CHESTS: &str = "vanilla-chests";
+
+/// The hidden toggle that shuffled items at all, before every seed did.
+/// Off, every check kept its own item. Defaulted off with the rest, so
+/// a seed with Chests on kept every chest's item (#531).
+const SHUFFLE_ITEMS: &str = "shuffle-items";
 
 /// The toggle that gave bombchus their own cap, before [`BOMBCHUS`] chose
 /// between that, the bomb bag's and Bombchu Bags.
@@ -200,7 +205,9 @@ impl SettingsVersion {
     pub const RANDOMIZER: Self = Self(1);
     /// Every setting at the game's own behavior.
     pub const VANILLA: Self = Self(2);
-    pub const CURRENT: Self = Self::VANILLA;
+    /// Items always shuffle: [`SHUFFLE_ITEMS`] is gone.
+    pub const SHUFFLED: Self = Self(3);
+    pub const CURRENT: Self = Self::SHUFFLED;
 
     /// What a file that names no version was saved under.
     pub fn unwritten() -> Self {
@@ -217,14 +224,15 @@ impl Default for SettingsVersion {
 
 /// Brings saved `settings` (the config, a history entry, a share code),
 /// saved under `from`'s defaults, up to date, so an old seed builds as it
-/// did.
-pub(crate) fn upgrade(settings: &mut Settings, from: SettingsVersion) {
-    if let Some(vanilla) = settings.remove(VANILLA_CHESTS) {
-        let shuffled = vanilla != true;
-        settings
-            .entry(SHUFFLE_ITEMS.into())
-            .or_insert(shuffled.into());
-    }
+/// did. True when they shuffled nothing ([`SHUFFLE_ITEMS`] off), which a
+/// seed now keeps as its `vanilla` extra.
+pub(crate) fn upgrade(settings: &mut Settings, from: SettingsVersion) -> bool {
+    let vanilla = settings.remove(VANILLA_CHESTS).map(|v| v == true);
+    let shuffled = settings.remove(SHUFFLE_ITEMS).map(|v| v == true);
+    let kept = from < SettingsVersion::SHUFFLED
+        && !shuffled
+            .or(vanilla.map(|v| !v))
+            .unwrap_or(from < SettingsVersion::VANILLA);
     if let Some(free) = settings.remove(FREE_BOMBCHUS) {
         let chosen = match free == true {
             true => Bombchus::Free,
@@ -272,6 +280,7 @@ pub(crate) fn upgrade(settings: &mut Settings, from: SettingsVersion) {
             settings.entry(id).or_insert(value);
         }
     }
+    kept
 }
 
 #[cfg(test)]
@@ -435,26 +444,22 @@ mod tests {
     }
 
     #[test]
-    fn vanilla_chests_become_shuffle_items_the_other_way_round() {
-        let up = |vanilla: bool| {
-            let mut s = Settings::from([(VANILLA_CHESTS.into(), vanilla.into())]);
-            upgrade(&mut s, SettingsVersion::CURRENT);
-            s
+    fn shuffle_items_off_before_it_went_reads_as_kept_items() {
+        let up = |id: &str, on: bool, from: SettingsVersion| {
+            let mut s = Settings::from([(id.into(), on.into())]);
+            let kept = upgrade(&mut s, from);
+            assert!(!s.contains_key(id), "{s:?}");
+            kept
         };
-        assert_eq!(
-            up(true),
-            Settings::from([(SHUFFLE_ITEMS.into(), false.into())])
-        );
-        assert_eq!(
-            up(false),
-            Settings::from([(SHUFFLE_ITEMS.into(), true.into())])
-        );
-        let mut current = Settings::from([(SHUFFLE_ITEMS.into(), true.into())]);
-        upgrade(&mut current, SettingsVersion::CURRENT);
-        assert_eq!(
-            current,
-            Settings::from([(SHUFFLE_ITEMS.into(), true.into())])
-        );
+        let v = SettingsVersion::VANILLA;
+        assert!(up(VANILLA_CHESTS, true, v) && !up(VANILLA_CHESTS, false, v));
+        assert!(up(SHUFFLE_ITEMS, false, v) && !up(SHUFFLE_ITEMS, true, v));
+        assert!(!up(SHUFFLE_ITEMS, false, SettingsVersion::CURRENT));
+        // Unset, it defaulted off under the vanilla defaults (#531), on
+        // under the randomizer's.
+        assert!(upgrade(&mut Settings::new(), v));
+        assert!(!upgrade(&mut Settings::new(), SettingsVersion::RANDOMIZER));
+        assert!(!upgrade(&mut Settings::new(), SettingsVersion::CURRENT));
     }
 
     #[test]
