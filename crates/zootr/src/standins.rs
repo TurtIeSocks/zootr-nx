@@ -714,15 +714,19 @@ impl StandIn<'_> {
                 .as_string()?,
         );
         let bodies = bodies(&BymlDoc::parse(&raw(template, &set)?)?.root)?;
-        let mut bottom = f32::INFINITY;
-        for (_, _, path) in &bodies {
-            let shape = BymlDoc::parse(&raw(template, path)?)?;
-            bottom = bottom.min(shape_bottom(shape.root.as_map()?).context("no sphere")?);
-        }
+        // A hovering body holds the token's height, whatever its shape: only
+        // a resting body's own bottom matters.
         let by = match hovering {
-            true => at_rest(template)? - base,
-            false => bottom - base,
-        };
+            true => at_rest(template)?,
+            false => {
+                let mut bottom = f32::INFINITY;
+                for (_, _, path) in &bodies {
+                    let shape = BymlDoc::parse(&raw(template, path)?)?;
+                    bottom = bottom.min(shape_bottom(shape.root.as_map()?).context("no sphere")?);
+                }
+                bottom
+            }
+        } - base;
         if by.abs() < LEVEL {
             return Ok(());
         }
