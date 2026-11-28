@@ -582,6 +582,7 @@ impl<'a> Parts<'a> {
             day_skulltulas::write(romfs, builder)?;
         }
         sheik_crater::write(romfs, builder)?;
+        bridge::write_trial_pots(builder, new_game.trials)?;
         if new_game.on.contains(presets::JABU_OPEN) {
             jabu_mouth::write(romfs, builder)?;
         }

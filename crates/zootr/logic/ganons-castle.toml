@@ -115,10 +115,36 @@ needs = "hookshot and (melee or hammer or explosives)"
 
 # Room 24, Tower Iron Knuckle Room: (guess: Ship puts the boss key chest
 # after the Stalfos, but the room's graph waits on a flag here, so the
-# Iron Knuckles count too) the six trials, unless Ganon's Trials is Done
-# (the same coarse list as the climb to Ganondorf, with the Light Arrows
-# for each barrier), then the Dinolfos, Stalfos and Iron Knuckles up the tower.
+# Iron Knuckles count too) the barrier down (`trials-cleared`), then the
+# Dinolfos, Stalfos and Iron Knuckles up the tower.
 [[check]]
 hash = 17092385671602176550
 name = "Ganon's Castle Upper Boss Key Chest"
-needs = "(setting:ganons-trials=done or ((hover-boots or (song-of-time and hookshot)) and magic and bow and (item:dins-fire or item:fire-arrows) and blue-fire and hammer and gold-gauntlets and bow and lens and hover-boots and hookshot and mirror-shield and bombchus and longshot and item:light-arrows)) and (melee or hammer or bow or bombchus) and (hammer or adult-sword or (bombs and hookshot) or bombchus or bow) and (adult-sword or hammer or explosives)"
+needs = "trials-cleared and (melee or hammer or bow or bombchus) and (hammer or adult-sword or (bombs and hookshot) or bombchus or bow) and (adult-sword or hammer or explosives)"
+
+# The lobby's four barrier pots spawn once the barrier is down. With
+# Ganon's Trials Done they wait on the same saved flag (`bridge.rs`),
+# since the barrier's scene never plays.
+[[check]]
+hash = 13727300571360846696
+name = "Ganons Castle Barrier Pot 1"
+needs = "trials-cleared"
+setting = "pots"
+
+[[check]]
+hash = 10177407372807102311
+name = "Ganons Castle Barrier Pot 2"
+needs = "trials-cleared"
+setting = "pots"
+
+[[check]]
+hash = 4656702765770784238
+name = "Ganons Castle Barrier Pot 3"
+needs = "trials-cleared"
+setting = "pots"
+
+[[check]]
+hash = 9619715366192254862
+name = "Ganons Castle Barrier Pot 4"
+needs = "trials-cleared"
+setting = "pots"
