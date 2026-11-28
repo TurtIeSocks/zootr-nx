@@ -72,7 +72,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
             }
             (Via::Sfx(to), Via::Sfx(from)) => {
                 let (user, stem) = from[0];
-                let params: Vec<_> = (sfx_variants(&slink, user, stem)?.into_iter())
+                let params: Vec<_> = (sfx_gives(&slink, user, stem)?.into_iter())
                     .map(|(_, call)| call.param)
                     .collect();
                 for &(to, stem) in to {
@@ -135,15 +135,39 @@ pub(super) fn variants(slink: &[u8], user: &str, stem: &str) -> Result<Vec<(Stri
 }
 
 /// The calls of `user` in the sound cue `stem`: as [`variants`], or the
-/// one call named `stem`, any category, each playing a sound.
+/// one call named `stem`, or with a `stem` ending in `*` every call it
+/// starts; any category, each playing a sound.
 pub(super) fn sfx_variants(
     slink: &[u8],
     user: &str,
     stem: &str,
 ) -> Result<Vec<(String, XlinkCall)>> {
+    sfx_takes(slink, user, stem, |_| true)
+}
+
+/// The takes of [`sfx_variants`] a cue gives as a donor: those playing
+/// one recording, not one picked by the ground (field 25), whose choice
+/// table only their own user loads.
+pub(super) fn sfx_gives(slink: &[u8], user: &str, stem: &str) -> Result<Vec<(String, XlinkCall)>> {
+    sfx_takes(slink, user, stem, |fields| {
+        fields.iter().all(|&(bit, _)| bit != 25)
+    })
+}
+
+fn sfx_takes(
+    slink: &[u8],
+    user: &str,
+    stem: &str,
+    keep: impl Fn(&[(u32, &str)]) -> bool,
+) -> Result<Vec<(String, XlinkCall)>> {
+    let named = |name: &str| match stem.strip_suffix('*') {
+        Some(start) => name.starts_with(start),
+        None => name == stem || is_variant(name, stem),
+    };
     takes(slink, user, |name, fields| {
-        (name == stem || is_variant(name, stem))
+        named(name)
             && (fields.iter()).any(|&(bit, s)| bit == 1 && !s.contains("Blank"))
+            && keep(fields)
     })
     .and_then(|found| match found.is_empty() {
         true => bail!("{user} has no sound calls {stem}"),
@@ -366,6 +390,42 @@ mod tests {
                 .chain(cue::banks_of(&old, donor.0).unwrap());
             assert!(wanted.into_iter().all(|b| banks.contains(&b)), "{banks:?}");
         }
+    }
+
+    /// A ground-picked cue's takes all receive (the repoint replaces the
+    /// choice), and it gives only its plain ones: the trot gives its
+    /// wet-track steps.
+    #[test]
+    fn a_ground_picked_cue_receives_whole_and_gives_its_plain_takes() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-trot-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let audio = Audio::from([
+            ("horse-trot".into(), "moo".into()),
+            ("moo".into(), "horse-trot".into()),
+        ]);
+        write(&mut builder, &audio, 0).unwrap();
+        builder.finish().unwrap();
+        let built = crate::game::read_built(&romfs, &dir, SOUNDS);
+        std::fs::remove_dir_all(dir).unwrap();
+        let shipped = romfs.read(SOUNDS).unwrap();
+        let first = |id: &str| match track(id).unwrap().via {
+            Via::Sfx(pairs) => pairs[0],
+            _ => unreachable!(),
+        };
+        let params = |found: Vec<(String, XlinkCall)>| -> Vec<u32> {
+            found.into_iter().map(|(_, call)| call.param).collect()
+        };
+        let ((horse, trot), (cow, moo)) = (first("horse-trot"), first("moo"));
+        let moos = params(sfx_gives(&shipped, cow, moo).unwrap());
+        let steps = params(sfx_variants(&built, horse, trot).unwrap());
+        assert!(steps.len() > params(sfx_gives(&shipped, horse, trot).unwrap()).len());
+        assert!(steps.iter().all(|p| moos.contains(p)));
+        let wet = params(sfx_gives(&shipped, horse, trot).unwrap());
+        let mooed = params(sfx_variants(&built, cow, moo).unwrap());
+        assert!(mooed.iter().all(|p| wet.contains(p)), "{mooed:x?}");
     }
 
     /// A call never trades across users, either way, and a sound cue trades

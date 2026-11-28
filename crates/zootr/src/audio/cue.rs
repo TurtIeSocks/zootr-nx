@@ -57,7 +57,8 @@ mod tests {
 
     use super::*;
     use crate::ageless_items::{BANKS as BANK_LIST, SOUNDS};
-    use crate::audio::{STREAMS, TRACKS, Track, Via, write::sfx_variants};
+    use crate::audio::write::{sfx_gives, sfx_variants};
+    use crate::audio::{STREAMS, TRACKS, Track, Via};
 
     /// The sound cues and their pairs.
     fn cues() -> Vec<(&'static Track, &'static [(&'static str, &'static str)])> {
@@ -70,8 +71,8 @@ mod tests {
     }
 
     /// Every pair's user has banks and plays its stem; each cue's first
-    /// pair plays its song first, as long as listed, never looping. Its
-    /// takes are in its user's banks or streamed.
+    /// pair gives its song first, as long as listed, never looping. Its
+    /// given takes are in its user's banks or streamed.
     #[test]
     fn every_sound_cue_matches_the_dump() {
         let Some(romfs) = crate::game::dev_dump() else {
@@ -85,7 +86,7 @@ mod tests {
                 banks_of(&list, user).unwrap_or_else(|e| panic!("{}: {e}", t.id));
                 sfx_variants(&slink, user, stem).unwrap_or_else(|e| panic!("{}: {e}", t.id));
             }
-            let streams = (sfx_variants(&slink, pairs[0].0, pairs[0].1)
+            let streams = (sfx_gives(&slink, pairs[0].0, pairs[0].1)
                 .unwrap()
                 .into_iter())
             .map(|(_, call)| {
