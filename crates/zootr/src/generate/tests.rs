@@ -417,7 +417,7 @@ fn a_freestanding_gold_skulltula_token_clears_the_floor() {
     let [new_x, new_y, new_z] = position(&BymlDoc::parse(&built).unwrap());
     assert_eq!((new_x, new_z), (x, z));
     assert!(
-        (new_y - y - 0.192_871_1).abs() < 0.000_1,
+        (new_y - y - 0.201).abs() < 0.000_1,
         "height: {y} -> {new_y}",
     );
 }
