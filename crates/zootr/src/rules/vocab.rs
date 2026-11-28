@@ -83,6 +83,7 @@ pub const ITEMS: &[(&str, &Name)] = &[
     ("odd-mushroom", item::ODD_MUSHROOM),
     ("odd-powder", item::ODD_POWDER),
     ("poachers-saw", item::POACHER_SAW),
+    ("pocket-cucco", item::POCKET_CUCCO),
     ("pocket-egg", item::POCKET_EGG),
     ("prelude-of-light", item::MELODY_LIGHT_PRELUDE),
     ("prescription", item::PRESCRIPTION),

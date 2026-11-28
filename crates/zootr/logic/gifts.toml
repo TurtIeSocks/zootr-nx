@@ -627,13 +627,14 @@ era = "adult"
 needs = "always"
 
 # Talon, shown the Pocket Cucco: in Kakariko, or at the ranch once Epona is
-# won. Either one gives the check, once.
+# won. Either one gives the check, once. The egg hatches into it, or Link
+# starts with it.
 [[check]]
 hash = 5600989862490052494
 name = "Talon: Pocket Cucco"
 place = "kakariko-village-adult"
 era = "adult"
-needs = "item:pocket-egg"
+needs = "item:pocket-egg or item:pocket-cucco"
 
 # Grog at the Lost Woods stump, shown Cojiro.
 [[check]]
