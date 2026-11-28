@@ -220,6 +220,94 @@ mod tests {
     }
 
     #[test]
+    fn darunias_bracelet_is_granted_after_his_dance_and_never_inside_it() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let all = Flows::load(&romfs).unwrap();
+        let darunia = GIFTS.iter().find(|g| g.flow == scene::GORON_0030).unwrap();
+        let How::Later { caller, .. } = darunia.how else {
+            panic!("Darunia's gift is granted by its caller")
+        };
+        assert_eq!(**caller, *flow::GET_STONE_OF_FIRE);
+        let mut rewrites = Rewrites::new();
+        give(
+            &romfs,
+            &all,
+            &mut rewrites,
+            darunia,
+            item::BOTTLE,
+            &BTreeSet::new(),
+            Placement::Scene,
+        )
+        .unwrap();
+        let parse = |name: &str| {
+            let bytes = &rewrites[&flows::rel(name)];
+            Flowchart::parse(bytes).unwrap().unwrap()
+        };
+        let scene = flows::render(&parse(darunia.flow));
+        let vanilla = flows::render(&flows::load(&romfs, darunia.flow).unwrap().unwrap());
+        // The dance keeps its cue: his bracelet prop still acts in it, and
+        // only the scene's own get went quiet.
+        let prop = |r: &str| {
+            r.lines()
+                .filter(|l| l.starts_with('#') && l.contains(&**darunia.item))
+                .count()
+        };
+        assert!(prop(&scene) > 0, "the bracelet prop went missing");
+        assert_eq!(prop(&vanilla) - prop(&scene), 1, "only the get went quiet");
+        assert!(
+            !scene.contains(&**flow::GET_IN_EVENT_GORON),
+            "the scene still grants"
+        );
+        assert!(
+            !scene.contains(&format!("{}=\"{}\"", flag::ACTOR_NAME, item::BOTTLE)),
+            "the dealt item reached the scene"
+        );
+        let events = |r: &str| -> Vec<String> {
+            r.lines()
+                .filter(|l| l.starts_with('#'))
+                .map(str::to_owned)
+                .collect()
+        };
+        let (before, after) = (events(&vanilla), events(&scene));
+        assert_eq!(before.iter().zip(&after).filter(|(a, b)| a != b).count(), 1);
+        // The quest flow that starts his scene grants the dealt item once,
+        // right after the transition to it.
+        let rendered = flows::render(&parse(caller));
+        let lines: Vec<&str> = rendered.lines().collect();
+        let grant = granting(item::BOTTLE);
+        let at = lines
+            .iter()
+            .position(|l| l.contains(&grant))
+            .expect("no grant in the caller");
+        assert_eq!(
+            lines.iter().filter(|l| l.contains(&grant)).count(),
+            1,
+            "granted once"
+        );
+        let hop = lines
+            .iter()
+            .find(|l| l.contains(&format!("{}=\"{}\"", flow::EVENT_NAME, darunia.flow)))
+            .expect("the caller never reaches his scene")
+            .rsplit_once(" -> ")
+            .unwrap()
+            .1;
+        let (from, to) = lines[at]
+            .split_once(" -> ")
+            .expect("the grant names its next edge");
+        assert!(from.starts_with(&format!("{hop} ")), "{hop}: {}", lines[at]);
+        let window = lines
+            .iter()
+            .find(|l| l.starts_with(&format!("{to} ")))
+            .expect("no edge after the grant");
+        assert!(
+            window.contains(grant::GET_LINES[0].as_str()),
+            "the get window follows: {window}"
+        );
+    }
+
+    #[test]
     fn only_the_castle_flow_starts_zeldas_scene_and_no_generic_skip_takes_it() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;

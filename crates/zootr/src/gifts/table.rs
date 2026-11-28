@@ -332,14 +332,23 @@ pub const GIFTS: [Gift; 87] = [
         &[get(flow::GET_IN_EVENT_GREAT_FAIRY_COURGE)],
         flag::HAVE_PLAYED_EVENT_DM_FAIRY_FOUNTAIN_COURAGE,
     ),
-    npc(
-        scene::GORON_0030,
-        flag::GORON_CITY,
-        "Darunia",
-        item::GAUNTLET_GORON,
-        &[get(flow::GET_IN_EVENT_GORON)],
-        flag::HAVE_PLAYED_EVENT_DM_GORON_0030,
-    ),
+    // His dance scene loads only the bracelet's own model, so a get swapped
+    // inside it has nothing to hold up: live, the window named the dealt item
+    // and showed no model, and the reported seed stalled the cue before the
+    // fork join that lets the scene's quest step set. The grant moves out to
+    // the quest flow that starts the scene, as with the letter.
+    Gift {
+        flow: scene::GORON_0030,
+        area: flag::GORON_CITY,
+        giver: "Darunia",
+        item: item::GAUNTLET_GORON,
+        how: How::Later {
+            call: &[get(flow::GET_IN_EVENT_GORON)],
+            caller: flow::GET_STONE_OF_FIRE,
+            found: flag::HAVE_PLAYED_EVENT_DM_GORON_0030,
+        },
+        setting: Some(NPC_GIFTS),
+    },
     // Link the Goron, stopped as an adult. His first talk after that is
     // the only way to the grant, and it sets his quest step's Bool.
     npc(
