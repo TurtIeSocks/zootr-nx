@@ -204,9 +204,8 @@ pub struct Report {
     /// Each shuffled dungeon door. Empty while doors stay put.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entrances: Vec<Door>,
-    /// Each dungeon whose small keys come as one ring. Empty unless the
-    /// seed rolls which dungeons take a ring and which take their keys one
-    /// at a time.
+    /// Each dungeon whose small keys come as one ring, by name. Empty when
+    /// none do.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub key_rings: Vec<String>,
 }

@@ -62,6 +62,8 @@ impl Installed {
             .as_ref()
             .map_or((&[][..], &[][..]), |r| (&r.spots[..], &r.start.items[..]));
         let mut hearts = Hearts::new(&gd, &hearts::vanilla(&romfs)?, spots, start)?;
+        let listed = report.as_ref().map_or(&[][..], |r| &r.key_rings[..]);
+        inv.set_rings(&romfs, listed)?;
         if let Some(save) = savefile::newest_since(&config.save_dir()?, since)? {
             let save = savefile::load(&save)?;
             inv.load(inventory::in_save(&save));
