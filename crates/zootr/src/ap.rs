@@ -231,7 +231,7 @@ pub fn archipelago_option(id: &str, option: &str) -> Archipelago {
 /// what each changes alone, so the export builds each group's
 /// combinations whole: NPC Gifts with Met Zelda (Zelda's Letter ✅ stays
 /// put, no Weird Egg), with Gerudo Fortress (Freed keeps the membership
-/// card's check), with Cows (the gifts' bottles fill the pouch's five,
+/// card's check, and leaves Fortress Keys nothing to deal), with Cows (the gifts' bottles fill the pouch's five,
 /// so the cows' milk deals as rupees) and with King Zora Moved (either
 /// makes Ruto's Letter ✅ a check). And Progressive Items with the
 /// settings that start a line a level lower (a starter bag shuffled, the
@@ -242,6 +242,7 @@ pub const JOINT: &[&[&str]] = &[
         "npc-gifts",
         "met-zelda",
         "gerudo-fortress",
+        "fortress-keys",
         "cows",
         "king-zora-moved",
     ],
@@ -287,6 +288,16 @@ const HELD: &[(&str, &str, &str)] = &[
         "keys",
         "singles",
         " Rings, small keys and boss keys turn up in random chests and gifts, never in their own dungeon.",
+    ),
+    (
+        "fortress-keys",
+        "rings",
+        " With Key rings, one ring opens every jailed cell.",
+    ),
+    (
+        "fortress-keys",
+        "mixed",
+        " With Rings or Keysanity, the seed rolls which.",
     ),
 ];
 

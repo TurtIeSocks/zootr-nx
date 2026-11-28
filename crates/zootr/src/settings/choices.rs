@@ -108,7 +108,8 @@ impl DungeonKeys {
     }
 }
 
-/// Where the Gerudo thieves' keys are: [`Keys`], or shuffled one by one.
+/// Where the Gerudo thieves' keys are, one for each cell left jailed:
+/// [`Keys`], or shuffled as a ring or one by one, as [`DungeonKeys`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, ValueEnum)]
 pub enum FortressKeys {
     /// Carried by the thieves, as in the game
@@ -116,8 +117,13 @@ pub enum FortressKeys {
     Vanilla,
     /// Held from the start, so the keys the thieves carry are checks
     Start,
+    /// One ring for every cell, at any check, and the thieves' keys are
+    /// checks
+    Rings,
     /// Each key on its own, at any check, and the thieves' keys are checks
     Singles,
+    /// The seed rolls a ring or the keys one by one
+    Mixed,
 }
 
 impl FortressKeys {
@@ -125,7 +131,9 @@ impl FortressKeys {
         match self {
             Self::Vanilla => Keys::Vanilla.label(),
             Self::Start => Keys::Start.label(),
+            Self::Rings => DungeonKeys::Rings.label(),
             Self::Singles => DungeonKeys::Singles.label(),
+            Self::Mixed => DungeonKeys::Mixed.label(),
         }
     }
 
@@ -136,7 +144,7 @@ impl FortressKeys {
 
     /// Whether the keys come as copies the hook credits to the Fortress.
     pub fn copies(self) -> bool {
-        self == Self::Singles
+        matches!(self, Self::Rings | Self::Singles | Self::Mixed)
     }
 }
 

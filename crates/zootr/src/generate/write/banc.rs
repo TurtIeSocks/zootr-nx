@@ -221,7 +221,7 @@ impl<'p, 'a> Banc<'p, 'a> {
         let (romfs, adult_jabu) = (parts.romfs, parts.new_game.adult_jabu);
         write_maps(builder, &mut self.changed_maps)?;
         carpenters::valley::check_banc(self.valley)?;
-        carpenters::valley::write(romfs, builder)?;
+        carpenters::write(romfs, builder)?;
         adult_jabu::arrival(romfs, builder, adult_jabu)?;
         adult_jabu::strip_foliage(romfs, builder, adult_jabu)?;
         jabu_mood::write(romfs, builder, adult_jabu)?;

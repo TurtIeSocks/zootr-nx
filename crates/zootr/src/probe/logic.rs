@@ -345,7 +345,10 @@ pub(super) fn settings() {
             let nest = [
                 d.parent.map(|p| format!("under {p}")),
                 Some(format!("in {}", d.section)),
-                d.requires.map(|r| format!("needs {r}")),
+                d.requires.map(|r| match r.not {
+                    None => format!("needs {}", r.id),
+                    Some(pick) => format!("off with {}={pick}", r.id),
+                }),
             ]
             .into_iter()
             .flatten()

@@ -176,10 +176,7 @@ fn deals(
     if new_game.freestanding {
         goron_pot::rename(romfs, rewrites, drops)?;
     }
-    carpenters::guards::stand_down(romfs, rewrites, drops)?;
-    carpenters::valley::flows(romfs, rewrites)?;
-    carpenters::guards::clear_once(romfs, rewrites)?;
-    carpenters::guards::rescue_once(romfs, rewrites)?;
+    carpenters::flows(romfs, rewrites, drops)?;
     let model = gifts::levels::model(all)?;
     let level = gifts::levels::Level {
         model: &model,
@@ -251,6 +248,7 @@ pub fn write_mod(
     let mut parts = Parts::new(romfs, drops, new_game, reads, &gd)?;
     // Presets and `--default` edits go last, so they win over a skip's.
     let mut edits = flags;
+    edits.extend(carpenters::start::edits(&gd, new_game.gerudo_fortress)?);
     edits.extend(new_game.defaults.iter().cloned());
     let mut data = BymlDoc::parse(&romfs.read(gamedata::PATH)?)?;
     let defaults = parts.game_data(&mut data.root, &gd, &slots, &shelves, &edits)?;

@@ -24,8 +24,8 @@ use crate::checks::{self, DROP_ACTOR, GYAML};
 use crate::copies::as_credits;
 use crate::copies::{self, MADE, POUCH_TEXT, Sets, TEXT_PARTS, copy, own_pack, pointed};
 use crate::keys::{
-    BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, KeyMode, KeyModes, SMALL, boss_flag, dungeon,
-    dungeon_of, has_boss, small_flag,
+    BOSS, DUNGEONS, Dungeon, FORTRESS, FORTRESS_KEY, FORTRESS_N, KeyMode, KeyModes, SMALL,
+    boss_flag, dungeon, dungeon_of, has_boss, small_flag,
 };
 use crate::known::{Name, actor, flag, flow, item};
 use crate::medallions::{self, Color};
@@ -100,7 +100,7 @@ const OWN: [(&Name, Color); 3] = [
 
 /// The Gerudo Fortress's keys are their own actors already, one for each
 /// thief. They show the small key model after the dungeons'.
-const FORTRESS_MODEL: usize = DUNGEONS.len() + 1;
+const FORTRESS_MODEL: usize = FORTRESS_N;
 const FORTRESS_COLOR: Color = [215, 40, 150];
 
 /// How many dungeons' keys have a color: [`DUNGEONS`], then the Gerudo
@@ -159,9 +159,9 @@ pub fn boss(n: usize) -> String {
     BOSS_LOOK.name(n)
 }
 
-/// The Gerudo Fortress's key copy with Keysanity: a small key as a chest's
-/// content the game neither stores nor counts, showing the Fortress key
-/// model. The hook adds it to the Fortress counter.
+/// The Gerudo Fortress's key copy: a small key as a chest's content the
+/// game neither stores nor counts, showing the Fortress's ring or its key
+/// as its mode deals it. The hook fills the Fortress counter or adds one.
 pub fn fortress() -> String {
     ring(FORTRESS_MODEL)
 }
@@ -185,11 +185,10 @@ pub fn name_label(item: &str) -> Option<String> {
 }
 
 /// The key `item` copies and the model it shows as its dungeon's mode
-/// deals it. The Fortress's copy shows the Fortress key model either way.
+/// deals it, the Fortress's as one more dungeon.
 fn copy_of(item: &str, modes: &KeyModes) -> Option<(&'static Name, String)> {
     let (template, n) = copied_as(item)?;
     let model = match template {
-        _ if n == FORTRESS_MODEL => SMALL_LOOK.name(FORTRESS_MODEL),
         t if t == SMALL => ring_model(n, modes.mode(n)),
         _ => boss(n),
     };
@@ -214,12 +213,11 @@ fn copied_as(item: &str) -> Option<(&'static Name, usize)> {
 }
 
 /// The lines a copy of `template` for dungeon `n` reads as its mode deals
-/// it. The Fortress's copy reads as a single key, which is what its four
-/// thieves each carry.
+/// it.
 fn copy_text(template: &Name, n: usize, modes: &KeyModes) -> &'static CopyText {
     match template == BOSS {
         true => &BOSS_TEXT,
-        false if n == FORTRESS_MODEL || modes.mode(n) == KeyMode::Singles => &SINGLE_TEXT,
+        false if modes.mode(n) == KeyMode::Singles => &SINGLE_TEXT,
         false => &RING_TEXT,
     }
 }
@@ -322,8 +320,8 @@ const BOSS_TEXT: CopyText = [
 ];
 /// What each copy sets as it's found: with `bosses` a boss key's flag, with
 /// a dungeon's keys coming as a ring that ring's counter, full, with them
-/// coming one at a time one more on its counter, and with `fortress` one
-/// more on the Fortress's.
+/// coming one at a time one more on its counter, and with `fortress` the
+/// Fortress's counter the same way.
 pub fn sets(bosses: bool, modes: &KeyModes, fortress: bool) -> Vec<(String, Sets)> {
     let mut out = Vec::new();
     for (i, d) in DUNGEONS.iter().enumerate() {
@@ -340,7 +338,14 @@ pub fn sets(bosses: bool, modes: &KeyModes, fortress: bool) -> Vec<(String, Sets
         }
     }
     if fortress {
-        out.push((self::fortress(), Sets::Add(small_flag(FORTRESS.name), 1)));
+        let counter = small_flag(FORTRESS.name);
+        out.push((
+            self::fortress(),
+            match modes.mode(FORTRESS_N) {
+                KeyMode::Rings => Sets::Int(counter, FORTRESS.keys as i32),
+                KeyMode::Singles => Sets::Add(counter, 1),
+            },
+        ));
     }
     out
 }
@@ -402,7 +407,14 @@ pub fn write(
         tables.show(&pack.name, SMALL_LOOK.host, &name)?;
     }
     if fortress {
-        copy(builder, tables, &chest, &self::fortress(), &name, true)?;
+        let mode = modes.mode(FORTRESS_MODEL);
+        if mode == KeyMode::Rings {
+            let model = rings::model(&small.model, FORTRESS.keys as usize)?;
+            let ring = ring_model(FORTRESS_MODEL, mode);
+            small.write_as(builder, &ring, &model, FORTRESS_COLOR, true)?;
+        }
+        let model = ring_model(FORTRESS_MODEL, mode);
+        copy(builder, tables, &chest, &self::fortress(), &model, true)?;
     }
     uncounted(tables, bosses, modes.copies(), fortress)
 }

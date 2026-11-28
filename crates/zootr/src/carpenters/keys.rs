@@ -15,24 +15,29 @@
 //! read, so the flow sets it after the thief's call.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::LazyLock;
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::{EventKind, Flowchart, Value};
 
+use super::CELLS;
 use crate::checks::{Drop, ItemCheck, TRANSLATE};
 use crate::flows::{self, GAME_DATA, IS_BOOL, Rewrites, SET_BOOL, running, string};
 use crate::known::{Name, field, flow};
 use crate::pickups::steps;
+use crate::settings::GerudoFortress;
 use crate::{keys, pickups, shows};
 
 const FLOW: &Name = flow::SAGE_OF_SPIRIT_RESCUE_CARPENTER;
 /// The thieves that carry their key, by placement hash. The third carries
 /// none: its key is only the one the flow moves.
-pub const CARRYING: [u64; 3] = [
-    3350876166368957251,
-    3233425834948791513,
-    13730570727502202323,
-];
+pub static CARRYING: LazyLock<Vec<u64>> = LazyLock::new(|| {
+    CELLS
+        .iter()
+        .filter(|c| c.carries)
+        .map(|c| c.thief)
+        .collect()
+});
 /// The call's argument naming the key's actor.
 const KEY: &Name = flow::OBJ_SMALL_KEY;
 /// The call's argument naming the spot on the floor beside her.
@@ -44,13 +49,14 @@ pub fn is_carried(check: &ItemCheck) -> bool {
     CARRYING.contains(&check.hash) && keys::is_key(&check.item)
 }
 
-/// Each thief's call, by the number of the key it carries (01 first).
-const THIEVES: [&Name; 4] = [
-    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF01,
-    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF02,
-    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF03,
-    flow::GERUDO_FORTRESS_DESTROY_GERUDO_THIEF04,
-];
+/// Whether `check` is the thief's of a cell `mode` frees, her drop or the
+/// key the flow moves to her: she never stands, so neither is a check
+/// (the maintainer's call, 2026-11-27).
+pub fn freed_thief(check: &ItemCheck, mode: GerudoFortress) -> bool {
+    let cell = CELLS.iter().find(|c| c.thief == check.hash);
+    let cell = cell.or_else(|| super::cell_of_key(&check.item));
+    cell.is_some_and(|c| !super::jailed(mode, c))
+}
 
 /// The Bool the seed sets once the thief carrying key `n` (01 first) gives
 /// another item. The key's own Bool can't say so: the key, placed
@@ -61,9 +67,7 @@ fn gave(n: &str) -> String {
 
 /// The Bools a new game with Fortress keys adds, one per thief.
 pub fn flags() -> Vec<String> {
-    (1..=THIEVES.len())
-        .map(|i| gave(&format!("{i:02}")))
-        .collect()
+    CELLS.iter().map(|c| gave(&format!("{:02}", c.n))).collect()
 }
 
 /// The Bool set once the thief whose key is `vanilla` gives `item`: the
@@ -74,24 +78,21 @@ pub fn got(vanilla: &str, item: &str) -> Option<String> {
     Some(if item == vanilla { key } else { gave(n) })
 }
 
+/// The Bool key `n` (1 to 4) sets once taken.
+pub fn taken(n: usize) -> String {
+    format!(
+        "{}.{}{n:02}",
+        field::IS_GET_SMALL_KEY_GERUDO_FORTRESS,
+        field::SMALL_KEY
+    )
+}
+
 /// The entry that runs the thief's call, and the Bool the key sets, for
 /// the key actor `key`.
 fn thief_of(key: &str) -> Result<(String, String)> {
-    let n = key.strip_prefix(keys::FORTRESS_KEY);
-    let n = n.with_context(|| format!("{key} isn't a Fortress key"))?;
-    let thief = n
-        .parse::<usize>()
-        .ok()
-        .and_then(|i| THIEVES.get(i.checked_sub(1)?));
-    let thief = thief.with_context(|| format!("{key} isn't a thief's key"))?;
-    Ok((
-        thief.to_string(),
-        format!(
-            "{}.{}{n}",
-            field::IS_GET_SMALL_KEY_GERUDO_FORTRESS,
-            field::SMALL_KEY
-        ),
-    ))
+    let cell = super::cell_of_key(key);
+    let cell = cell.with_context(|| format!("{key} isn't a thief's key"))?;
+    Ok((cell.thief_call.to_string(), cell.key_taken()))
 }
 
 /// Point each moved key's call at the actor now placed there, one call
@@ -235,7 +236,7 @@ mod tests {
             .collect();
         let mut hashes: Vec<_> = carried.iter().map(|c| c.hash).collect();
         hashes.sort();
-        let mut all = CARRYING;
+        let mut all = CARRYING.clone();
         all.sort();
         assert_eq!(hashes, all);
         assert!(
@@ -263,7 +264,7 @@ mod tests {
             let main = flow.entry_points.iter().find(|e| e.name == thief.get());
             &flow.events[main.unwrap().main.unwrap() as usize].kind
         };
-        let EventKind::SubFlow { params, next, .. } = entry(THIEVES[0]) else {
+        let EventKind::SubFlow { params, next, .. } = entry(CELLS[0].thief_call) else {
             panic!("a call")
         };
         let Some((_, Value::ActorId { name, secondary })) = params.iter().find(|p| p.0 == KEY)
@@ -293,7 +294,7 @@ mod tests {
         let vanilla = flows::load(&romfs, FLOW).unwrap().unwrap();
         let sets = |f: &Flowchart| flows::running(f, SET_BOOL).len();
         assert_eq!(sets(&flow), sets(&vanilla) + 2);
-        let EventKind::SubFlow { params, next, .. } = entry(THIEVES[1]) else {
+        let EventKind::SubFlow { params, next, .. } = entry(CELLS[1].thief_call) else {
             panic!("a call")
         };
         assert!(next.is_none());
@@ -331,7 +332,7 @@ mod tests {
         let main = flow
             .entry_points
             .iter()
-            .find(|e| e.name == THIEVES[0].get());
+            .find(|e| e.name == CELLS[0].thief_call.get());
         let at = |e: u16| &flow.events[e as usize].kind;
         let EventKind::Switch { params, cases, .. } = at(main.unwrap().main.unwrap()) else {
             panic!("a gate")

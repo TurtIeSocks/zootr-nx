@@ -296,6 +296,7 @@ pub fn dealt_of(
     out.retain(|c| !(new_game.fortress_keys.moved() && crate::carpenters::keys::is_carried(c)));
     let pickups = crate::pickups::dealt(romfs, new_game)?;
     out.extend(crate::pickups::variants::checks(pickups)?);
+    out.retain(|c| !crate::carpenters::keys::freed_thief(c, new_game.gerudo_fortress));
     if new_game.freestanding {
         out.push(crate::goron_pot::check());
     }

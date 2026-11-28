@@ -13,7 +13,7 @@ use crate::known::{Name, actor, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
-use crate::{cows, gates, gifts, keys, shops};
+use crate::{cows, gates, gifts, shops};
 
 mod exits;
 mod goal;
@@ -441,7 +441,7 @@ impl Build<'_> {
                 places,
                 item: s.item.clone(),
                 gives: Gives::Item,
-                need: match keys::fortress_need(&s.item, ctx) {
+                need: match crate::carpenters::logic::source_need(book, ctx, &s.item)? {
                     Some(keys) => Need::All(vec![book.need(&s.expr, ctx)?, keys]),
                     None => book.need(&s.expr, ctx)?,
                 },
@@ -780,20 +780,32 @@ pub(super) mod tests {
         assert!(doors.iter().any(|d| d.need.met(&have, Era::Adult)));
     }
 
+    /// The card's source follows the carpenters' cells: every jailed one
+    /// opened (`carpenters::logic` has the rules per cell).
     #[test]
-    fn gerudo_fortress_fast_gives_the_card_without_the_hookshot() {
+    fn the_card_s_source_waits_on_every_jailed_cell() {
         let Some(romfs) = crate::game::dev_dump() else {
             return;
         };
-        let fast = crate::settings::FORTRESS_FAST;
-        let card = crate::carpenters::guards::CARD.get();
-        let source = |on: &[&str]| {
-            let world = world(&romfs, on);
-            let s = world.sources.iter().find(|s| s.item == card).unwrap();
-            s.need.met(&Have::default(), Era::Adult)
+        use crate::settings::{FORTRESS_FAST, FORTRESS_FREED};
+        let card = crate::carpenters::CARD.get();
+        let have = |items: &[&str]| {
+            let mut have = Have::default();
+            items
+                .iter()
+                .for_each(|i| have.add(&crate::rules::vocab::id(i).unwrap()));
+            have
         };
-        assert!(source(&[fast]));
-        assert!(!source(&[]));
+        let source = |world: &World, items: &[&str]| {
+            let s = world.sources.iter().find(|s| s.item == card).unwrap();
+            s.need.met(&have(items), Era::Adult)
+        };
+        let (sword, hook) = ("item:master-sword", "item:hookshot");
+        let normal = world(&romfs, &[]);
+        assert!(!source(&normal, &[sword]) && source(&normal, &[sword, hook]));
+        let fast = world(&romfs, &[FORTRESS_FAST]);
+        assert!(!source(&fast, &[]) && source(&fast, &[sword]));
+        assert!(source(&world(&romfs, &[FORTRESS_FREED]), &[]));
     }
 
     #[test]
