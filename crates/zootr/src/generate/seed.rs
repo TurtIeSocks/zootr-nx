@@ -131,7 +131,7 @@ pub fn shuffle(
         .chain(have.items.keys().map(String::as_str));
     let names = (Names::load(romfs, actors)?)
         .progressive(new_game.progressive)
-        .keys(new_game.keys)
+        .keys(new_game.key_modes())
         .foreign(&new_game.foreign);
     let mut spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
     let given = gifts::pocket(&new_game.on);
@@ -177,7 +177,19 @@ pub fn shuffle(
         unprovable,
         start: start(&have, new_game, &names, &started),
         entrances: entrances(new_game),
+        key_rings: key_rings(new_game, &names),
     })
+}
+
+/// Each dungeon whose small keys come as a ring, by name. Only a mixed
+/// seed mixes, so every other setting names none.
+fn key_rings(new_game: &NewGame, names: &Names) -> Vec<String> {
+    new_game
+        .key_modes()
+        .rings()
+        .into_iter()
+        .map(|dungeon| names.area(dungeon.get()))
+        .collect()
 }
 
 /// Each door the seed shuffles, with the dungeon behind it.
@@ -319,6 +331,7 @@ fn new_game(settings: &Settings, extras: &Extras, seed: u64) -> Result<NewGame> 
         random_age,
         colors: extras.colors.clone(),
         audio: extras.audio.clone(),
+        vanilla: extras.vanilla,
         ..NewGame::from_settings(&settings, &extras.defaults)?
     };
     new_game.fields.extend(extras.fields.iter().cloned());

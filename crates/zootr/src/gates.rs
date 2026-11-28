@@ -112,6 +112,15 @@ pub enum Expr {
     Not(Box<Expr>),
 }
 
+/// A value a GameData program reads on its own: a Bool, a BoolExp, or a
+/// Bool read as false.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Readable {
+    Bool(String),
+    Exp(String),
+    Not(String),
+}
+
 impl Expr {
     /// Every atom the gate reads, however its rule folds them.
     pub fn atoms(&self) -> Vec<&Atom> {
@@ -121,6 +130,36 @@ impl Expr {
             Expr::Not(e) => e.atoms(),
             Expr::SetFlag(_, v) | Expr::And(v) | Expr::Or(v) => {
                 v.iter().flat_map(Expr::atoms).collect()
+            }
+        }
+    }
+
+    /// What the gate needs that a GameData program can say on its own: the
+    /// Bools and BoolExps every branch of its AND must hold. `None` where the
+    /// gate branches (`Or`), where a term on one branch isn't needed at all,
+    /// or where it denies a value a program can't name. A term a program
+    /// can't name (an actor's own `Dead`, an enum, a sensor) is left out, so
+    /// this is part of what the gate needs, never the whole of it: enough to
+    /// keep a copy standing only while the gate could hold at all.
+    pub fn needs(&self) -> Option<Vec<Readable>> {
+        match self {
+            Expr::Const(_) => Some(Vec::new()),
+            Expr::Atom(Atom::Flag(flag)) => Some(vec![Readable::Bool(flag.clone())]),
+            Expr::Atom(Atom::Exp(exp)) => Some(vec![Readable::Exp(exp.clone())]),
+            Expr::Atom(_) => None,
+            Expr::SetFlag(flag, _) => Some(vec![Readable::Bool(flag.clone())]),
+            Expr::Not(e) => match e.as_ref() {
+                Expr::Atom(Atom::Flag(flag)) => Some(vec![Readable::Not(flag.clone())]),
+                _ => None,
+            },
+            Expr::Or(_) => None,
+            Expr::And(terms) => {
+                let mut out: Vec<Readable> = (terms.iter())
+                    .flat_map(|t| t.needs().unwrap_or_default())
+                    .collect();
+                out.sort_unstable();
+                out.dedup();
+                Some(out)
             }
         }
     }
@@ -265,6 +304,9 @@ pub struct Creator {
     /// The graph, as `Logic/` keeps it, and the node's index in it.
     pub graph: String,
     pub node: usize,
+    /// What the node's create input waits on: the gate that lets the actor
+    /// appear at all (`Expr::needs` says how much of it a program can read).
+    pub gate: Expr,
     /// How many times the graph is placed, in any map.
     pub placed: usize,
     /// Whether every node its `AiGroup` runs, nested modules included, only
@@ -303,6 +345,7 @@ fn find_creators(romfs: &Romfs) -> Result<Vec<Creator>> {
                 area: world.bancs[inst.banc].area.clone(),
                 graph: inst.graph.clone(),
                 node: n,
+                gate: world.named_input(i, n, CREATE, &Seen::default()),
                 placed: placed[inst.graph.as_str()],
                 quiet: quiet[&(inst.banc, inst.group)],
             });

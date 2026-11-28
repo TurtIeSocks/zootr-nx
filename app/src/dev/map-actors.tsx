@@ -34,7 +34,7 @@ export function SearchField({
     <div className={cn("relative min-w-0", className)}>
       <Search
         aria-hidden
-        className="pointer-events-none absolute top-2 left-2.5 size-4 text-ink-faint"
+        className="pointer-events-none absolute top-2 left-2.5 size-4 text-ink-faint z-1"
       />
       <Input
         aria-label={label}

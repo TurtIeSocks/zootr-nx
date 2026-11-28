@@ -26,6 +26,12 @@ hash = 12909857529499414969
 name = "Upper Five Bombs 1"
 needs = "silver-gauntlets"
 
+# The same room's ice trap chest, dealt as a plain chest: no switch to it.
+[[check]]
+hash = 876108895472176682
+name = "Spirit Temple 2F First Mirror Right Chest"
+needs = "silver-gauntlets"
+
 # The two invisible chests in the hall beyond the central chamber's
 # locked door.
 [[check]]

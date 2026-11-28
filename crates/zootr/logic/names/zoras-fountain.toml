@@ -1,0 +1,65 @@
+# Zora's Fountain. OoTR's name wherever the remake keeps the spot:
+# matched by position, the arrival points nearby and the remake guides
+# for the Gold Skulltulas and heart pieces.
+#
+# The hidden cave's pots stand in both the child and adult maps, as
+# separate checks, so their names say which age's they are, as OoTR's
+# Market Guard House Child Pot does. Numbers count west to east within
+# one spot.
+
+# By Jabu-Jabu, the child's four pots.
+10835121848480419248 = "ZF Near Jabu Pot 1"
+11382955502959013110 = "ZF Near Jabu Pot 2"
+7692213673625838330 = "ZF Near Jabu Pot 3"
+697465442349235192 = "ZF Near Jabu Pot 4"
+
+# The child's two Skulltulas: one on the tree southeast of Jabu-Jabu, one
+# up on the slanted stone arch south of him.
+17355397719442343054 = "ZF GS Tree"
+7152962033963346563 = "ZF GS Above the Log" # guess: the child's other night Skulltula, which the guides put on the stone arch
+
+# A chest new to the remake, on the adult's ledge where the scarecrow appears.
+15055117029957340138 = "ZF Scarecrow Chest" # guess: named for the scarecrow beside it
+
+# The iceberg's heart piece.
+12406896586250888098 = "ZF Iceberg Freestanding PoH"
+
+# At the bottom of the fountain, with the Iron Boots: OoTR's heart piece
+# and the green rupees around it.
+8030885465575590602 = "ZF Bottom Freestanding PoH"
+4077060633972129211 = "ZF Bottom Green Rupee 1"
+4175716627569108253 = "ZF Bottom Green Rupee 2"
+11743429110701869711 = "ZF Bottom Green Rupee 3"
+7369210492575735847 = "ZF Bottom Green Rupee 4"
+9058546130605800023 = "ZF Bottom Green Rupee 5"
+5767588505352617062 = "ZF Bottom Green Rupee 6"
+10518148330968147601 = "ZF Bottom Green Rupee 8"
+15066348262714298279 = "ZF Bottom Green Rupee 7"
+7430539662759067881 = "ZF Bottom Green Rupee 10"
+11712600857155855626 = "ZF Bottom Green Rupee 9"
+10247339190834717086 = "ZF Bottom Green Rupee 11"
+2207729956021615024 = "ZF Bottom Green Rupee 12"
+5568633841506517325 = "ZF Bottom Green Rupee 14"
+11672626208313429634 = "ZF Bottom Green Rupee 13"
+6511717208019100686 = "ZF Bottom Green Rupee 15"
+16981113694024920682 = "ZF Bottom Green Rupee 16"
+
+# The hidden cave under the silver boulder: its Skulltula, and two pots
+# in each age's map.
+9537398183107003742 = "ZF GS Hidden Cave"
+14131098108744088630 = "ZF Hidden Cave Child Pot 1"
+18012345028628492631 = "ZF Hidden Cave Child Pot 2"
+12389449717548603491 = "ZF Hidden Cave Adult Pot 1"
+11141668837643914565 = "ZF Hidden Cave Adult Pot 2"
+
+# The three silver rocks, in each age map. Ours,
+# as OoTR has none. Numbered west to east.
+7870652284690645781 = "ZF Child Silver Rock 1"
+4117475603241592218 = "ZF Child Silver Rock 2"
+17232595302518493540 = "ZF Child Silver Rock 3"
+11141853402576759431 = "ZF Adult Silver Rock 1"
+15546380048732510520 = "ZF Adult Silver Rock 2"
+8128099944573471538 = "ZF Adult Silver Rock 3"
+
+# The Great Fairy's fountain.
+3291474312194526326 = "ZF Great Fairy Reward"

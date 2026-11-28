@@ -127,7 +127,7 @@ const fn npad_stubs(b: &Build) -> [u32; 3] {
 /// seed with [`DEV`], and springs ice traps. The nock sets Link's
 /// projectile to the drawn bow's, so a child Bow fires arrows, and the out
 /// of ammo handler's message follows that projectile, not Link's age.
-const fn hooks(b: &Build) -> [(u32, u32); 15] {
+const fn hooks(b: &Build) -> [(u32, u32); 16] {
     let e = &b.entries;
     [
         (e.map_loaded, entry::MAP_LOADED),
@@ -145,6 +145,7 @@ const fn hooks(b: &Build) -> [(u32, u32); 15] {
         (e.equipment_left, entry::EQUIPMENT_LEFT),
         (e.resident_create, entry::RESIDENT_MADE),
         (e.ocarina_input, entry::OCARINA_INPUT),
+        (e.select_drops, entry::SELECT_DROPS),
     ]
 }
 /// Whether build `b`'s shared state fits under its panic word, 8 byte
@@ -398,6 +399,14 @@ mod tests {
     }
 
     #[test]
+    fn each_release_checks_baba_bags_at_the_drop_selector() {
+        for (release, selector) in [(Release::V100, 0x2e9_f060), (Release::V111, 0x2ef_45e0)] {
+            let hook = Hook::of(release);
+            assert!(hook.site(selector).is_some(), "{}", release.name());
+        }
+    }
+
+    #[test]
     fn the_fullest_table_fits() {
         use crate::settings::DungeonKeys;
         // The longest ammo lines, one for each prize chest. Their names
@@ -418,7 +427,8 @@ mod tests {
                 DungeonKeys::Rings,
                 DungeonKeys::Singles,
             ] {
-                let credits = crate::key_tints::credits(true, keys, true);
+                let credits =
+                    crate::key_tints::credits(true, &crate::keys::KeyModes::fixed(keys), true);
                 let credits: Vec<_> = credits.iter().map(|(n, c)| (n.as_str(), *c)).collect();
                 let p = h.patches(&progressive::LINES, &keyed, ALL, &credits, &[SPOT], None);
                 assert!(
@@ -714,14 +724,14 @@ mod tests {
     fn the_1_1_1_patch_is_pinned() {
         let (got, pinned) = pins(v111());
         let want = [
-            ("hook", 0x0fc1_20e1_e89b_b381),
-            ("far", 0x438c_e7fb_f900_50f3),
-            ("code", 0x0b33_f438_d41d_b2ab),
-            ("sites", 0xc830_00e1_3314_33eb),
-            ("patches", 0x6002_24b7_7a94_0073),
-            ("pchtxt", 0x73a0_38f0_c65e_dad2),
-            ("ips", 0x2b92_834c_f5f9_ccd2),
-            ("cheat", 0x6c3e_1bc0_0617_8025),
+            ("hook", 0x029a_95a3_69cb_3590),
+            ("far", 0x3038_0f62_d6e6_934c),
+            ("code", 0x63c9_f525_f570_f6cf),
+            ("sites", 0x40f9_7452_8681_f71b),
+            ("patches", 0xa760_7ead_9ba7_a4e7),
+            ("pchtxt", 0x0d77_9f98_af85_8dde),
+            ("ips", 0x8249_a981_03a6_1b97),
+            ("cheat", 0x23e9_7627_8a36_26fc),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }
@@ -732,14 +742,14 @@ mod tests {
     fn the_1_0_0_patch_is_pinned() {
         let (got, pinned) = pins(Hook::of(Release::V100));
         let want = [
-            ("hook", 0x9dbe_e5e7_a11f_adee),
-            ("far", 0x5086_decc_0284_7915),
-            ("code", 0xe531_b7db_7132_bbe5),
-            ("sites", 0x81c6_2356_3e01_17a7),
-            ("patches", 0xe9f3_ea73_21c8_5055),
-            ("pchtxt", 0x5328_6628_c354_aee5),
-            ("ips", 0x3e4f_3442_4a02_bc0c),
-            ("cheat", 0xaa80_6cd2_04f3_8b14),
+            ("hook", 0x96db_7244_0574_934b),
+            ("far", 0x4fb2_d057_c362_2617),
+            ("code", 0xc844_4af3_bebe_802e),
+            ("sites", 0xb0b6_ec86_4c84_29df),
+            ("patches", 0x8ae5_345d_6449_b8ae),
+            ("pchtxt", 0x44e1_a859_e759_8931),
+            ("ips", 0x4226_e852_ec2c_2c92),
+            ("cheat", 0x3617_3e0b_cb95_7295),
         ];
         assert_eq!(got[..pinned], want[..pinned], "{got:#x?}");
     }

@@ -1,0 +1,99 @@
+# Dodongos Cavern. OoTR's name wherever the remake keeps the spot: chests
+# matched by room, rule and vanilla item, rooms by their landmarks (the
+# blade traps, the one and two eye switches, the last block), and the
+# remake guides for the Gold Skulltulas. Pots go by room, numbered west
+# to east.
+#
+# Every name carries its map floor after "Dodongos Cavern", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# Lobby: the Map Chest behind its bomb wall, the End of Bridge Chest behind
+# the bomb wall straight above it, and a chest the remake added by the
+# lobby's west wall.
+8291119063305855945 = "Dodongos Cavern 1F Map Chest"
+7524527082521156886 = "Dodongos Cavern 2F End of Bridge Chest"
+8607798771661947511 = "Dodongos Cavern 1F Lobby Side Chest" # guess: new chest, by the lobby's west wall
+
+# The right side: the corridor east of the lobby with its Baby Dodongos.
+960362013021648957 = "Dodongos Cavern 1F GS Scarecrow"
+1876671093443800633 = "Dodongos Cavern 1F Right Side Pot 1"
+9774921074194675290 = "Dodongos Cavern 1F Right Side Pot 2"
+3363281587750304043 = "Dodongos Cavern 1F Right Side Pot 3"
+12085163799643476292 = "Dodongos Cavern 1F Right Side Pot 4"
+
+# Behind the bomb wall in that corridor.
+1171854281537584829 = "Dodongos Cavern 1F GS Side Room Near Lower Lizalfos"
+
+# Lower Lizalfos room: its chest appears once the Lizalfos fall.
+7764016096998075927 = "Dodongos Cavern 1F Lower Lizalfos Chest" # guess: new chest, holding OoTR's Bomb Flower Platform Chest's 20 rupees
+6325371574169243820 = "Dodongos Cavern 1F Lower Lizalfos Pot 1"
+1382943444627893523 = "Dodongos Cavern 1F Lower Lizalfos Pot 2"
+10150009467744191252 = "Dodongos Cavern 1F Lower Lizalfos Pot 3"
+9712419871941282477 = "Dodongos Cavern 1F Lower Lizalfos Pot 4"
+10493525405478862270 = "Dodongos Cavern 1F Lower Lizalfos Pot 5"
+11133209227870230642 = "Dodongos Cavern 1F Lower Lizalfos Pot 6"
+2045413023280716382 = "Dodongos Cavern 1F Lower Lizalfos Pot 7"
+
+# The Dodongos' torch room, and the scrub in the side room off it.
+3975080901614021966 = "Dodongos Cavern 1F Torch Room Pot 1"
+1997644872224400101 = "Dodongos Cavern 1F Torch Room Pot 2"
+15912316170670317256 = "Dodongos Cavern 1F Torch Room Pot 3"
+7388739057158296701 = "Dodongos Cavern 1F Deku Scrub Side Room Near Dodongos"
+
+# The staircase room: the Skulltula on the net above the stairs, and a
+# chest behind a bomb wall at the top.
+8470399761714006011 = "Dodongos Cavern 2F GS Vines Above Stairs"
+12253889300578348965 = "Dodongos Cavern 2F Top of Stairs Chest" # guess: behind a bomb wall atop the stairs, where OoTR's Near Bomb Bag scrubs hid; may be OoTR's Bomb Flower Platform Chest
+1095569754766380995 = "Dodongos Cavern 2F Staircase Pot 1"
+12200381569168299500 = "Dodongos Cavern 2F Staircase Pot 2"
+9597464827066038162 = "Dodongos Cavern 2F Staircase Pot 3"
+1786052373103713076 = "Dodongos Cavern 2F Staircase Pot 4"
+
+# The compass room off the staircase room.
+17531994809974271603 = "Dodongos Cavern 1F Compass Chest"
+
+# The blade room: the Bomb Bag Chest on its high ledge, and a chest the
+# remake added near it.
+12161709650443144121 = "Dodongos Cavern 2F Bomb Bag Chest"
+11582649900854566065 = "Dodongos Cavern 2F Blade Room Chest" # guess: new chest near the Bomb Bag ledge, perhaps in place of OoTR's heart behind the block
+4234933260265093025 = "Dodongos Cavern 2F Blade Room Pot 1"
+3941834049759865192 = "Dodongos Cavern 2F Blade Room Pot 2"
+13297656785343605627 = "Dodongos Cavern 2F Blade Room Pot 3"
+10636680471375736003 = "Dodongos Cavern 2F Blade Room Pot 4"
+
+# The single eye switch room, before the upper Lizalfos.
+558580124832874594 = "Dodongos Cavern 2F Single Eye Switch Room Pot 1"
+2530082567273905838 = "Dodongos Cavern 2F Single Eye Switch Room Pot 2"
+14182867811396955150 = "Dodongos Cavern 2F Single Eye Switch Room Pot 3"
+
+# Upper Lizalfos room: its chest appears once the Lizalfos fall.
+850464708089653824 = "Dodongos Cavern 2F Upper Lizalfos Chest" # guess: new chest
+12436656290806750367 = "Dodongos Cavern 2F Upper Lizalfos Pot 1"
+6763794341906819086 = "Dodongos Cavern 2F Upper Lizalfos Pot 2"
+
+# The double eye switch room, after the upper Lizalfos.
+8997212367184665421 = "Dodongos Cavern 2F Double Eye Switch Room Pot 1"
+3215221221211819661 = "Dodongos Cavern 2F Double Eye Switch Room Pot 2"
+
+# The room with two Dodongos: the Skulltula on its central rock.
+4565265801822094851 = "Dodongos Cavern 2F GS Two Dodongo Room" # guess: the guides' spot for the fifth Skulltula, standing in for OoTR's Alcove Above Stairs
+
+# The last block room, and the back room behind the bomb wall past it.
+11918955770754578074 = "Dodongos Cavern 1F Last Block Pot 1"
+7019968549718875208 = "Dodongos Cavern 1F Last Block Pot 2"
+11604995372981625598 = "Dodongos Cavern 1F Last Block Pot 3"
+15723367373502201973 = "Dodongos Cavern 1F Last Block Pot 4"
+1011984139792114332 = "Dodongos Cavern 1F Last Block Pot 5"
+13690401647626643497 = "Dodongos Cavern 1F GS Back Room"
+
+# By the cracked floor that drops to the boss.
+8895256479077874219 = "Dodongos Cavern 1F Before Boss Pot 1"
+17221132504973124786 = "Dodongos Cavern 1F Before Boss Pot 2"
+8698939491446015433 = "Dodongos Cavern 1F Before Boss Pot 3"
+
+# King Dodongo.
+5936534468710061389 = "Dodongos Cavern 1F King Dodongo Heart"
+17500953785828008907 = "Dodongos Cavern 1F King Dodongo"

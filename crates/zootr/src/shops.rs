@@ -430,8 +430,9 @@ pub fn write(
                 fields.push(format!("{h}.{TRANSLATE}.1+={rise}"));
             }
         }
-        let sign = signs::sign(tables, item);
-        fields.extend(stand.signs.iter().map(|h| format!("{h}.{GYAML}={sign}")));
+        if let Some(tag) = &stand.sign {
+            fields.extend(stand.signs.iter().map(|h| format!("{h}.{GYAML}={tag}")));
+        }
     }
     Ok(fields)
 }
@@ -675,12 +676,13 @@ mod tests {
         let goron = slots.iter().find(|s| s.shop == "Goron Shop").unwrap();
         let drops = HashMap::from([(goron.hash(), Drop::from(item::HOOKSHOT.to_string()))]);
         let gd = GameData::load(&romfs).unwrap();
+        let tables = Tables::load(&romfs).unwrap();
         let new_game = NewGame {
             shop_slots: 1,
             progressive: true,
             ..NewGame::default()
         };
-        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
         let copies = captions(&romfs, &shelves).unwrap();
         // Each level it can show has its caption.
         let longshot = format!("{}_ShopCaption", item::LONGSHOT);
@@ -722,7 +724,7 @@ mod tests {
             ..NewGame::default()
         };
         let gd = GameData::load(&romfs).unwrap();
-        let shelves = Shelves::new(&slots, &drops, &new_game, &gd).unwrap();
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
         assert!(shelves.exps.is_empty(), "a plain item has no steps");
         let fields = write(&romfs, &mut builder, &mut tables, &shelves, &new_game).unwrap();
         tables.write(&mut builder).unwrap();
@@ -743,16 +745,16 @@ mod tests {
         let plank = planks::plank(goron.shop, goron.number).unwrap();
         assert!((plank + 0.1..plank + 0.2).contains(&rise), "{rise}");
         let rises = fields.iter().filter(|f| f.contains("+=")).count();
-        let signed: usize = (slots.iter().filter(|s| s.number == 1))
-            .map(|s| s.signs.len())
-            .sum();
-        assert_eq!(fields.len() - rises, placed + signed);
-        // One Hookshot: its sign goes blank.
+        assert_eq!(fields.len() - rises, placed);
+        // One Hookshot: no sign names a count, so no sign is renamed. Each
+        // stands gated off, which `steps.rs` reads.
         assert!(!goron.signs.is_empty());
-        for sign in goron.signs.values() {
-            let blank = format!("{sign}.Gyaml={}", actor::SHOP_BOARD_BASE);
-            assert!(fields.contains(&blank), "{blank}");
-        }
+        let named: Vec<_> = (slots.iter())
+            .flat_map(|s| s.signs.values())
+            .map(|sign| format!("{sign}.{GYAML}="))
+            .filter(|f| (fields.iter()).any(|field| field.starts_with(f)))
+            .collect();
+        assert!(named.is_empty(), "{named:?}");
 
         let rel = format!("Pack/Actor/{name}.pack.zs");
         let data = crate::game::read_built(&romfs, &dir, &rel);
@@ -868,5 +870,33 @@ mod tests {
             );
         }
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_counted_sale_renames_its_sign_to_the_count() {
+        let Some(romfs) = dev_dump() else { return };
+        let slots = slots(&romfs).unwrap();
+        let slot = slots.iter().find(|s| !s.signs.is_empty()).unwrap();
+        let &sign = slot.signs.values().next().unwrap();
+        let drops = HashMap::from([(slot.hash(), Drop::from(actor::T_BOX_RUPEE_RED.to_string()))]);
+        let dir = std::env::temp_dir().join(format!("zootr-signs-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let mut tables = Tables::load(&romfs).unwrap();
+        let gd = GameData::load(&romfs).unwrap();
+        let new_game = NewGame {
+            shop_slots: 8,
+            seed: 7,
+            ..NewGame::default()
+        };
+        let shelves = Shelves::new(&slots, &drops, &new_game, &gd, &tables).unwrap();
+        let fields = write(&romfs, &mut builder, &mut tables, &shelves, &new_game).unwrap();
+        builder.finish().unwrap();
+        std::fs::remove_dir_all(dir).unwrap();
+        let prefix = format!("{sign}.{GYAML}=");
+        let named: Vec<&str> = (fields.iter())
+            .map(String::as_str)
+            .filter(|f| f.starts_with(&prefix))
+            .collect();
+        assert_eq!(named, [format!("{prefix}{}20", signs::COUNTED).as_str()]);
     }
 }

@@ -3,9 +3,9 @@
 
 use core::ffi::CStr;
 
-use super::{Hash, at, func, name, shared};
+use super::{Hash, MAX, at, dev, func, name, shared};
 use crate::traps::COMPONENTS;
-use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick_with};
+use crate::{CHESTS, Chest, Offsets, Table, after_grant, pick, pick_with};
 
 type Count = unsafe extern "C" fn(usize, *const *const u8, u32, u32) -> i32;
 type Delete = unsafe extern "C" fn(usize, usize) -> bool;
@@ -54,9 +54,28 @@ pub(super) unsafe fn record(main: usize, table: &Table, node: usize) -> Option<(
 /// # Safety
 /// The table's offsets are this build's.
 pub(super) unsafe fn recreate(main: usize, table: &Table, added: &[u8]) -> Option<()> {
-    let owns = unsafe { owned(main, table.offsets) }?;
+    let owns = unsafe { progression_owned(main, table.offsets) }?;
     for (line, next) in after_grant(table, added, &owns) {
         unsafe { remake(main, table, line, next.as_ptr() as usize) };
+    }
+    Some(())
+}
+
+/// A loose pickup may be added under its stand-in name. Refresh the closed
+/// chests from the pouch once the get is over.
+///
+/// # Safety
+/// The table's offsets are this build's.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
+pub(super) unsafe fn refresh(main: usize, table: &Table) -> Option<()> {
+    let owns = unsafe { progression_owned(main, table.offsets) }?;
+    let shared = shared(main);
+    for (line, _, levels) in table.lines() {
+        let loaded = shared.with(|l| l.chests().iter().any(|c| c.line == line && !c.done));
+        if loaded && let Some(next) = pick(levels, &owns) {
+            unsafe { remake(main, table, line, next.as_ptr() as usize) };
+        }
     }
     Some(())
 }
@@ -191,12 +210,49 @@ pub(super) unsafe fn owned(main: usize, o: &Offsets) -> Option<impl Fn(&[u8]) ->
     Some(move |pouch: &[u8]| unsafe { count(manager, &pouch.as_ptr(), 0, 0) } > 0)
 }
 
+/// A stand-in can set a level's ownership flag and capacity without adding
+/// stock under the original pouch name.
+///
+/// # Safety
+/// The offsets are this build's.
+unsafe fn progression_owned(main: usize, o: &Offsets) -> Option<impl Fn(&[u8]) -> bool> {
+    let count = unsafe { owned(main, o) }?;
+    let gd = unsafe { dev::single(main, o.gamedata) };
+    Some(move |pouch: &[u8]| {
+        count(pouch) || gd.is_some_and(|gd| unsafe { owns_flag(main, o, gd, pouch) })
+    })
+}
+
+/// # Safety
+/// The GameData manager and offsets are this build's.
+#[inline(never)]
+#[unsafe(link_section = ".far")]
+unsafe fn owns_flag(main: usize, o: &Offsets, gd: usize, pouch: &[u8]) -> bool {
+    const PREFIX: &[u8] = b"IsGet.";
+    let mut key = [0; PREFIX.len() + MAX + 1];
+    if pouch.len() > MAX {
+        return false;
+    }
+    key[..PREFIX.len()].copy_from_slice(PREFIX);
+    // SAFETY: The bounded pouch name fits after the prefix and before the NUL.
+    unsafe {
+        core::ptr::copy_nonoverlapping(
+            pouch.as_ptr(),
+            key.as_mut_ptr().add(PREFIX.len()),
+            pouch.len(),
+        );
+    }
+    let hash: Hash = unsafe { func(main, o.hash) };
+    let hash = unsafe { hash(key.as_ptr(), 0) };
+    unsafe { dev::get_bool(main, o, gd, hash) == Some(true) }
+}
+
 /// The level to give in place of `now`, when it needs changing.
 ///
 /// # Safety
 /// The table's offsets are this build's.
 pub(super) unsafe fn level_for<'a>(main: usize, table: &Table<'a>, now: &[u8]) -> Option<&'a [u8]> {
-    let owns = unsafe { owned(main, table.offsets) }?;
+    let owns = unsafe { progression_owned(main, table.offsets) }?;
     let (_, levels, _) = table.find(now)?;
     pick_with(levels, b"", &owns).filter(|&give| give != now)
 }

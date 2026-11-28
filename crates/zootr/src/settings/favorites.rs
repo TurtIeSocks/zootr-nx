@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     BOMBCHUS, BUNNY_HOOD, Bombchus, CHESTS, DOOR_OF_TIME, DoorOfTime, PROGRESSIVE, QUIET_NAVI,
-    SCRUBS, SHUFFLE_ITEMS, SKIP_ALL, SKIP_ARRIVALS, SKIP_INTRO, Settings, choice_id,
+    SCRUBS, SKIP_ALL, SKIP_ARRIVALS, SKIP_INTRO, Settings, choice_id,
 };
 use crate::starting;
 
@@ -42,7 +42,6 @@ pub struct BuiltIn {
 pub fn randomizer() -> Settings {
     let start = starting::Start::of(&["master-sword"]);
     let mut settings = on(&[
-        SHUFFLE_ITEMS,
         CHESTS,
         SCRUBS,
         PROGRESSIVE,

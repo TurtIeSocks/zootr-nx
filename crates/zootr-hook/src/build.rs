@@ -73,6 +73,8 @@ pub struct Entries {
     /// The ocarina's input, each frame it's out: `(ocarina, input)`. See
     /// `docs/research/songbook.md`.
     pub ocarina_input: u32,
+    /// Selects the drops for a request, filling the caller's empty list.
+    pub select_drops: u32,
 }
 
 /// The game's functions, called from the hook or read by the host.
@@ -410,6 +412,7 @@ pub const V131072: Build = Build {
         equipment_left: 0xa7_0ff0,
         resident_create: 0x94_5610,
         ocarina_input: 0x329_2070,
+        select_drops: 0x2ef_45e0,
     },
     funcs: Funcs {
         setter: 0xfe_3fe0,

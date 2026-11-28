@@ -20,6 +20,7 @@ pub const V65536: Build = Build {
         equipment_left: 0xa0_c9b0,
         resident_create: 0x98_70a0,
         ocarina_input: 0x323_2f70,
+        select_drops: 0x2e9_f060,
     },
     funcs: Funcs {
         setter: 0xb4_ac90,

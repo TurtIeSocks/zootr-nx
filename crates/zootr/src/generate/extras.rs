@@ -67,10 +67,11 @@ pub struct Extras {
     /// as colors are.
     #[serde(skip_serializing_if = "Drafts::is_empty")]
     pub drafts: Drafts,
-    /// From before Shuffle items was a setting. History moves it there on
-    /// load, and it's never written.
-    #[serde(skip_serializing)]
-    pub(crate) vanilla: bool,
+    /// Shuffle nothing, so every check keeps its own item: the CLI's
+    /// `--vanilla`, for the harness. Not a setting: the app has no use
+    /// for it, and as one it hid every shuffle when it was off (#531).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub vanilla: bool,
 }
 
 impl Extras {

@@ -140,6 +140,8 @@ export interface Ui {
   dev: {
     /** The open tab. */
     tab: DevTab;
+    /** The window floats over the game. */
+    pinned: boolean;
     /** Warp's tab, each tab's search, and the side to warp to. */
     teleport: {
       tab: "places" | "actors";
@@ -209,6 +211,7 @@ const INITIAL: Ui = {
   colors: { tab: "texture", changes: false, sheets: {}, views: {} },
   dev: {
     tab: "warp",
+    pinned: true,
     teleport: { tab: "places", places: "", actors: "", side: "front" },
     give: { item: "", count: 1 },
     set: { name: "" },
@@ -418,3 +421,10 @@ export const nextTheme = () =>
     "theme",
     (t) => THEMES[(THEMES.indexOf(t) + 1) % THEMES.length] ?? t,
   );
+
+/** Keeps the dev window over the game, or lets it drop behind. */
+export async function pin() {
+  const pinned = useUi.getPath("dev.pinned");
+  await getCurrentWindow().setAlwaysOnTop(!pinned);
+  useUi.setPath("dev.pinned", !pinned);
+}

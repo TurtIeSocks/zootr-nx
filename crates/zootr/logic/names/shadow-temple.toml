@@ -1,0 +1,145 @@
+# Shadow Temple. OoTR's name wherever the remake keeps the spot: matched
+# by each check's room, its rule, the item the vanilla game puts there
+# and the remake guides for the Gold Skulltulas. Pots go by room in
+# OoTR's room words, numbered west to east. The remake has many more pots
+# than OoTR, so most rooms carry numbers OoTR's don't.
+#
+# Every name carries its map floor after "Shadow Temple", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# The entrance, and the room beside it.
+4385961172347528446 = "Shadow Temple B1 Entrance Pot 2"
+17689953228344661448 = "Shadow Temple B1 Entrance Pot 1"
+5137262787253127252 = "Shadow Temple B1 Entrance Pot 3"
+7543258766643332752 = "Shadow Temple B1 Entrance Pot 4"
+14017012371096777227 = "Shadow Temple B1 Beginning Pot 1" # guess: the room off the entrance, before the pit; OoTR has no pots here
+16363220504982834002 = "Shadow Temple B1 Beginning Pot 2" # guess: as above
+11384529499855811655 = "Shadow Temple B1 Beginning Flying Pot 1" # guess: as above
+15593483770892955044 = "Shadow Temple B1 Beginning Flying Pot 2" # guess: as above
+
+# The whispering walls, the hall between the truth spinner, the map room
+# and the way to Dead Hand. OoTR has six pots and a flying pot here; the
+# remake eight and one.
+8173592441786734389 = "Shadow Temple B1 Whispering Walls Pot 1"
+17854956688468606247 = "Shadow Temple B1 Whispering Walls Pot 2"
+10356635971059791941 = "Shadow Temple B1 Whispering Walls Pot 3"
+6866982547773490759 = "Shadow Temple B1 Whispering Walls Pot 4"
+10301361589593592700 = "Shadow Temple B1 Whispering Walls Pot 5"
+10043160893858466207 = "Shadow Temple B1 Whispering Walls Pot 6"
+637997711414805291 = "Shadow Temple B1 Whispering Walls Pot 7"
+4523454191033743159 = "Shadow Temple B1 Whispering Walls Pot 8"
+10334432357157409143 = "Shadow Temple B1 Whispering Walls Flying Pot"
+
+# The map room, and Dead Hand's room.
+13528903653876646082 = "Shadow Temple B1 Map Chest"
+17042617359037842076 = "Shadow Temple B1 Map Chest Room Pot 1"
+6776181446576910895 = "Shadow Temple B1 Map Chest Room Pot 2"
+14535080241831873137 = "Shadow Temple B1 Hover Boots Chest"
+
+# Past the Beamos: the spinning blades with the silver rupees, and the
+# compass room's Gibdo.
+1111717451118505545 = "Shadow Temple B2 Early Silver Rupee Chest"
+6702955117999869897 = "Shadow Temple B2 Early Silver Rupee Room Pot 1"
+1516979191701649719 = "Shadow Temple B2 Early Silver Rupee Room Pot 2"
+1733372171176975157 = "Shadow Temple B2 Compass Chest"
+
+# The guillotine room over the huge pit: two pots and a Business Scrub
+# the remake added.
+5735857708033803819 = "Shadow Temple B3 Guillotine Room Pot 1"
+11474152021729303804 = "Shadow Temple B3 Guillotine Room Pot 2"
+8721287453021850502 = "Shadow Temple B3 Deku Scrub"
+
+# The invisible blades room: ten pots (OoTR has two freestanding hearts),
+# and the alcove with both chests and the Skulltula between them (guides).
+5029848030828875088 = "Shadow Temple B3 Invisible Blades Pot 1"
+7775851373127171934 = "Shadow Temple B3 Invisible Blades Pot 2"
+134986578316042658 = "Shadow Temple B3 Invisible Blades Pot 3"
+942717339458442898 = "Shadow Temple B3 Invisible Blades Pot 4"
+10054939734302812185 = "Shadow Temple B3 Invisible Blades Pot 5"
+107698896144035778 = "Shadow Temple B3 Invisible Blades Pot 6"
+16048804842009110150 = "Shadow Temple B3 Invisible Blades Pot 7"
+6352163088611595134 = "Shadow Temple B3 Invisible Blades Pot 8"
+2739008401552783208 = "Shadow Temple B3 Invisible Blades Pot 9"
+5727384110982141012 = "Shadow Temple B3 Invisible Blades Pot 10"
+10344372963276519235 = "Shadow Temple B3 Invisible Blades Visible Chest"
+3718790579351798247 = "Shadow Temple B3 Invisible Blades Invisible Chest"
+16933078188088206331 = "Shadow Temple B3 GS Invisible Blades Room"
+
+# The falling spikes room: the chest on the floor, the key chest up top,
+# two pots on each level, and the Skulltula high on the wall.
+8858270325665149688 = "Shadow Temple B3 Falling Spikes Lower Chest"
+5781953901224064730 = "Shadow Temple B3 Falling Spikes Switch Chest" # guess: the one upper chest left, matched by its Small Key
+10246279987220488515 = "Shadow Temple B3 Falling Spikes Lower Pot 1"
+599553213768790720 = "Shadow Temple B3 Falling Spikes Lower Pot 2"
+15223760367968746914 = "Shadow Temple B3 Falling Spikes Upper Pot 1"
+15785610174252975907 = "Shadow Temple B3 Falling Spikes Upper Pot 2"
+15148554628675590606 = "Shadow Temple B3 GS Falling Spikes Room"
+
+# Past the invisible spikes: the giant skull pot room with the key, and
+# its two bomb pots.
+12562389953863361839 = "Shadow Temple B3 Freestanding Key"
+6544503533980361638 = "Shadow Temple B3 Freestanding Key Room Pot 1"
+12144875447328979495 = "Shadow Temple B3 Freestanding Key Room Pot 2"
+
+# The wind tunnel. The guides put a Skulltula on its ceiling hooks, which
+# OoTR doesn't have: the remake's move of OoTR's Single Giant Pot token.
+15564367841356014861 = "Shadow Temple B3 GS Wind Tunnel" # guess: which token moved here
+9863928399380026377 = "Shadow Temple B3 Wind Tunnel Pot 1"
+15429078377557359609 = "Shadow Temple B3 Wind Tunnel Pot 2"
+9236688121471794419 = "Shadow Temple B3 Wind Tunnel Pot 3"
+3425839498342409275 = "Shadow Temple B3 Wind Tunnel Pot 4"
+
+# The hint room off the wind tunnel, with the ReDead and the hidden chest.
+12345747231768877602 = "Shadow Temple B3 Wind Hint Chest"
+6564827077422769808 = "Shadow Temple B3 Wind Hint Room Pot 1"
+1252191464782579179 = "Shadow Temple B3 Wind Hint Room Pot 2"
+
+# After the wind, the Gibdo room: OoTR's two pots and two flying pots,
+# the Gibdos' chest and the one hidden from the Lens.
+5681107746948738726 = "Shadow Temple B3 After Wind Enemy Chest"
+169081039115821925 = "Shadow Temple B3 After Wind Hidden Chest"
+9711710493526840537 = "Shadow Temple B3 After Wind Pot 1"
+5186468140174045596 = "Shadow Temple B3 After Wind Pot 2"
+3296148488970241946 = "Shadow Temple B3 After Wind Flying Pot 1"
+13367491346939660535 = "Shadow Temple B3 After Wind Flying Pot 2"
+
+# The boat: the dock on the east side with the Skulltula over the water,
+# then the far side's upper and lower landings.
+8823884712433934372 = "Shadow Temple B4 GS Near Ship"
+17234756865109480535 = "Shadow Temple B4 Before Boat Pot 1"
+17044246235202554271 = "Shadow Temple B4 Before Boat Pot 2"
+1349030569854865098 = "Shadow Temple B4 Before Boat Pot 3"
+11721675795691289040 = "Shadow Temple B4 Before Boat Pot 4"
+712957976181550607 = "Shadow Temple B4 Before Boat Pot 5"
+15975907892717926899 = "Shadow Temple B4 Before Boat Pot 6"
+3535930098895909483 = "Shadow Temple B4 After Boat Upper Pot 1"
+645964684709624210 = "Shadow Temple B4 After Boat Upper Pot 2"
+8781054380795091131 = "Shadow Temple B4 After Boat Upper Pot 3"
+3756369741882798824 = "Shadow Temple B4 After Boat Upper Pot 4"
+9528320623415061098 = "Shadow Temple B4 After Boat Lower Pot 1"
+9913774638860555567 = "Shadow Temple B4 After Boat Lower Pot 2"
+1269682677594157588 = "Shadow Temple B4 After Boat Lower Pot 3"
+
+# Across the river: the spiked walls with the Boss Key, the three
+# spinning skull pots (guides) with their bomb pots, and the invisible
+# Floormaster.
+9852624243105848451 = "Shadow Temple B4 Spike Walls Left Chest"
+9221365632831348137 = "Shadow Temple B4 Boss Key Chest"
+10270336409167849808 = "Shadow Temple B4 GS Triple Giant Pot"
+9802947017180102035 = "Shadow Temple B4 Triple Giant Pot Room Pot 1"
+2390438047371933001 = "Shadow Temple B4 Triple Giant Pot Room Pot 2"
+17902550525792072472 = "Shadow Temple B4 Invisible Floormaster Chest"
+14320599047535591653 = "Shadow Temple B4 Invisible Floormaster Pot 1"
+10622992497710988818 = "Shadow Temple B4 Invisible Floormaster Pot 2"
+
+# Before the boss door: OoTR's two pots, three in the remake.
+2535753234898910734 = "Shadow Temple B4 Near Boss Pot 1"
+11024655001264732882 = "Shadow Temple B4 Near Boss Pot 2"
+5547078554456230394 = "Shadow Temple B4 Near Boss Pot 3"
+
+# The boss.
+9112680507839779871 = "Shadow Temple B4 Bongo Bongo"
+17599164808183510748 = "Shadow Temple B4 Bongo Bongo Heart"

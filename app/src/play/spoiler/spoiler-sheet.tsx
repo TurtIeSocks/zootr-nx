@@ -1,6 +1,6 @@
 import { EyeOff } from "lucide-react";
 import { useState } from "react";
-import { commands } from "@/bindings";
+import { commands, type Spoiler } from "@/bindings";
 import { InlineError } from "@/components/callout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Help } from "@/components/help";
@@ -42,6 +42,12 @@ const TABS: { id: SpoilerTab; label: string }[] = [
 
 /** The tab a seed with shuffled doors adds. */
 const ENTRANCES = { id: "entrances", label: "Entrances" } as const;
+
+/** The tabs `spoiler` shows: each extra one only when the seed has it. */
+const tabsFor = (spoiler: Spoiler): { id: SpoilerTab; label: string }[] => [
+  ...TABS,
+  ...(spoiler.entrances.length ? [ENTRANCES] : []),
+];
 
 /** The tab bodies by tab. */
 const PANELS: Record<SpoilerTab, () => React.JSX.Element> = {
@@ -177,7 +183,7 @@ function TabBar() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2">
         <Segmented
-          options={spoiler.entrances.length ? [...TABS, ENTRANCES] : TABS}
+          options={tabsFor(spoiler)}
           value={tab}
           onValueChange={setTab}
         />

@@ -1,0 +1,97 @@
+# Fire Temple. OoTR's name wherever the remake keeps the spot: matched
+# by each check's room, its rule, the item the vanilla game puts there
+# and the remake guides for the Gold Skulltulas. The remake keeps the
+# original's room layout here, so OoTR's freestanding hearts line up with
+# the rooms where the remake now has pots. Pots go by room in OoTR's room
+# words, numbered west to east.
+#
+# Every name carries its map floor after "Fire Temple", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# The big lava room past the first locked door: three pots, the chest in
+# the open goron cell, and the one behind a bombable wall.
+13720304619349543095 = "Fire Temple 1F Big Lava Room Pot 1"
+2839526458267949318 = "Fire Temple 1F Big Lava Room Pot 2"
+12275059645282086381 = "Fire Temple 1F Big Lava Room Pot 3"
+3949488292768750868 = "Fire Temple 1F Big Lava Room Lower Open Door Chest"
+1705064956286753527 = "Fire Temple 1F Big Lava Room Blocked Door Chest"
+
+# The Song of Time room off the big lava room, with the Like Like. The
+# guides put this Skulltula behind the Song of Time block.
+6789992996625105554 = "Fire Temple 1F GS Song of Time Room"
+
+# The room by the boss door: its chest and four pots (OoTR has two).
+5634724236470386190 = "Fire Temple 1F Near Boss Chest"
+15304985273997957319 = "Fire Temple 1F Near Boss Pot 1"
+5818975214008540983 = "Fire Temple 1F Near Boss Pot 2"
+4888253376140319316 = "Fire Temple 1F Near Boss Pot 3"
+15267562180962122590 = "Fire Temple 1F Near Boss Pot 4"
+
+# The Boss Key loop, through the Hammer pillar by the entrance: the
+# flying tile room's Skulltula, the Flare Dancer's chest, and the Boss Key
+# in the goron cell at the end.
+14706322686481615109 = "Fire Temple 1F GS Boss Key Loop"
+8757492004108970488 = "Fire Temple 1F Flare Dancer Chest"
+14060099092170010696 = "Fire Temple 1F Boss Key Chest"
+
+# The block on the fire jet up from the big lava room. OoTR has three
+# freestanding hearts here; the remake has two pots.
+1614774357493893481 = "Fire Temple 1F Elevator Room Pot 1"
+7276364588106931231 = "Fire Temple 1F Elevator Room Pot 2"
+
+# The goron cell bombed open on the shortcut beside the boulder maze.
+16785682308850448108 = "Fire Temple 2F Boulder Maze Shortcut Chest"
+
+# The boulder maze: two goron cells, the Skulltula behind the north
+# cracked wall (guides), and the map behind its switch.
+12567412825200613393 = "Fire Temple 3F Boulder Maze Lower Chest" # guess: the maze's goron cell on the main floor
+9634924691849556346 = "Fire Temple 3F Boulder Maze Upper Chest" # guess: the maze's raised goron cell
+12945617941305968586 = "Fire Temple 3F Boulder Maze Side Room Chest" # guess: the last goron cell on this floor, west over the Flare Dancer room
+12751796212121957464 = "Fire Temple 3F GS Boulder Maze"
+3688520809244472975 = "Fire Temple 3F Map Chest"
+
+# The narrow path room with the eye switch. OoTR has three freestanding
+# hearts here; the remake has three pots.
+15901054600830633268 = "Fire Temple 3F Narrow Path Room Pot 1"
+17365727223434160995 = "Fire Temple 3F Narrow Path Room Pot 2"
+14488990020963596026 = "Fire Temple 3F Narrow Path Room Pot 3"
+
+# The moving fire wall room: two of OoTR's three freestanding hearts, a
+# pot, and the chest behind the switch shutter.
+10973307894322368710 = "Fire Temple 3F Moving Fire Room Recovery Heart 1"
+876976950103637140 = "Fire Temple 3F Moving Fire Room Recovery Heart 2"
+11945600822575070219 = "Fire Temple 3F Moving Fire Room Pot"
+16713240760352215634 = "Fire Temple 3F Compass Chest" # guess: named by its item; OoTR's compass sits off the flame maze
+
+# Up on the Scarecrow's lift: the Skulltula on the climb, then the room
+# at the top with its Skulltula and chests. OoTR has one chest up here;
+# the remake three, so they take numbers.
+5556173334779815044 = "Fire Temple 4F GS Scarecrow Climb" # guess: the first of the two Scarecrow rooms the guides list
+9172014785497046138 = "Fire Temple 5F GS Scarecrow Top"
+862385681502746018 = "Fire Temple 5F Scarecrow Chest 1"
+15073195886628236505 = "Fire Temple 5F Scarecrow Chest 2"
+17001858340376096722 = "Fire Temple 5F Scarecrow Chest 3"
+
+# The flame maze on the west side.
+18015303210027196984 = "Fire Temple 3F Flame Maze Pot 1"
+1299294558999405209 = "Fire Temple 3F Flame Maze Pot 2"
+12809751476932043688 = "Fire Temple 3F Flame Maze Pot 3"
+17781326666964833523 = "Fire Temple 3F Flame Maze Pot 4"
+3049694327750200002 = "Fire Temple 3F Flame Maze Pot 5"
+
+# The top: the caged goron behind the Song of Time block, and the
+# Hammer up the narrow stairs.
+10521366928524045067 = "Fire Temple 3F Highest Goron Chest"
+12083259659219538030 = "Fire Temple 5F Megaton Hammer Chest"
+
+# The boss.
+15655385584089977863 = "Fire Temple 1F Volvagia"
+9478330070473364248 = "Fire Temple 1F Volvagia Heart"
+
+# Red boulders (the hammer). Ours, as OoTR has none.
+10887294463827394248 = "Fire Temple 1F Boss Key Loop Red Boulder"
+9487554220373337506 = "Fire Temple 3F Near Highest Goron Red Boulder 1"
+18166761150827896849 = "Fire Temple 3F Near Highest Goron Red Boulder 2"

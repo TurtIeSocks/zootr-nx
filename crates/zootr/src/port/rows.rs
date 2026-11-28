@@ -106,6 +106,7 @@ rows! {
         equipment_left: Code,
         resident_create: Code,
         ocarina_input: Code,
+        select_drops: Code,
     }
     funcs: Funcs {
         setter: Code,

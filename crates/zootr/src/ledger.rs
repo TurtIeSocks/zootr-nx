@@ -28,12 +28,12 @@ pub const SCHEMA: u32 = 1;
 /// and the `accounting` test fails one that adds debt.
 pub const BASELINE: Debt = Debt {
     refused: 6,
-    left_out: 335,
+    left_out: 323,
 };
 
 /// Placements `left_out` calls no holder that aren't breakables, by
 /// holder, and why.
-const NOT_HOLDERS: [(&Name, Why); 22] = [
+const NOT_HOLDERS: [(&Name, Why); 23] = [
     // Furniture in the Iron Knuckle rooms, a tree and a cow bone.
     (actor::OBJ_IRON_KNUCKLE_PILLAR_A_01, Why::Scenery),
     (actor::OBJ_IRON_KNUCKLE_CHAIR_A_02, Why::Scenery),
@@ -47,6 +47,9 @@ const NOT_HOLDERS: [(&Name, Why); 22] = [
     (actor::OBJ_HRL_CITY_SHOP_T_BOX_A_02, Why::Maintainer),
     // The crates Link lifts: nothing breaks them (EIE row 17).
     (actor::OBJ_BROKEN_BOX_A_03, Why::Maintainer),
+    // The boss rush's copies of the pots before Ganondorf, in Ganon's
+    // Castle and the Dream World's stage: only the rush places them.
+    (actor::OBJ_POT_A_06_DREAM, Why::Maintainer),
     // Silver rupees, obstacles a room counts until its door opens: their
     // own spec is next (EIE row 19).
     (actor::OBJ_RUPEE_TOKEN_SILVER, Why::Eie { eie: 19 }),
@@ -432,7 +435,7 @@ pub fn print(romfs: &Romfs, unknown: bool) -> Result<()> {
 /// their own dungeon). Counted room by room, a refusal is logic's own.
 fn refused(c: &ItemCheck, items: &BTreeSet<&str>, new_game: &NewGame) -> Vec<Refused> {
     let need = (!crate::key_rooms::by_room(c))
-        .then(|| crate::keys::dungeon_need(c, new_game.keys))
+        .then(|| crate::keys::dungeon_need(c, &new_game.key_modes()))
         .flatten();
     let own_key = |item: &str| matches!(&need, Some(Need::Items { actors, .. }) if actors.iter().any(|a| a == item));
     (items.iter())
@@ -526,6 +529,10 @@ fn census(romfs: &Romfs, breakable: &BTreeSet<String>) -> Result<Vec<ItemCheck>>
     out.extend(gifts::checks());
     out.extend(scrubs::checks());
     out.extend(pickups::LOOSE.checks(romfs)?);
+    // The rocks over grottos, which no seed deals.
+    out.extend(pickups::BOULDERS.checks(romfs)?);
+    out.extend(pickups::RED_BOULDERS.checks(romfs)?);
+    out.extend(pickups::SILVER_ROCKS.checks(romfs)?);
     let placed: BTreeSet<u64> = out.iter().map(|c| c.hash).collect();
     let pickups = placed_pickups(romfs)?;
     for (file, doc) in load_bancs(romfs, banc_files(romfs)?) {

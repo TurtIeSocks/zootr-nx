@@ -11,31 +11,35 @@ use roead::sarc::{Sarc, SarcWriter};
 use super::{GLOBAL_AI, stale, taken};
 use crate::known::{Name, field};
 
-/// One graph's path in the pack, and what makes its new bytes from the
-/// pack.
-type Edit = (String, fn(&Sarc) -> Result<Vec<u8>>);
-
 /// Writes the pack with the take tick in the pickup event graph, and the
 /// stale-drop branch in the drop graph when `steps_built`, each size table
 /// entry resized.
-pub fn write(romfs: &Romfs, builder: &mut ModBuilder, steps_built: bool) -> Result<()> {
-    let mut edits: Vec<Edit> = vec![(taken::graph(), taken::ticked)];
-    if steps_built {
-        edits.push((stale::graph(), stale::branched));
-    }
+pub fn write(
+    romfs: &Romfs,
+    builder: &mut ModBuilder,
+    steps_built: bool,
+    hovering: bool,
+) -> Result<()> {
     let data = romfs.read(GLOBAL_AI)?;
     let pack = Sarc::new(&data)?;
+    let mut edits = vec![(taken::graph(), taken::ticked(&pack)?)];
+    if steps_built || hovering {
+        edits.push((
+            stale::graph(),
+            stale::branched(&pack, steps_built, hovering)?,
+        ));
+    }
     let mut writer = SarcWriter::from_sarc(&pack);
     let mut sizes = Vec::new();
-    for (file, edit) in &edits {
-        let old = (pack.get_data(file)).with_context(|| format!("no {file}"))?;
-        let new = edit(&pack)?;
-        sizes.push((file, old.len(), new.len()));
+    for (file, new) in edits {
+        let old = (pack.get_data(&file)).with_context(|| format!("no {file}"))?;
+        let new_len = new.len();
         writer = writer.with_file(file.as_str(), new);
+        sizes.push((file, old.len(), new_len));
     }
     builder.write(GLOBAL_AI, &writer.to_binary())?;
     for (file, old, new) in sizes {
-        builder.resize(file, old, new)?;
+        builder.resize(&file, old, new)?;
     }
     Ok(())
 }
@@ -58,24 +62,29 @@ pub fn name_check(
     class: &Name,
 ) -> Result<(usize, usize)> {
     let copy = |f: &mut File, class: &Name| self::copy(pack, f, class.get());
-    let own = copy(f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
-    let name = copy(f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
-    let starts = copy(f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
+    let (starts, name) = starts_with(pack, f, token)?;
     let concat = copy(f, field::QUERY_GENERIC_CONCAT_STRING)?;
     let flag = copy(f, class)?;
 
-    let file_name = field::ACTOR_FILE_NAME.get();
     let full_name = field::GAME_DATA_FULL_NAME.get();
     let text = |s: &str| Value::String(s.into());
-    f.link(name, "Actor", own, "Actor")?;
-    f.link(starts, "Input", name, file_name)?;
-    f.set_input(starts, "Token", &text(token))?;
     f.set_input(concat, "Input0", &text(bool_prefix))?;
-    f.link(concat, "Input1", name, file_name)?;
+    f.link(concat, "Input1", name, field::ACTOR_FILE_NAME.get())?;
     f.set_input(concat, "Input2", &text(""))?;
     f.set_input(flag, full_name, &text(""))?;
     f.link(flag, full_name, concat, "Output")?;
     Ok((starts, flag))
+}
+
+/// Whether the pickup's own actor file name starts with the prefix.
+pub fn starts_with(pack: &Sarc, f: &mut File, prefix: &str) -> Result<(usize, usize)> {
+    let own = copy(pack, f, field::QUERY_GENERIC_GET_OWN_ACTOR_LINK)?;
+    let name = copy(pack, f, field::QUERY_GENERIC_GET_ACTOR_NAME)?;
+    let starts = copy(pack, f, field::QUERY_GENERIC_STRING_STARTS_WITH)?;
+    f.link(name, "Actor", own, "Actor")?;
+    f.link(starts, "Input", name, field::ACTOR_FILE_NAME.get())?;
+    f.set_input(starts, "Token", &Value::String(prefix.into()))?;
+    Ok((starts, name))
 }
 
 /// `vanilla`'s own bool selector and do-nothing leaf, for copying.

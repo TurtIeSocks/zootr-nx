@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 use crate::checks::ItemCheck;
 use crate::known::{Name, actor, flag, flow, item, map};
 use crate::map_copies;
+use crate::rng::Rng;
 use crate::rules::{Ctx, Need};
 use crate::settings::FORTRESS_FAST;
 use crate::settings::{DungeonKeys, FortressKeys};
@@ -100,19 +101,125 @@ pub fn has_boss(n: usize) -> bool {
     dungeon(n).boss_room.is_some()
 }
 
-/// With key rings, every ring and boss key, each dealt once.
-pub static SHUFFLED: LazyLock<Vec<String>> = LazyLock::new(|| {
-    let n = 1..=DUNGEONS.len();
-    let rings = n.clone().map(key_tints::ring);
-    rings
-        .chain(n.filter(|&n| has_boss(n)).map(key_tints::boss))
-        .collect()
-});
+/// How one dungeon's small keys come: as its ring, or one key at a time.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum KeyMode {
+    /// One copy, which fills the dungeon's counter at once
+    Rings,
+    /// One copy for each key, each adding one to the counter. Keys left in
+    /// their chests or held from the start ask the same counts.
+    #[default]
+    Singles,
+}
+
+impl KeyMode {
+    /// How many copies `keys` stands for: one ring, or that many keys.
+    fn count(self, keys: u32) -> u32 {
+        match self {
+            Self::Rings => 1,
+            Self::Singles => keys,
+        }
+    }
+}
+
+/// Each dungeon's [`KeyMode`], as a seed deals its keys. `mixed` rolls one
+/// per dungeon from the seed; every other value gives all eight the same.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct KeyModes {
+    /// The setting's value, for what every dungeon shares
+    setting: DungeonKeys,
+    modes: [KeyMode; DUNGEONS.len()],
+}
+
+impl KeyModes {
+    /// The modes `keys` deals by, with a mixed roll off `seed`. One `Rng`
+    /// off a rotation no other roll uses (`StartingAge` takes 17, a door
+    /// roll 29), drawing one bit per dungeon in [`DUNGEONS`] order.
+    pub fn roll(keys: DungeonKeys, seed: u64) -> Self {
+        let mut rng = Rng::new(seed.rotate_left(41));
+        let modes = DUNGEONS.map(|_| match keys {
+            DungeonKeys::Rings => KeyMode::Rings,
+            DungeonKeys::Mixed => match rng.below(2) {
+                0 => KeyMode::Rings,
+                _ => KeyMode::Singles,
+            },
+            DungeonKeys::Vanilla | DungeonKeys::Start | DungeonKeys::Singles => KeyMode::Singles,
+        });
+        Self {
+            setting: keys,
+            modes,
+        }
+    }
+
+    /// The setting every dungeon shares.
+    pub fn setting(&self) -> DungeonKeys {
+        self.setting
+    }
+
+    /// Dungeon `n` of [`DUNGEONS`], counting from 1. The Gerudo Fortress
+    /// has no ring form and never asks.
+    pub fn mode(&self, n: usize) -> KeyMode {
+        self.modes[n - 1]
+    }
+
+    /// Whether the chests that held keys are checks.
+    pub fn moved(&self) -> bool {
+        self.setting.moved()
+    }
+
+    /// Whether small keys come as copies the hook credits to their own
+    /// dungeon, dealt with the boss keys to any chest.
+    pub fn copies(&self) -> bool {
+        self.setting.copies()
+    }
+
+    /// Every key copy the seed deals into a key chest's place: each
+    /// dungeon's small keys as its mode deals them, and each boss key.
+    /// Nothing with keys vanilla or from the start. Each id comes from
+    /// [`RINGS`] and [`BOSSES`], so it lives as long as the pool that holds
+    /// it.
+    pub fn dealt(&self) -> Vec<&'static str> {
+        if !self.copies() {
+            return Vec::new();
+        }
+        let n = 1..=DUNGEONS.len();
+        let smalls = n.clone().flat_map(|n| {
+            let count = self.mode(n).count(copies_of(n)) as usize;
+            (0..count).map(move |_| RINGS[n - 1].as_str())
+        });
+        smalls
+            .chain(n.filter(|&n| has_boss(n)).map(|n| BOSSES[n - 1].as_str()))
+            .collect()
+    }
+
+    /// Every dungeon dealing as `keys` says, for a test that names no seed.
+    #[cfg(test)]
+    pub(crate) fn fixed(keys: DungeonKeys) -> Self {
+        Self::roll(keys, 0)
+    }
+
+    /// Each dungeon whose small keys come as a ring, by name. Only a mixed
+    /// seed mixes, so the others name none.
+    pub fn rings(&self) -> Vec<&'static Name> {
+        if self.setting != DungeonKeys::Mixed {
+            return Vec::new();
+        }
+        DUNGEONS
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| self.mode(i + 1) == KeyMode::Rings)
+            .map(|(_, d)| d.name)
+            .collect()
+    }
+}
 
 /// Whether `item` is a ring, small key or boss key copy, the Fortress key
 /// copy, or a map or compass copy, which the hook credits as Link gets it.
 pub fn is_shuffled(item: &str) -> bool {
-    SHUFFLED.iter().any(|s| s == item) || item == key_tints::fortress() || map_copies::is_copy(item)
+    RINGS.iter().any(|s| s == item)
+        || BOSSES.iter().any(|s| s == item)
+        || item == key_tints::fortress()
+        || map_copies::is_copy(item)
 }
 
 /// Each dungeon's ring copy and boss key copy, by its number less one.
@@ -136,47 +243,35 @@ pub fn held(check: &ItemCheck) -> &str {
 }
 
 /// With Keysanity, every small key copy, one for each key chest, and
-/// every boss key.
-pub static SINGLES: LazyLock<Vec<String>> = LazyLock::new(|| {
-    let n = 1..=DUNGEONS.len();
-    let smalls = n.clone().flat_map(|n| {
-        let ring = key_tints::ring(n);
-        (0..copies_of(n)).map(move |_| ring.clone())
-    });
-    smalls
-        .chain(n.filter(|&n| has_boss(n)).map(key_tints::boss))
-        .collect()
-});
+/// every boss key. `fill::start` hands these over with keys from the start.
+pub static SINGLES: LazyLock<Vec<&'static str>> =
+    LazyLock::new(|| KeyModes::roll(DungeonKeys::Singles, 0).dealt());
 
 /// With Fortress Keysanity, the Fortress key copy, one for each thief.
 pub static FORTRESS_COPIES: LazyLock<Vec<String>> =
     LazyLock::new(|| vec![key_tints::fortress(); FORTRESS.keys as usize]);
 
-/// Each copy `keys` and `fortress` deal takes the place of a key chest's or
-/// a thief's Red Rupee, but for those `placed` already holds. With nothing
-/// left to deal (an AP seed fixes every check), the copies not placed here
-/// went to other worlds.
+/// Each copy `modes` and `fortress` deal takes the place of a key chest's
+/// or a thief's Red Rupee, but for those `placed` already holds. With
+/// nothing left to deal (an AP seed fixes every check), the copies not
+/// placed here went to other worlds.
 pub fn deal_copies(
     items: &mut [&str],
-    keys: DungeonKeys,
+    modes: &KeyModes,
     fortress: FortressKeys,
     placed: &[&str],
 ) -> Result<()> {
     if items.is_empty() {
         return Ok(());
     }
-    let copies: &[String] = match keys {
-        DungeonKeys::Rings => &SHUFFLED,
-        DungeonKeys::Singles => &SINGLES,
-        DungeonKeys::Vanilla | DungeonKeys::Start => &[],
-    };
-    let thieves: &[String] = match fortress.copies() {
-        true => &FORTRESS_COPIES,
-        false => &[],
+    let copies = modes.dealt();
+    let thieves: Vec<&'static str> = match fortress.copies() {
+        true => FORTRESS_COPIES.iter().map(String::as_str).collect(),
+        false => Vec::new(),
     };
     let mut placed = placed.to_vec();
-    for key in copies.iter().chain(thieves) {
-        if let Some(i) = placed.iter().position(|p| *p == key.as_str()) {
+    for key in copies.into_iter().chain(thieves) {
+        if let Some(i) = placed.iter().position(|p| *p == key) {
             placed.swap_remove(i);
             continue;
         }
@@ -187,17 +282,17 @@ pub fn deal_copies(
     Ok(())
 }
 
-/// `count` of dungeon `n`'s small keys as `keys` deals them: its ring, or
-/// that many copies. Nothing for none. With keys from the start, Link
+/// `count` of dungeon `n`'s small keys as its mode deals them: its ring,
+/// or that many copies. Nothing for none. With keys from the start, Link
 /// starts with every copy ([`crate::fill::start`]), so the need is met.
-fn smalls(n: usize, count: u32, keys: DungeonKeys) -> Option<Need> {
-    let count = match keys {
-        _ if count == 0 => return None,
-        DungeonKeys::Rings => 1,
-        DungeonKeys::Singles | DungeonKeys::Vanilla | DungeonKeys::Start => count,
-    };
-    let actors = vec![key_tints::ring(n)];
-    Some(Need::Items { actors, count })
+fn smalls(n: usize, count: u32, modes: &KeyModes) -> Option<Need> {
+    if count == 0 {
+        return None;
+    }
+    Some(Need::Items {
+        actors: vec![key_tints::ring(n)],
+        count: modes.mode(n).count(count),
+    })
 }
 
 /// With keys dealt as copies or left in their chests, what logic adds to
@@ -206,12 +301,13 @@ fn smalls(n: usize, count: u32, keys: DungeonKeys) -> Option<Need> {
 /// A chest keeping its vanilla small key there asks for none, or it would
 /// wait on itself: the checks past its doors ask for every key, so for
 /// every key chest's route.
-pub fn dungeon_need(check: &ItemCheck, keys: DungeonKeys) -> Option<Need> {
-    if keys == DungeonKeys::Vanilla && check.item == SMALL && !key_rooms::by_room(check) {
+pub fn dungeon_need(check: &ItemCheck, modes: &KeyModes) -> Option<Need> {
+    if modes.setting() == DungeonKeys::Vanilla && check.item == SMALL && !key_rooms::by_room(check)
+    {
         return None;
     }
     let (n, count) = key_rooms::count(check)?;
-    smalls(n, count, keys)
+    smalls(n, count, modes)
 }
 
 /// With the Fortress keys dealt as copies, what logic adds to a check whose
@@ -231,22 +327,22 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
 
 /// With keys dealt as copies or left in their chests, what logic adds to
 /// the way into `room`, a boss room: its dungeon's boss key and small keys.
-pub fn boss_door_need(room: &str, keys: DungeonKeys) -> Option<Need> {
+pub fn boss_door_need(room: &str, modes: &KeyModes) -> Option<Need> {
     let i = DUNGEONS
         .iter()
         .position(|d| d.boss_room.is_some_and(|r| *r == *room))?;
-    let small = smalls(i + 1, copies_of(i + 1), keys)?;
+    let small = smalls(i + 1, copies_of(i + 1), modes)?;
     Some(Need::All(vec![holds(key_tints::boss(i + 1)), small]))
 }
 
 /// A ring's, small key's or boss key copy's name, after its dungeon's:
-/// `area` names one by its id. The ring copy is a single small key with
-/// Keysanity.
-pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, keys: DungeonKeys) -> Option<String> {
+/// `area` names one by its id. The ring copy is a single small key where
+/// its dungeon's keys come one at a time.
+pub fn copy_name(actor: &str, area: impl Fn(&str) -> String, modes: &KeyModes) -> Option<String> {
     if let Some(name) = map_copies::copy_name(actor, &area) {
         return Some(name);
     }
-    let (dungeon, english) = key_tints::english_name(actor, keys)?;
+    let (dungeon, english) = key_tints::english_name(actor, modes)?;
     Some(english.replace("{}", &area(dungeon.name)))
 }
 
@@ -372,16 +468,23 @@ mod tests {
     fn each_ring_and_boss_key_takes_a_red_rupee_s_place() {
         needs_names!();
         let red = INSTEAD.get();
-        let mut items = vec![red; SHUFFLED.len() + 1];
+        let dealt = KeyModes::fixed(DungeonKeys::Rings).dealt();
+        let mut items = vec![red; dealt.len() + 1];
         items.push(item::HOOKSHOT.get());
-        deal_copies(&mut items, DungeonKeys::Rings, FortressKeys::Vanilla, &[]).unwrap();
+        deal_copies(
+            &mut items,
+            &KeyModes::fixed(DungeonKeys::Rings),
+            FortressKeys::Vanilla,
+            &[],
+        )
+        .unwrap();
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
-        assert!(SHUFFLED.iter().all(|k| items.contains(&k.as_str())));
-        assert_eq!(SHUFFLED.len(), DUNGEONS.len() + 6);
+        assert!(dealt.iter().all(|k| items.contains(k)));
+        assert_eq!(dealt.len(), DUNGEONS.len() + 6);
         assert!(
             deal_copies(
                 &mut [red; 3],
-                DungeonKeys::Rings,
+                &KeyModes::fixed(DungeonKeys::Rings),
                 FortressKeys::Vanilla,
                 &[]
             )
@@ -396,7 +499,13 @@ mod tests {
         // The 37 small key chests, the 2 loose keys and the 6 boss key chests.
         assert_eq!(SINGLES.len(), 39 + 6);
         let mut items = vec![red; SINGLES.len()];
-        deal_copies(&mut items, DungeonKeys::Singles, FortressKeys::Vanilla, &[]).unwrap();
+        deal_copies(
+            &mut items,
+            &KeyModes::fixed(DungeonKeys::Singles),
+            FortressKeys::Vanilla,
+            &[],
+        )
+        .unwrap();
         assert!(!items.contains(&red));
         let forest = DUNGEONS
             .iter()
@@ -406,7 +515,13 @@ mod tests {
         let held = items.iter().filter(|i| **i == ring).count() as u32;
         assert_eq!(held, copies_of(forest + 1));
         let mut start = vec![red; 2];
-        deal_copies(&mut start, DungeonKeys::Start, FortressKeys::Start, &[]).unwrap();
+        deal_copies(
+            &mut start,
+            &KeyModes::fixed(DungeonKeys::Start),
+            FortressKeys::Start,
+            &[],
+        )
+        .unwrap();
         assert_eq!(start, [red; 2]);
     }
 
@@ -443,12 +558,18 @@ mod tests {
         let placed = [copy.as_str()];
         deal_copies(
             &mut [],
-            DungeonKeys::Vanilla,
+            &KeyModes::fixed(DungeonKeys::Vanilla),
             FortressKeys::Singles,
             &placed,
         )
         .unwrap();
-        deal_copies(&mut [], DungeonKeys::Singles, FortressKeys::Singles, &[]).unwrap();
+        deal_copies(
+            &mut [],
+            &KeyModes::fixed(DungeonKeys::Singles),
+            FortressKeys::Singles,
+            &[],
+        )
+        .unwrap();
     }
 
     #[test]
@@ -456,7 +577,13 @@ mod tests {
         needs_names!();
         let red = INSTEAD.get();
         let mut items = vec![red; 5];
-        deal_copies(&mut items, DungeonKeys::Vanilla, FortressKeys::Singles, &[]).unwrap();
+        deal_copies(
+            &mut items,
+            &KeyModes::fixed(DungeonKeys::Vanilla),
+            FortressKeys::Singles,
+            &[],
+        )
+        .unwrap();
         let copy = key_tints::fortress();
         assert_eq!(items.iter().filter(|i| **i == copy).count(), 4);
         assert_eq!(items.iter().filter(|i| **i == red).count(), 1);
@@ -465,7 +592,7 @@ mod tests {
         let placed = [copy.as_str()];
         deal_copies(
             &mut items,
-            DungeonKeys::Vanilla,
+            &KeyModes::fixed(DungeonKeys::Vanilla),
             FortressKeys::Singles,
             &placed,
         )
@@ -496,7 +623,11 @@ mod tests {
         assert_eq!(fortress_need(card, &ctx(FortressKeys::Start, &[])), None);
         assert_eq!(fortress_need(item::HOOKSHOT.get(), &keysanity), None);
         let area = |id: &str| format!("<{id}>");
-        let name = copy_name(&key_tints::fortress(), area, DungeonKeys::Vanilla);
+        let name = copy_name(
+            &key_tints::fortress(),
+            area,
+            &KeyModes::fixed(DungeonKeys::Vanilla),
+        );
         assert_eq!(name, Some(format!("<{}> Small Key", FORTRESS.name)));
     }
 
@@ -528,20 +659,20 @@ mod tests {
         };
         let forest = at(format!("Banc/{}/Fake.bcett.byml.zs", flag::FOREST_TEMPLE));
         let n = dungeon_of(&forest.file).unwrap();
-        let rings = DungeonKeys::Rings;
-        let need = dungeon_need(&forest, rings).unwrap().to_string();
+        let rings = KeyModes::fixed(DungeonKeys::Rings);
+        let need = dungeon_need(&forest, &rings).unwrap().to_string();
         assert_eq!(need, key_tints::ring(n));
-        assert!(dungeon_need(&at("Banc/FakeField/Fake.bcett.byml.zs".into()), rings).is_none());
+        assert!(dungeon_need(&at("Banc/FakeField/Fake.bcett.byml.zs".into()), &rings).is_none());
         // Keys from the start ask what Singles does: Link starts with them.
-        let need = |keys| dungeon_need(&forest, keys).map(|n| n.to_string());
+        let need = |keys| dungeon_need(&forest, &KeyModes::fixed(keys)).map(|n| n.to_string());
         assert_eq!(need(DungeonKeys::Start), need(DungeonKeys::Singles));
-        let door = boss_door_need(map::PHANTOM_GANON_STAGE, rings)
+        let door = boss_door_need(map::PHANTOM_GANON_STAGE, &rings)
             .unwrap()
             .to_string();
         assert!(door.contains(&key_tints::boss(n)) && door.contains(&key_tints::ring(n)));
-        assert!(boss_door_need(map::GOHMA_STAGE, rings).is_none());
+        assert!(boss_door_need(map::GOHMA_STAGE, &rings).is_none());
         // Keysanity asks for every copy the dungeon's chests hold.
-        let all = dungeon_need(&forest, DungeonKeys::Singles).unwrap();
+        let all = dungeon_need(&forest, &KeyModes::fixed(DungeonKeys::Singles)).unwrap();
         let Need::Items { actors, count } = all else {
             panic!("{all}")
         };
@@ -549,11 +680,93 @@ mod tests {
     }
 
     #[test]
+    fn a_mixed_seed_rolls_each_dungeon_and_rolls_it_the_same_every_time() {
+        let rolls = KeyModes::roll(DungeonKeys::Mixed, 7);
+        assert_eq!(rolls, KeyModes::roll(DungeonKeys::Mixed, 7));
+        let rolls = |seed: u64| KeyModes::roll(DungeonKeys::Mixed, seed);
+        // A seed mixes them: some dungeons take a ring, some their keys.
+        let mixed = (0..64)
+            .filter(|&seed| {
+                let rings = rolls(seed).rings().len();
+                rings > 0 && rings < DUNGEONS.len()
+            })
+            .count();
+        assert!(mixed > 32, "only {mixed} of 64 seeds mix");
+        // Each dungeon rolls both ways over the seeds, so it rolls its own.
+        for n in 1..=DUNGEONS.len() {
+            let modes: Vec<KeyMode> = (0..64).map(|seed| rolls(seed).mode(n)).collect();
+            assert!(
+                modes.contains(&KeyMode::Rings) && modes.contains(&KeyMode::Singles),
+                "dungeon {n} always rolls {modes:?}"
+            );
+        }
+        // Every other setting gives all eight dungeons the same mode, and
+        // names no ring: only a mixed seed mixes.
+        for keys in [
+            DungeonKeys::Rings,
+            DungeonKeys::Singles,
+            DungeonKeys::Vanilla,
+            DungeonKeys::Start,
+        ] {
+            let modes = KeyModes::roll(keys, 7);
+            let want = match keys {
+                DungeonKeys::Rings => KeyMode::Rings,
+                _ => KeyMode::Singles,
+            };
+            assert!(
+                (1..=DUNGEONS.len()).all(|n| modes.mode(n) == want),
+                "{keys:?}"
+            );
+            assert!(modes.rings().is_empty(), "{keys:?} names a ring");
+        }
+    }
+
+    #[test]
+    fn a_mixed_seed_deals_one_copy_for_a_ring_and_one_for_every_other_key() {
+        needs_names!();
+        let red = INSTEAD.get();
+        let modes = KeyModes::roll(DungeonKeys::Mixed, 7);
+        let dealt = modes.dealt();
+        let bosses = DUNGEONS.iter().filter(|d| d.boss_room.is_some()).count();
+        let want: usize = (1..=DUNGEONS.len())
+            .map(|n| modes.mode(n).count(copies_of(n)) as usize)
+            .sum::<usize>()
+            + bosses;
+        assert_eq!(dealt.len(), want);
+        let mut items = vec![red; dealt.len()];
+        deal_copies(&mut items, &modes, FortressKeys::Vanilla, &[]).unwrap();
+        assert!(!items.contains(&red));
+        for n in 1..=DUNGEONS.len() {
+            let held = items.iter().filter(|i| **i == key_tints::ring(n)).count() as u32;
+            assert_eq!(held, modes.mode(n).count(copies_of(n)), "dungeon {n}");
+        }
+    }
+
+    #[test]
+    fn a_mixed_seed_asks_its_ring_dungeons_for_one_copy_and_the_rest_for_their_own_count() {
+        needs_names!();
+        let modes = KeyModes::roll(DungeonKeys::Mixed, 7);
+        let at = |dungeon: &Name| ItemCheck {
+            area: dungeon.get().into(),
+            file: format!("Banc/{}/Fake.bcett.byml.zs", dungeon.get()),
+            ..crate::narrowing::tests::chest(1, "Fake_Item")
+        };
+        for (i, d) in DUNGEONS.iter().enumerate() {
+            let n = i + 1;
+            let Need::Items { actors, count } = dungeon_need(&at(d.name), &modes).unwrap() else {
+                panic!("{modes:?}")
+            };
+            assert_eq!(actors, vec![key_tints::ring(n)], "{}", d.name);
+            assert_eq!(count, modes.mode(n).count(copies_of(n)), "{}", d.name);
+        }
+    }
+
+    #[test]
     fn a_copy_is_named_after_its_dungeon() {
         let area = |id: &str| format!("<{id}>");
         let forest = DUNGEONS.iter().position(|d| d.name == flag::FOREST_TEMPLE);
         let n = forest.unwrap() + 1;
-        let named = |a: String| copy_name(&a, area, DungeonKeys::Rings);
+        let named = |a: String| copy_name(&a, area, &KeyModes::fixed(DungeonKeys::Rings));
         assert_eq!(
             named(key_tints::ring(n)).unwrap(),
             format!("<{}> Key Ring", flag::FOREST_TEMPLE)
@@ -564,7 +777,12 @@ mod tests {
         );
         assert!(named(item::HOOKSHOT.to_string()).is_none());
         assert_eq!(
-            copy_name(&key_tints::ring(n), area, DungeonKeys::Singles).unwrap(),
+            copy_name(
+                &key_tints::ring(n),
+                area,
+                &KeyModes::fixed(DungeonKeys::Singles)
+            )
+            .unwrap(),
             format!("<{}> Small Key", flag::FOREST_TEMPLE)
         );
     }

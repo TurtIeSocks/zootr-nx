@@ -1,18 +1,7 @@
-//! A stepped pickup's drop left lying across a level-up. Each step has a
-//! stand-in of its own, and a drop already on the ground would still give
-//! its old step. The shared drop graph gets a branch that kills such a drop,
-//! with the death a broken pot asks, while its own BoolExp is false. Vanilla
-//! drops and every other stand-in stop at the name check.
-//!
-//! ```text
-//! name = file name of the drop's own actor
-//! if name starts with STEP
-//!   if not BoolExp(DROP + name)
-//!     die (life depleted)
-//! ```
-//!
-//! The branch lives in the one graph every drop already runs
-//! ([`shared`]).
+//! The shared drop graph skips the fall and bounce for shuffled Gold
+//! Skulltula rewards. It also removes stepped rewards across a level-up:
+//! each step has its own pickup, and a drop still in the world would
+//! otherwise give its old step. Each change is gated by the actor's name.
 
 use anyhow::{Context, Result};
 use ounce_formats::ainb::{File, Value};
@@ -23,6 +12,10 @@ use crate::known::field;
 
 /// The name every step stand-in starts with, and nothing else does.
 pub const STEP: &str = "Obj_RandoStep_";
+/// Every changed Skulltula reward, including the ones that show a step.
+pub const HOVER: &str = "Obj_Rando_Hover_";
+/// A Skulltula reward whose old step must disappear on a level-up.
+pub const HOVER_STEP: &str = "Obj_Rando_Hover_Step_";
 /// What the BoolExp a step stand-in stands by is named after it.
 const DROP: &str = "Rando_Drop_";
 /// `LifeDepleted`, the death reason every breakable's own graph asks. The
@@ -41,22 +34,42 @@ pub fn graph() -> String {
 }
 
 /// The pack's drop graph with the branch hung last under its root.
-pub fn branched(pack: &Sarc) -> Result<Vec<u8>> {
+pub fn branched(pack: &Sarc, steps: bool, hovering: bool) -> Result<Vec<u8>> {
     let vanilla = File::parse(pack.get_data(&graph()).context("no drop graph")?)?;
     let mut f = vanilla.clone();
+    if hovering {
+        // Keep the idle spin and pickup handling. Only the bound action
+        // that applies drop motion should be skipped.
+        let (select, nothing) = shared::selector_and_leaf(&vanilla)?;
+        let is_hover = f.copy_node(&vanilla, select)?;
+        let bound = vanilla
+            .find(field::EXECUTE_DROP_BOUND.get())
+            .context("no drop bound")?;
+        let (starts, _) = shared::starts_with(pack, &mut f, HOVER)?;
+        let idle = f.copy_node(&vanilla, nothing)?;
+        f.link(is_hover, "Input", starts, "Result")?;
+        f.set_child(is_hover, "True", idle)?;
+        f.set_child(is_hover, "False", bound)?;
+        f.repoint_child(vanilla.root()?, bound, is_hover)?;
+    }
+    if steps {
+        expire(pack, &vanilla, &mut f, STEP)?;
+        if hovering {
+            expire(pack, &vanilla, &mut f, HOVER_STEP)?;
+        }
+    }
+    f.to_bytes()
+}
+
+fn expire(pack: &Sarc, vanilla: &File, f: &mut File, prefix: &str) -> Result<()> {
     let read = field::QUERY_GET_NON_STRUCT_GAME_DATA_BOOL_EXP;
-    let (starts, read) = shared::name_check(pack, &mut f, STEP, DROP, read)?;
-    let death = shared::copy(pack, &mut f, field::ONE_SHOT_DEATH_REQUEST_DEATH.get())?;
-    // The graph's own selector and do-nothing leaf, copied twice each.
-    let (select, nothing) = shared::selector_and_leaf(&vanilla)?;
-    let (is_step, standing) = (
-        f.copy_node(&vanilla, select)?,
-        f.copy_node(&vanilla, select)?,
-    );
-    let (others, kept) = (
-        f.copy_node(&vanilla, nothing)?,
-        f.copy_node(&vanilla, nothing)?,
-    );
+    let (starts, read) = shared::name_check(pack, f, prefix, DROP, read)?;
+    let death = shared::copy(pack, f, field::ONE_SHOT_DEATH_REQUEST_DEATH.get())?;
+    let (select, nothing) = shared::selector_and_leaf(vanilla)?;
+    let is_step = f.copy_node(vanilla, select)?;
+    let standing = f.copy_node(vanilla, select)?;
+    let others = f.copy_node(vanilla, nothing)?;
+    let kept = f.copy_node(vanilla, nothing)?;
 
     f.link(is_step, "Input", starts, "Result")?;
     f.set_child(is_step, "True", standing)?;
@@ -65,8 +78,7 @@ pub fn branched(pack: &Sarc) -> Result<Vec<u8>> {
     f.set_child(standing, "True", kept)?;
     f.set_child(standing, "False", death)?;
     f.set_input(death, field::DEATH_RESON.get(), &Value::Int(LIFE_DEPLETED))?;
-    f.add_child(vanilla.root()?, "", is_step)?;
-    f.to_bytes()
+    f.add_child(vanilla.root()?, "", is_step)
 }
 
 #[cfg(test)]
@@ -77,6 +89,55 @@ mod tests {
     use ounce_formats::ainb::{Graph, Link, check};
 
     #[test]
+    fn hovering_rewards_skip_the_fall_and_old_steps_expire() {
+        let Some(romfs) = dev_dump() else { return };
+        let data = romfs.read(GLOBAL_AI).unwrap();
+        let pack = Sarc::new(&data).unwrap();
+        let bytes = branched(&pack, true, true).unwrap();
+        check(&bytes).unwrap();
+        let f = File::parse(&bytes).unwrap();
+        let g = Graph::parse(&bytes).unwrap();
+        let children = f.children(f.root().unwrap()).unwrap();
+        let named = |prefix| {
+            children
+                .iter()
+                .map(|(_, n)| *n as usize)
+                .find(|&n| {
+                    let Some(input) = g.nodes[n].input("Input") else {
+                        return false;
+                    };
+                    input
+                        .sources
+                        .iter()
+                        .any(|link| g.nodes[link.node].str("Token") == Some(prefix))
+                })
+                .unwrap()
+        };
+        let child = |n, plug| {
+            f.children(n)
+                .unwrap()
+                .iter()
+                .find(|(p, _)| p == plug)
+                .unwrap()
+                .1 as usize
+        };
+        let hover = named(HOVER);
+        assert_eq!(
+            g.nodes[child(hover, "False")].name,
+            field::EXECUTE_DROP_BOUND.get()
+        );
+        assert_eq!(
+            g.nodes[child(hover, "True")].name,
+            field::ONESHOT_DO_NOTHING.get()
+        );
+        let current = child(named(HOVER_STEP), "True");
+        assert_eq!(
+            g.nodes[child(current, "False")].name,
+            field::ONE_SHOT_DEATH_REQUEST_DEATH.get()
+        );
+    }
+
+    #[test]
     fn a_step_drop_dies_while_its_boolexp_is_false() {
         let Some(romfs) = dev_dump() else {
             return;
@@ -84,7 +145,7 @@ mod tests {
         let data = romfs.read(GLOBAL_AI).unwrap();
         let pack = Sarc::new(&data).unwrap();
         let vanilla = File::parse(pack.get_data(&graph()).unwrap()).unwrap();
-        let bytes = branched(&pack).unwrap();
+        let bytes = branched(&pack, true, false).unwrap();
         check(&bytes).unwrap();
         let f = File::parse(&bytes).unwrap();
         let g = Graph::parse(&bytes).unwrap();

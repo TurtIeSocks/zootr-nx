@@ -169,40 +169,33 @@ fn played(dir: &Path) -> Result<Option<u32>> {
     Ok(most)
 }
 
-/// Shuffle `seed` with `settings`, install it on `target` the way every
-/// seed is installed (so a game that builds the patch in keeps one patch
-/// for every seed), and plan each spot, the ones in a map without one of
-/// `places` skipped.
+/// Shuffle `seed` with `settings` and `extras`, install it on `target`
+/// the way every seed is installed (so a game that builds the patch in
+/// keeps one patch for every seed), and plan each spot, the ones in a map
+/// without one of `places` skipped.
 pub fn pool(
     romfs: &Romfs,
     target: &Target,
     seed: u64,
-    settings: &Settings,
+    (settings, extras): (&Settings, &Extras),
     places: &BTreeSet<dev::Place>,
 ) -> Result<Vec<Planned>> {
     let release = Release::of(romfs.root());
     let one = std::slice::from_ref(target);
-    let report = generate::install(one, release, &Run::silent(), roll(romfs, seed, settings))?;
+    let write = roll(romfs, seed, settings, extras);
+    let report = generate::install(one, release, &Run::silent(), write)?;
     planned(romfs, &report, places)
 }
 
-/// What writes `seed` with `settings` into a folder, for
+/// What writes `seed` with `settings` and `extras` into a folder, for
 /// [`generate::install`] or [`generate::throwaway`].
 pub fn roll<'a>(
     romfs: &'a Romfs,
     seed: u64,
     settings: &'a Settings,
+    extras: &'a Extras,
 ) -> impl FnOnce(&Path) -> Result<Report> + 'a {
-    move |dir| {
-        generate::generate(
-            romfs,
-            dir,
-            seed,
-            settings,
-            &Extras::default(),
-            &Run::silent(),
-        )
-    }
+    move |dir| generate::generate(romfs, dir, seed, settings, extras, &Run::silent())
 }
 
 /// Each of `report`'s spots planned, the ones in a map without one of
@@ -318,7 +311,13 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             return Ok(Ended::Yielded);
         }
         self.stop();
-        let mut planned = pool(self.romfs, self.target, seed, &settings, places)?;
+        let mut planned = pool(
+            self.romfs,
+            self.target,
+            seed,
+            (&settings, &Extras::default()),
+            places,
+        )?;
         planned.retain(|p| self.only.as_deref().is_none_or(|text| picked(p, text)));
         let known = self.known();
         order(&mut planned, &known, seed);
@@ -705,15 +704,20 @@ mod tests {
             release: None,
         };
         let (_, mut wide) = mix(pinned("everything").unwrap());
-        for (id, on) in [("shuffle-items", true), ("chests", true)] {
-            wide.insert(id.into(), on.into());
-        }
+        wide.insert("chests".into(), true.into());
         wide.insert("keys".into(), "singles".into());
         let places = dev::places(&romfs).unwrap();
         let h = crate::patch::Hook::of(Release::of(romfs.root()));
         let code = h.pchtxt(&h.code_patches().unwrap());
         for (seed, settings) in [(1, Settings::new()), (2, wide)] {
-            pool(&romfs, &target, seed, &settings, &places).unwrap();
+            pool(
+                &romfs,
+                &target,
+                seed,
+                (&settings, &Extras::default()),
+                &places,
+            )
+            .unwrap();
             let exefs = std::fs::read_to_string(crate::patch::exefs(&target.mod_dir)).unwrap();
             assert!(
                 exefs == code,

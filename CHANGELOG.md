@@ -3,6 +3,174 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.17.0] - 2026-11-28
+
+### Added
+
+- Each dungeon rolls its ring or its keys one by one
+
+### Fixed
+
+- Persist pinned dev window
+- Remove lost comment
+- Z for search icon
+- Give Darunia's check after his dance, not inside it
+- Give capacity with first progressive weapon
+- Progressive display in chests
+- Scan the weapon bag hook in the porting tool
+- Take the wall out of the Water Temple's mouth
+
+## [0.16.3] - 2026-11-27
+
+### Fixed
+
+- Deku baba drops with shuffled bags
+- Keep the Magic Meter in the line when progressive items are on
+- Single bombs wait for bomb bag
+- A step copy at a module-made holder stands on its gate
+- A thief's key keeps its node and her call's switch
+- Skulltula reward gravity
+- Remove token outline
+- No sign for a sale of one
+- A model too long for its shelf lies flat
+- Freestanding tokens clipping into the ground
+
+## [0.16.2] - 2026-11-26
+
+### Fixed
+
+- Answer the Yes/No Quiet Navi steps over
+- Drop the hidden Shuffle items switch, so Chests shuffles chests (#531)
+
+## [0.16.1] - 2026-11-26
+
+### Fixed
+
+- One Voices tab holds the three voice pools
+
+## [0.16.0] - 2026-11-26
+
+### Added
+
+- Loose Items deals every rupee and Recovery Heart lying loose
+- The Colors engine and the texture palettes
+- The Colors pane and its texture previews
+- Chest size matches contents
+- The Audio engine, music shuffled within its pools
+- Material params, hair gradients and the B gear
+- The Silver Gauntlets' matte goes on a copy
+- Effect constants, and the rupee sparkle
+- Effect palettes write whole effect sets
+- Effects keep Navi's glow, drop the effects that can't move
+- The Audio pane, song previews and one Apply cosmetics
+- The ocarina songs shuffle as a pool of their own
+- A HUD group: hearts, magic, rupee, pause header, text, Navi
+- A Model tab that draws each palette's model, turning
+- The maintainer's Model tab notes
+- The maintainer's second round of Colors notes
+- Chest looks match contents
+- Skull and heart emblems on the chest lids
+- Key colours a chest look can tell apart
+- The Training Ground's keys are cream
+- Shuffle Link's voice within his age
+- One-tap songs, A in the songbook plays the song
+- One set of actions for Colors, Audio and Plando
+- A clear button on every text field
+- Placement positions and Link's position for the dev panel
+- Stars on every list, sorting for the actor lists
+- The cucco takes the Weird Egg's place with NPC gifts on
+- Hand-written check names, loaded from logic/names
+- Name the Water Temple's checks
+- The Water Temple Lobby's pots name their map floor
+- Every Water Temple name carries its map floor
+- The draft tool names each check's landmarks, and Hyrule Field takes LH and LLR
+- Name Kokiri Forest's checks
+- Name the Lost Woods' checks
+- Name Sacred Forest Meadow's checks
+- Name Hyrule Field's checks
+- Name the Market's checks
+- Name Hyrule Castle's checks
+- Name Outside Ganon's Castle's checks
+- Name Kakariko Village's checks
+- Name the Graveyard's checks
+- Name Death Mountain Trail's checks
+- Name Goron City's checks
+- Name Death Mountain Crater's checks
+- Name Zora's River's checks
+- Name Zora's Domain's checks
+- Name Zora's Fountain's checks
+- Name Gerudo Valley's checks
+- Name Gerudo's Fortress's checks
+- Name the Haunted Wasteland's checks
+- Name the Desert Colossus's checks
+- Name the Dream World's checks
+- Name the Deku Tree's checks
+- Name Dodongo's Cavern's checks
+- Name Jabu-Jabu's Belly's checks
+- Name the Bottom of the Well's checks
+- Name the Ice Cavern's checks
+- Name Gerudo Training Ground's checks
+- Name the Fire Temple's checks
+- Name the Shadow Temple's checks
+- Name the Spirit Temple's checks
+- Name Ganon's Castle's checks
+- Name the Forest Temple's checks
+- The Colossus hand chests take OoTR's Spirit Temple names
+- Breakables Respawn, breakables come back on every area load
+- Shuffle NPC voices by voice type
+- Each seed's report in a file of its own
+- Star seeds to keep them
+- Select many seeds, draw a page at a time, keep 1000
+- NPC voice chaos, each line any voice's clip of its emotion
+- The ice-trap chests become checks, dealt as plain chests (EIE)
+- Bottom of the Well and Jabu-Jabu's Belly checks start "BotW" and "Jabu"
+- Boulders and red boulders are checks, their item lying where the boulder stood (EIE)
+- Leave the seven boulders over grottos vanilla
+- Silver rocks are checks, their item lying where the rock stood (EIE)
+
+### Fixed
+
+- The Both Ages items are tested, drop their Untested badge
+- The bindings for the colours config and draft types
+- Fill the colour fields in the full config
+- Dev requests run an entry of their own, so a notice never takes over a doorway
+- Listen scores a jingle crossing a window's edge
+- Listen leaves near silence unscored
+- Paint the rupee sparkle the game loads
+- An effect palette's slots follow by hue too
+- Length under the track name; a dump test for the decode
+- Scheme responses allow any origin, so song previews load
+- Adult Link's map page and minimap show after a dev age change or an adult start
+- A long pick in an ocarina slot may be cut off, not play on
+- Deal exactly 5 less the starting bottles, and shop slots bring their goods
+- Leave Pack files out of the single files the dump extracts
+- Talon's cucco game talks again with its check dealt
+- The spinning pot's roulette and drop scenes play
+- A played flag a logic graph reads is set where its scene plays
+- Count vanilla keys, with a key table for every dungeon
+- Goron City loads with pots shuffled
+- Reach the app's own schemes on Windows
+- Received items no longer flicker the HUD
+- One-line descriptions on Colors, Audio and Plando
+- Dump tests fit two jobs a box again (6.6 GB to 4.5 GB)
+- A kept pointer that no longer reads is found again
+- No mod folder warning for a game the seed's build skips
+- Talon's wake hands over Malon's check when she didn't
+- A skipped Talon wake puts away the cucco Link held up
+- The boss rush's pot copies before Ganondorf are no checks
+- Deal the chests placed with no item (EIE)
+- Compare the trap chest holder by value, as clippy asks
+- Keep the voice pack table one row a line
+- Draw the first 20 rows on the click, the rest after
+- Move the old history.json once when loads race
+- Load again on opening the tab after a failed load
+- A dealt ice-trap chest goes under a fresh hash, so it opens (EIE)
+- A stand-in seat isn't gated, and the tracker counts a seat by its key (EIE)
+
+### Faster
+
+- Count History's changes in its rows, not on every edit
+
 ## [0.15.0] - 2026-11-24
 
 ### Added

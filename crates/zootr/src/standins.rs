@@ -6,9 +6,10 @@ use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, pack_path};
 use roead::sarc::SarcWriter;
 
+use crate::keys::KeyModes;
 use crate::known::{Name, actor, field, flag, item};
 use crate::medallions;
-use crate::settings::{DungeonKeys, NewGame};
+use crate::settings::NewGame;
 
 mod tables;
 
@@ -341,10 +342,11 @@ fn cloned(
 /// `item`'s pack, for a holder that shows or stands in for it: a key copy
 /// or another player's item the seed builds, or the dump's.
 pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result<ActorPack> {
-    if let Some(pack) = made_pack(romfs, item, new_game.keys)? {
+    let modes = new_game.key_modes();
+    if let Some(pack) = made_pack(romfs, item, &modes)? {
         return Ok(pack);
     }
-    match crate::foreign::pack(romfs, item, &new_game.foreign, new_game.keys)? {
+    match crate::foreign::pack(romfs, item, &new_game.foreign, &modes)? {
         Some(pack) => Ok(pack),
         None => ActorPack::load(romfs, item),
     }
@@ -352,8 +354,8 @@ pub(crate) fn item_pack(romfs: &Romfs, item: &str, new_game: &NewGame) -> Result
 
 /// `item`'s pack as the seed writes it, if the seed builds it (a key or map
 /// copy, a Bombchu Bag, the Magic Meter): the dump doesn't have it.
-pub(crate) fn made_pack(romfs: &Romfs, item: &str, keys: DungeonKeys) -> Result<Option<ActorPack>> {
-    if let Some(pack) = crate::key_tints::copy_pack(romfs, item, keys)? {
+pub(crate) fn made_pack(romfs: &Romfs, item: &str, modes: &KeyModes) -> Result<Option<ActorPack>> {
+    if let Some(pack) = crate::key_tints::copy_pack(romfs, item, modes)? {
         return Ok(Some(pack));
     }
     if let Some(pack) = crate::map_copies::copy_pack(romfs, item)? {
@@ -380,6 +382,17 @@ impl StandIn<'_> {
     }
 
     pub fn build(&self, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
+        self.build_with_drop_ai(builder, tables, None)
+    }
+
+    /// A hovering pickup keeps the token's body and spin, and runs the
+    /// shared drop graph so a progressive reward can still expire.
+    pub(crate) fn build_with_drop_ai(
+        &self,
+        builder: &mut ModBuilder,
+        tables: &mut Tables,
+        drop_ai: Option<&ActorPack>,
+    ) -> Result<()> {
         let name = self.name;
         let (template, item) = (&self.template, &self.item);
         let template_actor = actor_path(&template.name);
@@ -388,6 +401,7 @@ impl StandIn<'_> {
             .actor_param()?
             .with_context(|| format!("the item has no {}", field::ACTOR_PARAM))?;
         let mut new_files = Vec::new();
+        let mut writer = template.writer();
 
         // What it gives: the item's own pouch content, naming the item.
         let item_pouch = path_of(item, POUCH)?;
@@ -422,11 +436,28 @@ impl StandIn<'_> {
         } else {
             Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?)
         };
-        if self.is_pickup() && self.falls()? {
-            self.lift(name, tables, &mut refs, &mut new_files)?;
+        if let Some(drop_ai) = drop_ai {
+            lend(&mut writer, &mut refs, field::AI_INFO_REF, drop_ai)?;
+            // The hovering body comes from the token, whose idle effect
+            // would otherwise draw its gold outline around the reward.
+            let effects = field::E_LINK_REF.get();
+            if let Some(path) = component(&given, effects) {
+                refs.insert(effects.into(), Byml::String(path.into()));
+            } else {
+                refs.remove(effects);
+            }
+            // Hovering drops skip the bound action, so they can keep the
+            // item's table without inheriting the template's bounce params.
+            if let Some(table) = component(&given, TABLE) {
+                refs.insert(TABLE.get().into(), Byml::String(table.into()));
+            }
+        } else {
+            if self.is_pickup() && self.falls()? {
+                self.lift(name, tables, &mut refs, &mut new_files)?;
+            }
+            let new_table = self.table(name, &like, &mut new_files)?;
+            refs.insert(TABLE.get().into(), reference(&new_table));
         }
-        let new_table = self.table(name, &like, &mut new_files)?;
-        refs.insert(TABLE.get().into(), reference(&new_table));
         actor.insert(COMPONENTS.into(), Byml::Map(refs));
         new_files.push(NewFile {
             path: actor_path(name),
@@ -443,7 +474,6 @@ impl StandIn<'_> {
 
         // The template's files, but its actor and pouch content, then the
         // item's, but its actors and pouch content.
-        let mut writer = template.writer();
         writer.remove_file(template_actor.as_str());
         writer.remove_file(path_of(template, POUCH)?.as_str());
         let shown = medallions::model_info(item)?;
@@ -470,6 +500,12 @@ impl StandIn<'_> {
         )?;
 
         tables.add(name, &template.name, &item.name, self.price)?;
+        if drop_ai.is_some() {
+            tables.take(name, &item.name, &[field::E_LINK_USER_NAME])?;
+            // The hovering body and the reward's own parameters are both
+            // loaded while the drop spawns.
+            tables.add_heaps(name, &template.name)?;
+        }
         match shelf {
             Some(animations) => tables.animate(name, animations),
             None => Ok(()),

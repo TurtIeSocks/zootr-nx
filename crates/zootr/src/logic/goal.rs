@@ -25,7 +25,7 @@ pub(super) fn exits(
     for rule in book.exits.iter().filter(|r| r.to == GOAL) {
         let mut need = book.need(&rule.expr, ctx)?;
         // The tower's boss key door, as on the exit's own edge.
-        if let Some(keys) = keys::boss_door_need(&rule.to, ctx.keys) {
+        if let Some(keys) = keys::boss_door_need(&rule.to, &ctx.keys) {
             need = Need::All(vec![need, keys]);
         }
         for era in eras_of(&scan.places, &rule.from) {

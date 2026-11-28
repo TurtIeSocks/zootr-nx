@@ -19,6 +19,7 @@ mod refill;
 mod rt;
 mod songbook;
 mod swap;
+mod weapon_bags;
 
 use chests::{drop_value, level_for, owned, record, recreate, rewrite};
 
@@ -51,7 +52,7 @@ const MAX: usize = 128;
 // ahead of time can follow each one: it lifts an import stub as an
 // import, never as code a pointer could reach.
 global_asm!(
-    ".macro function_hook handler, resume",
+    ".macro function_hook handler, resume, may_skip=0, sign=1",
     "sub sp, sp, #0xd0",
     "stp x0, x1, [sp]",
     "stp x2, x3, [sp, #0x10]",
@@ -63,6 +64,9 @@ global_asm!(
     "stp q4, q5, [sp, #0x90]",
     "stp q6, q7, [sp, #0xb0]",
     "bl \\handler",
+    ".if \\may_skip",
+    "mov w9, w0",
+    ".endif",
     "ldp q6, q7, [sp, #0xb0]",
     "ldp q4, q5, [sp, #0x90]",
     "ldp q2, q3, [sp, #0x70]",
@@ -73,8 +77,16 @@ global_asm!(
     "ldp x2, x3, [sp, #0x10]",
     "ldp x0, x1, [sp]",
     "add sp, sp, #0xd0",
+    ".if \\may_skip",
+    "cbnz w9, 1f",
+    ".endif",
+    ".if \\sign",
     "pacibsp",
+    ".endif",
     "b \\resume",
+    ".if \\may_skip",
+    "1: ret",
+    ".endif",
     ".endm",
     // A hook that runs its handler after the function returns, for a
     // function called with no stack arguments: it calls the function
@@ -142,6 +154,7 @@ global_asm!(
     "b gear_worn_entry",
     "b gear_mark_entry",
     "b ocarina_input_entry",
+    "b select_drops_entry",
     "entries_end:",
     "map_loaded_resume:",
     "brk #0",
@@ -172,6 +185,8 @@ global_asm!(
     "resident_made_resume:",
     "brk #0",
     "ocarina_input_resume:",
+    "brk #0",
+    "select_drops_resume:",
     "brk #0",
     "npad_full_stub:",
     "brk #0",
@@ -268,13 +283,36 @@ global_asm!(
     "gear_mark_entry:",
     "ldr x2, [sp, #0x20]",
     "b gear_mark",
+    "select_drops_entry:",
+    "function_hook skip_baba_drop, select_drops_resume, 1",
     ".popsection",
     "map_loaded_entry:",
     "function_hook map_loaded, map_loaded_resume",
     "chest_made_entry:",
     "function_hook chest_made, chest_made_resume",
     "granted_entry:",
-    "function_hook granted, granted_resume",
+    "function_hook granted, granted_call, 0, 0",
+    // Check for missing starter bags after the pouch accepts a grant.
+    // Forward the add's ninth argument on the stack as well as its registers.
+    "granted_call:",
+    "sub sp, sp, #0x30",
+    "ldr x9, [sp, #0x30]",
+    "str x9, [sp]",
+    "stp x29, x30, [sp, #0x10]",
+    "add x29, sp, #0x10",
+    "stp x0, x1, [sp, #0x20]",
+    "bl add_to_pouch",
+    "str x0, [sp, #8]",
+    "ldp x1, x2, [sp, #0x20]",
+    "bl ensure_weapon_bags",
+    "ldr x0, [sp, #8]",
+    "ldp x29, x30, [sp, #0x10]",
+    "add sp, sp, #0x30",
+    "ret",
+    ".global add_to_pouch",
+    "add_to_pouch:",
+    "pacibsp",
+    "b granted_resume",
     "link_update_entry:",
     "function_hook link_update, link_update_resume",
     "picked_entry:",
@@ -635,8 +673,8 @@ unsafe extern "C" fn chest_made(node: usize) {
 
 /// `name` is about to be added to the pouch: credit it, then remake the
 /// closed chests of its line. Every holder that adds to the pouch passes
-/// here once, so a copy credits its dungeon once. Pickups don't add, and
-/// [`picked`] credits theirs.
+/// here once, so a copy credits its dungeon once. [`picked`] also handles
+/// the pickup window.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -652,9 +690,8 @@ unsafe extern "C" fn granted(_: usize, added: *const *const u8) {
 }
 
 /// A pickup window is opening on what Link takes (a pot's drop, a
-/// freestanding item): credit it. The take stocks the pouch without
-/// passing the add, so `granted` never sees it. The window's node binds
-/// the item's name, its slot at `node + 0x20` tagged in the low 2 bits.
+/// freestanding item): credit it. The window's node binds the item's
+/// name, its slot at `node + 0x20` tagged in the low 2 bits.
 ///
 /// # Safety
 /// Only the hooked function's entry calls this.
@@ -722,6 +759,7 @@ unsafe fn credit(main: usize, table: &Table, added: &[u8], picked: bool) {
 #[unsafe(no_mangle)]
 unsafe extern "C" fn taken(pouched: usize) {
     hooked(|main, table| unsafe {
+        shared(main).with(List::inventory_changed);
         if table.spots == 0 {
             return;
         }
@@ -766,6 +804,45 @@ const OWNER: usize = 0x18;
 /// An actor's name.
 const ACTOR_NAME: usize = 0x260;
 
+/// The drop request's source actor. The selector receives the request
+/// as its third argument and fills an initially empty result list.
+const DROP_SOURCE: usize = 0x40;
+
+/// Skip selecting a Baba's drop until Link owns the bag for that drop.
+/// An empty result list tells the caller there is nothing to spawn.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".far")]
+unsafe extern "C" fn skip_baba_drop(_drop: usize, _result: usize, request: usize) -> bool {
+    use crate::switches::{NUT_BAG_SLOT, STICK_BAG_SLOT, STRING64};
+    use crate::{SHUFFLED_NUT_BAG, SHUFFLED_STICK_BAG};
+
+    let Some((main, table)) = table() else {
+        return false;
+    };
+    if table.flags & (SHUFFLED_NUT_BAG | SHUFFLED_STICK_BAG) == 0 {
+        return false;
+    }
+    unsafe {
+        let actor_name = at(request, DROP_SOURCE)
+            .and_then(|actor| at(actor, ACTOR_NAME))
+            .and_then(|text| name(text as *const u8));
+        let Some(actor_name) = actor_name else {
+            return false;
+        };
+        let (setting, slot) = match fnv(actor_name) {
+            // The regular and withered Babas drop nuts.
+            0x208b_3e77 | 0xd481_41a6 => (SHUFFLED_NUT_BAG, NUT_BAG_SLOT),
+            // Their severed stems drop sticks.
+            0x0dda_1148 | 0xa762_b831 => (SHUFFLED_STICK_BAG, STICK_BAG_SLOT),
+            _ => return false,
+        };
+        table.flags & setting != 0
+            && dev::single(main, table.offsets.gamedata)
+                .and_then(|gd| refill::entry(gd, STRING64, slot))
+                .is_some_and(|bag| *(bag as *const u8) == 0)
+    }
+}
+
 /// Link is about to update: hold what the dev switches hold, run the app's
 /// request, if there is one, and between events forget the last credit.
 ///
@@ -782,8 +859,9 @@ unsafe extern "C" fn link_update(actor: usize) {
             look::fit(main, &table);
             freeze::freeze(main, &table, actor);
         }
-        if dev::playing(main, table.offsets) == Some(false) {
-            shared(main).with(List::idle);
+        if dev::playing(main, table.offsets) == Some(false) && shared(main).with(List::idle) {
+            weapon_bags::repair_missing(main, &table);
+            chests::refresh(main, &table);
         }
     })
 }

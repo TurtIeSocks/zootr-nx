@@ -51,6 +51,7 @@ pub struct Chest {
 #[repr(C)]
 pub struct List {
     count: u32,
+    needs_refresh: bool,
     chests: [Chest; CHESTS],
     credited: Credited,
     /// The name hash of the item an AP notice's popup shows, 0 for none.
@@ -69,6 +70,7 @@ pub struct Credited {
 impl List {
     pub fn clear(&mut self) {
         self.count = 0;
+        self.needs_refresh = false;
     }
 
     pub fn chests(&mut self) -> &mut [Chest] {
@@ -115,10 +117,14 @@ impl List {
         popup
     }
 
-    /// No event plays: the get that made the last credit is over, so no
-    /// later one pairs with it.
-    pub fn idle(&mut self) {
+    pub fn inventory_changed(&mut self) {
+        self.needs_refresh = true;
+    }
+
+    /// Forget the last credit and report any grants since the last idle frame.
+    pub fn idle(&mut self) -> bool {
         self.credited = Credited::default();
+        core::mem::take(&mut self.needs_refresh)
     }
 
     pub fn opened(&mut self, actor: usize) {
@@ -306,6 +312,20 @@ mod tests {
             (0..=CHESTS).for_each(|a| l.made(chest(a + 1)));
             assert_eq!(l.chests().len(), CHESTS);
             assert_eq!(l.chests()[CHESTS - 1].actor, CHESTS);
+        });
+    }
+
+    #[test]
+    fn each_grant_batch_is_reported_once_until_the_map_changes() {
+        list().with(|l| {
+            assert!(!l.idle());
+            l.inventory_changed();
+            l.inventory_changed();
+            assert!(l.idle());
+            assert!(!l.idle());
+            l.inventory_changed();
+            l.clear();
+            assert!(!l.idle());
         });
     }
 

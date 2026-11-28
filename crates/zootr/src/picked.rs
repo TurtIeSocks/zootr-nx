@@ -46,6 +46,7 @@ use crate::flows::Rewrites;
 use crate::gamedata::Op;
 use crate::graphs::logic;
 use crate::known::{field, flag, map};
+use crate::pickups::seats;
 use crate::pickups::steps::asks;
 use crate::pickups::{
     BOSS_HEARTS, CRATES, FIRE_ARROWS, FLYING_POTS, FORTRESS_KEYS, FREESTANDING, GRASS, HIVES, Kind,
@@ -110,6 +111,10 @@ pub enum After {
     /// Nothing, as it's a pickup lying in place, dealt what might show a
     /// step at a time (`pickups::steps`). It keeps its own gate, if any.
     Taken(Option<Presence>),
+    /// Nothing, as it's a boulder, whose item lies in its seat
+    /// (`pickups::seats`). The boulder stays vanilla; the seat stands until
+    /// picked.
+    Seated,
 }
 
 /// The seed Bool set once the drop of the holder placed as `hash` is
@@ -144,7 +149,8 @@ pub fn flag_at(spot: &crate::generate::Spot) -> Option<String> {
     let holder = spot.holder.as_str();
     let kept = keeps_token(SKULLTULAS.places(holder), &spot.vanilla, &spot.item);
     let lies = LYING.iter().any(|k| k.places(holder));
-    let picked = KINDS.iter().any(|k| k.places(holder)) && !kept || taken(lies, &spot.item);
+    let stands = KINDS.iter().any(|k| k.places(holder)) || seats::places(holder);
+    let picked = stands && !kept || taken(lies, &spot.item);
     (picked || crate::shops::is_holder(holder)).then(|| flag(spot.hash))
 }
 
@@ -156,6 +162,7 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
         taken(lies, crate::gifts::item_at(drops, c.hash, &c.item))
     };
     let after = |c: &ItemCheck| match () {
+        _ if seats::holds(c) => After::Seated,
         _ if RUTOS_LETTER.holds(c) => After::Deleted,
         _ if SKULLTULAS.holds(c) => After::Killed(c.presence.clone()),
         _ if lying(c) => After::Taken(c.presence.clone()),
@@ -165,7 +172,7 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
     };
     let found: BTreeMap<u64, (After, crate::marks::Look)> = pieces
         .iter()
-        .filter(|c| KINDS.iter().any(|k| k.holds(c)) || lying(c))
+        .filter(|c| KINDS.iter().any(|k| k.holds(c)) || seats::holds(c) || lying(c))
         .filter(|c| {
             let item = crate::gifts::item_at(drops, c.hash, &c.item);
             !keeps_token(SKULLTULAS.holds(c), &c.item, item)
@@ -270,7 +277,7 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
         let twin_hash = match h.after {
             After::Twin(twin) => twin,
             // Its steps' gates take its turns (`pickups::steps`).
-            After::Deleted | After::Taken(_) => continue,
+            After::Deleted | After::Taken(_) | After::Seated => continue,
             After::Gone | After::Alone => {
                 let gone = actor.as_mut_map()?.remove("Presence");
                 let gone = gone.as_ref().and_then(|p| p.as_map().ok());
@@ -330,9 +337,10 @@ pub fn place(root: &mut Byml, holders: &[Holder]) -> Result<usize> {
 
 /// Each of `holders` placed in `root`, a Banc file's doc, as the hook's
 /// table lists it: by what it drops, or what it is when it drops nothing
-/// (Ruto's letter). A step's placement past a holder's own, among `copies`
-/// by the placement each copies, ticks its holder's flag. Run once the
-/// fields are written, so each names the shuffled item.
+/// (Ruto's letter). A step's placement past a holder's own, or a boulder's
+/// seat, among `copies` by the placement each copies, ticks its holder's
+/// flag. A boulder itself holds nothing. Run once the fields are written,
+/// so each names the shuffled item.
 pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<Vec<Spot>> {
     let holder = |placed: u64| {
         let of = copies.iter().find(|(_, copy)| *copy == placed);
@@ -347,6 +355,9 @@ pub fn spots(root: &Byml, holders: &[Holder], copies: &[(u64, u64)]) -> Result<V
         let Some(Holder { hash, after, .. }) = holder(placed) else {
             continue;
         };
+        if *after == After::Seated && placed == *hash {
+            continue;
+        }
         let dynamic = actor.as_map()?.get(crate::checks::DYNAMIC);
         let drop = dynamic.and_then(|d| str_field(d, DROP_ACTOR.get()));
         let drop = drop.or_else(|| str_field(actor, GYAML));
@@ -437,9 +448,9 @@ mod tests {
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
         let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
         assert_eq!(skulltulas.len(), 100);
-        // 530 pots and 23 flying ones, 38 crates, 167 rocks, 160 shrubs and
-        // 21 hives.
-        assert_eq!(holders.len(), 939 + 100);
+        // 518 pots and 23 flying ones, 38 crates, 167 rocks, 160 shrubs and
+        // 21 hives, then the Skulltulas, the 63 boulders and 42 silver rocks.
+        assert_eq!(holders.len(), 927 + 100 + 63 + 42);
         let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
         let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
         assert_eq!(killed, skulltulas);
@@ -629,9 +640,11 @@ mod tests {
         let rock_hash = rock.hash;
         let mut doc = checks::load_banc(&romfs, &rock.file).unwrap();
         let before = checks::actors(&doc.root).unwrap().len();
+        // A boulder stays as it is: its seat stands until picked (`seats`).
         let mine = pieces
             .iter()
-            .filter(|c| c.file == rock.file && holders.iter().any(|h| h.hash == c.hash))
+            .filter(|c| c.file == rock.file && !seats::holds(c))
+            .filter(|c| holders.iter().any(|h| h.hash == c.hash))
             .map(|c| c.hash)
             .collect::<std::collections::BTreeSet<_>>()
             .len();
@@ -721,9 +734,11 @@ mod tests {
         let rock_holder = holders.iter().find(|h| h.hash == rock.hash).unwrap();
         assert_eq!(After::Twin(mine.twin), rock_holder.after);
         assert_eq!(mine.placed, rock.hash);
-        // Twins aren't listed: one spot per holder in the file.
+        // Twins aren't listed: one spot per holder in the file. A boulder's
+        // is its seat's, placed with the seats.
         let here = holders
             .iter()
+            .filter(|h| h.after != After::Seated)
             .filter(|h| {
                 pieces
                     .iter()

@@ -1,0 +1,85 @@
+# Deku Tree. OoTR's name wherever the remake keeps the spot: chests and
+# Gold Skulltulas matched by room, rule and vanilla item, and the remake
+# guides for the Skulltulas. Grass, scrub drops and hearts go by room,
+# numbered west to east.
+#
+# Every name carries its map floor after "Deku Tree", as the dungeon
+# map shows it with Link beside the check (sweeps of 2026-11-25). Checks
+# in one room at one height share the floor read for them. Every floor
+# is one the game's map lists for the check's room; where a warp landed
+# in the next room, the room's own floor stands.
+
+# Lobby: the Map Chest, grass on the ground floor, three hearts up high.
+8579518566955184384 = "Deku Tree 2F Map Chest"
+16002722698574188382 = "Deku Tree 1F Lobby Grass 1"
+3341493256150380219 = "Deku Tree 1F Lobby Grass 2"
+10336513835630620955 = "Deku Tree 1F Lobby Grass 3"
+16355617740219907263 = "Deku Tree 3F Upper Lobby Recovery Heart 1" # guess: OoTR has one upper heart, the remake three
+16164791133086825945 = "Deku Tree 3F Upper Lobby Recovery Heart 2" # guess: OoTR has one upper heart, the remake three
+1922216023914752593 = "Deku Tree 3F Upper Lobby Recovery Heart 3" # guess: OoTR has one upper heart, the remake three
+
+# The Deku Scrub guarding the way to the Slingshot room drops these.
+9391308054738304433 = "Deku Tree 2F Scrub Near Slingshot Room Green Rupee"
+8632533875205065781 = "Deku Tree 2F Scrub Near Slingshot Room Recovery Heart"
+
+# Slingshot room: the Slingshot Chest, the side chest up on the ledge.
+821372075822700622 = "Deku Tree 2F Slingshot Chest"
+13027331340815880287 = "Deku Tree 2F Slingshot Room Side Chest"
+12690895733615844950 = "Deku Tree 2F Slingshot Room Grass 1"
+12536486041203664147 = "Deku Tree 2F Slingshot Room Grass 2"
+317932415623775006 = "Deku Tree 2F Slingshot Room Grass 3"
+3473330859120899719 = "Deku Tree 2F Slingshot Room Grass 4"
+
+# Compass room at the top of the tree.
+9284193025315608699 = "Deku Tree 3F Compass Chest"
+11368028582977069031 = "Deku Tree 3F Compass Room Side Chest"
+13609975487234437568 = "Deku Tree 3F GS Compass Room"
+1977371275298064713 = "Deku Tree 3F Compass Room Grass 1"
+1816878459590690022 = "Deku Tree 3F Compass Room Grass 2"
+
+# Basement, under the web: the chest behind the bomb web, the Skulltula
+# up the ivy (Vines) and the one behind the metal gate.
+12889104996486369065 = "Deku Tree B1 Basement Chest"
+16101480770659370603 = "Deku Tree B1 GS Basement Vines"
+18075358844331090388 = "Deku Tree B1 GS Basement Gate"
+6108036589892819583 = "Deku Tree B1 Basement Grass 1"
+4077483205678899114 = "Deku Tree B1 Basement Grass 2"
+
+# The basement's Deku Scrub and its room.
+10420058391592786882 = "Deku Tree B1 Basement Scrub Green Rupee"
+5920725837809443985 = "Deku Tree B1 Basement Scrub Recovery Heart"
+12259396602144487886 = "Deku Tree B1 Basement Scrub Grass 1"
+10930275110907912056 = "Deku Tree B1 Basement Scrub Grass 2"
+
+# The room with the push block and the torch.
+2540384747854371104 = "Deku Tree B1 Push Block Room Grass 1" # guess: named for its block
+16523077681389688437 = "Deku Tree B1 Push Block Room Grass 2" # guess: named for its block
+
+# The Gohma larva room above the boss, and the alcove off it behind the
+# burnt web: OoTR's Back Room Skulltula, now reached on the first visit.
+6421784517512490450 = "Deku Tree B1 Larva Room Grass 1"
+4622654469035644255 = "Deku Tree B1 Larva Room Grass 2"
+17501688996789643983 = "Deku Tree B1 GS Basement Back Room"
+
+# The three Deku Scrub brothers' room: OoTR's three basement hearts float
+# in its water.
+16597323285320397604 = "Deku Tree B2 Basement Recovery Heart 1"
+2222711177065858733 = "Deku Tree B2 Basement Recovery Heart 2"
+729508615351641392 = "Deku Tree B2 Basement Recovery Heart 3"
+160199974268797383 = "Deku Tree B2 Scrub Brothers Green Rupee"
+9056903661273588275 = "Deku Tree B2 Scrub Brothers Recovery Heart"
+13873141578313882881 = "Deku Tree B2 Scrub Brothers Grass 1"
+9991051747036366069 = "Deku Tree B2 Scrub Brothers Grass 2"
+7457705918063319421 = "Deku Tree B2 Scrub Brothers Grass 3"
+
+# Queen Gohma's room.
+13412951694392781478 = "Deku Tree B2 Boss Room Grass 1"
+18176645256741116364 = "Deku Tree B2 Boss Room Grass 2"
+16322427109872094443 = "Deku Tree B2 Boss Room Grass 3"
+2794401671936016215 = "Deku Tree B2 Boss Room Grass 4"
+97733905166195279 = "Deku Tree B2 Boss Room Grass 5"
+15513822668871942093 = "Deku Tree B2 Boss Room Grass 6"
+6283235374766662242 = "Deku Tree B2 Boss Room Grass 7"
+4629107463458964273 = "Deku Tree B2 Boss Room Grass 8"
+17948245526767051747 = "Deku Tree B2 Queen Gohma Heart"
+7976713952680358969 = "Deku Tree B2 Queen Gohma"

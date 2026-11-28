@@ -15,6 +15,13 @@ hash = 14404733996390762670
 name = "Ganon's Castle Lower Bombchus (5) Chest"
 needs = "always"
 
+# Room 5, Water Trial Freezard Room: the ice trap's chest beside it, dealt
+# as a plain chest.
+[[check]]
+hash = 3253191540272036329
+name = "Ganons Castle Water Trial Left Chest"
+needs = "always"
+
 # Room 8, Shadow Trial Room: the chest across the pit, with Fire Arrows or
 # the Longshot to the chest platform, then the Lens or Hover Boots to hit
 # the lower switch that raises it.
@@ -51,6 +58,27 @@ needs = "gold-gauntlets"
 [[check]]
 hash = 14046623154429024571
 name = "Ganon's Castle Lower Blue Rupee (5) Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: an ice trap's chest, dealt as a plain
+# chest, past the same pillar.
+[[check]]
+hash = 5732331492537302993
+name = "Ganons Castle Light Trial First Right Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: an ice trap's chest, dealt as a plain
+# chest, past the same pillar.
+[[check]]
+hash = 17726220643880970879
+name = "Ganons Castle Light Trial Second Left Chest"
+needs = "gold-gauntlets"
+
+# Room 12, Light Trial Chest Room: an ice trap's chest, dealt as a plain
+# chest, past the same pillar.
+[[check]]
+hash = 11406545451127340703
+name = "Ganons Castle Light Trial Third Right Chest"
 needs = "gold-gauntlets"
 
 # Room 12, Light Trial Chest Room: (guess: the chest the room's invisible

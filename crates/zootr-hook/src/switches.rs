@@ -56,6 +56,12 @@ impl Cap {
 
 /// The bomb bag's expansion value, which bombs and bombchus share.
 const BOMB_BAG: u32 = 0xa835_e3b0;
+/// The saved expansion actors for Deku Sticks and Deku Nuts.
+pub(crate) const STICK_BAG_SLOT: u32 = 0x2808_ee1c;
+pub(crate) const NUT_BAG_SLOT: u32 = 0x0da3_a7a7;
+/// The saved expansion actors for Deku Seeds and arrows.
+pub(crate) const BULLET_BAG_SLOT: u32 = 0xd732_dd7f;
+pub(crate) const QUIVER_SLOT: u32 = 0xb629_4119;
 /// The saved Bombchu slot entry (the current expansion actor for Bombchus),
 /// which a seed with Bombchu Bags adds.
 pub const BOMBCHU_SLOT: u32 = 0x9b12_34e0;
@@ -118,10 +124,10 @@ pub const REFILLS: [Refill; 9] = [
         }),
     },
     // Each PouchData.<item>.StockNum to its CurrentExpansionActor_<kind>.
-    bag(0xb949_4411, 0x2808_ee1c, STICKS),
-    bag(0xf30d_9f54, 0x0da3_a7a7, NUTS),
-    bag(0x5fad_f7fc, 0xd732_dd7f, SEEDS),
-    bag(0x518e_c74b, 0xb629_4119, ARROWS),
+    bag(0xb949_4411, STICK_BAG_SLOT, STICKS),
+    bag(0xf30d_9f54, NUT_BAG_SLOT, NUTS),
+    bag(0x5fad_f7fc, BULLET_BAG_SLOT, SEEDS),
+    bag(0x518e_c74b, QUIVER_SLOT, ARROWS),
     bag(0xdb1b_cd4f, BOMB_BAG, BOMBS),
     // Bombchus have no bag of their own.
     Refill {

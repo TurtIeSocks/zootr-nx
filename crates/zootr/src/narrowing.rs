@@ -91,7 +91,7 @@ pub(crate) fn left_out(c: &ItemCheck, open: Let) -> Option<LeftOut> {
     if c.item.starts_with("Item_Dungeon_") && !moves {
         return Some(LeftOut::Setting);
     }
-    if dampe::REPEAT_CHESTS.contains(&c.hash) {
+    if dampe::REPEAT_CHESTS.contains(&c.hash) || pickups::seats::OVER_GROTTOS.contains(&c.hash) {
         return Some(LeftOut::Maintainer);
     }
     // Minigame events pick the outcome themselves, bar the prize chests.
@@ -324,7 +324,10 @@ pub(crate) mod tests {
         // Nothing reads the Business Scrub Seed, so its chests are dealt.
         assert_eq!(why(&chest(1, item::SCRUB_BUSINESS_SEED.get())), None);
         assert_eq!(why(&game), Some(LeftOut::Narrowed(Narrowing::Minigame)));
-        for hash in dampe::REPEAT_CHESTS {
+        for hash in dampe::REPEAT_CHESTS
+            .into_iter()
+            .chain(pickups::seats::OVER_GROTTOS)
+        {
             let repeat = ItemCheck {
                 hash,
                 ..game.clone()
@@ -379,6 +382,6 @@ pub(crate) mod tests {
             .inspect(|c| assert!(shuffleable(c, no()), "{} {}", c.file, c.hash))
             .map(|c| c.hash)
             .collect();
-        assert_eq!(owned.len(), 7);
+        assert_eq!(owned.len(), 8);
     }
 }

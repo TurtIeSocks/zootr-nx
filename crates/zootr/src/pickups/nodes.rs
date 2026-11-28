@@ -11,6 +11,12 @@
 //! them: an OR gains the copy's output, and anything else reads an OR of the
 //! holder's and its copies'.
 //!
+//! A copy whose holder's own gate a GameData program can read stands on that
+//! gate instead ([`gates`]), named by nothing and with no node of its own:
+//! naming a copy in a module's group, or duplicating its node in that module's
+//! graph, hung the map's load, either one alone, at the Deku Tree's heart
+//! container dealt 10 Arrows (issue #539).
+//!
 //! A holder a nested module makes or watches is left out: its copy stays a
 //! plain placement. A copy named through the module's path (`_1fdf/Name`)
 //! hung its map's load, with its node or without, where the same at the
@@ -21,14 +27,17 @@
 //! too: its copies' nodes hung the city's load though it's top level
 //! (issue #458). Why it differs from Bottom of the Well's is still open.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use anyhow::{Context, Result, bail, ensure};
 use ounce_formats::ainb::{File, Graph, ParamType, Value};
 use ounce_formats::{Byml, ModBuilder, Romfs, files_with_suffix};
 
 use super::groups::{REFERENCE, REFERENCES, reference};
+use crate::gamedata::{GameData, Op};
+use crate::gates::Readable;
 use crate::known::field;
+use crate::shows;
 
 const ID: &str = "Id";
 const PATH: &str = "Path";
@@ -54,12 +63,16 @@ impl Wiring {
     /// Names each copy in `copies` (by the holder it copies, in order)
     /// beside its holder in each of `root`'s groups naming the holder, and
     /// notes the node to duplicate in each graph `creators` (by holder:
-    /// graph and node) runs it in. Whether `root`, a map's doc, changed.
+    /// graph and node) runs it in. A copy in `unbound` stands on its own
+    /// gate instead ([`gates`]): naming it or duplicating its node in a
+    /// graph a module runs hangs that map's load (issue #539). Whether
+    /// `root`, a map's doc, changed.
     pub fn refer(
         &mut self,
         root: &mut Byml,
         copies: &[(u64, u64)],
         creators: &HashMap<u64, Vec<(String, usize)>>,
+        unbound: &HashSet<u64>,
     ) -> Result<bool> {
         let Some(Byml::Array(groups)) = root.as_mut_map()?.get_mut(field::AI_GROUPS.get()) else {
             return Ok(false);
@@ -68,7 +81,7 @@ impl Wiring {
         let mut nth: HashMap<u64, usize> = HashMap::new();
         let wired = copies
             .iter()
-            .filter(|(of, _)| !crate::picked::NO_TWIN.contains(of));
+            .filter(|(of, copy)| !crate::picked::NO_TWIN.contains(of) && !unbound.contains(copy));
         for (of, copy) in wired {
             let k = nth.entry(*of).or_default();
             *k += 1;
@@ -140,6 +153,53 @@ pub fn creators(romfs: &Romfs) -> Result<HashMap<u64, Vec<(String, usize)>>> {
     Ok(out)
 }
 
+/// Each loud holder a step copy can stand by a gate instead of a node, by its
+/// hash: what every graph that makes it appear waits on, as far as a GameData
+/// program can read it. A holder with more than one graph stands when any of
+/// them would make it, so their terms join by OR.
+///
+/// A holder is left out when any graph that makes it gates on something a
+/// program can't name (an actor's own `Dead`, a quest past a step) or branches
+/// (`Or`, where a term on one branch isn't needed at all), or on nothing at
+/// all: only the module can say when its copy may stand there, so the copy
+/// keeps its node.
+pub fn gates(romfs: &Romfs, gd: &GameData) -> Result<HashMap<u64, Vec<Op>>> {
+    let mut by_holder: HashMap<u64, Vec<Vec<Op>>> = HashMap::new();
+    let mut read: HashMap<u64, bool> = HashMap::new();
+    for c in crate::gates::creators(romfs)?
+        .into_iter()
+        .filter(|c| !c.quiet)
+    {
+        let program = match c.gate.needs().filter(|n| !n.is_empty()) {
+            Some(needs) => needs
+                .iter()
+                .map(|n| term(n, gd).ok())
+                .collect::<Option<Vec<Vec<Op>>>>()
+                .map(|terms| shows::all(terms.into_iter())),
+            None => None,
+        };
+        *read.entry(c.hash).or_insert(true) &= program.is_some();
+        by_holder
+            .entry(c.hash)
+            .or_default()
+            .push(program.unwrap_or_default());
+    }
+    Ok(by_holder
+        .into_iter()
+        .filter(|(hash, _)| read[hash])
+        .map(|(hash, programs)| (hash, shows::any(programs.into_iter())))
+        .collect())
+}
+
+/// One term of a gate, as the program reads it.
+fn term(need: &Readable, gd: &GameData) -> Result<Vec<Op>> {
+    let value = match need {
+        Readable::Bool(flag) | Readable::Exp(flag) => Op::read(gd, flag)?,
+        Readable::Not(flag) => return Ok(vec![Op::read(gd, flag)?, Op::Not]),
+    };
+    Ok(vec![value])
+}
+
 /// Whether reference `r` names an actor of a module nested in the group's
 /// own, by a path through the module (`_1fdf/Name`).
 fn nested(r: &Byml) -> bool {
@@ -193,8 +253,11 @@ fn wire(f: &mut File, node: usize, tail: &str, (donor, or): &(File, usize)) -> R
 
 #[cfg(test)]
 mod tests {
+    use ounce_formats::murmur3;
+
     use super::*;
     use crate::game::dev_dump;
+    use crate::known::flag;
 
     /// A group naming a top-level holder `1` and a nested one `2`.
     fn group() -> Byml {
@@ -233,6 +296,88 @@ mod tests {
             .map(|s| s.as_str())
     }
 
+    /// A copy the module can't be handed a node for is named by nothing
+    /// either: naming it alone hung the load as duplicating its node did.
+    /// Its holder's other copies keep their names.
+    #[test]
+    fn an_unbound_copy_takes_no_name_and_no_node() {
+        let creators = HashMap::from([(1, vec![("FakeRoom".to_owned(), 3)])]);
+        let mut wiring = Wiring::default();
+        let mut root = group();
+        let unbound = HashSet::from([11]);
+        assert!(
+            !wiring
+                .refer(&mut root, &[(1, 11)], &creators, &unbound)
+                .unwrap()
+        );
+        assert_eq!(paths(&root), ["FakePot_1a2b", "_3c4d/FakePot_5e6f"]);
+        assert!(wiring.graphs.is_empty());
+        // The same holder's copy that does get a node is named as the first.
+        let mut root = group();
+        assert!(
+            wiring
+                .refer(&mut root, &[(1, 11), (1, 12)], &creators, &unbound)
+                .unwrap()
+        );
+        assert_eq!(
+            paths(&root),
+            ["FakePot_1a2b", "_3c4d/FakePot_5e6f", "FakePot_1a2b_Copy1"]
+        );
+        assert_eq!(
+            (wiring.graphs.len(), wiring.graphs["FakeRoom"].len()),
+            (1, 1)
+        );
+    }
+
+    /// Each loud holder whose every graph names what it waits on, so its step
+    /// copies can stand by that instead of a node. One that gates on a quest
+    /// past a step, or on nothing at all, keeps its node: only the module can
+    /// say when its copy may stand there.
+    #[test]
+    fn a_readable_creator_gate_gives_a_holders_copies_a_gate() {
+        let Some(romfs) = dev_dump() else { return };
+        let gd = GameData::load(&romfs).unwrap();
+        let gates = gates(&romfs, &gd).unwrap();
+        // Gohma's heart container, dealt 10 Arrows in the seed that hung
+        // (issue #539): her room's module makes it once she's beaten.
+        assert_eq!(
+            gates.get(&17948245526767051747),
+            Some(&vec![Op::Bool(murmur3(
+                flag::GOHMA_DEFEAT_BOSS.get().as_bytes(),
+            ))]),
+        );
+        // Morpha's waits on the quest being past a step, which no program says.
+        assert!(!gates.contains_key(&14426685265732353862));
+        // Goron City's Deku Stick pot's module makes it outright: nothing to
+        // read, so its copy keeps its node and its holder stays in NO_TWIN.
+        assert!(!gates.contains_key(&crate::picked::NO_TWIN[0]));
+        // A quiet holder's copy shares its group, so it needs no gate of its
+        // own: Bottom of the Well's regrowing pot.
+        assert!(!gates.contains_key(&13073030852500161257));
+        // Every holder counted here is one every graph that makes it gates on
+        // something a program can name, and each gate says at least that.
+        let every = crate::gates::creators(&romfs).unwrap();
+        for (hash, program) in &gates {
+            assert!(!program.is_empty(), "{hash}");
+            for c in every.iter().filter(|c| c.hash == *hash && !c.quiet) {
+                let readable = c.gate.needs().is_some_and(|n| !n.is_empty());
+                assert!(readable, "{hash} {}#{}", c.graph, c.node);
+            }
+        }
+        // Each boss heart but Morpha's stands on its boss's own flag or quest
+        // BoolExp, so its copies need no node of their own.
+        let hearts: Vec<u64> = (every.iter())
+            .filter(|c| c.gyaml == crate::known::actor::OBJ_HEART_CONTAINER.get())
+            .filter(|c| !c.quiet)
+            .map(|c| c.hash)
+            .collect();
+        assert_eq!(hearts.len(), 8);
+        assert_eq!(
+            hearts.iter().filter(|h| gates.contains_key(h)).count(),
+            hearts.len() - 1,
+        );
+    }
+
     /// A top-level holder's copy is named beside it and gets a node. A
     /// nested module's holder gets neither: named through the module, its
     /// copy hung the Deku Tree's load.
@@ -246,7 +391,7 @@ mod tests {
         let mut wiring = Wiring::default();
         assert!(
             wiring
-                .refer(&mut root, &[(1, 11), (2, 22)], &creators)
+                .refer(&mut root, &[(1, 11), (2, 22)], &creators, &HashSet::new())
                 .unwrap()
         );
         assert_eq!(
@@ -259,7 +404,7 @@ mod tests {
         let mut root = group();
         assert!(
             !Wiring::default()
-                .refer(&mut root, &[(2, 22)], &creators)
+                .refer(&mut root, &[(2, 22)], &creators, &HashSet::new())
                 .unwrap()
         );
     }
@@ -284,7 +429,11 @@ mod tests {
             .insert(REFERENCE.into(), Byml::U64(pot));
         let creators = HashMap::from([(pot, vec![("FakeCity".to_owned(), 3)])]);
         let mut wiring = Wiring::default();
-        assert!(!wiring.refer(&mut root, &[(pot, 11)], &creators).unwrap());
+        assert!(
+            !wiring
+                .refer(&mut root, &[(pot, 11)], &creators, &HashSet::new())
+                .unwrap()
+        );
         assert!(wiring.graphs.is_empty());
     }
 
@@ -294,8 +443,10 @@ mod tests {
     #[test]
     fn every_loud_holder_takes_copies() {
         let Some(romfs) = dev_dump() else { return };
+        // A boulder takes no copy: its seat is a pickup nothing reads.
         let loud: BTreeSet<u64> = (crate::pickups::watched(&romfs).unwrap().into_iter())
             .filter(|c| c.watched == crate::checks::Watched::Loud)
+            .filter(|c| !crate::pickups::seats::holds(c))
             .map(|c| c.hash)
             .collect();
         let mut by_graph: BTreeMap<String, BTreeSet<usize>> = BTreeMap::new();
@@ -307,7 +458,7 @@ mod tests {
         }
         // Five of them lie loose: two of Hyrule Field's green rupees and
         // Lake Hylia's Deku Nut, Seed and Stick.
-        assert_eq!((loud.len(), by_graph.len()), (97, 29));
+        assert_eq!((loud.len(), by_graph.len()), (85, 29));
         let donor = donor(&romfs).unwrap();
         for (graph, nodes) in &by_graph {
             let rel = format!("{LOGIC}/{graph}.ainb");
