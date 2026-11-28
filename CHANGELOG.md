@@ -3,6 +3,23 @@
 What changed in each release of zootr-nx, newest first. Releases before
 0.5.0 have their notes on the GitHub Releases page.
 
+## [0.17.0] - 2026-11-28
+
+### Added
+
+- Each dungeon rolls its ring or its keys one by one
+
+### Fixed
+
+- Persist pinned dev window
+- Remove lost comment
+- Z for search icon
+- Give Darunia's check after his dance, not inside it
+- Give capacity with first progressive weapon
+- Progressive display in chests
+- Scan the weapon bag hook in the porting tool
+- Take the wall out of the Water Temple's mouth
+
 ## [0.16.3] - 2026-11-27
 
 ### Fixed
