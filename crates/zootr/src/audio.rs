@@ -8,6 +8,7 @@
 //! only: the hook patch never differs by music. See
 //! `superpowers/specs/2026-11-24-audio-design.md`.
 
+mod cue;
 mod files;
 pub mod listen;
 mod pick;
@@ -17,9 +18,10 @@ mod write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail, ensure};
-use ounce_formats::Romfs;
+use ounce_formats::{BymlDoc, Romfs};
 use serde::{Deserialize, Serialize};
 
+pub use cue::banked_users;
 pub use files::{BANKS, HELD, OCARINA, STREAMS, TABLE, TRACKS, VOICE_PACKS};
 pub use pick::{
     Audio, CHAOS, Draft, PoolMode, VANILLA, args, draft, parse_pool, parse_track, resolve,
@@ -44,6 +46,11 @@ pub enum Via {
     /// names it takes the donor's type. Cutscene lines name their clips
     /// and stay vanilla; an emotion the donor lacks is silent.
     Voice,
+    /// A sound cue: the variants of each listed user's stem (`Moo_00`...,
+    /// or the one call named the stem), which the game plays together. A
+    /// slot's take the donor's first pair's in turn, from any user: the
+    /// donor's banks load with each slot user (live: a bomb mooed).
+    Sfx(&'static [(&'static str, &'static str)]),
 }
 
 /// A track's kind. Tracks shuffle only within their pool.
@@ -82,6 +89,8 @@ pub enum Pool {
     /// The NPCs' voices, by voice type: grunts, laughs and calls.
     #[serde(rename = "npc-voice")]
     NpcVoice,
+    /// Sound effects: Ship's SFX cues and a few more, across users.
+    Sfx,
     /// The silences: never shuffled.
     Fixed,
 }
@@ -100,6 +109,7 @@ impl Pool {
             | Pool::VoiceAdult
             | Pool::VoiceChild
             | Pool::NpcVoice
+            | Pool::Sfx
             | Pool::Fixed => &[],
         }
     }
@@ -114,6 +124,7 @@ impl Pool {
             Pool::VoiceAdult => "voice-adult",
             Pool::VoiceChild => "voice-child",
             Pool::NpcVoice => "npc-voice",
+            Pool::Sfx => "sfx",
             Pool::Fixed => "fixed",
         }
     }
@@ -208,6 +219,24 @@ pub fn stream<'a>(game: &Path, name: &'a str) -> Result<(&'a str, Vec<u8>)> {
     for bank in banks(&romfs, game)? {
         if let Some(data) = ounce_formats::bars::bwav(&bank, name)? {
             return Ok((name, data.to_vec()));
+        }
+    }
+    if let Some(Via::Sfx(pairs)) = (TRACKS.iter())
+        .find(|t| matches!(t.via, Via::Sfx(_)) && t.song == Some(name))
+        .map(|t| t.via)
+    {
+        let list = BymlDoc::parse(&romfs.read(crate::ageless_items::BANKS)?)?;
+        for bank in cue::banks_of(&list, pairs[0].0)? {
+            let path = format!("Sound/Resource/{bank}.zs");
+            let Some((_, data)) =
+                (crate::game::search(game, &path)?.into_iter()).find(|(p, _)| *p == path)
+            else {
+                continue;
+            };
+            let bank = romfs.dicts().decompress(&path, &data)?;
+            if let Some(data) = ounce_formats::bars::bwav(&bank, name)? {
+                return Ok((name, data.to_vec()));
+            }
         }
     }
     bail!("no stream {name}")
@@ -363,9 +392,9 @@ mod tests {
             };
             ounce_formats::bwav::header(data).unwrap()
         };
-        let (cues, called): (Vec<_>, Vec<_>) = called
-            .into_iter()
-            .partition(|t| matches!(t.via, Via::Cue(_)));
+        // Sound cues are checked in `cue`.
+        let called = called.into_iter().filter(|t| !matches!(t.via, Via::Sfx(_)));
+        let (cues, called): (Vec<_>, Vec<_>) = called.partition(|t| matches!(t.via, Via::Cue(_)));
         for t in cues {
             let Via::Cue(user) = t.via else {
                 unreachable!()

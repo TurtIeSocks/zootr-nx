@@ -75,6 +75,7 @@ test("Shuffle all keeps track overrides", () => {
       "voice-adult": "shuffle",
       "voice-child": "shuffle",
       "npc-voice": "shuffle",
+      sfx: "shuffle",
     },
     tracks: { market: "vanilla" },
   });

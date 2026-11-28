@@ -13,8 +13,8 @@ use ounce_formats::{
     xlink_copy_call,
 };
 
-use super::{Audio, CHAOS, HELD, TABLE, Track, Via, track, voice};
-use crate::ageless_items::SOUNDS;
+use super::{Audio, CHAOS, HELD, TABLE, Track, Via, cue, track, voice};
+use crate::ageless_items::{BANKS as BANK_LIST, SOUNDS};
 
 /// Play each slot's new song. Writes nothing for a seed in vanilla music.
 /// `seed` draws the voice chaos.
@@ -42,7 +42,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
         .iter()
         .map(|(name, graph)| Ok((name.to_string(), user(graph)?)))
         .collect::<Result<BTreeMap<_, _>>>()?;
-    let (mut repoints, mut table) = (vec![], false);
+    let (mut repoints, mut loads, mut table) = (vec![], vec![], false);
     for (slot, donor) in &audio {
         let (slot, donor) = (track(slot)?, track(donor)?);
         let song = (donor.song).with_context(|| format!("{} gives no song", donor.id))?;
@@ -58,8 +58,7 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
             (Via::Call(to), Via::Call(from)) if to == from => {
                 // Read now, written once every song is read, so two can trade.
                 repoints.push((
-                    to,
-                    slot.graph.to_string(),
+                    asset(&slink, to, slot.graph)?.param_at(),
                     asset(&slink, from, donor.graph)?.param,
                 ));
             }
@@ -67,8 +66,21 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
                 let params: Vec<_> = (variants(&slink, from, donor.graph)?.into_iter())
                     .map(|(_, call)| call.param)
                     .collect();
-                for (i, (name, _)) in variants(&slink, to, slot.graph)?.into_iter().enumerate() {
-                    repoints.push((to, name, params[i % params.len()]));
+                for (i, (_, call)) in variants(&slink, to, slot.graph)?.into_iter().enumerate() {
+                    repoints.push((call.param_at(), params[i % params.len()]));
+                }
+            }
+            (Via::Sfx(to), Via::Sfx(from)) => {
+                let (user, stem) = from[0];
+                let params: Vec<_> = (sfx_variants(&slink, user, stem)?.into_iter())
+                    .map(|(_, call)| call.param)
+                    .collect();
+                for &(to, stem) in to {
+                    // By place: a user may repeat a call's name.
+                    for (i, (_, call)) in sfx_variants(&slink, to, stem)?.into_iter().enumerate() {
+                        repoints.push((call.param_at(), params[i % params.len()]));
+                    }
+                    loads.push((to, user));
                 }
             }
             _ => bail!(
@@ -78,11 +90,14 @@ pub fn write(builder: &mut ModBuilder, audio: &Audio, seed: u64) -> Result<()> {
             ),
         }
     }
-    for (user, name, param) in repoints {
-        let at = asset(&slink, user, &name)?.param_at();
+    for (at, param) in repoints {
         slink[at..at + 4].copy_from_slice(&param.to_le_bytes());
     }
     builder.write(SOUNDS, &slink)?;
+    if !loads.is_empty() {
+        let banks = cue::load(&builder.read(BANK_LIST)?, &loads)?;
+        builder.write(BANK_LIST, &banks)?;
+    }
     if table {
         builder.write(TABLE, &doc.to_binary())?;
     }
@@ -110,17 +125,45 @@ fn give(slink: Vec<u8>, graph: &mut Byml, slot: &Track, from: &str, song: &str) 
 /// The voice calls of `user` in the cue `stem`: `stem` and a number, or
 /// numbers (`_01`, `00`, `_03_02`), maybe an `_alt` take, in their order.
 pub(super) fn variants(slink: &[u8], user: &str, stem: &str) -> Result<Vec<(String, XlinkCall)>> {
+    takes(slink, user, |name, fields| {
+        is_variant(name, stem) && fields.contains(&(2, VOICE))
+    })
+    .and_then(|found| match found.is_empty() {
+        true => bail!("{user} has no voice calls {stem}"),
+        false => Ok(found),
+    })
+}
+
+/// The calls of `user` in the sound cue `stem`: as [`variants`], or the
+/// one call named `stem`, any category, each playing a sound.
+pub(super) fn sfx_variants(
+    slink: &[u8],
+    user: &str,
+    stem: &str,
+) -> Result<Vec<(String, XlinkCall)>> {
+    takes(slink, user, |name, fields| {
+        (name == stem || is_variant(name, stem))
+            && (fields.iter()).any(|&(bit, s)| bit == 1 && !s.contains("Blank"))
+    })
+    .and_then(|found| match found.is_empty() {
+        true => bail!("{user} has no sound calls {stem}"),
+        false => Ok(found),
+    })
+}
+
+/// `user`'s asset calls that `keep` takes by name and fields, in order.
+fn takes(
+    slink: &[u8],
+    user: &str,
+    keep: impl Fn(&str, &[(u32, &str)]) -> bool,
+) -> Result<Vec<(String, XlinkCall)>> {
     let names = xlink_calls(slink, user)?;
     let mut found = vec![];
     for (name, call) in names.into_iter().zip(xlink_call_table(slink, user)?) {
-        if !call.container
-            && is_variant(name, stem)
-            && xlink_asset_names(slink, call.param)?.contains(&(2, VOICE))
-        {
+        if !call.container && keep(name, &xlink_asset_names(slink, call.param)?) {
             found.push((name.to_string(), call));
         }
     }
-    ensure!(!found.is_empty(), "{user} has no voice calls {stem}");
     Ok(found)
 }
 
@@ -284,7 +327,49 @@ mod tests {
         }
     }
 
-    /// A call never trades across users, either way.
+    /// A sound cue plays another user's: each of its pairs' takes gets the
+    /// donor's in turn, and each pair's user loads the donor's banks
+    /// beside its own.
+    #[test]
+    fn a_sound_cue_plays_another_users_with_its_banks() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let dir = std::env::temp_dir().join(format!("zootr-sfx-{}", std::process::id()));
+        let mut builder = ModBuilder::new(&romfs, &dir).unwrap();
+        let audio = Audio::from([("bomb-explosion".into(), "moo".into())]);
+        write(&mut builder, &audio, 0).unwrap();
+        builder.finish().unwrap();
+        let built = crate::game::read_built(&romfs, &dir, SOUNDS);
+        let list = crate::game::read_built(&romfs, &dir, BANK_LIST);
+        std::fs::remove_dir_all(dir).unwrap();
+        let pairs = |id: &str| match track(id).unwrap().via {
+            Via::Sfx(pairs) => pairs,
+            _ => unreachable!(),
+        };
+        let params = |file: &[u8], (user, stem): (&str, &str)| -> Vec<u32> {
+            let found = sfx_variants(file, user, stem).unwrap();
+            found.into_iter().map(|(_, call)| call.param).collect()
+        };
+        let (shipped, donor) = (romfs.read(SOUNDS).unwrap(), pairs("moo")[0]);
+        let moos = params(&shipped, donor);
+        let (old, new) = (
+            BymlDoc::parse(&romfs.read(BANK_LIST).unwrap()).unwrap(),
+            BymlDoc::parse(&list).unwrap(),
+        );
+        for &pair in pairs("bomb-explosion") {
+            for (i, param) in params(&built, pair).iter().enumerate() {
+                assert_eq!(*param, moos[i % moos.len()], "{} take {i}", pair.0);
+            }
+            let banks = cue::banks_of(&new, pair.0).unwrap();
+            let wanted = (cue::banks_of(&old, pair.0).unwrap().into_iter())
+                .chain(cue::banks_of(&old, donor.0).unwrap());
+            assert!(wanted.into_iter().all(|b| banks.contains(&b)), "{banks:?}");
+        }
+    }
+
+    /// A call never trades across users, either way, and a sound cue trades
+    /// only with sound cues.
     #[test]
     fn a_call_stays_in_its_user() {
         let Some(romfs) = crate::game::dev_dump() else {
@@ -301,6 +386,8 @@ mod tests {
         assert!(refused("child-sword-light", "adult-death"));
         assert!(refused("npc-navi", "drugstore"));
         assert!(refused("drugstore", "npc-navi"));
+        assert!(refused("moo", "child-death"));
+        assert!(refused("child-death", "moo"));
         std::fs::remove_dir_all(dir).ok();
     }
 }

@@ -11,6 +11,7 @@ export const POOLS = [
   "voice-adult",
   "voice-child",
   "npc-voice",
+  "sfx",
 ] as const satisfies readonly Pool[];
 
 /** Each pool as the pane names it. */
@@ -23,6 +24,7 @@ export const POOL_LABELS: Record<(typeof POOLS)[number], string> = {
   "voice-adult": "Adult voice",
   "voice-child": "Child voice",
   "npc-voice": "NPC voices",
+  sfx: "Sound effects",
 };
 
 /** A track override's value for "keep this one vanilla", as the backend

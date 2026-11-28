@@ -253,7 +253,8 @@ pub enum Probe {
     /// actors named after the song (`probe actors --gyaml StartPos`).
     Exits { node: String },
     /// The calls in a sound user (named for its actor), in order, or those
-    /// whose name contains `grep`, any case.
+    /// whose name contains `grep`, any case. User `*` with `--params`:
+    /// every user with a sound bank, matching streams too.
     Calls {
         user: String,
         grep: Option<String>,
@@ -676,10 +677,18 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
             let file = romfs.read(crate::ageless_items::SOUNDS)?;
             let grep = grep.unwrap_or_default().to_lowercase();
             if params {
-                let table = ounce_formats::xlink_call_table(&file, &user)?;
-                let names = ounce_formats::xlink_calls(&file, &user)?;
-                for (name, call) in names.iter().zip(&table) {
-                    if name.to_lowercase().contains(&grep) {
+                let every = user == "*";
+                let users = match every {
+                    true => crate::audio::banked_users(&romfs.read(crate::ageless_items::BANKS)?)?,
+                    false => vec![user],
+                };
+                for user in users {
+                    let table = match ounce_formats::xlink_call_table(&file, &user) {
+                        Err(_) if every => continue,
+                        table => table?,
+                    };
+                    let names = ounce_formats::xlink_calls(&file, &user)?;
+                    for (name, call) in names.iter().zip(&table) {
                         let (kind, names) = match call.container {
                             true => ("container", String::new()),
                             false => {
@@ -688,7 +697,18 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
                                 ("asset", names.collect::<Vec<_>>().join(" "))
                             }
                         };
-                        println!("{name}\t{kind}\t{:#x}\t{names}", call.param);
+                        let seen = match every {
+                            true => format!("{name} {names}"),
+                            false => name.to_string(),
+                        };
+                        if seen.to_lowercase().contains(&grep) {
+                            let at = if every {
+                                format!("{user}\t")
+                            } else {
+                                String::new()
+                            };
+                            println!("{at}{name}\t{kind}\t{:#x}\t{names}", call.param);
+                        }
                     }
                 }
                 return Ok(());

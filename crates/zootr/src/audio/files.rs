@@ -68,6 +68,14 @@ const fn v(user: &'static str, track: Track) -> Track {
     }
 }
 
+/// A sound cue: the stems of `pairs`, each in its user.
+const fn s(pairs: &'static [(&'static str, &'static str)], track: Track) -> Track {
+    Track {
+        via: Via::Sfx(pairs),
+        ..track
+    }
+}
+
 /// An NPC voice type: its graph is the type, its song a clip in its bank.
 const fn n(track: Track) -> Track {
     Track {
@@ -77,7 +85,7 @@ const fn n(track: Track) -> Track {
 }
 
 #[rustfmt::skip]
-pub static TRACKS: [Track; 314] = [
+pub static TRACKS: [Track; 368] = [
     t("appear", "Appearance", Fanfare, "BGM_Appear", Some("BGM_Appear"), 6.13, false),
     t("boss-room", "Boss room (silence)", Fixed, "BGM_BossRoom", None, 0.00, false),
     t("bottom-of-the-well", "Bottom of the Well", Area, "BGM_BottomOfTheWell", Some("BGM_BottomOfTheWell"), 89.00, true),
@@ -393,6 +401,61 @@ pub static TRACKS: [Track; 314] = [
     n(t("npc-zora-man-2", "Zora 2 (2 NPCs)", NpcVoice, "Zora_Man_2", Some("NV_Zora_Man_2_TalkPositive00"), 0.48, false)),
     n(t("npc-zora-man-3", "Zora 3 (3 NPCs)", NpcVoice, "Zora_Man_3", Some("NV_Zora_Man_3_TalkPositive00"), 0.36, false)),
     n(t("npc-zora-man-4", "Zora 4 (3 NPCs)", NpcVoice, "Zora_Man_4", Some("NV_Zora_Man_4_TalkPositive00"), 0.57, false)),
+    // Sound cues (stage 7): Ship's SFX and a few more.
+    s(&[("Enemy_Amos", "EnemyVoice_GetUp")], t("armos", "Armos waking", Sfx, "EnemyVoice_GetUp", Some("SE_Enemy_Amos_GetUpVoice00"), 1.16, false)),
+    s(&[("Animal_Dog_Base", "Bark"), ("Animal_Dog_Richard", "Bark")], t("bark", "Dog bark", Sfx, "Bark", Some("SE_Animal_Dog_Bark01"), 0.27, false)),
+    s(&[("Item_Bomb", "Chemical_Explosion_Ground"), ("Item_Bombchu", "Chemical_Explosion_Ground")], t("bomb-explosion", "Bomb explosion", Sfx, "Chemical_Explosion_Ground", Some("SE_Item_Bomb_Explosion00"), 2.67, false)),
+    s(&[("Enemy_DungeonBoss_BongoBongo_RightHand", "Drumming")], t("bongo-bongo-high", "Bongo Bongo drum, right hand", Sfx, "Drumming", Some("SE_Enemy_DungeonBoss_BongoBongo_RightHand_Drumming00"), 2.63, false)),
+    s(&[("Enemy_DungeonBoss_BongoBongo_LeftHand", "Drumming")], t("bongo-bongo-low", "Bongo Bongo drum, left hand", Sfx, "Drumming", Some("SE_Enemy_DungeonBoss_BongoBongo_LeftHand_Drumming00"), 1.45, false)),
+    s(&[("Player_Adult", "コルク抜ける"), ("Player_Child", "コルク抜ける")], t("bottle-cork", "Bottle cork", Sfx, "コルク抜ける", Some("SE_Item_Bottle_Demo_OutCorkOut00"), 0.16, false)),
+    s(&[("Weapon_Range_Bow", "Release1_03")], t("bow-shot", "Bow shot", Sfx, "Release1_03", Some("SE_Weapon_Range_Bow_Release00"), 0.67, false)),
+    s(&[("Enemy_Bubble_Blue", "EnemyVoice_Discover"), ("Enemy_Bubble_Green", "EnemyVoice_Discover"), ("Enemy_Bubble_Red", "EnemyVoice_Discover"), ("Enemy_Bubble_White", "EnemyVoice_Discover")], t("bubble-cackle", "Bubble cackle", Sfx, "EnemyVoice_Discover", Some("SE_Enemy_Bubble_DiscoverVoice00"), 0.52, false)),
+    s(&[("Enemy_Scrub_Business", "EnemyVoice_Damage")], t("business-scrub", "Business Scrub hurt", Sfx, "EnemyVoice_Damage", Some("SE_Enemy_ScrubBusiness_DamageVoice00"), 0.52, false)),
+    s(&[("Animal_Cucco", "Wait"), ("Animal_SuperCucco", "Wait"), ("Item_PocketCucco", "Wait"), ("Item_AlarmCucco", "Wait")], t("cucco-cluck", "Cucco cluck", Sfx, "Wait", Some("SE_Animal_Cucco_Cry03"), 1.29, false)),
+    s(&[("Animal_Cucco", "Wait_Crow"), ("Animal_SuperCucco", "Wait_Crow")], t("cucco-crow", "Cucco crow", Sfx, "Wait_Crow", Some("SE_Animal_Cucco_Cry05"), 1.92, false)),
+    s(&[("Animal_Cucco", "Shout"), ("Animal_SuperCucco", "Shout")], t("cucco-shout", "Cucco shout", Sfx, "Shout", Some("SE_Animal_Cucco_CryShout"), 1.83, false)),
+    s(&[("Enemy_Dekubaba", "Attack")], t("deku-baba", "Deku Baba bite", Sfx, "Attack", Some("SE_Enemy_Dekubaba_Attack00"), 1.86, false)),
+    s(&[("Enemy_MiddleBoss_FlareDancer", "EnemyVoice_Appear")], t("flare-dancer-appear", "Flare Dancer appears", Sfx, "EnemyVoice_Appear", Some("SE_Enemy_MiddleBoss_FlareDancer_Core_AppearVoice00"), 0.95, false)),
+    s(&[("Enemy_MiddleBoss_FlareDancer", "EnemyVoice_Stop")], t("flare-dancer-stop", "Flare Dancer stops", Sfx, "EnemyVoice_Stop", Some("SE_Enemy_MiddleBoss_FlareDancer_Core_SurpriseVoice00"), 1.86, false)),
+    s(&[("Enemy_Gohma_Larva", "SearchVoice")], t("gohma-larva-croak", "Gohma larva", Sfx, "SearchVoice", Some("SE_Enemy_Gohma_Larva_SearchVoice00"), 0.72, false)),
+    s(&[("Obj_Token_Gold", "PouchContent_OnAutoGet")], t("gold-skulltula-token", "Gold Skulltula token", Sfx, "PouchContent_OnAutoGet", Some("SE_Obj_TokenGold_Get00"), 1.25, false)),
+    s(&[("Enemy_Guay", "Voice_Chase")], t("guay", "Guay chase", Sfx, "Voice_Chase", Some("SE_Enemy_Guay_Voice_Chase"), 0.36, false)),
+    s(&[("Player_Adult", "Healing_HP"), ("Player_Child", "Healing_HP")], t("heart-refill", "Heart refill", Sfx, "Healing_HP", Some("SE_Pl_HeartRecover_Short00"), 0.96, false)),
+    s(&[("Enemy_IronKnuckle", "WeaponAttack_Swing"), ("Enemy_MiddleBoss_IronKnuckle_Nabooru", "WeaponAttack_Swing")], t("iron-knuckle-axe", "Iron Knuckle axe", Sfx, "WeaponAttack_Swing", Some("SE_Enemy_IronKnuckle_WeaponAttack_Swing00"), 0.79, false)),
+    s(&[("Player_Adult", "HeartAlert"), ("Player_Child", "HeartAlert")], t("low-health", "Low health beep", Sfx, "HeartAlert", Some("SE_Sys_HeartAlert"), 1.31, false)),
+    s(&[("Animal_Cow", "Moo")], t("moo", "Moo", Sfx, "Moo", Some("SE_Animal_Cow_Moo_00"), 1.52, false)),
+    s(&[("Enemy_DungeonBoss_PhantomGanon", "EnemyVoice_Laugh_Rand")], t("phantom-ganon-laugh", "Phantom Ganon laugh", Sfx, "EnemyVoice_Laugh_Rand", Some("SE_Enemy_DungeonBoss_PhantomGanon_LaughVoice00"), 3.32, false)),
+    s(&[("Obj_Plant_Grass_A_01", "Death_Disappear")], t("grass-cut", "Grass cut", Sfx, "Death_Disappear", Some("SE_Obj_PlandGrass_Vanish00"), 1.80, false)),
+    s(&[("Obj_Pot_A_01", "Death_Disappear")], t("pot-shatter", "Pot shatter", Sfx, "Death_Disappear", Some("SE_Obj_Pot_Vanish00"), 0.85, false)),
+    s(&[("Enemy_ReDead", "EnemyVoice_Cry"), ("Enemy_Gibdo", "EnemyVoice_Cry")], t("redead-moan", "ReDead moan", Sfx, "EnemyVoice_Cry", Some("SE_Enemy_ReDead_Cry00"), 5.30, false)),
+    s(&[("Enemy_ReDead", "EnemyVoice_Shout"), ("Enemy_Gibdo", "EnemyVoice_Shout")], t("redead-scream", "ReDead scream", Sfx, "EnemyVoice_Shout", Some("SE_ReDead_Voice_Shout00"), 2.78, false)),
+    s(&[("Animal_Frog_Blue", "Singing"), ("Animal_Frog_Gray", "Singing"), ("Animal_Frog_LightBlue", "Singing"), ("Animal_Frog_Red", "Singing"), ("Animal_Frog_Yellow", "Singing")], t("frog-song", "Frog song", Sfx, "Singing", Some("SE_Animal_FrogTenor_Singing00"), 0.78, false)),
+    s(&[("Obj_silverRupeeCounter_02", "Get"), ("Obj_silverRupeeCounter_06", "Get")], t("silver-rupee", "Silver rupee", Sfx, "Get", Some("SE_Obj_TokenSilver_Counter00"), 1.99, false)),
+    s(&[("Enemy_Scrub_Business", "Appear")], t("scrub-emerge", "Scrub emerge", Sfx, "Appear", Some("SE_Enemy_ScrubBusiness_Appear00"), 3.35, false)),
+    s(&[("Enemy_Shabom", "Bound")], t("shabom-bounce", "Shabom bounce", Sfx, "Bound", Some("SE_Enemy_Shabom_Bound00"), 0.74, false)),
+    s(&[("Enemy_Shabom", "Burst")], t("shabom-pop", "Shabom pop", Sfx, "Burst", Some("SE_Enemy_Shabom_Disappear00"), 1.23, false)),
+    s(&[("Enemy_ShellBlade", "OpenMouth")], t("shellblade", "Shell Blade", Sfx, "OpenMouth", Some("SE_Enemy_ShellBlade_Provoke_OpenMouth00"), 0.44, false)),
+    s(&[("Enemy_Skulltula", "Vo_Damage_Signal"), ("Npc_SkullChild_001", "Vo_Damage_Signal"), ("Npc_SkullChild_002", "Vo_Damage_Signal"), ("Npc_SkullChild_003", "Vo_Damage_Signal"), ("Npc_SkullChild_004", "Vo_Damage_Signal"), ("Npc_SkullChild_005", "Vo_Damage_Signal"), ("Npc_SkullDad", "Vo_Damage_Signal")], t("skulltula-damage", "Skulltula hurt", Sfx, "Vo_Damage_Signal", Some("SE_Skulltula_Damage_00"), 0.99, false)),
+    s(&[("Enemy_Scrub_Business", "AttackShot"), ("Enemy_Scrub_Deku", "AttackShot"), ("Enemy_Scrub_ForestStage", "AttackShot"), ("Enemy_Scrub_Mad", "AttackShot"), ("NPC_Scrub_Deku_TargetPractice", "AttackShot")], t("scrub-spit", "Scrub spits a nut", Sfx, "AttackShot", Some("SE_Enemy_ScrubDeku_AttackShot00"), 0.20, false)),
+    s(&[("Enemy_Stalchild", "BasicAttack")], t("stalchild-attack", "Stalchild attack", Sfx, "BasicAttack", Some("SE_Enemy_Stulchild_Attack01"), 0.94, false)),
+    s(&[("Obj_Stepswitch_A_03", "PushEnd"), ("SwitchStep", "PushEnd")], t("switch", "Floor switch", Sfx, "PushEnd", Some("SE_StepSwitch_On_00"), 0.75, false)),
+    s(&[("Npc_Navi", "LockOn_Enemy")], t("lock-on-enemy", "Lock on, enemy", Sfx, "LockOn_Enemy", Some("SE_Navi_LockOnEnemy"), 1.14, false)),
+    s(&[("Npc_Navi", "LockOn")], t("lock-on", "Lock on", Sfx, "LockOn", Some("SE_Navi_LockOn"), 0.48, false)),
+    s(&[("EftLoc_BasicThunder_00", "thunder"), ("EftLoc_GanonCastleThunder_00", "thunder")], t("thunder", "Thunder", Sfx, "thunder", Some("SE_Env_Thunder01"), 7.98, false)),
+    s(&[("Obj_TBox_A_01", "Open"), ("Obj_TBox_A_04", "Open"), ("Obj_TBox_GlassTruth_A_01", "Open")], t("chest-open", "Chest opens", Sfx, "Open", Some("SE_TBox_A_Open_00"), 0.81, false)),
+    s(&[("Obj_TBox_A_02", "Open")], t("big-chest-open", "Big chest opens", Sfx, "Open", Some("SE_TBox_A_02_Open_00"), 3.36, false)),
+    s(&[("Obj_Base_Door_A_01", "open_by_player"), ("Obj_Base_RestrictedDoor_A_01", "open_by_player")], t("door-open", "Door opens", Sfx, "open_by_player", Some("SE_Cmn_Door_Open_Wood_01"), 0.81, false)),
+    s(&[("Obj_Base_Door_A_01", "close_by_player"), ("Obj_Base_RestrictedDoor_A_01", "close_by_player")], t("door-close", "Door closes", Sfx, "close_by_player", Some("SE_Cmn_Door_Close_Wood_01"), 1.27, false)),
+    s(&[("Obj_Base_Door_A_01", "OpenFailure"), ("Obj_Base_Door_A_02", "OpenFailure"), ("Obj_Base_NpcOnlyDoor_A_01", "OpenFailure"), ("Obj_Base_RestrictedDoor_A_01", "OpenFailure"), ("Obj_Base_RestrictedDoor_A_02", "OpenFailure"), ("Obj_Door_ShopBombBoring", "OpenFailure"), ("Obj_FireTemple_Door_A_01", "OpenFailure"), ("Obj_ForestTemple_Door_A_01", "OpenFailure"), ("Obj_Graveyard_Door_A_01", "OpenFailure"), ("Obj_Kokiri_Door_A_01", "OpenFailure"), ("Obj_Kokiri_Door_A_03", "OpenFailure")], t("locked-door", "Locked door", Sfx, "OpenFailure", Some("SE_Pl_DoorFailure00"), 0.38, false)),
+    s(&[("Weapon_Range_SlingShot", "Release1")], t("slingshot-release", "Slingshot shot", Sfx, "Release1", Some("SE_Weapon_Range_SlingShot_Release_00"), 0.42, false)),
+    s(&[("Item_DekuNut", "Shoot")], t("deku-nut-throw", "Deku Nut throw", Sfx, "Shoot", Some("SE_Item_DekuNut_Throw00"), 0.16, false)),
+    s(&[("Item_DekuNut", "Chemical_Light")], t("deku-nut-flash", "Deku Nut flash", Sfx, "Chemical_Light", Some("SE_Item_DekuNut_Explosion00"), 1.15, false)),
+    s(&[("Player_Adult", "ChangeIntoHeavyBoots")], t("iron-boots-equip", "Iron Boots on", Sfx, "ChangeIntoHeavyBoots", Some("SE_Player_Adult_ChangeIntoHeavyBoots"), 0.49, false)),
+    s(&[("Player_Adult", "ChangeIntoHoverBoots")], t("hover-boots-equip", "Hover Boots on", Sfx, "ChangeIntoHoverBoots", Some("SE_Player_Adult_ChangeIntoHoverBoots"), 0.45, false)),
+    s(&[("Animal_Epona_Adult", "Vo_Neigh")], t("epona-neigh", "Epona neigh", Sfx, "Vo_Neigh", Some("SE_Horse_Neigh_00"), 2.14, false)),
+    s(&[("Enemy_Stalfos", "EnemyVoice_Laugh_rand")], t("stalfos-laugh", "Stalfos laugh", Sfx, "EnemyVoice_Laugh_rand", Some("SE_Enemy_Stalfos_Laugh00"), 2.10, false)),
+    s(&[("Player_Adult", "FallDamage"), ("Player_Child", "FallDamage")], t("fall-damage", "Fall damage", Sfx, "FallDamage", Some("SE_Player_FallDamage"), 1.23, false)),
+    s(&[("Npc_Navi", "Approach")], t("navi-approach", "Navi flies up", Sfx, "Approach", Some("SE_Navi_FlyApproach"), 3.04, false)),
 ];
 
 /// Each actor pack with a `VoiceParam`: its voice type, the pack, and the
