@@ -5,6 +5,48 @@
 # it, with Ship's rule for that check. Keys are `always`, so the key
 # counts drop out. Rules on the playtest list.
 
+# These pots are in the entrance lobby, before either age's obstacles.
+# Their creation graph chooses which ones appear for each age.
+[[check]]
+hash = 14639467075158265290
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 17137051788597509779
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 103563951645462556
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 3892291898975768871
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 16244368682301461195
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 9856880919248647941
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 5871571106450718234
+needs = "always"
+setting = "pots"
+
+[[check]]
+hash = 3030155917724115111
+needs = "always"
+setting = "pots"
+
 # The child side's bridge room, past the crawl holes: a hit switch drops
 # the bridge to the chest.
 [[check]]

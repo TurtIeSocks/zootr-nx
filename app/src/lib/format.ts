@@ -24,6 +24,23 @@ export function seedOrCode(text: string) {
 export const nameOf = (entry: Pick<Summary, "label" | "ap_slot">) =>
   entry.label.name || entry.ap_slot || "";
 
+/** How many of a seed's checks were shuffled, for its meter: all of them,
+ * or the rest beside how many a setting kept. A seed from before kept
+ * checks were counted reads by how many changed item. */
+export function shuffled(entry: Pick<Summary, "chests" | "changed" | "kept">) {
+  const { chests, changed, kept } = entry;
+  if (kept === null) {
+    return { value: changed, text: `${changed} of ${chests} checks changed` };
+  }
+  const value = chests - kept;
+  return {
+    value,
+    text: kept
+      ? `${value} of ${chests} checks shuffled · ${kept} kept vanilla`
+      : `${chests} checks shuffled`,
+  };
+}
+
 /** The non-blank lines of `text`, trimmed. */
 export const splitLines = (text: string) =>
   text

@@ -56,6 +56,7 @@ pub fn moved<'a>(
 ) -> Vec<Moved<'a>> {
     let holders: BTreeSet<_> = checks
         .iter()
+        .filter(|c| !seats::holds(c) || super::variants::canonical(c.hash) == c.hash)
         .filter_map(|c| {
             Some((
                 c.hash,

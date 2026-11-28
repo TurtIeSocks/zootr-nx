@@ -32,6 +32,7 @@ mod shared;
 mod stale;
 pub mod steps;
 pub mod taken;
+pub(crate) mod variants;
 
 use drops::own_drop;
 pub use moves::{moved, stand_ins, tabled, write};
@@ -425,7 +426,7 @@ pub fn dealt(romfs: &Romfs, new_game: &NewGame) -> Result<Vec<ItemCheck>> {
     for (_, kind) in on.into_iter().filter(|(on, _)| *on) {
         out.extend(kind.checks(romfs)?);
     }
-    out.retain(|c| !seats::OVER_GROTTOS.contains(&c.hash));
+    out.retain(|c| !seats::OVER_GROTTOS.contains(&c.hash) && !variants::excluded(c.hash));
     watch(romfs, &mut out)?;
     Ok(out)
 }

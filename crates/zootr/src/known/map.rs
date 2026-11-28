@@ -40,6 +40,7 @@ pub const HYRULE_FIELD_CHILD_PREFAB_32F7: &Name = &n!(0xe03776a923158da3);
 pub const HYRULE_FIELD_LAKE_HYLIA_CHILD_PREFAB_9E98: &Name = &n!(0x36dfd20d9e9fec1f);
 pub const ICE_CAVERN: &Name = &n!(0x5492622bcb6954b9);
 pub const INSIDE_GANON_CASTLE: &Name = &n!(0x7e27f0fae8d92890);
+pub const INSIDE_GANON_CASTLE_LEVEL_ROOM_01_PREFAB_75AF: &Name = &n!(0x69a6ac7fe476ac1a);
 pub const INSIDE_JABU_JABU_BELLY: &Name = &n!(0x22a5855b4b8f52bb);
 pub const INSIDE_THE_DEKU_TREE: &Name = &n!(0xcb9ca69e57d15e27);
 pub const KAKARIKO_VILLAGE_ADULT: &Name = &n!(0x9a7b754cdb96d32d);

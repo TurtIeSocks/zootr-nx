@@ -1,16 +1,18 @@
 import { ExternalLink, Eye, Info, LoaderCircle, X } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
-import { commands, type IconSize } from "@/bindings";
+import { commands, type IconSize, TRACKER_MAX_GAP } from "@/bindings";
 import { Callout, InlineError } from "@/components/callout";
 import { Help } from "@/components/help";
 import { LoadGate } from "@/components/load-gate";
 import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { Label } from "@/components/ui/label";
 import { Segmented } from "@/components/ui/segmented";
+import { Switch } from "@/components/ui/switch";
 import { ItemsGrid } from "@/items/items-grid";
-import { move, TITLES } from "@/items/layout";
+import { fadedHex, move, TITLES } from "@/items/layout";
 import { call } from "@/lib/api";
 import { useRequestState } from "@/lib/request";
 import { Page } from "@/shell/page-header";
@@ -53,10 +55,13 @@ export function ItemsView() {
               <Size />
             </Setting>
             <Background />
+            <Missing />
             <Setting title="Layout">
               <p className="text-[13px] text-ink-muted leading-[18px]">
                 Hover a section to move, resize or hide it.
               </p>
+              <Titles />
+              <Spacing />
               <Hidden />
             </Setting>
           </aside>
@@ -173,6 +178,79 @@ function Background() {
         The tracker can't be transparent. For a stream, pick a color your
         streaming software keys out
       </p>
+    </div>
+  );
+}
+
+/** The color laid over missing items. Following the background, they
+ * look faded; a color of their own keeps them whole under a color key. */
+function Missing() {
+  const [missing] = useItems.usePath("options.missing");
+  const [background] = useItems.usePath("options.background");
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label>Missing items</Label>
+        <div className="flex items-center gap-1">
+          {missing !== null && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => set({ missing: null })}
+            >
+              Follow background
+            </Button>
+          )}
+          <ColorPicker
+            mode="hex"
+            value={missing ?? fadedHex(background)}
+            onChange={(missing) => set({ missing })}
+            aria-label="Missing items color"
+          />
+        </div>
+      </div>
+      <p className="text-[13px] text-ink-muted leading-[18px]">
+        {missing === null
+          ? "Faded into the background. If your key eats them, pick a color and opacity of their own"
+          : "Laid over each missing item, so the background never shows through"}
+      </p>
+    </div>
+  );
+}
+
+/** Whether each section draws its title. */
+function Titles() {
+  const [titles] = useItems.usePath("options.titles");
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Label htmlFor="items-titles">Section titles</Label>
+      <Switch
+        id="items-titles"
+        checked={titles}
+        onCheckedChange={(titles) => set({ titles })}
+      />
+    </div>
+  );
+}
+
+/** The space between sections and between columns. */
+function Spacing() {
+  const [gap] = useItems.usePath("options.gap");
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor="items-gap" className="justify-between">
+        Spacing
+        <span className="font-mono text-ink-muted text-xs">{gap}px</span>
+      </Label>
+      <input
+        id="items-gap"
+        type="range"
+        min={0}
+        max={TRACKER_MAX_GAP}
+        value={gap}
+        onChange={(e) => set({ gap: Number(e.target.value) })}
+        className="w-full accent-primary"
+      />
     </div>
   );
 }

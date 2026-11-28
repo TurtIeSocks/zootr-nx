@@ -45,7 +45,7 @@ pub fn shuffle(
     run.step(Step::Checks)?;
     let checks = checks::dealt(romfs, &new_game)?;
     let logic = new_game.fills();
-    let (mut placements, filled, started) = match logic {
+    let (mut placements, filled, started, kept) = match logic {
         true => {
             let book = Book::load()?;
             let shuffles = new_game.dungeon_entrances != DungeonEntrances::Off;
@@ -73,7 +73,7 @@ pub fn shuffle(
                 }
                 reroll &= vanilla == Some(true);
                 run.step(Step::Placing)?;
-                let started = deal.started.clone();
+                let (started, kept) = (deal.started.clone(), deal.kept.clone());
                 let filled = match reroll {
                     true => None,
                     false => {
@@ -87,7 +87,12 @@ pub fn shuffle(
                     }
                 };
                 if let Some(filled) = filled {
-                    break (filled.placements.clone(), Some((world, filled)), started);
+                    break (
+                        filled.placements.clone(),
+                        Some((world, filled)),
+                        started,
+                        kept,
+                    );
                 }
                 // A layout logic can't beat, like the Water Temple behind
                 // Jabu-Jabu's child-only door, rolls new doors.
@@ -105,8 +110,13 @@ pub fn shuffle(
             let mut deal = shuffle::deal(&checks, fixed, &new_game)?;
             let none = BTreeSet::new();
             ice_traps::swap(romfs, &mut deal.items, &none, new_game.ice_traps, seed)?;
-            let started = deal.started.clone();
-            (shuffle::scatter(deal, seed, &new_game)?, None, started)
+            let (started, kept) = (deal.started.clone(), deal.kept.clone());
+            (
+                shuffle::scatter(deal, seed, &new_game)?,
+                None,
+                started,
+                kept,
+            )
         }
     };
     let needed = filled.as_ref().map(|(world, _)| world.items());
@@ -135,9 +145,10 @@ pub fn shuffle(
         .foreign(&new_game.foreign);
     let mut spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
     let given = gifts::pocket(&new_game.on);
-    spots
-        .iter_mut()
-        .for_each(|s| s.given = given.contains(&s.hash));
+    spots.iter_mut().for_each(|s| {
+        s.given = given.contains(&s.hash);
+        s.kept = kept.contains(&s.hash);
+    });
     places::fill(romfs, &mut spots)?;
     spots.sort_by(|a, b| (&a.area_name, a.name(), a.hash).cmp(&(&b.area_name, b.name(), b.hash)));
     let hints = match (new_game.hints, &new_game.given_hints, &filled) {

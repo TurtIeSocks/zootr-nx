@@ -120,6 +120,10 @@ pub enum After {
 /// The seed Bool set once the drop of the holder placed as `hash` is
 /// picked up.
 pub fn flag(hash: u64) -> String {
+    placed_flag(crate::pickups::variants::canonical(hash))
+}
+
+fn placed_flag(hash: u64) -> String {
     format!("Rando_Picked_{hash}")
 }
 
@@ -128,6 +132,7 @@ pub fn flag(hash: u64) -> String {
 /// which the pickup event graph sets without the hook
 /// (`pickups::taken`).
 pub fn got(hash: u64) -> String {
+    let hash = crate::pickups::variants::canonical(hash);
     format!("Rando_Got_{hash}")
 }
 
@@ -151,7 +156,7 @@ pub fn flag_at(spot: &crate::generate::Spot) -> Option<String> {
     let lies = LYING.iter().any(|k| k.places(holder));
     let stands = KINDS.iter().any(|k| k.places(holder)) || seats::places(holder);
     let picked = stands && !kept || taken(lies, &spot.item);
-    (picked || crate::shops::is_holder(holder)).then(|| flag(spot.hash))
+    (picked || crate::shops::is_holder(holder)).then(|| placed_flag(spot.hash))
 }
 
 /// Each holder among `pieces`, dealt `drops`, that stands until picked,
@@ -168,7 +173,7 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
         _ if lying(c) => After::Taken(c.presence.clone()),
         _ if c.presence.is_some() => After::Gone,
         _ if NO_TWIN.contains(&c.hash) => After::Alone,
-        _ => After::Twin(crate::known::hash(&flag(c.hash))),
+        _ => After::Twin(crate::known::hash(&placed_flag(c.hash))),
     };
     let found: BTreeMap<u64, (After, crate::marks::Look)> = pieces
         .iter()
@@ -189,7 +194,12 @@ pub fn holders(pieces: &[ItemCheck], drops: &HashMap<u64, Drop>) -> Vec<Holder> 
 }
 
 pub fn flags(holders: &[Holder]) -> Vec<String> {
-    holders.iter().map(|h| flag(h.hash)).collect()
+    holders
+        .iter()
+        .map(|h| flag(h.hash))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 /// Each of `holders`' [`got`], from its flag and its `stand_ins`, by
@@ -197,15 +207,23 @@ pub fn flags(holders: &[Holder]) -> Vec<String> {
 pub fn exps(holders: &[Holder], stand_ins: &[(u64, String)]) -> Vec<(String, Vec<Op>)> {
     let bool_of = |name: &str| Op::Bool(murmur3(name.as_bytes()));
     let got_of = |hash: u64| {
-        let taken = (stand_ins.iter().filter(|(of, _)| *of == hash))
-            .map(|(_, s)| vec![bool_of(&crate::pickups::taken::flag(s))]);
+        let taken = stand_ins
+            .iter()
+            .filter(|(of, _)| crate::pickups::variants::canonical(*of) == hash)
+            .map(|(_, actor)| vec![bool_of(&crate::pickups::taken::flag(actor))]);
         let program = std::iter::once(vec![bool_of(&flag(hash))]).chain(taken);
         (
             got(hash),
             program.reduce(crate::shows::or).unwrap_or_default(),
         )
     };
-    let mut out: Vec<_> = holders.iter().map(|h| got_of(h.hash)).collect();
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<_> = holders
+        .iter()
+        .map(|h| crate::pickups::variants::canonical(h.hash))
+        .filter(|&hash| seen.insert(hash))
+        .map(got_of)
+        .collect();
     let gated = holders.iter().filter_map(|h| match &h.after {
         After::Killed(Some(gate)) => Some((h.hash, gate)),
         _ => None,
@@ -448,9 +466,9 @@ mod tests {
         let skulltulas = pickups::SKULLTULAS.checks(&dev_dump().unwrap()).unwrap();
         let skulltulas: BTreeSet<u64> = skulltulas.iter().map(|s| s.hash).collect();
         assert_eq!(skulltulas.len(), 100);
-        // 518 pots and 23 flying ones, 38 crates, 167 rocks, 160 shrubs and
-        // 21 hives, then the Skulltulas, the 63 boulders and 42 silver rocks.
-        assert_eq!(holders.len(), 927 + 100 + 63 + 42);
+        // Every physical variant remains here. Permanently missable
+        // holders are out, including the ones that never spawn.
+        assert_eq!(holders.len(), 909 + 100 + 63 + 42);
         let killed = |h: &&Holder| matches!(h.after, After::Killed(_));
         let killed: BTreeSet<u64> = holders.iter().filter(killed).map(|h| h.hash).collect();
         assert_eq!(killed, skulltulas);

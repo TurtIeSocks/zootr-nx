@@ -5,7 +5,7 @@ import { Meter } from "@/components/meter";
 import { RequestError } from "@/components/request-error";
 import { SeedIcons } from "@/components/seed-icons";
 import { Badge } from "@/components/ui/badge";
-import { nameOf, when } from "@/lib/format";
+import { nameOf, shuffled, when } from "@/lib/format";
 import { RequestProvider } from "@/lib/request-provider";
 import { summaryParts } from "@/lib/settings";
 import { PlayButtonGroup } from "@/play/play-button-group";
@@ -73,8 +73,8 @@ export function InstalledSeed() {
                 <Badge key={s}>{s}</Badge>
               ))}
             </div>
-            <Meter value={installed.changed} max={installed.chests}>
-              {installed.changed} of {installed.chests} checks changed
+            <Meter value={shuffled(installed).value} max={installed.chests}>
+              {shuffled(installed).text}
             </Meter>
           </div>
         )}

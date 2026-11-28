@@ -254,7 +254,10 @@ pub(crate) fn planned(romfs: &Romfs) -> Result<(Ledger, Vec<crate::sweep::plan::
     let breakable = breakables(romfs)?;
     let others = census(romfs, &breakable)?;
     let open = Let::of(&new_game);
-    for c in others.iter().filter(|c| seen.insert(c.hash)) {
+    for c in others
+        .iter()
+        .filter(|c| crate::pickups::variants::canonical(c.hash) == c.hash && seen.insert(c.hash))
+    {
         let why = narrowing::left_out(c, open).map_or(Why::Unknown, Why::of);
         let why = match why {
             Why::Unknown => explain(c, &new_game, &breakable),
@@ -461,6 +464,9 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     if let Some((_, why)) = listed {
         return why.clone();
     }
+    if crate::pickups::variants::excluded(c.hash) {
+        return Why::Maintainer;
+    }
     if breakable.contains(&c.holder) {
         return Why::Eie { eie: BREAKABLES };
     }
@@ -486,7 +492,8 @@ pub(crate) fn kept_out(c: &ItemCheck) -> bool {
         keys: true,
     };
     let holder = || NOT_HOLDERS.iter().find(|(h, _)| **h == *c.holder);
-    matches!(narrowing::left_out(c, open), Some(LeftOut::Maintainer))
+    crate::pickups::variants::excluded(c.hash)
+        || matches!(narrowing::left_out(c, open), Some(LeftOut::Maintainer))
         || !gifts::is_gift(c) && holder().is_some_and(|(_, why)| matches!(why, Why::Maintainer))
 }
 
@@ -508,6 +515,31 @@ pub fn flag(romfs: &Romfs, gd: &GameData, hash: u64) -> Result<Option<Flag>> {
         item: &check.item,
     };
     Ok(Tracker::new(gd, &[Spot::new(&placement, &names)])?.flag(hash))
+}
+
+/// Every check that holds one of `items` in a vanilla game, as a spot
+/// holding it, so the tracker reads what each sets once done.
+pub(crate) fn holding(romfs: &Romfs, items: &[&Name]) -> Result<Vec<Spot>> {
+    let wanted = |c: &ItemCheck| items.iter().any(|i| c.item == i.get());
+    let new_game = NewGame::from_settings(&every_shuffle(), &[])?;
+    // What no setting deals comes after, as a pickup placed as itself. A
+    // check is listed once, though each age's map has a copy.
+    let census = census(romfs, &breakables(romfs)?)?;
+    let mut found: Vec<ItemCheck> = Vec::new();
+    for c in checks::dealt(romfs, &new_game)?.into_iter().chain(census) {
+        if wanted(&c) && !found.iter().any(|f| f.hash == c.hash) {
+            found.push(c);
+        }
+    }
+    let names = crate::names::Names::load(romfs, items.iter().map(|i| i.get()))?;
+    let spot = |check: &ItemCheck| {
+        let placement = Placement {
+            check,
+            item: &check.item,
+        };
+        Spot::new(&placement, &names)
+    };
+    Ok(found.iter().map(spot).collect())
 }
 
 /// What the tracker reads once check `hash` is done in a seed whose spots
@@ -668,6 +700,35 @@ mod tests {
             seed_flag(&romfs, &gd, &[], skulltula.hash).unwrap(),
             vanilla
         );
+    }
+
+    /// Every check ticks in a shuffled seed too, not just with its vanilla
+    /// item: some flags hang on what a check holds (a scrub's sale, a
+    /// lying item, a Gold Skulltula's token).
+    #[test]
+    fn every_check_in_a_seed_ticks() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let new_game = NewGame::from_settings(&every_shuffle(), &[]).unwrap();
+        let dealt = checks::dealt(&romfs, &new_game).unwrap();
+        let fixed = Fixed::new();
+        for seed in 0..3 {
+            let deal = shuffle::deal(&dealt, &fixed, &new_game).unwrap();
+            let placements = shuffle::scatter(deal, seed, &new_game).unwrap();
+            let held = placements
+                .iter()
+                .flat_map(|p| [p.check.item.as_str(), p.item]);
+            let names = crate::names::Names::load(&romfs, held).unwrap();
+            let spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
+            let tracker = Tracker::new(&gd, &spots).unwrap();
+            let untracked: Vec<_> = (spots.iter())
+                .filter(|s| tracker.flag(s.hash).is_none())
+                .map(|s| (s.hash, &s.holder, &s.item))
+                .collect();
+            assert!(untracked.is_empty(), "seed {seed}: {untracked:?}");
+        }
     }
 
     #[test]

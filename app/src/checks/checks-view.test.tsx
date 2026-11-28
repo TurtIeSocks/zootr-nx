@@ -36,7 +36,7 @@ const fresh = (): ChecksState => ({
   rows: [
     row("1", "Kokiri Forest", "Front left"),
     row("2", "Kokiri Forest", "Back left", { checked: true, flag: 2 }),
-    row("3", "Kokiri Forest", "Grotto", { flag: null }),
+    row("3", "Kokiri Forest", "Grotto", { flag: null, tracked: false }),
   ],
   doors: [],
 });
@@ -133,6 +133,18 @@ test("items stay hidden until checked, and a flip shows them", async () => {
   backend.send({ hash: "1", checked: true });
   expect(screen.getByText("Item in Front left")).toBeTruthy();
   expect(screen.getByText("2/3")).toBeTruthy();
+});
+
+test("only a check with no flag at all reads as untracked", async () => {
+  backend.state.rows = [
+    row("3", "Kokiri Forest", "Grotto", { flag: null, tracked: false }),
+    // Ticked by its per-placement key: no Bool, but tracked.
+    row("4", "Kokiri Forest", "Heart Piece", { flag: null }),
+  ];
+  await show();
+  await screen.findByText("Kokiri Forest");
+  expect(screen.getAllByText("untracked")).toHaveLength(1);
+  expect(screen.getAllByText("hidden")).toHaveLength(1);
 });
 
 test("a check the opening gives says so in its note", async () => {

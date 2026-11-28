@@ -131,6 +131,11 @@ impl Seats {
         let boulders: Vec<ItemCheck> = checks.iter().filter(|c| holds(c)).cloned().collect();
         for m in moved(&boulders, drops, progressive) {
             seats.pairs.push((m.of, m.hash));
+            // Both ages use the same seat and the same stand-in, so a
+            // native pickup remembers collection across eras as well.
+            if let Some(alternate) = super::variants::alternate_of(m.of) {
+                seats.pairs.push((alternate, m.hash));
+            }
             // A built stand-in keeps a key that never resets, so it's gone
             // once taken. Gated too, it went mid-get: the Mirror Shield's
             // get holds it while its take sets the gate, and the get hung.

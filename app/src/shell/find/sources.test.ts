@@ -47,6 +47,7 @@ const row = (hash: string, label: string | null = null): Row => ({
     place: `Fake Place ${hash}`,
   },
   checked: false,
+  tracked: false,
   flag: null,
   label,
   mark: null,

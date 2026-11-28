@@ -613,8 +613,9 @@ fn served(
     uri: &tauri::http::Uri,
 ) -> tauri::http::Response<Vec<u8>> {
     let response = match body {
-        // Any origin: the page fetches songs, and a fetch, unlike an <img>,
-        // is held to CORS against the page's own scheme.
+        // Any origin: the page fetches songs and masks with icons, and a
+        // fetch or a CSS mask, unlike an <img>, is held to CORS against the
+        // page's own scheme.
         Ok(body) => tauri::http::Response::builder()
             .header(tauri::http::header::CONTENT_TYPE, mime)
             .header(tauri::http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
@@ -738,6 +739,7 @@ fn commands() -> tauri_specta::Builder<tauri::Wry> {
             ui::UiShared
         ])
         .constant("TRACKER_COLUMNS", inventory::COLUMNS)
+        .constant("TRACKER_MAX_GAP", inventory::MAX_GAP)
         .constant("STEPS", progress::names())
         // Only setting values (JSON numbers) and small counts reach this: the
         // u64 seeds and hashes go over as strings.

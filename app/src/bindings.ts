@@ -236,7 +236,9 @@ export const events = {
 /* Constants */
 export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading checks","step":"checks"},{"name":"building logic","step":"logic"},{"name":"placing items","step":"placing"},{"name":"writing the mod","step":"writing"},{"name":"writing the spoiler","step":"spoiler"},{"name":"installing","step":"installing"},{"name":"rebuilding the game","step":"rebuilding"}] as const;
 
-export const TRACKER_COLUMNS = 3 as const;
+export const TRACKER_COLUMNS = 10 as const;
+
+export const TRACKER_MAX_GAP = 24 as const;
 
 /* Types */
 /**  A status change or a log line, or the page's log started over. */
@@ -984,8 +986,13 @@ export type Row = {
 	spot: Spot,
 	checked: boolean,
 	/**
+	 *  Whether the tracker watches a flag for it, so it ticks once Link
+	 *  gets it.
+	 */
+	tracked: boolean,
+	/**
 	 *  The spot's Bool, which the tab can label. A spot ticked by its
-	 *  per-placement flag has none.
+	 *  per-placement flag has none, though it's tracked.
 	 */
 	flag: number | null,
 	/**  The user's label for the flag, which wins over the spot's names. */
@@ -1167,6 +1174,11 @@ export type Spot = {
 	 */
 	given?: boolean,
 	/**
+	 *  Holds its own item without a shuffle: a setting kept it, or the
+	 *  seed is vanilla (`shuffle::Deal::kept`).
+	 */
+	kept?: boolean,
+	/**
 	 *  The Bools its stand-ins set once taken, which tick it without the
 	 *  hook (`pickups::taken`).
 	 */
@@ -1273,6 +1285,8 @@ export type Summary = {
 	label: Label,
 	chests: number,
 	changed: number,
+	/**  Of `chests`, how many weren't shuffled. `None` for an older seed. */
+	kept: number | null,
 	/**  Built with a test setup: a spawn, items, flags or quest steps. */
 	test: boolean,
 	/**  Built with a plando: items pinned to checks. */
@@ -1419,6 +1433,15 @@ export type TrackerOptions = {
 	size?: IconSize,
 	/**  A CSS color. */
 	background?: string,
+	/**
+	 *  The CSS color, alpha included, laid over a missing item's icon.
+	 *  `None` follows the background, which matches a faded icon.
+	 */
+	missing?: string | null,
+	/**  Each section draws its title above it. */
+	titles?: boolean,
+	/**  Pixels between sections and between columns, up to [`MAX_GAP`]. */
+	gap?: number,
 	/**  Every section once. The order within a column is the draw order. */
 	sections?: Placement[],
 };

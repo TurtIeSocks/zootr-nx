@@ -413,7 +413,9 @@ mod tests {
         // come from the dump.
         let mut keyed: Vec<_> = match crate::game::dev_dump() {
             Some(_) => (crate::ammo::NEEDS.iter())
-                .map(|(a, _)| crate::ammo::line(a).unwrap())
+                .map(|(a, _)| {
+                    crate::ammo::line(a, crate::progressive::Lines::widest(false)).unwrap()
+                })
                 .collect(),
             None => Vec::new(),
         };

@@ -25,3 +25,62 @@ needs = "always"
 hash = 9725242744547055868
 name = "Mido's house front right"
 needs = "always"
+
+# The rock circle. Each of these eight spots holds a child rock and an
+# adult rock that share one check (`pickups/variants.rs`). The adult rocks
+# spawn only once Phantom Ganon falls.
+[[check]]
+hash = 17186151219195818834
+name = "KF Rock Circle Child Rock 1"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 13002777795600434992
+name = "KF Rock Circle Child Rock 3"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 6429280567576879719
+name = "KF Rock Circle Child Rock 4"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 16857565298886773615
+name = "KF Rock Circle Child Rock 6"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 7243630621233515413
+name = "KF Rock Circle Child Rock 8"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 4182932136190668163
+name = "KF Rock Circle Child Rock 10"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 8795160036094865435
+name = "KF Rock Circle Child Rock 11"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+[[check]]
+hash = 13321954940214063371
+name = "KF Rock Circle Child Rock 13"
+needs = "child or beat:phantom-ganon"
+setting = "rocks"
+
+# The rock the Kokiri holds becomes a liftable rock once the Kokiri's
+# Emerald quest is done.
+[[check]]
+hash = 2661037609348760452
+name = "KF Rock Circle Rock 7"
+needs = "beat:gohma"
+setting = "rocks"

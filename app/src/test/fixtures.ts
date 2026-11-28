@@ -11,6 +11,7 @@ export const summary = (patch: Partial<Summary> = {}): Summary => ({
   label: {},
   chests: 0,
   changed: 0,
+  kept: null,
   test: false,
   plando: false,
   ap_slot: null,

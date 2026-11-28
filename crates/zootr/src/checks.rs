@@ -294,7 +294,8 @@ pub fn dealt_of(
         out.extend(crate::shops::checks(&slots, new_game.shop_slots));
     }
     out.retain(|c| !(new_game.fortress_keys.moved() && crate::fortress::is_carried(c)));
-    out.extend(crate::pickups::dealt(romfs, new_game)?);
+    let pickups = crate::pickups::dealt(romfs, new_game)?;
+    out.extend(crate::pickups::variants::checks(pickups)?);
     if new_game.freestanding {
         out.push(crate::goron_pot::check());
     }

@@ -9,7 +9,7 @@ use ounce_formats::Romfs;
 
 use crate::checks::{self, ItemCheck, actors, bancs, hash_of, str_field};
 use crate::entrances::DUNGEONS;
-use crate::known::{Name, flag, item, map};
+use crate::known::{Name, actor, flag, item, map};
 use crate::rules::{Book, Ctx, Have, Need};
 use crate::tools::Tools;
 use crate::world::{self, Era, node_of};
@@ -54,7 +54,7 @@ pub struct Edge {
     pub need: Need,
 }
 
-/// A check at one place. A dungeon check is at both eras' copies.
+/// A check at one place. A dungeon check can be at both eras' copies.
 pub struct Location {
     pub hash: u64,
     pub place: usize,
@@ -162,6 +162,7 @@ pub struct Data<'a> {
     alternatives: BTreeMap<String, String>,
     exits: BTreeSet<world::Exit>,
     gates: BTreeMap<u64, String>,
+    creation_ages: HashMap<String, HashMap<u64, Era>>,
     shop_slots: Vec<shops::Slot>,
     cows: Vec<cows::Cow>,
 }
@@ -194,12 +195,16 @@ impl<'a> Data<'a> {
     fn read_kinds(romfs: &'a Romfs, shops: bool, cows: bool) -> Result<Self> {
         let mut tools = Tools::new(romfs);
         let scan = scan(romfs, &mut tools)?;
+        let spirit = map::SPIRIT_TEMPLE;
+        let spirit_file = format!("Banc/{spirit}/{spirit}_Static.bcett.byml.zs");
+        let lobby_pots = gates::creation_ages(romfs, &spirit_file, actor::OBJ_POT_A_05)?;
         Ok(Self {
             tools,
             scan,
             alternatives: world::alternatives(romfs)?,
             exits: world::exits(romfs)?,
             gates: gates::gates(romfs)?,
+            creation_ages: HashMap::from([(spirit_file, lobby_pots)]),
             shop_slots: match shops {
                 true => shops::slots(romfs)?,
                 false => Vec::new(),
@@ -251,6 +256,7 @@ impl World {
             alternatives,
             exits,
             gates,
+            creation_ages,
             shop_slots,
             cows,
         } = data;
@@ -268,6 +274,7 @@ impl World {
                 .collect(),
             boss_rooms: boss_rooms(ctx),
             gates,
+            creation_ages,
             shop_slots,
             cows,
             rooms,
@@ -344,6 +351,7 @@ struct Build<'a> {
     /// The boss rooms that count for either era ([`boss_rooms`]).
     boss_rooms: HashSet<&'static str>,
     gates: &'a BTreeMap<u64, String>,
+    creation_ages: &'a HashMap<String, HashMap<u64, Era>>,
     shop_slots: &'a [shops::Slot],
     cows: &'a [cows::Cow],
 }
