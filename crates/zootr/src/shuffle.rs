@@ -746,6 +746,7 @@ mod tests {
     /// every free check too.
     #[test]
     fn the_deal_names_the_checks_it_kept() {
+        needs_names!();
         let sword = item::SWORD_KOKIRI.get();
         let mut checks = with_gifts();
         checks.push(chest(20, sword));
