@@ -45,8 +45,12 @@ pub(super) fn model(romfs: &Romfs, game: &Path, model: &str, raw: Option<&Path>)
             (0..3).for_each(|i| centre[i] += p[i] / placed.len() as f32);
         }
         let [x, y, z] = centre;
+        let low = placed
+            .iter()
+            .map(|(p, _)| p[1])
+            .fold(f32::INFINITY, f32::min);
         println!(
-            "{}  bone {}  skin {}  {} vertices  centre {x:.2} {y:.2} {z:.2}",
+            "{}  bone {}  skin {}  {} vertices  centre {x:.2} {y:.2} {z:.2}  lowest {low:.3}",
             s.name,
             s.bone,
             s.skin,
@@ -66,6 +70,13 @@ pub(super) fn model(romfs: &Romfs, game: &Path, model: &str, raw: Option<&Path>)
             None => println!("  material {} missing", s.material),
         }
     }
+    // Where each bone sits at rest, which the vertices of a shape skinned
+    // to it (skin 1) are carried by.
+    for (i, b) in skeleton.bones.iter().enumerate() {
+        let [x, y, z] = [b[0][3], b[1][3], b[2][3]];
+        println!("bone {i}  at {x:.4} {y:.4} {z:.4}  y-axis {:.3}", b[1][1]);
+    }
+    println!("matrices name bones {:?}", skeleton.matrices);
     Ok(())
 }
 

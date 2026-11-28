@@ -355,10 +355,18 @@ fn dedup(frames: Vec<Frame>) -> Vec<Frame> {
 /// Each shop slot as a seed stocks it: its goods' bottom and the gap up
 /// to the shelf above, and with `try` what an item would do there, from
 /// the table.
-pub(super) fn shelves(romfs: &Romfs, tries: &[String], only: Option<&str>) -> Result<()> {
+pub(super) fn shelves(
+    romfs: &Romfs,
+    game: &Path,
+    tries: &[String],
+    only: Option<&str>,
+) -> Result<()> {
     let tables = Tables::load(romfs)?;
     let slots = crate::shops::slots(romfs)?;
     let gaps = crate::shops::gaps(romfs, &tables, &slots)?;
+    let wanted: BTreeSet<u64> = slots.iter().map(|s| s.hash()).collect();
+    let maps = crate::warp::placed_by_map(romfs, |_| true)?;
+    let mut walls: HashMap<&str, crate::nav::mesh::Walls> = HashMap::new();
     for slot in slots
         .iter()
         .filter(|s| only.is_none_or(|name| s.shop == name))
@@ -379,6 +387,28 @@ pub(super) fn shelves(romfs: &Romfs, tries: &[String], only: Option<&str>) -> Re
             hull.kind,
             gap.map_or("none".into(), |g| format!("{g:.4}")),
         );
+        // The collision floors right under the slot: the plank its goods
+        // stand on, read from the shop's own meshes.
+        let map = maps.iter().find(|(_, placed)| {
+            placed.iter().any(|p| {
+                p.hash
+                    .is_some_and(|h| h == slot.hash() && wanted.contains(&h))
+            })
+        });
+        if let Some((name, placed)) = map {
+            if !walls.contains_key(name.as_str()) {
+                walls.insert(name, crate::nav::mesh::walls(romfs, game, placed)?);
+            }
+            let w = &walls[name.as_str()];
+            let [x, y, z] = slot.pos;
+            let mut floors: Vec<f32> = (w.solid.iter().chain(&w.air))
+                .flat_map(|wall| wall.floors_at(x, z))
+                .map(|f| f - y)
+                .filter(|f| (-0.3..0.6).contains(f))
+                .collect();
+            floors.sort_by(f32::total_cmp);
+            println!("    {name}: floors {floors:+.4?}");
+        }
         for item in tries {
             let pack = ActorPack::load(romfs, item)?;
             let fit = standins::fit(&tables, &goods, &pack, slot.rotate.unwrap_or_default(), gap)?;

@@ -656,7 +656,9 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Poses { path } => poses::poses(romfs, game, &path),
         Probe::Bounds { path, pose } => poses::bounds(romfs, game, &path, pose.as_deref()),
         Probe::Heights => heights::heights(romfs, game),
-        Probe::Shelves { try_items, shop } => heights::shelves(romfs, &try_items, shop.as_deref()),
+        Probe::Shelves { try_items, shop } => {
+            heights::shelves(romfs, game, &try_items, shop.as_deref())
+        }
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
