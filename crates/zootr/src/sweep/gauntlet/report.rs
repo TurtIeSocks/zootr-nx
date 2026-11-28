@@ -197,8 +197,8 @@ fn seen_of(outcome: Outcome) -> Seen {
 }
 
 /// `report.md` for the rows of a run named `run`, and its exit code: 1
-/// when anything failed, else 2 when the harness broke or a cell has no
-/// trigger yet, else 0.
+/// when anything failed, else 2 when the harness broke or a cell or load
+/// has no trigger yet, else 0.
 pub fn render(rows: &str, run: &str) -> (String, i32) {
     let read = read(rows);
     let mut md = format!("# Gauntlet: {run}\n\n");
