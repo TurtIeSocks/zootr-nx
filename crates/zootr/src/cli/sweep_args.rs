@@ -88,7 +88,8 @@ pub(super) struct GauntletArgs {
     #[arg(long = "item")]
     pub(super) items: Vec<String>,
     /// Tour only the places whose `MAP/SPOT` holds this, like a map's
-    /// name, to see a hung load again. Repeatable.
+    /// name, to see a hung load again, and load only the holders whose
+    /// `MAP/HASH` does. Repeatable.
     #[arg(long = "place")]
     pub(super) places: Vec<String>,
     /// Stop at the first failure.

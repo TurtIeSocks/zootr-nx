@@ -133,7 +133,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             let mut landed = BTreeMap::new();
             let mut holders = vec![];
             for h in loads::holders(self.romfs, &settings, &places)? {
-                if !picks(&g.places, &h.map) {
+                if !picks(&g.places, &format!("{}/{}", h.map, h.hash)) {
                     continue;
                 }
                 match places.iter().find(|p| p.map == h.map) {
