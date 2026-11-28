@@ -59,8 +59,15 @@ export function move(
   switch (m) {
     case "left":
       return p.column > 1 ? set({ column: p.column - 1 }) : null;
-    case "right":
-      return p.column < TRACKER_COLUMNS ? set({ column: p.column + 1 }) : null;
+    case "right": {
+      // Alone in the last column, a move right would show no change.
+      const past = sections.some(
+        (o, i) => i !== at && o.shown && o.column >= p.column,
+      );
+      return past && p.column < TRACKER_COLUMNS
+        ? set({ column: p.column + 1 })
+        : null;
+    }
     case "up":
       return swap(column[k - 1]);
     case "down":

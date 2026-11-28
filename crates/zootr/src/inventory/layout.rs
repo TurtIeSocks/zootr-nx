@@ -1,6 +1,7 @@
 //! How the tracker lays the grid out: its sections, where each sits and
 //! how wide it draws.
 
+use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
 
 use serde::{Deserialize, Serialize};
@@ -63,8 +64,9 @@ impl Section {
     }
 }
 
-/// How many columns the grid's sections can sit in.
-pub const COLUMNS: u8 = 3;
+/// How many columns the grid's sections can sit in: one each, so any
+/// section can have a column of its own.
+pub const COLUMNS: u8 = Section::ALL.len() as u8;
 
 /// Where a section sits in the grid and how wide it draws.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -126,7 +128,8 @@ impl Default for TrackerOptions {
 
 impl TrackerOptions {
     /// Every section exactly once and in range, so an older config or a
-    /// section added later still draws.
+    /// section added later still draws. The columns shown are numbered
+    /// from 1 with no gaps, so every move right shows a change.
     pub fn tidy(mut self) -> Self {
         let mut seen = vec![];
         self.sections.retain(|p| {
@@ -136,8 +139,19 @@ impl TrackerOptions {
         });
         let missing = Section::ALL.into_iter().filter(|s| !seen.contains(s));
         self.sections.extend(missing.map(Placement::new));
+        let shown: BTreeSet<u8> = (self.sections.iter())
+            .filter(|p| p.shown)
+            .map(|p| p.column)
+            .collect();
+        // A hidden section takes the next column shown, or the last.
+        let rank = |c: u8| {
+            shown
+                .iter()
+                .position(|&s| s >= c)
+                .unwrap_or(shown.len().max(1) - 1)
+        };
         for p in &mut self.sections {
-            p.column = p.column.clamp(1, COLUMNS);
+            p.column = (rank(p.column) as u8 + 1).clamp(1, COLUMNS);
             let widths = p.section.widths();
             p.width = p.width.clamp(*widths.start(), *widths.end());
         }
@@ -165,7 +179,7 @@ mod tests {
         assert_eq!(options.sections[0].section, Section::Songs);
         assert_eq!(
             (options.sections[0].column, options.sections[0].width),
-            (3, 1)
+            (2, 1)
         );
         assert_eq!(options.sections[1], Placement::new(Section::Inventory));
     }
@@ -198,6 +212,27 @@ mod tests {
             .tidy();
             assert_eq!(options.sections[0].width as usize, KEPT.len());
         }
+    }
+
+    #[test]
+    fn columns_shown_close_their_gaps() {
+        let at = |section, column, shown| Placement {
+            column,
+            shown,
+            ..Placement::new(section)
+        };
+        let options = TrackerOptions {
+            sections: vec![
+                at(Section::Inventory, 1, true),
+                at(Section::Songs, 4, true),
+                at(Section::Quest, 3, false),
+                at(Section::Trade, 9, false),
+            ],
+            ..TrackerOptions::default()
+        }
+        .tidy();
+        let columns: Vec<_> = options.sections[..4].iter().map(|p| p.column).collect();
+        assert_eq!(columns, [1, 2, 2, 2]);
     }
 
     #[test]

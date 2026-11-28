@@ -1,8 +1,8 @@
 import { expect, test, vi } from "vitest";
 import type { Placement, Section } from "@/bindings";
-import { fadedHex, missingColor, move } from "@/items/layout";
+import { columnsOf, fadedHex, missingColor, move } from "@/items/layout";
 
-vi.mock("@/bindings", () => ({ TRACKER_COLUMNS: 3 }));
+vi.mock("@/bindings", () => ({ TRACKER_COLUMNS: 10 }));
 
 const at = (section: Section, column: number, shown = true): Placement => ({
   section,
@@ -26,6 +26,26 @@ test("left and right stop at the outer columns and keep list order", () => {
   expect(right?.[0]?.column).toBe(2);
   expect(names(right)).toEqual(names(sections));
   expect(move([at("Quest", 3)], "Quest", "right", 9)).toBeNull();
+});
+
+test("right opens one new column, never past a lone last section", () => {
+  const two = [at("Inventory", 1), at("Quest", 1)];
+  const opened = move(two, "Quest", "right", 9);
+  expect(opened?.[1]?.column).toBe(2);
+  expect(move(opened ?? [], "Quest", "right", 9)).toBeNull();
+  // A hidden section further right doesn't count as company.
+  expect(
+    move([at("Quest", 2), at("Songs", 3, false)], "Quest", "right", 9),
+  ).toBeNull();
+});
+
+test("every shown column draws, ten of them", () => {
+  const ten = Array.from({ length: 10 }, (_, i) => ({
+    ...at("Quest", i + 1),
+  }));
+  expect(columnsOf(ten, 10).map((c) => c.n)).toEqual(
+    Array.from({ length: 10 }, (_, i) => i + 1),
+  );
 });
 
 test("up and down swap within the column, past hidden sections", () => {

@@ -236,7 +236,7 @@ export const events = {
 /* Constants */
 export const STEPS = [{"name":"reading the dump","step":"dump"},{"name":"reading checks","step":"checks"},{"name":"building logic","step":"logic"},{"name":"placing items","step":"placing"},{"name":"writing the mod","step":"writing"},{"name":"writing the spoiler","step":"spoiler"},{"name":"installing","step":"installing"},{"name":"rebuilding the game","step":"rebuilding"}] as const;
 
-export const TRACKER_COLUMNS = 3 as const;
+export const TRACKER_COLUMNS = 10 as const;
 
 /* Types */
 /**  A status change or a log line, or the page's log started over. */

@@ -71,7 +71,7 @@ const itemsOptions = vi.fn((_o: TrackerOptions) =>
 );
 
 vi.mock("@/bindings", () => ({
-  TRACKER_COLUMNS: 3,
+  TRACKER_COLUMNS: 10,
   events: {
     itemsEvent: {
       listen: (cb: (e: { payload: ItemsState }) => void) => {
