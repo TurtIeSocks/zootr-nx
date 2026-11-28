@@ -50,6 +50,70 @@ pub const LIKENESS_WORDS: u32 = 600;
 /// The least [`likeness`] a row confirmed by hand may have.
 pub const LIKE: f64 = 0.6;
 
+/// Call sites the matcher can't settle, confirmed by hand for 1.0.0 by
+/// where they sit: each row's name, its 1.0.0 offset, the row it calls
+/// and a string its function loads. The compiler laid each one's function
+/// out anew, so no window matches and its [`likeness`] stays low; the
+/// evidence is that it's the only call to that row's code in a function
+/// loading that string, in both builds, which a dump test checks
+/// ([`sole_calls`]).
+pub const SOLE_CALLS: &[(&str, u32, &str, &str)] = &[(
+    "calls.pickup_count",
+    0x2f_125c,
+    "funcs.count",
+    "LayoutMsg/PickUpWin_00",
+)];
+
+/// Every row confirmed by hand, [`CONFIRMED`] and [`SOLE_CALLS`], as
+/// `(name, 1.0.0 offset, how)`.
+pub fn hand() -> Vec<(&'static str, u32, &'static str)> {
+    let sole = SOLE_CALLS
+        .iter()
+        .map(|&(name, at, ..)| (name, at, "the sole call"));
+    CONFIRMED.iter().copied().chain(sole).collect()
+}
+
+/// Whether each of [`SOLE_CALLS`] holds, in `from` where `build` places
+/// it and in `to` where `ported` placed its callee.
+pub fn sole_calls(from: &Image, build: &Build, to: &Image, ported: &Port) -> Vec<bool> {
+    let had = rows::values(build);
+    let holds = |name, there, callee, text| {
+        let (Some(row), Some(callee)) = (rows::position(name), rows::position(callee)) else {
+            return false;
+        };
+        let Ok(callee_there) = &ported.found[callee] else {
+            return false;
+        };
+        sole_call(from, had[row], had[callee], text)
+            && sole_call(to, there, callee_there.value, text)
+    };
+    (SOLE_CALLS.iter())
+        .map(|&(name, there, callee, text)| holds(name, there, callee, text))
+        .collect()
+}
+
+/// Whether the `bl` at `site` is the only call to `callee` in its
+/// function, and that function loads `text`, NUL-ended, from rodata.
+fn sole_call(image: &Image, site: u32, callee: u32, text: &str) -> bool {
+    let Some(f) = image.function(site) else {
+        return false;
+    };
+    let needle = [text.as_bytes(), &[0]].concat();
+    let rodata = &image.bytes[image.rodata.start as usize..image.rodata.end as usize];
+    let strings: Vec<u32> = (rodata.windows(needle.len()).enumerate())
+        .filter(|(_, w)| *w == needle.as_slice())
+        .map(|(i, _)| image.rodata.start + i as u32)
+        .collect();
+    let calls = |&at: &u32| {
+        let w = image.word(at);
+        arm::is_bl(w) && arm::target(w, at) == Some(callee)
+    };
+    let loads = (f.clone().step_by(4))
+        .filter_map(|at| image.resolve(at))
+        .any(|(_, to)| strings.contains(&to));
+    f.step_by(4).filter(calls).eq([site]) && loads
+}
+
 /// Each row in `confirmed`'s [`likeness`] to its code in `from`, where
 /// `build` places it.
 pub fn liked(from: &Image, build: &Build, to: &Image, confirmed: &[(&str, u32, &str)]) -> Vec<f64> {
@@ -402,13 +466,14 @@ impl Port {
     /// candidates, the confidence and a note; then counts, every row
     /// unmatched, the rooms and the field offsets left unconfirmed.
     /// `confirmed` are the rows confirmed by hand, `liked` their
-    /// [`likeness`] each.
+    /// [`likeness`] each, `sole` whether each of [`SOLE_CALLS`] holds.
     pub fn report(
         &self,
         from: &str,
         to: &str,
         confirmed: &[(&str, u32, &str)],
         liked: &[f64],
+        sole: &[bool],
     ) -> String {
         let mut out = String::new();
         let w = &mut out;
@@ -450,6 +515,13 @@ impl Port {
         for ((name, v, why), l) in confirmed.iter().zip(liked) {
             let under = if *l < LIKE { ", under the least" } else { "" };
             let _ = writeln!(w, "  {name:<26} {v:>#10x}  measured {l:.3}{under}: {why}");
+        }
+        for (&(name, v, callee, text), holds) in SOLE_CALLS.iter().zip(sole) {
+            let holds = if *holds { "holds" } else { "doesn't hold" };
+            let _ = writeln!(
+                w,
+                "  {name:<26} {v:>#10x}  {holds}: the only call to {callee} where {text:?} loads"
+            );
         }
         let _ = writeln!(w, "\nrooms");
         for r in &self.rooms {
@@ -539,6 +611,33 @@ mod tests {
     }
 
     #[test]
+    fn every_sole_call_confirmed_by_hand_holds() {
+        let (Some(p), Some(update), Some(base)) =
+            (to_base(), image(Release::V111), image(Release::V100))
+        else {
+            return;
+        };
+        let sole = sole_calls(update, &V131072, base, p);
+        assert!(sole.iter().all(|&h| h), "{SOLE_CALLS:?}: {sole:?}");
+        // The string is the evidence: one the window never loads fails.
+        let (site, count) = (V131072.calls.pickup_count, V131072.funcs.count);
+        assert!(sole_call(update, site, count, "LayoutMsg/PickUpWin_00"));
+        assert!(!sole_call(
+            update,
+            site,
+            count,
+            "a string no function loads"
+        ));
+        // As is the callee: the window calls nothing else at the site.
+        assert!(!sole_call(
+            update,
+            site,
+            V131072.funcs.hash,
+            "LayoutMsg/PickUpWin_00"
+        ));
+    }
+
+    #[test]
     fn every_offset_maps_to_itself_in_its_own_build() {
         let Some(img) = image(Release::V111) else {
             return;
@@ -550,7 +649,7 @@ mod tests {
             built,
             Ok(V131072),
             "{}",
-            p.report("1.1.1", "1.1.1", &[], &[])
+            p.report("1.1.1", "1.1.1", &[], &[], &[])
         );
     }
 
@@ -571,7 +670,7 @@ mod tests {
             // not come back: 1.1.1 may hold a twin of its 1.0.0 code as
             // well. It mustn't come back wrong.
             let changed = there.as_ref().is_ok_and(|f| f.method == Method::Callers)
-                || CONFIRMED.iter().any(|c| c.0 == row.name());
+                || hand().iter().any(|c| c.0 == row.name());
             match back {
                 Ok(f) if f.value == want => {}
                 Err(_) if changed => {}
@@ -591,7 +690,7 @@ mod tests {
             .join("../..")
             .join(TABLE_FILE);
         let file = std::fs::read_to_string(path).ok();
-        let written = p.build(CONFIRMED).ok().map(|b| base_source(&b));
+        let written = p.build(&hand()).ok().map(|b| base_source(&b));
         assert_eq!(file, written, "run `{COMMAND}` again");
     }
 
@@ -670,7 +769,7 @@ mod tests {
         assert_eq!(p.build(&hand).unwrap(), V131072);
         let wrong = [("entries.granted", 1, "a typo")];
         assert!(p.build(&wrong).is_err());
-        let text = p.report("1.1.1", "1.1.1", &hand, &[0.5]);
+        let text = p.report("1.1.1", "1.1.1", &hand, &[0.5], &[]);
         assert!(
             text.contains("measured 0.500, under the least: read by hand"),
             "{text}"

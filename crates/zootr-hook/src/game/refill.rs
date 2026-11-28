@@ -39,7 +39,7 @@ pub unsafe fn refill(main: usize, table: &Table, actor: usize) {
             continue;
         };
         let cap = match r.cap.in_seed(table.flags) {
-            Cap::Int(hash) => unsafe { entry(gd, INT, hash).map(|e| *(e as *const i32)) },
+            Cap::Int(hash) => unsafe { get_int(gd, hash) },
             Cap::Bag(hash, caps) => unsafe {
                 let text = |e| slice::from_raw_parts(e as *const u8, STRING64_SIZE);
                 entry(gd, STRING64, hash).map(|e| bag_cap(text(e), caps))
@@ -58,6 +58,11 @@ pub unsafe fn refill(main: usize, table: &Table, actor: usize) {
             }
         }
     }
+}
+
+/// The Int `hash`'s current value, if GameData holds it.
+pub(super) unsafe fn get_int(gd: usize, hash: u32) -> Option<i32> {
+    unsafe { entry(gd, INT, hash).map(|at| *(at as *const i32)) }
 }
 
 /// Sets the Int `hash` and its saved copy to `n`, if GameData holds it.

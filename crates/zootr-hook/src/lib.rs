@@ -108,7 +108,7 @@ pub const fn list(b: &Build) -> u32 {
 /// patch writes a `b` into each: past the hooked function's pacibsp, or to
 /// the game's `GetNpadStates` stub for that style.
 /// One word past the last entry.
-pub const SLOTS: u32 = entry::SELECT_DROPS + 4;
+pub const SLOTS: u32 = entry::PICKUP_COUNT + 4;
 
 /// The Deku Seed's name hash, the projectile an empty bow says "no Deku
 /// seeds" for and the draw says "Shoot Seed" for. Every other one says
