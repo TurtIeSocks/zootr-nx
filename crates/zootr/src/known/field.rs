@@ -367,6 +367,7 @@ pub const LIFE_REF: &Name = &n!(0x05f2244bd17461b0);
 pub const LIFTABLE_PARAM: &Name = &n!(0x4af320e08b46a865);
 pub const LIFTABLE_REF: &Name = &n!(0x3524d82e1c0aaf19);
 pub const LIFT_GRADE: &Name = &n!(0x440e156ed8452843);
+pub const LIFT_ROCK_ALL_BROKEN_TALK: &Name = &n!(0x785ed189b78f6227);
 pub const LIGHT_ARROW: &Name = &n!(0x4b154f74b7c9f66c);
 pub const LOCATION_NAME: &Name = &n!(0xaf0cfc5027da3505);
 pub const LOCK_ON: &Name = &n!(0xe38f3e766edbc11b);
