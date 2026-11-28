@@ -50,7 +50,8 @@ const LIT: usize = 64;
 #[serde(tag = "signal", rename_all = "snake_case")]
 pub enum Hang {
     /// Pure black, no triforce: `secs` of black over `frames` frames, `map`
-    /// the last map read (a hung game may answer none after it). Few frames
+    /// the last map read (a hung game may answer none after it), empty when
+    /// no read worked. Few frames
     /// over many seconds mean slow shots: a game starved of its GPU (a
     /// model loaded beside it) loads slowly too.
     Black { secs: f32, frames: u32, map: String },
@@ -161,6 +162,8 @@ fn watch<M: Memory, I: Input>(
     frame: &Path,
     mut done: impl FnMut(&Watch, &mut I, Duration) -> bool,
 ) -> (Duration, Option<Hang>) {
+    // Evidence is this watch's own: never a frame an earlier one left.
+    _ = std::fs::remove_file(frame);
     let start = Instant::now();
     let mut seen = Watch::default();
     loop {
@@ -455,6 +458,7 @@ mod tests {
     #[test]
     fn a_probe_of_a_black_game_hangs_and_keeps_its_frame() {
         let dir = std::env::temp_dir().join(format!("zootr-hang-{}", std::process::id()));
+        _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let shot = dir.join("hang.png");
         // A game whose reads all fail and whose frames are all black: the
@@ -468,6 +472,7 @@ mod tests {
     #[test]
     fn a_shot_that_fails_keeps_the_last_frame_and_leaves_no_other() {
         let dir = std::env::temp_dir().join(format!("zootr-shoot-{}", std::process::id()));
+        _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let to = dir.join("frame.png");
         assert!(!shoot(&mut { UP }, &to).unwrap());
