@@ -94,6 +94,8 @@ struct Read {
     places: BTreeMap<String, Seen>,
     cells: BTreeMap<String, Seen>,
     loads: BTreeMap<String, Seen>,
+    /// Loads that hung, then landed on a retry, with each hang.
+    retried: Vec<(String, Vec<String>)>,
     errors: Vec<String>,
 }
 
@@ -126,6 +128,19 @@ fn read(rows: &str) -> Read {
                         kind.as_str().unwrap_or_default()
                     )
                 });
+                let hangs: Vec<String> = (row["tries"].as_array().into_iter().flatten())
+                    .filter(|t| !t["hang"].is_null())
+                    .map(|t| {
+                        format!(
+                            "from {}: {}",
+                            t["spot"].as_str().unwrap_or_default(),
+                            hang_words(&t["hang"])
+                        )
+                    })
+                    .collect();
+                if outcome == Outcome::Pass && !hangs.is_empty() {
+                    out.retried.push((name.clone(), hangs));
+                }
                 let evidence = frame.into_iter().chain(pins).collect();
                 let seen = Seen { outcome, evidence };
                 match kind == row::LOAD {
@@ -241,6 +256,12 @@ pub fn render(rows: &str, run: &str) -> (String, i32) {
         Outcome::Harness(w) => Some(w),
         _ => None,
     });
+    if !read.retried.is_empty() {
+        let _ = writeln!(md, "\n## Hung, then loaded on a retry\n");
+        for (name, hangs) in &read.retried {
+            let _ = writeln!(md, "- **{name}**: {}", hangs.join("; "));
+        }
+    }
     if !read.errors.is_empty() {
         let _ = writeln!(md, "\n## Errors\n");
         for e in &read.errors {
@@ -326,6 +347,20 @@ mod tests {
         assert!(md.contains("holder 123 held ammo"), "{md}");
         // A refused load isn't a cell.
         assert!(md.contains("| Cells | 0 | 0 | 0 | 0 | 0 |"), "{md}");
+    }
+
+    #[test]
+    fn a_load_that_lands_on_a_retry_passes_naming_the_hang() {
+        let tries = json!([{"spot": "FakeSpot", "hang": {"signal": "black"}}, {"spot": "FakeSpot", "hang": null}]);
+        let rows = lines(&[
+            json!({"gauntlet": "load", "name": "FakeMap (round 0)", "tries": tries, "hang": null}),
+        ]);
+        let (md, code) = render(&rows, "fake");
+        assert_eq!(code, 0, "{md}");
+        assert!(
+            md.contains("- **FakeMap (round 0)**: from FakeSpot: hang: black"),
+            "{md}"
+        );
     }
 
     #[test]

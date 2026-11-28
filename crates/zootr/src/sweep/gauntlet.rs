@@ -317,33 +317,46 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             return Ok(Go::Stop);
         }
         self.stop();
-        // Each map and its pins, with the place a load lands at.
-        let mut maps: BTreeMap<&str, (&Place, Vec<Pin>)> = BTreeMap::new();
+        let mut maps: BTreeMap<&str, Vec<Pin>> = BTreeMap::new();
         for pin in &placed {
-            let place = landed[&pin.0];
-            maps.entry(&place.map)
-                .or_insert((place, vec![]))
-                .1
-                .push(*pin);
+            maps.entry(&landed[&pin.0].map).or_default().push(*pin);
         }
         let extras = plando(&placed);
         night::pool(self.romfs, self.target, seed, (settings, &extras), places)?;
         let shots = self.dir.join(format!("loads-{r:02}-{seed}"));
         std::fs::create_dir_all(&shots)?;
         let mut live = self.start()?;
-        for (i, (map, (place, pins))) in maps.iter().enumerate() {
-            if self.turn_lost(g)? {
-                return Ok(Go::Stop);
-            }
+        for (i, (map, pins)) in maps.iter().enumerate() {
             let name = format!("{map} (round {r})");
-            let frame = shots.join(format!("{}.png", slug(map)));
-            let watched = self.land(&live, place, g.limits, &frame);
-            self.log(i, maps.len(), &name, &watched);
+            // A holder that deadlocks its map's load hangs it from every
+            // spot, while a bad spot hangs only itself (the tour's to
+            // find): a load fails once every try hung.
+            let spots = places.iter().filter(|p| p.map == **map);
+            let (mut watched, mut tries) = (None, vec![]);
+            for (t, place) in spots.cycle().take(LOAD_TRIES).enumerate() {
+                if self.turn_lost(g)? {
+                    return Ok(Go::Stop);
+                }
+                let frame = shots.join(format!("{}-{t}.png", slug(&place.to_string())));
+                let w = self.land(&live, place, g.limits, &frame);
+                self.log(i, maps.len(), &format!("{place} (round {r})"), &w);
+                tries.push(json!({"spot": place.spot, "hang": w.hang, "frame": w.frame}));
+                let hung = w.hang.is_some();
+                watched = Some(w);
+                if !hung {
+                    break;
+                }
+                if t + 1 < LOAD_TRIES {
+                    dump(&mut self.input);
+                    live = self.start()?;
+                }
+            }
+            let Some(watched) = watched else { continue };
             let pins: Vec<_> = (pins.iter())
                 .map(|&(holder, kind)| json!({"holder": holder.to_string(), "item_kind": ITEMS[kind].name}))
                 .collect();
             let row = json!({
-                "gauntlet": row::LOAD, "name": name, "round": r, "pins": pins,
+                "gauntlet": row::LOAD, "name": name, "round": r, "pins": pins, "tries": tries,
                 "secs": watched.secs, "hang": watched.hang, "frame": watched.frame,
             });
             append(&rows, &row)?;
@@ -499,6 +512,9 @@ fn pins(cells: &[Cell]) -> Vec<Pin> {
 fn load_pins(round: &[Load]) -> Vec<Pin> {
     round.iter().map(|l| (l.holder, l.item_kind)).collect()
 }
+
+/// How many times a load lands in a map before its hang counts.
+const LOAD_TRIES: usize = 2;
 
 /// How far load rounds' seeds sit from the grid's, so neither repeats
 /// the other's.
