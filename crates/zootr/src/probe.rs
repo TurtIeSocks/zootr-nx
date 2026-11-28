@@ -233,6 +233,9 @@ pub enum Probe {
     /// Paints each albedo a marked breakable shows while it holds a check
     /// and writes it to `out` as PNG, as a seed paints it.
     Marks { out: PathBuf },
+    /// Paints each Bombchu Bag's icon and writes it to `out` as PNG, beside
+    /// the bomb bag's it's painted from, as a seed and the tracker paint it.
+    ChuBagIcons { out: PathBuf },
     /// Paints each albedo a chest look shows (Chest Looks Match Contents)
     /// and writes it to `out` as PNG, as a seed paints it
     Chests { out: PathBuf },
@@ -641,6 +644,7 @@ pub fn run(romfs: &Romfs, game: &Path, probe: Probe) -> Result<()> {
         Probe::Icons { pattern, out } => icons(romfs, game, &pattern, &out),
         Probe::Uvs { pattern, out } => uvs::uvs(romfs, game, &pattern, &out),
         Probe::Marks { out } => crate::marks::preview(romfs, &out),
+        Probe::ChuBagIcons { out } => crate::bombchu_bags::preview(romfs, &out),
         Probe::Chests { out } => crate::chest_looks::preview(romfs, &out),
         Probe::Materials { model } => colors::materials(romfs, game, &model),
         Probe::Model { model, raw } => colors::model(romfs, game, &model, raw.as_deref()),

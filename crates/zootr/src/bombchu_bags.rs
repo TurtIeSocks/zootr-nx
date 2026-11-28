@@ -2,7 +2,7 @@
 //! own cap Bombchus at 20, 30 and 40, and Link holds none before the first.
 
 mod look;
-pub use look::FILES;
+pub use look::{FILES, icon};
 
 use anyhow::{Context, Result, ensure};
 use ounce_formats::{ActorPack, Byml, BymlDoc, BymlMap, ModBuilder, Romfs, murmur3, pack_path};
@@ -162,6 +162,24 @@ pub fn copy_pack(romfs: &Romfs, item: &str) -> Result<Option<ActorPack>> {
     clone_pack(&template, item, files(&template, item, &look::model(at))?).map(Some)
 }
 
+/// Writes each bag's painted icon to `out` as PNG, beside its bomb bag's.
+pub fn preview(romfs: &Romfs, out: &std::path::Path) -> Result<()> {
+    std::fs::create_dir_all(out)?;
+    for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {
+        let plain = format!("{}{like}.bntx.zs", crate::sprites::ICONS);
+        let plain = ounce_formats::top_level(&romfs.read(&plain)?)?;
+        let png = |name: &str, t| -> Result<()> {
+            Ok(std::fs::write(
+                out.join(format!("{name}.png")),
+                crate::sprites::png(t)?,
+            )?)
+        };
+        png(like.get(), &plain)?;
+        png(bag, &icon(romfs, at)?)?;
+    }
+    Ok(())
+}
+
 /// Each bag's GameData: its `IsGet` and the rest of the bomb bag's entries,
 /// its pouch count, and the saved slot naming the bag Link holds.
 pub fn game_data(root: &mut Byml) -> Result<()> {
@@ -185,6 +203,7 @@ const CAPS: u32 = 0xf80f8077;
 pub fn write(romfs: &Romfs, builder: &mut ModBuilder, tables: &mut Tables) -> Result<()> {
     for (at, (bag, like)) in BAGS.iter().zip(BOMB_BAGS).enumerate() {
         let model = look::paint(romfs, builder, at)?;
+        look::write_icon(romfs, builder, at)?;
         let template = ActorPack::load(romfs, like)?;
         write_clone(builder, &template, bag, files(&template, bag, &model)?)?;
         tables.copy_item(bag, like)?;
@@ -324,6 +343,23 @@ mod tests {
             let inner = gd.members(count).unwrap();
             assert!(inner.iter().all(|&(_, v)| seen.insert(v)), "{bag}");
         }
+    }
+
+    #[test]
+    fn each_bag_icon_is_its_bomb_bag_in_bombchu_colors() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        for (at, like) in BOMB_BAGS.iter().enumerate() {
+            let painted = icon(&romfs, at).unwrap();
+            let path = format!("{}{like}.bntx.zs", crate::sprites::ICONS);
+            let plain = ounce_formats::top_level(&romfs.read(&path).unwrap()).unwrap();
+            assert_eq!((painted.width, painted.height), (plain.width, plain.height));
+            assert_ne!(painted.rgba, plain.rgba, "{like}");
+        }
+        // The tracker draws each bag by its own name.
+        let drawn: Vec<_> = crate::inventory::icons().collect();
+        assert!(BAGS.iter().all(|b| drawn.contains(b)), "{drawn:?}");
     }
 
     #[test]

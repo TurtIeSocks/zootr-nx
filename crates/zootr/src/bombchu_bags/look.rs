@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use std::collections::BTreeMap;
 
 use ounce_formats::{
-    Lod, ModBuilder, Romfs, Vertex, bones, format, lods, pack, positions, redraw, rename,
+    Lod, ModBuilder, Romfs, Texture, Vertex, bones, format, lods, pack, positions, redraw, rename,
     replace_mesh_like, top_level, unpack,
 };
 
@@ -19,7 +19,7 @@ use crate::medallions::model_path;
 
 /// The files [`LOOKS`] are made from, spelled out like
 /// [`crate::key_tints::FILES`]: extracted before a dump's names are read.
-pub const FILES: [&str; 31] = [
+pub const FILES: [&str; 34] = [
     "Model/Item_BombBag_Small.Item_BombBag_Small.bfres.zs",
     "Tex/Mt_Item_BombBag_Small_Alb.bntx.zs",
     "Tex/Mt_Item_BombBag_Small_AO.bntx.zs",
@@ -51,6 +51,17 @@ pub const FILES: [&str; 31] = [
     "Tex/Mt_Item_Bombchu_Mtl.bntx.zs",
     "Tex/Mt_Item_Bombchu_Nrm.bntx.zs",
     "Tex/Mt_Item_Bombchu_Rgh.bntx.zs",
+    ICONS[0],
+    ICONS[1],
+    ICONS[2],
+];
+
+/// Each bomb bag's pouch icon, smallest first, which its Bombchu Bag's is
+/// painted from.
+const ICONS: [&str; 3] = [
+    "UI/Tex/Icon/Item_BombBag_Small.bntx.zs",
+    "UI/Tex/Icon/Item_BombBag_Medium.bntx.zs",
+    "UI/Tex/Icon/Item_BombBag_Large.bntx.zs",
 ];
 
 /// Each bag's look: its bomb bag's model and textures, the albedo in the
@@ -97,6 +108,25 @@ fn albedo(romfs: &Romfs, at: usize) -> Result<impl Fn(&mut [u8])> {
         }
         paint::shift(rgba, &bands);
     })
+}
+
+/// Bag `at`'s icon, decoded: its bomb bag's, in the Bombchu's colors as
+/// its model's albedo is.
+pub fn icon(romfs: &Romfs, at: usize) -> Result<Texture> {
+    let mut t = top_level(&romfs.read(ICONS[at])?)?;
+    paint::shift(&mut t.rgba, &colors(romfs)?);
+    Ok(t)
+}
+
+/// Writes bag `at`'s painted icon under its own name, as the Magic Meter's
+/// is, so a screen drawing the bag's icon draws a Bombchu Bag.
+pub(super) fn write_icon(romfs: &Romfs, builder: &mut ModBuilder, at: usize) -> Result<()> {
+    let like = ICONS[at];
+    let data = romfs.read(like)?;
+    let painted = icon(romfs, at)?;
+    let own = like.replace(BOMB_BAGS[at].get(), super::BAGS[at]);
+    let data = redraw(&data, &painted.rgba, |_, _| false)?;
+    (builder.add(&own, &data, like)).with_context(|| format!("{}'s icon", super::BAGS[at]))
 }
 
 /// Each bag band and the color it moves to, read from the Bombchu's
@@ -328,6 +358,8 @@ mod tests {
         for prefix in [BOMB, CHU_TEXTURES] {
             files.extend(KINDS.map(|k| textures(prefix, k)));
         }
+        let icon = |like: &Name| format!("{}{like}.bntx.zs", crate::sprites::ICONS);
+        files.extend(BOMB_BAGS.map(icon));
         assert_eq!(files, FILES);
     }
 
