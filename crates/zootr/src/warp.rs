@@ -109,7 +109,7 @@ pub struct Placement {
 
 /// Every placement of the banc files `keep` picks, by map. A placement in
 /// both of a map's files keeps the first.
-fn placed_by_map(
+pub(crate) fn placed_by_map(
     romfs: &Romfs,
     keep: impl Fn(&str) -> bool,
 ) -> Result<BTreeMap<String, Vec<Placement>>> {

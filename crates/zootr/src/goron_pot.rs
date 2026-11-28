@@ -103,6 +103,8 @@ pub fn write(
         template: ActorPack::load(romfs, PIECE)?,
         item: standins::item_pack(romfs, shown, new_game)?,
         price: None,
+        // Its drop has no placement of its own: the body moves.
+        stand: standins::Stand::Body,
     }
     .build(builder, tables)
     .with_context(|| format!("the Goron pot's stand-in for {shown}"))?;

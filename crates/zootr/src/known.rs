@@ -449,7 +449,7 @@ mod tests {
             ("scene", include_str!("known/scene.rs")),
             ("texture", include_str!("known/texture.rs")),
         ];
-        // Animation names, read by `probe floors` from model archives that
+        // Animation names, read by `probe heights` from model archives that
         // stay in the .nup: the extracted romfs never holds them.
         let packed = ["field::POSE_COMMON", "field::POSE_SHOP"];
         let mut lost = Vec::new();

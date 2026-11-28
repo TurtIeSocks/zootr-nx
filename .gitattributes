@@ -6,4 +6,4 @@
 app/src/bindings.ts text eol=lf
 
 # Read by a test with include_str! and compared with the probe's header.
-crates/zootr/src/shops/floors/table.rs text eol=lf
+crates/zootr/src/heights/table.rs text eol=lf

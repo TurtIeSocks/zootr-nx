@@ -9,10 +9,10 @@ use ounce_formats::{ActorPack, ModBuilder, Romfs};
 
 use super::drops::{pickup_for, template_for};
 use super::{DROP, Kind, NEW, SKULLTULAS, kind_of, seats, stale, steps};
-use crate::checks::{Drop, GYAML, ItemCheck, TRANSLATE};
-use crate::known::{actor, item};
+use crate::checks::{Drop, GYAML, ItemCheck};
+use crate::known::actor;
 use crate::settings::NewGame;
-use crate::standins::{StandIn, Tables, item_pack, table_floor};
+use crate::standins::{Placed, Stand, StandIn, Tables, item_pack, placed_rise};
 use crate::{ammo, gifts};
 
 /// A holder whose item changed, and the actor its placement field names.
@@ -24,6 +24,8 @@ pub struct Moved<'a> {
     pub of: u64,
     /// What the holder was.
     pub vanilla: &'a str,
+    /// The actor placed at its check: what a placed item's height meets.
+    pub holder: &'a str,
     /// What it now holds.
     pub item: &'a str,
     pub(super) field: &'static str,
@@ -64,11 +66,12 @@ pub fn moved<'a>(
                 kind_of(c)?.field,
                 seats::holds(c),
                 SKULLTULAS.holds(c),
+                c.holder.as_str(),
             ))
         })
         .collect();
     let mut out = Vec::new();
-    for (n, (of, vanilla, field, seated, hovering)) in holders.into_iter().enumerate() {
+    for (n, (of, vanilla, field, seated, hovering, holder)) in holders.into_iter().enumerate() {
         let item = gifts::item_at(drops, of, vanilla);
         if item == vanilla && !seated && ammo::need(item, progressive).is_none() {
             continue;
@@ -81,6 +84,7 @@ pub fn moved<'a>(
             hash,
             of,
             vanilla,
+            holder,
             item,
             field,
             actor,
@@ -149,24 +153,36 @@ pub fn write(
         .then(|| ActorPack::load(romfs, super::drops::DROPPED))
         .transpose()?;
     for m in moved {
-        if m.built() {
+        // A placed item reaches down to where the actor placed there did.
+        // A falling or hovering one moves its body instead.
+        let goods = (m.field == GYAML)
+            .then(|| ActorPack::load(romfs, m.holder))
+            .transpose()?;
+        let placed = if m.built() {
             let pickup = StandIn {
                 name: &m.actor,
                 template: ActorPack::load(romfs, m.template)?,
                 item: item_pack(romfs, m.item, new_game)?,
                 price: None,
+                stand: goods.map_or(Stand::Body, Stand::Placed),
             };
             pickup
                 .build_with_drop_ai(builder, tables, drop_ai.as_ref().filter(|_| m.hovering))
-                .with_context(|| format!("{} becoming {}", m.hash, m.item))?;
-        }
+                .with_context(|| format!("{} becoming {}", m.hash, m.item))?
+        } else {
+            match goods {
+                Some(goods) => {
+                    let own = ActorPack::load(romfs, &m.actor)?;
+                    Placed {
+                        rise: placed_rise(tables, &goods, &own, &own, None)?,
+                        rotate: None,
+                    }
+                }
+                None => Placed::default(),
+            }
+        };
         fields.push(format!("{}.{}={}", m.hash, m.field, m.actor));
-        // A placed token's model extends below its origin. Raise it by
-        // the model's depth, as the shelf placement does.
-        if m.field == GYAML && m.item == item::TOKEN_GOLD {
-            let rise = -table_floor(&tables.actor, m.item)?;
-            fields.push(format!("{}.{TRANSLATE}.1+={rise}", m.hash));
-        }
+        fields.extend(placed.fields(m.hash));
     }
     // A holder keeping its own drop needs a fixed drop because its table
     // goes (`tabled`). Ammo's drops were already written as steps above.
@@ -218,6 +234,11 @@ mod tests {
         component,
     };
 
+    /// The fields that swap an actor or a drop, not the rises that seat it.
+    fn swaps(fields: &[String]) -> usize {
+        fields.iter().filter(|f| !f.contains(".Translate.")).count()
+    }
+
     #[test]
     fn skulltula_rewards_use_the_tokens_hovering_body() {
         let Some(romfs) = dev_dump() else { return };
@@ -254,10 +275,13 @@ mod tests {
             ActorPack::from_bytes(reward, crate::game::read_built(&romfs, &dir, &rel)).unwrap();
         let params = pack.actor_param().unwrap().unwrap();
         let physics = component(&params, PHYSICS).unwrap();
+        // The token's hovering body, lifted so the heart's lowest point
+        // meets the token's: a copy under the reward's own name.
         let tokens = ActorPack::load(&romfs, actor::OBJ_TOKEN_GOLD).unwrap();
-        assert_eq!(
-            component(&tokens.actor_param().unwrap().unwrap(), PHYSICS),
-            Some(physics)
+        let token_physics = component(&tokens.actor_param().unwrap().unwrap(), PHYSICS).unwrap();
+        assert!(
+            physics == token_physics || physics.contains(reward),
+            "{physics}"
         );
         let heart = ActorPack::load(&romfs, actor::OBJ_HEART).unwrap();
         let heart_params = heart.actor_param().unwrap().unwrap();
@@ -372,7 +396,7 @@ mod tests {
             (letter, Drop::from(actor::OBJ_SHIELD_HYLIAN.to_string())),
         ]);
         let fields = moved(&drops, &mut builder, &mut tables);
-        assert_eq!(fields.len(), 2, "{fields:?}");
+        assert_eq!(swaps(&fields), 2, "{fields:?}");
         let arrows_at = format!("{arrows}.{GYAML}={NEW}");
         assert!(
             fields.iter().any(|f| f.starts_with(&arrows_at)),
@@ -467,7 +491,7 @@ mod tests {
         .unwrap();
         tables.write(&mut builder).unwrap();
         builder.finish().unwrap();
-        assert_eq!(fields.len(), 4, "{fields:?}");
+        assert_eq!(swaps(&fields), 4, "{fields:?}");
         let set = |hash: u64, field: &str| -> String {
             let prefix = format!("{hash}.{field}=");
             let f = fields.iter().find(|f| f.starts_with(&prefix));
@@ -517,8 +541,10 @@ mod tests {
         for part in FALLS {
             assert!(component(&table, part).is_some(), "no {part}");
         }
-        // Each drop's body is lowered till its lowest point meets its
-        // model's base, a centred Hookshot's further than a boomerang's.
+        // Each drop's body moves till its lowest point meets its model's
+        // lowest point in the pose it plays at rest (the posed hulls under
+        // the bind fix, `fc054113`): a centred Hookshot's further than a
+        // boomerang's.
         let body = |name: &str| -> (String, f32) {
             let sarc = built(name);
             let physics = component(&param(&sarc, &actor_path(name)), PHYSICS).unwrap();
@@ -546,8 +572,8 @@ mod tests {
             (physics, y - sphere["Radius"].as_float().unwrap())
         };
         for (name, base) in [
-            (&dropped, -0.030_685_425),
-            (&set(centred, POTS.field), -0.152_150_5),
+            (&dropped, -0.012_817_308),
+            (&set(centred, POTS.field), -0.251),
         ] {
             let (physics, bottom) = body(name);
             assert!(physics.contains(name.as_str()), "{physics}");

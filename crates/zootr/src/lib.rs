@@ -65,6 +65,7 @@ mod goron_pot;
 mod grant;
 mod graphs;
 pub mod hearts;
+mod heights;
 mod held;
 pub mod hints;
 pub mod history;
