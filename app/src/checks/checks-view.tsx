@@ -183,7 +183,7 @@ function MarkMenu({ row }: RowProps) {
 /** "hidden" until the game reports it, or "untracked" when it never will. */
 function Unseen({ row }: RowProps) {
   const unseen = "text-ink-faint italic";
-  if (row.flag !== null) return <span className={unseen}>hidden</span>;
+  if (row.tracked) return <span className={unseen}>hidden</span>;
   return (
     <Tooltip>
       <TooltipTrigger asChild tabIndex={0}>

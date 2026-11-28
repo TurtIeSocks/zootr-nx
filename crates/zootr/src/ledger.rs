@@ -677,6 +677,35 @@ mod tests {
         );
     }
 
+    /// Every check ticks in a shuffled seed too, not just with its vanilla
+    /// item: some flags hang on what a check holds (a scrub's sale, a
+    /// lying item, a Gold Skulltula's token).
+    #[test]
+    fn every_check_in_a_seed_ticks() {
+        let Some(romfs) = crate::game::dev_dump() else {
+            return;
+        };
+        let gd = GameData::load(&romfs).unwrap();
+        let new_game = NewGame::from_settings(&every_shuffle(), &[]).unwrap();
+        let dealt = checks::dealt(&romfs, &new_game).unwrap();
+        let fixed = Fixed::new();
+        for seed in 0..3 {
+            let deal = shuffle::deal(&dealt, &fixed, &new_game).unwrap();
+            let placements = shuffle::scatter(deal, seed, &new_game).unwrap();
+            let held = placements
+                .iter()
+                .flat_map(|p| [p.check.item.as_str(), p.item]);
+            let names = crate::names::Names::load(&romfs, held).unwrap();
+            let spots: Vec<Spot> = placements.iter().map(|p| Spot::new(p, &names)).collect();
+            let tracker = Tracker::new(&gd, &spots).unwrap();
+            let untracked: Vec<_> = (spots.iter())
+                .filter(|s| tracker.flag(s.hash).is_none())
+                .map(|s| (s.hash, &s.holder, &s.item))
+                .collect();
+            assert!(untracked.is_empty(), "seed {seed}: {untracked:?}");
+        }
+    }
+
     #[test]
     fn every_shuffle_moves_the_keys_and_deals_the_trade_chain() {
         let on = every_shuffle();
