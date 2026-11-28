@@ -27,10 +27,10 @@ use crate::starter_bags;
 use crate::world::Era;
 use crate::{
     ageless, ammo, blue_warps, bombchus, bombs, bridge, carpenters, chest_levels, cows, cutscenes,
-    dampe, day_skulltulas, dig, door, enemies, entrances, foreign, fortress, gamedata, gerudo,
-    gifts, goron_pot, held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies,
-    medallions, navi, notice, patch, picked, pickups, presets, rsdb, scrubs, sheik_crater, shops,
-    spawn, standins, starting, steps, text, tracker, trade_chain, trap_chests, twins,
+    dampe, day_skulltulas, dig, door, enemies, entrances, foreign, gamedata, gifts, goron_pot,
+    held, hints, ice_traps, jabu_mood, jabu_mouth, key_tints, keys, map_copies, medallions, navi,
+    notice, patch, picked, pickups, presets, rsdb, scrubs, sheik_crater, shops, spawn, standins,
+    starting, steps, text, tracker, trade_chain, trap_chests, twins,
 };
 
 /// What both the flows and the mod's files need from the dump for a seed,
@@ -176,10 +176,10 @@ fn deals(
     if new_game.freestanding {
         goron_pot::rename(romfs, rewrites, drops)?;
     }
-    gerudo::stand_down(romfs, rewrites, drops)?;
-    carpenters::flows(romfs, rewrites)?;
-    gerudo::clear_once(romfs, rewrites)?;
-    gerudo::rescue_once(romfs, rewrites)?;
+    carpenters::guards::stand_down(romfs, rewrites, drops)?;
+    carpenters::valley::flows(romfs, rewrites)?;
+    carpenters::guards::clear_once(romfs, rewrites)?;
+    carpenters::guards::rescue_once(romfs, rewrites)?;
     let model = gifts::levels::model(all)?;
     let level = gifts::levels::Level {
         model: &model,
@@ -192,7 +192,7 @@ fn deals(
         cows::give(romfs, rewrites, &reads.cows, drops, level)?;
     }
     if new_game.fortress_keys.moved() {
-        fortress::give(romfs, rewrites, &reads.pieces, drops, Lines::of(new_game))?;
+        carpenters::keys::give(romfs, rewrites, &reads.pieces, drops, Lines::of(new_game))?;
     }
     picked::delete_letter(romfs, rewrites, &picked::holders(&reads.pieces, drops))?;
     if ice_traps::springs(new_game) {
@@ -469,7 +469,7 @@ impl<'a> Parts<'a> {
             bools.push(enemies::FLAG.into());
         }
         if new_game.fortress_keys.moved() {
-            bools.extend(fortress::flags());
+            bools.extend(carpenters::keys::flags());
         }
         bools.extend(entrances::reveal::flags(new_game.dungeon_entrances));
         if new_game.scrubs {
@@ -488,7 +488,7 @@ impl<'a> Parts<'a> {
         exps.extend(shelves.exps.iter().cloned());
         exps.extend(self.steps.exps.iter().cloned());
         exps.extend(jabu_mood::exps(gd, self.new_game.adult_jabu)?);
-        exps.extend(carpenters::exps(gd)?);
+        exps.extend(carpenters::valley::exps(gd)?);
         Ok(exps)
     }
 
@@ -595,7 +595,7 @@ impl<'a> Parts<'a> {
         )?);
         if new_game.fortress_keys.moved() {
             let lines = Lines::of(new_game);
-            fields.extend(fortress::fields(romfs, pieces, drops, lines)?);
+            fields.extend(carpenters::keys::fields(romfs, pieces, drops, lines)?);
         }
         self.steps.write(romfs, builder)?;
         held::write(romfs, builder, tables)?;

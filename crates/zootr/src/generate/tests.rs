@@ -13,7 +13,7 @@ use crate::progress::{Run, Step, StepEvent};
 use crate::settings::{NewGame, Settings};
 use crate::shuffle::Fixed;
 use crate::standins;
-use crate::{bridge, cows, gamedata, gerudo, gifts, hints, keys, pickups, scrubs, shops, starting};
+use crate::{bridge, cows, gamedata, gifts, hints, keys, pickups, scrubs, shops, starting};
 
 mod copies;
 mod game_data;
@@ -158,7 +158,7 @@ fn a_moved_card_and_a_started_quest_write_their_flows_with_the_rest() {
         progress: vec![(flow::SAGE_OF_SPIRIT.to_string(), "Step02".into())],
         ..Default::default()
     };
-    let card = HashMap::from([(1, Drop::from(gerudo::CARD.to_string()))]);
+    let card = HashMap::from([(1, Drop::from(crate::carpenters::guards::CARD.to_string()))]);
     let all = Flows::load(&romfs).unwrap();
     let (rewrites, _) = flows_alone(&romfs, &all, &new_game, &card).unwrap();
     for name in [starting::OPENING, flow::GET_POUCH_CONTENT, flow::NPC_COMMON] {

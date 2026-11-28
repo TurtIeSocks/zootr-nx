@@ -319,7 +319,7 @@ pub fn fortress_need(item: &str, ctx: &Ctx) -> Option<Need> {
         actors: vec![key_tints::fortress()],
         count,
     };
-    (ctx.fortress.copies() && item == crate::gerudo::CARD).then(|| {
+    (ctx.fortress.copies() && item == crate::carpenters::guards::CARD).then(|| {
         let fast = Need::All(vec![ctx.setting(FORTRESS_FAST), copies(1)]);
         Need::Any(vec![fast, copies(FORTRESS.keys)])
     })
@@ -606,7 +606,7 @@ mod tests {
                 ..Default::default()
             })
         };
-        let card = crate::gerudo::CARD.get();
+        let card = crate::carpenters::guards::CARD.get();
         let keysanity = ctx(FortressKeys::Singles, &[]);
         let fast = ctx(FortressKeys::Singles, &[FORTRESS_FAST]);
         let held = |n: usize| {

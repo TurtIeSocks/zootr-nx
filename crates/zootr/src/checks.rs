@@ -293,7 +293,7 @@ pub fn dealt_of(
         let slots = crate::shops::slots(romfs)?;
         out.extend(crate::shops::checks(&slots, new_game.shop_slots));
     }
-    out.retain(|c| !(new_game.fortress_keys.moved() && crate::fortress::is_carried(c)));
+    out.retain(|c| !(new_game.fortress_keys.moved() && crate::carpenters::keys::is_carried(c)));
     let pickups = crate::pickups::dealt(romfs, new_game)?;
     out.extend(crate::pickups::variants::checks(pickups)?);
     if new_game.freestanding {

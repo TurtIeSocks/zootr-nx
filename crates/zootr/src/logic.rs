@@ -786,7 +786,7 @@ pub(super) mod tests {
             return;
         };
         let fast = crate::settings::FORTRESS_FAST;
-        let card = crate::gerudo::CARD.get();
+        let card = crate::carpenters::guards::CARD.get();
         let source = |on: &[&str]| {
             let world = world(&romfs, on);
             let s = world.sources.iter().find(|s| s.item == card).unwrap();

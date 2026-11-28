@@ -9,7 +9,7 @@
 //! A logic module that makes or watches a holder (`ItemCheck::watched`)
 //! gets its nodes copied for each step ([`super::groups`],
 //! [`super::nodes`]). A thief's call names each step's key in turn
-//! (`fortress::give`).
+//! (`carpenters::keys::give`).
 
 use std::collections::HashMap;
 
@@ -123,7 +123,7 @@ impl Steps {
             let gate = gate(m.hash);
             steps.exps.push((gate.clone(), program));
             // A thief's key keeps her vanilla gate, and her call picks the
-            // step by the BoolExp instead (`fortress::give`). Her call finds
+            // step by the BoolExp instead (`carpenters::keys::give`). Her call finds
             // the key by its instance name, so each step goes by its own:
             // sharing one, her warp moved a step that wasn't the one shown
             // (Mac, 2026-11-19).

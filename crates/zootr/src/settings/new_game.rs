@@ -276,7 +276,7 @@ impl NewGame {
             progress: [
                 presets::progress(&picked)?,
                 match gerudo_fortress {
-                    GerudoFortress::Freed => vec![crate::gerudo::freed_step()],
+                    GerudoFortress::Freed => vec![crate::carpenters::guards::freed_step()],
                     GerudoFortress::Normal | GerudoFortress::Fast => vec![],
                 },
             ]
@@ -322,8 +322,8 @@ fn choice_edits(
         },
         match gerudo_fortress {
             GerudoFortress::Normal => vec![],
-            GerudoFortress::Fast => crate::gerudo::fast(),
-            GerudoFortress::Freed => crate::gerudo::freed(),
+            GerudoFortress::Fast => crate::carpenters::guards::fast(),
+            GerudoFortress::Freed => crate::carpenters::guards::freed(),
         },
         if met_zelda {
             presets::met_zelda()
@@ -822,7 +822,7 @@ mod tests {
         assert!(normal.progress.is_empty() && normal.give.is_empty());
         let fast = game("fast");
         assert!(
-            crate::gerudo::fast()
+            crate::carpenters::guards::fast()
                 .iter()
                 .all(|e| fast.defaults.contains(e))
         );
@@ -830,11 +830,11 @@ mod tests {
         assert!(fast.on.contains(FORTRESS_FAST));
         let freed = game("freed");
         assert!(
-            crate::gerudo::freed()
+            crate::carpenters::guards::freed()
                 .iter()
                 .all(|e| freed.defaults.contains(e))
         );
-        assert_eq!(freed.progress, [crate::gerudo::freed_step()]);
+        assert_eq!(freed.progress, [crate::carpenters::guards::freed_step()]);
         assert!(freed.on.contains(FORTRESS_FREED) && !freed.on.contains(FORTRESS_FAST));
     }
 

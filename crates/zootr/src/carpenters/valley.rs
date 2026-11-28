@@ -1,6 +1,6 @@
 //! The valley bridge and everything beside it follow the four carpenters,
 //! as in Ship. The game ties them to the Spirit quest past its first step,
-//! which [`crate::gerudo`] moves as soon as Link holds the card so the
+//! which [`super::guards`] moves as soon as Link holds the card so the
 //! guards stand down. So every valley reader asks [`FREED`] instead: the
 //! clear event that frees the fourth carpenter has played. The fortress
 //! keeps the quest step, so the card still stands the guards down.

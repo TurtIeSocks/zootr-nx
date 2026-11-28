@@ -472,7 +472,7 @@ fn explain(c: &ItemCheck, new_game: &NewGame, breakable: &BTreeSet<String>) -> W
     }
     // A thief's carried drop is the key its check deals once the
     // thieves' keys move, and the seed clears it: no holder of its own.
-    if crate::fortress::is_carried(c) {
+    if crate::carpenters::keys::is_carried(c) {
         return match new_game.fortress_keys.moved() {
             true => Why::Scenery,
             false => Why::Setting,
