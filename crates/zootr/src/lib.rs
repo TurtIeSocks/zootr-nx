@@ -139,6 +139,7 @@ mod twins;
 pub mod value;
 pub mod vision;
 pub mod warp;
+mod water_temple;
 mod world;
 
 pub mod cli;
