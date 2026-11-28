@@ -413,10 +413,25 @@ mod tests {
             &NewGame::rings(),
         )
         .unwrap();
-        let standin = format!("{green}.{GYAML}={NEW}");
-        assert!(fields.iter().any(|f| f.starts_with(&standin)), "{fields:?}");
+        let prefix = format!("{green}.{GYAML}=");
+        let standin = fields.iter().find_map(|f| f.strip_prefix(&prefix));
+        let standin = standin.filter(|a| a.starts_with(NEW)).expect("a stand-in");
         assert!(fields.contains(&format!("{blue}.{GYAML}={}", actor::OBJ_RUPEE_GREEN)));
         builder.finish().unwrap();
+        // The Hookshot lies quiet: no Fire Arrow flames or crackle from
+        // the template it's built on.
+        let rel = format!("Pack/Actor/{standin}.pack.zs");
+        let pack =
+            ActorPack::from_bytes(standin, crate::game::read_built(&romfs, &dir, &rel)).unwrap();
+        let params = pack.actor_param().unwrap().unwrap();
+        let row = crate::standins::row(&tables.actor, standin).unwrap();
+        for (link, user) in [
+            (field::E_LINK_REF, field::E_LINK_USER_NAME),
+            (field::S_LINK_REF, field::S_LINK_USER_NAME),
+        ] {
+            assert_eq!(component(&params, link), None, "{}", link.get());
+            assert_eq!(row.get(user.get()), None, "{}", user.get());
+        }
         std::fs::remove_dir_all(dir).unwrap();
     }
 
