@@ -937,6 +937,8 @@ export type Pool =
 "voice-child" | 
 /**  The NPCs' voices, by voice type: grunts, laughs and calls. */
 "npc-voice" | 
+/**  Sound effects: Ship's SFX cues and a few more, across users. */
+"sfx" | 
 /**  The silences: never shuffled. */
 "fixed";
 

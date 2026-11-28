@@ -72,6 +72,14 @@ const BODY: &str = "Body";
 /// Shape members that aren't points, and stay when the shape is lowered.
 const UNMOVED: [&str; 2] = ["Axis", "Tensor"];
 const MODEL_MIN: &Name = field::MODEL_AABB_MIN;
+/// An effect or sound link: the component naming its user, and the
+/// `ActorInfo` field naming the same user.
+type Link = (&'static Name, &'static Name);
+/// Effects a pickup shows idle: the Fire Arrow's flames, the token's gold
+/// outline.
+const EFFECTS: Link = (field::E_LINK_REF, field::E_LINK_USER_NAME);
+/// Sounds a pickup plays: the Fire Arrow's crackle, a drop's landing.
+const SOUNDS: Link = (field::S_LINK_REF, field::S_LINK_USER_NAME);
 const SPHERE: &str = "Sphere";
 const CENTRE: &str = "Center";
 const RADIUS: &str = "Radius";
@@ -436,16 +444,15 @@ impl StandIn<'_> {
         } else {
             Some(self.animate(name, tables, &like, &mut refs, &mut new_files)?)
         };
+        let links = self.links(drop_ai.is_some())?;
+        for (key, _) in links {
+            match component(&given, key) {
+                Some(path) => refs.insert(key.get().into(), Byml::String(path.into())),
+                None => refs.remove(key.get()),
+            };
+        }
         if let Some(drop_ai) = drop_ai {
             lend(&mut writer, &mut refs, field::AI_INFO_REF, drop_ai)?;
-            // The hovering body comes from the token, whose idle effect
-            // would otherwise draw its gold outline around the reward.
-            let effects = field::E_LINK_REF.get();
-            if let Some(path) = component(&given, effects) {
-                refs.insert(effects.into(), Byml::String(path.into()));
-            } else {
-                refs.remove(effects);
-            }
             // Hovering drops skip the bound action, so they can keep the
             // item's table without inheriting the template's bounce params.
             if let Some(table) = component(&given, TABLE) {
@@ -500,8 +507,9 @@ impl StandIn<'_> {
         )?;
 
         tables.add(name, &template.name, &item.name, self.price)?;
+        let users: Vec<_> = links.iter().map(|&(_, user)| user).collect();
+        tables.take(name, &item.name, &users)?;
         if drop_ai.is_some() {
-            tables.take(name, &item.name, &[field::E_LINK_USER_NAME])?;
             // The hovering body and the reward's own parameters are both
             // loaded while the drop spawns.
             tables.add_heaps(name, &template.name)?;
@@ -539,6 +547,20 @@ impl StandIn<'_> {
             like: template_param,
         });
         Ok(animations)
+    }
+
+    /// The links it takes from the item over the template's, whose own
+    /// play around every item built on it: the Fire Arrow's flames and
+    /// crackle, the token's gold outline. A pickup shows the item's
+    /// effects. A placed one plays the item's sounds too, while one that
+    /// falls keeps the template's landing and one that `hovers` the
+    /// token's. A shop's keeps the shelf goods'.
+    fn links(&self, hovers: bool) -> Result<&'static [Link]> {
+        Ok(match self.is_pickup() {
+            false => &[],
+            true if hovers || self.falls()? => &[EFFECTS],
+            true => &[EFFECTS, SOUNDS],
+        })
     }
 
     /// Whether the template falls and lands, as drops do.
