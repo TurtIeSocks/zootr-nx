@@ -157,6 +157,26 @@ test("a setting greys out while the toggle it needs is off", () => {
   expect(screen.queryByText(/Needs/)).toBeNull();
 });
 
+test("a setting greys out while the choice it needs sits at a pick", () => {
+  const fort = choice("fort", "Fake Fort", ["Normal", "Fast", "Freed"]);
+  const keys = {
+    ...choice("keys", "Fake Keys", ["Vanilla", "Rings"]),
+    requires: { id: "fort", not: "freed" },
+  };
+  const rings = () => screen.getByRole("button", { name: "Rings" });
+  show({ defs: [fort, keys], settings: { fort: "freed", keys: "rings" } });
+  expect(rings().hasAttribute("disabled")).toBe(true);
+  expect(rings().getAttribute("aria-pressed")).toBe("false");
+  expect(screen.getByText(/Off with/).textContent).toBe(
+    "Off with Fake Fort: Freed",
+  );
+  cleanup();
+  show({ defs: [fort, keys], settings: { fort: "fast", keys: "rings" } });
+  expect(rings().hasAttribute("disabled")).toBe(false);
+  expect(rings().getAttribute("aria-pressed")).toBe("true");
+  expect(screen.queryByText(/Off with/)).toBeNull();
+});
+
 test("a toggle whose requirement is unmet shows off, and keeps its value", () => {
   const shops = toggle("shops", "Shopsanity");
   const prices = {
