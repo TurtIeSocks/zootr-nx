@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { type Cell, type Placement, TRACKER_COLUMNS } from "@/bindings";
 import { isLight } from "@/items/fallback-icons";
-import { columnsOf, inSection, PIXELS, TITLES } from "@/items/layout";
+import {
+  columnsOf,
+  inSection,
+  missingColor,
+  PIXELS,
+  TITLES,
+} from "@/items/layout";
 import { SectionToolbar } from "@/items/section-toolbar";
 import { SectionGrid, Tile } from "@/items/tile";
 import { useGained } from "@/items/use-gained";
@@ -25,11 +31,13 @@ interface TrackerTileProps {
 /** A tile that flashes when its tier goes up. */
 function TrackerTile({ cell, size, ink }: TrackerTileProps) {
   const { gained, done } = useGained(cell.tier);
+  const veil = useItems((s) => missingColor(s.options));
   return (
     <Tile
       cell={cell}
       size={size}
       ink={ink}
+      veil={veil}
       className={cn(gained && "animate-gain")}
       onAnimationEnd={done}
     />

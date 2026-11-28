@@ -7,10 +7,11 @@ import { LoadGate } from "@/components/load-gate";
 import { linkClass } from "@/components/styles";
 import { TipButton } from "@/components/tip-button";
 import { Button } from "@/components/ui/button";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { Label } from "@/components/ui/label";
 import { Segmented } from "@/components/ui/segmented";
 import { ItemsGrid } from "@/items/items-grid";
-import { move, TITLES } from "@/items/layout";
+import { fadedHex, move, TITLES } from "@/items/layout";
 import { call } from "@/lib/api";
 import { useRequestState } from "@/lib/request";
 import { Page } from "@/shell/page-header";
@@ -53,6 +54,7 @@ export function ItemsView() {
               <Size />
             </Setting>
             <Background />
+            <Missing />
             <Setting title="Layout">
               <p className="text-[13px] text-ink-muted leading-[18px]">
                 Hover a section to move, resize or hide it.
@@ -172,6 +174,42 @@ function Background() {
       <p className="text-[13px] text-ink-muted leading-[18px]">
         The tracker can't be transparent. For a stream, pick a color your
         streaming software keys out
+      </p>
+    </div>
+  );
+}
+
+/** The color laid over missing items. Following the background, they
+ * look faded; a color of their own keeps them whole under a color key. */
+function Missing() {
+  const [missing] = useItems.usePath("options.missing");
+  const [background] = useItems.usePath("options.background");
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label>Missing items</Label>
+        <div className="flex items-center gap-1">
+          {missing !== null && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => set({ missing: null })}
+            >
+              Follow background
+            </Button>
+          )}
+          <ColorPicker
+            mode="hex"
+            value={missing ?? fadedHex(background)}
+            onChange={(missing) => set({ missing })}
+            aria-label="Missing items color"
+          />
+        </div>
+      </div>
+      <p className="text-[13px] text-ink-muted leading-[18px]">
+        {missing === null
+          ? "Faded into the background. If your key eats them, pick a color and opacity of their own"
+          : "Laid over each missing item, so the background never shows through"}
       </p>
     </div>
   );

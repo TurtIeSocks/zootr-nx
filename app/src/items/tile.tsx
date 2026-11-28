@@ -39,6 +39,9 @@ export interface TileProps {
   ink: string;
   /** Leaves the count off, for a grid that draws its own. */
   noCount?: boolean;
+  /** A color laid over a missing item's opaque icon, so nothing behind
+   * the tile shows through it. Without one, a missing item fades. */
+  veil?: string;
   className?: string;
   onAnimationEnd?: () => void;
 }
@@ -50,11 +53,17 @@ export function Tile({
   size,
   ink,
   noCount,
+  veil,
   className,
   onAnimationEnd,
 }: TileProps) {
   const absent = cell.tiers === 0;
   const missing = cell.tier === 0;
+  // A dungeon without the item is veiled twice, as it was faded further.
+  const veiled =
+    veil !== undefined && missing
+      ? { color: veil, layers: absent ? 2 : 1 }
+      : undefined;
   const pipped = PIPPED.includes(cell.section) && cell.tiers > 1 && !missing;
   return (
     <Tip tip={cell.label}>
@@ -69,13 +78,16 @@ export function Tile({
         }
         className={cn(
           "relative flex items-center justify-center transition-[opacity,filter] duration-(--duration-base)",
-          absent ? "opacity-12 grayscale" : missing && "opacity-28 grayscale",
+          !veil &&
+            (absent
+              ? "opacity-12 grayscale"
+              : missing && "opacity-28 grayscale"),
           className,
         )}
         style={{ width: size, height: size }}
         onAnimationEnd={onAnimationEnd}
       >
-        <ItemIcon icon={cell.icon} glyph={cell.glyph} ink={ink} />
+        <ItemIcon icon={cell.icon} glyph={cell.glyph} ink={ink} veil={veiled} />
         {!noCount && cell.count !== null && !missing && (
           <span className={BADGE}>{cell.count}</span>
         )}
@@ -85,17 +97,38 @@ export function Tile({
   );
 }
 
+/** A color laid over an icon's own pixels, `layers` times. */
+interface Veil {
+  color: string;
+  layers: number;
+}
+
 /** Props for {@link ItemIcon}. */
 interface ItemIconProps {
   /** The dump's name for it. */
   icon: string;
   glyph: Glyph;
   ink: string;
+  /** Greys the icon and lays this over it. Its parent must be positioned. */
+  veil?: Veil;
 }
+
+/** `veil`'s layers, each drawn by `layer` over the whole parent. */
+const layers = (veil: Veil | undefined, layer: (color: string) => ReactNode) =>
+  Array.from({ length: veil?.layers ?? 0 }, (_, i) => (
+    <span
+      // biome-ignore lint/suspicious/noArrayIndexKey: layers are only positions
+      key={i}
+      aria-hidden
+      className="absolute inset-0 flex items-center justify-center"
+    >
+      {veil && layer(veil.color)}
+    </span>
+  ));
 
 /** The dump's icon, a pulse while those build, or zootr-nx's own when
  * game assets are off or the icon won't load. Fills its parent. */
-export function ItemIcon({ icon, glyph, ink }: ItemIconProps) {
+export function ItemIcon({ icon, glyph, ink, veil }: ItemIconProps) {
   const [art] = useItems.usePath("art");
   if (art === "building") {
     return (
@@ -105,32 +138,53 @@ export function ItemIcon({ icon, glyph, ink }: ItemIconProps) {
     );
   }
   if (art === "game") {
-    return <GameIcon key={icon} icon={icon} glyph={glyph} ink={ink} />;
+    return (
+      <GameIcon key={icon} icon={icon} glyph={glyph} ink={ink} veil={veil} />
+    );
   }
-  return <FallbackIcon glyph={glyph} ink={ink} />;
+  return <FallbackIcon glyph={glyph} ink={ink} veil={veil} />;
 }
 
 /** The dump's icon, or zootr-nx's own once it won't load. Keyed by the
  * icon, and gone during a build, so a new icon or build tries again. */
-function GameIcon({ icon, glyph, ink }: ItemIconProps) {
+function GameIcon({ icon, glyph, ink, veil }: ItemIconProps) {
   const [broken, setBroken] = useState(false);
-  if (broken) return <FallbackIcon glyph={glyph} ink={ink} />;
+  if (broken) return <FallbackIcon glyph={glyph} ink={ink} veil={veil} />;
+  const src = iconUrl(icon);
+  // The mask keeps the veil to the icon's own pixels.
+  const mask = `url("${src}") center / contain no-repeat`;
   return (
-    <img
-      src={iconUrl(icon)}
-      alt=""
-      draggable={false}
-      className="size-full object-contain"
-      onError={() => setBroken(true)}
-    />
+    <>
+      <img
+        src={src}
+        alt=""
+        draggable={false}
+        className={cn("size-full object-contain", veil && "grayscale")}
+        onError={() => setBroken(true)}
+      />
+      {layers(veil, (background) => (
+        <span
+          className="size-full"
+          style={{ background, mask, WebkitMask: mask }}
+        />
+      ))}
+    </>
   );
 }
 
 /** zootr-nx's own icon for a cell, in the grid's ink, so a missing item's
  * faded icon still shows. */
-function FallbackIcon({ glyph, ink }: { glyph: Glyph; ink: string }) {
+function FallbackIcon({ glyph, ink, veil }: Omit<ItemIconProps, "icon">) {
   const Icon = fallbackIcon(glyph);
-  return <Icon className={cn("size-[65%] stroke-[1.5]", ink)} />;
+  const cls = "size-[65%] stroke-[1.5]";
+  return (
+    <>
+      <Icon className={cn(cls, ink)} />
+      {layers(veil, (color) => (
+        <Icon className={cls} style={{ color }} />
+      ))}
+    </>
+  );
 }
 
 /** Props for {@link SectionGrid}. */

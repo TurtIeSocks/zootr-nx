@@ -5,6 +5,7 @@ import {
   type Section,
   TRACKER_COLUMNS,
 } from "@/bindings";
+import type { Options } from "@/stores/items";
 
 /** Each section's title, as the grid and its toolbars show it. */
 export const TITLES: Record<Section, string> = {
@@ -93,6 +94,26 @@ export function columnsOf(sections: Placement[], count: number) {
     shown: sections.filter((p) => p.shown && p.column === i + 1),
   })).filter((c) => c.shown.length > 0);
 }
+
+/** How much of the background a missing item's icon shows through, as
+ * the faded icon did: an icon at 28% over the background looks the same
+ * as the background at 72% over the icon. */
+const FADE = 72;
+
+/** The color laid over a missing item's icon: the user's, or the
+ * background at {@link FADE}%, which looks like a faded icon. */
+export const missingColor = ({
+  missing,
+  background,
+}: Pick<Options, "missing" | "background">) =>
+  missing ?? `color-mix(in srgb, ${background} ${FADE}%, transparent)`;
+
+/** The faded look as hex, for the picker to start from: a hex background
+ * at {@link FADE}%, any other background as it is. */
+export const fadedHex = (background: string) =>
+  /^#[0-9a-f]{6}$/i.test(background)
+    ? `${background}${Math.round((FADE / 100) * 255).toString(16)}`
+    : background;
 
 /** One section's cells, each with where it sits among all of them. */
 export const inSection = (cells: Cell[], section: Section) =>

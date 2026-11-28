@@ -24,6 +24,7 @@ export type Options = Required<TrackerOptions>;
 export const fullOptions = (o: TrackerOptions): Options => ({
   size: "Medium",
   background: "#18181b",
+  missing: null,
   sections: [],
   ...o,
 });

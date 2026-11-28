@@ -1426,6 +1426,11 @@ export type TrackerOptions = {
 	size?: IconSize,
 	/**  A CSS color. */
 	background?: string,
+	/**
+	 *  The CSS color, alpha included, laid over a missing item's icon.
+	 *  `None` follows the background, which matches a faded icon.
+	 */
+	missing?: string | null,
 	/**  Every section once. The order within a column is the draw order. */
 	sections?: Placement[],
 };

@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import type { Placement, Section } from "@/bindings";
-import { move } from "@/items/layout";
+import { fadedHex, missingColor, move } from "@/items/layout";
 
 vi.mock("@/bindings", () => ({ TRACKER_COLUMNS: 3 }));
 
@@ -46,4 +46,14 @@ test("width stays between 1 and the section's slots", () => {
   expect(
     move([{ ...at("Quest", 1), width: 1 }], "Quest", "narrower", 3),
   ).toBeNull();
+});
+
+test("missing items follow the background at 72% until given a color", () => {
+  const background = "#18181b";
+  expect(missingColor({ missing: null, background })).toBe(
+    "color-mix(in srgb, #18181b 72%, transparent)",
+  );
+  expect(missingColor({ missing: "#000000a6", background })).toBe("#000000a6");
+  expect(fadedHex(background)).toBe("#18181bb8");
+  expect(fadedHex("rebeccapurple")).toBe("rebeccapurple");
 });

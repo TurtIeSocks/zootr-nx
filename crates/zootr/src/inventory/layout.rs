@@ -106,6 +106,9 @@ pub struct TrackerOptions {
     pub size: IconSize,
     /// A CSS color.
     pub background: String,
+    /// The CSS color, alpha included, laid over a missing item's icon.
+    /// `None` follows the background, which matches a faded icon.
+    pub missing: Option<String>,
     /// Every section once. The order within a column is the draw order.
     pub sections: Vec<Placement>,
 }
@@ -115,6 +118,7 @@ impl Default for TrackerOptions {
         Self {
             size: IconSize::default(),
             background: "#18181b".into(),
+            missing: None,
             sections: Section::ALL.map(Placement::new).into(),
         }
     }
@@ -194,6 +198,13 @@ mod tests {
             .tidy();
             assert_eq!(options.sections[0].width as usize, KEPT.len());
         }
+    }
+
+    #[test]
+    fn an_older_config_follows_the_background() {
+        let old: TrackerOptions = serde_json::from_str(r##"{"background":"#ff00ff"}"##).unwrap();
+        assert_eq!(old.missing, None);
+        assert_eq!(old.background, "#ff00ff");
     }
 
     #[test]
