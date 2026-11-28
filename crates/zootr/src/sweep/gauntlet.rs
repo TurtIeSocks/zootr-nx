@@ -130,12 +130,29 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         }
         let kinds = loads::kinds(g.run.loads(g.quick), &g.items);
         if !stopped && !kinds.is_empty() {
-            let holders = loads::holders(self.romfs, &settings)?;
+            let mut landed = BTreeMap::new();
+            let mut holders = vec![];
+            for h in loads::holders(self.romfs, &settings, &places)? {
+                if !picks(&g.places, &h.map) {
+                    continue;
+                }
+                match places.iter().find(|p| p.map == h.map) {
+                    Some(place) => _ = landed.insert(h.hash, place),
+                    None => {
+                        let why = format!("no arrival point in {}: an event's map", h.map);
+                        let row = json!({"gauntlet": row::UNPLANNED, "load": true,
+                            "name": format!("{} in {}", h.hash, h.map), "why": why});
+                        append(&self.results(), &row)?;
+                        continue;
+                    }
+                }
+                holders.push(h);
+            }
             let rounds = loads::rounds(&holders, &kinds);
             eprintln!("loads: {} holders, {} rounds", holders.len(), rounds.len());
             for (r, round) in rounds.iter().enumerate() {
                 let at = (r, seed.wrapping_add(LOAD_SEEDS + r as u64));
-                let ran = self.load_round(g, at, round, &settings, &places);
+                let ran = self.load_round(g, at, round, (&settings, &landed), &places);
                 if self.ended(g, r, ran)? {
                     break;
                 }
@@ -281,7 +298,7 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
         g: &Gauntlet,
         (r, seed): (usize, u64),
         round: &[Load],
-        settings: &Settings,
+        (settings, landed): (&Settings, &BTreeMap<u64, &Place>),
         places: &BTreeSet<Place>,
     ) -> Result<Go> {
         let rows = self.results();
@@ -298,36 +315,28 @@ impl<I: Input, J: Judge> Night<'_, I, J> {
             return Ok(Go::Stop);
         }
         self.stop();
-        let extras = plando(&placed);
-        let planned = night::pool(self.romfs, self.target, seed, (settings, &extras), places)?;
-        let mut maps: BTreeMap<&str, Vec<Pin>> = BTreeMap::new();
+        // Each map and its pins, with the place a load lands at.
+        let mut maps: BTreeMap<&str, (&Place, Vec<Pin>)> = BTreeMap::new();
         for pin in &placed {
-            let spot = planned.iter().find(|p| p.spot.hash == pin.0);
-            match spot.and_then(|p| p.trigger.map()) {
-                Some(map) => maps.entry(map).or_default().push(*pin),
-                None => {
-                    let why = "the seed plans no map for its holder";
-                    append(&rows, &load_row(row::UNPLANNED, pin, r, why))?;
-                }
-            }
+            let place = landed[&pin.0];
+            maps.entry(&place.map)
+                .or_insert((place, vec![]))
+                .1
+                .push(*pin);
         }
+        let extras = plando(&placed);
+        night::pool(self.romfs, self.target, seed, (settings, &extras), places)?;
         let shots = self.dir.join(format!("loads-{r:02}-{seed}"));
         std::fs::create_dir_all(&shots)?;
         let mut live = self.start()?;
-        let picked =
-            |map: &&str| g.places.is_empty() || g.places.iter().any(|p| map.contains(p.as_str()));
-        let kept: Vec<_> = maps.iter().filter(|(map, _)| picked(map)).collect();
-        for (i, (map, pins)) in kept.iter().enumerate() {
+        for (i, (map, (place, pins))) in maps.iter().enumerate() {
             if self.turn_lost(g)? {
                 return Ok(Go::Stop);
             }
             let name = format!("{map} (round {r})");
-            // Night's pool plans only spots in maps `places` has.
-            let place = (places.iter().find(|p| p.map == **map))
-                .with_context(|| format!("no place to teleport to in {map}"))?;
             let frame = shots.join(format!("{}.png", slug(map)));
             let watched = self.land(&live, place, g.limits, &frame);
-            self.log(i, kept.len(), &name, &watched);
+            self.log(i, maps.len(), &name, &watched);
             let pins: Vec<_> = (pins.iter())
                 .map(|&(holder, kind)| json!({"holder": holder.to_string(), "item_kind": ITEMS[kind].name}))
                 .collect();
@@ -432,13 +441,15 @@ fn tour_order(places: &BTreeSet<Place>, only: &[String]) -> Vec<Place> {
         Some(false) => 1,
         None => 2,
     };
-    let kept = |p: &&Place| {
-        let name = format!("{}/{}", p.map, p.spot);
-        only.is_empty() || only.iter().any(|o| name.contains(o.as_str()))
-    };
+    let kept = |p: &&Place| picks(only, &format!("{}/{}", p.map, p.spot));
     let mut order: Vec<Place> = places.iter().filter(kept).cloned().collect();
     order.sort_by_key(|p| rank(p));
     order
+}
+
+/// Whether `--place`'s `only` keeps `name`: all with none.
+fn picks(only: &[String], name: &str) -> bool {
+    only.is_empty() || only.iter().any(|o| name.contains(o.as_str()))
 }
 
 /// `cells` split into those to place and those of `refused`, with why.
@@ -636,7 +647,7 @@ mod tests {
             return;
         };
         let settings = settings().unwrap();
-        let holders = loads::holders(&romfs, &settings).unwrap();
+        let holders = loads::holders(&romfs, &settings, &dev::places(&romfs).unwrap()).unwrap();
         let dir = std::env::temp_dir().join(format!("zootr-gauntlet-loads-{}", std::process::id()));
         // The quick kinds pin no key, so each pinned key chest must leave
         // its stand-in to the keys. Round 0 stands for the rest: all

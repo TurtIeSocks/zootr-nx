@@ -154,9 +154,11 @@ fn read(rows: &str) -> Read {
                 seen.evidence.extend(frame);
             }
             row::REFUSED | row::UNPLANNED => {
-                let outcome = match kind == row::REFUSED {
-                    true => Outcome::Refused(why),
-                    false => Outcome::Harness(why),
+                // A load's holder no teleport reaches waits on a way there.
+                let outcome = match (kind == row::REFUSED, load) {
+                    (true, _) => Outcome::Refused(why),
+                    (false, true) => Outcome::NoTrigger(why),
+                    (false, false) => Outcome::Harness(why),
                 };
                 let into = if load { &mut out.loads } else { &mut out.cells };
                 into.insert(name, seen_of(outcome));
@@ -316,10 +318,11 @@ mod tests {
             json!({"gauntlet": "load", "name": "FakeMap (round 0)", "pins": pins,
                 "hang": {"signal": "black", "secs": 2.0}, "frame": "f.png"}),
             json!({"gauntlet": "refused", "load": true, "name": "9 × song (round 0)", "why": "Fake"}),
+            json!({"gauntlet": "unplanned", "load": true, "name": "8 in FakeMap", "why": "no arrival point"}),
         ]);
         let (md, code) = render(&rows, "fake");
         assert_eq!(code, 1, "{md}");
-        assert!(md.contains("| Loads | 0 | 1 | 1 | 0 | 0 |"), "{md}");
+        assert!(md.contains("| Loads | 0 | 1 | 1 | 1 | 0 |"), "{md}");
         assert!(md.contains("holder 123 held ammo"), "{md}");
         // A refused load isn't a cell.
         assert!(md.contains("| Cells | 0 | 0 | 0 | 0 | 0 |"), "{md}");
