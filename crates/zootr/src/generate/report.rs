@@ -57,6 +57,10 @@ pub struct Spot {
     /// (`gifts::pocket`).
     #[serde(default, skip_serializing_if = "is_false")]
     pub given: bool,
+    /// Holds its own item without a shuffle: a setting kept it, or the
+    /// seed is vanilla (`shuffle::Deal::kept`).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub kept: bool,
     /// The Bools its stand-ins set once taken, which tick it without the
     /// hook (`pickups::taken`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -265,6 +269,11 @@ pub struct Held {
 impl Report {
     pub fn changed(&self) -> usize {
         self.spots.iter().filter(|s| s.item != s.vanilla).count()
+    }
+
+    /// How many spots hold their own item without a shuffle ([`Spot::kept`]).
+    pub fn kept(&self) -> usize {
+        self.spots.iter().filter(|s| s.kept).count()
     }
 
     /// The seed a spoiler names on its first line.

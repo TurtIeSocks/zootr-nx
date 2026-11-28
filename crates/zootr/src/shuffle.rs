@@ -98,6 +98,9 @@ pub struct Deal<'a> {
     /// Each of `added` with the rupee it took. One that found none is
     /// left out.
     pub traded: Vec<(&'a str, &'a str)>,
+    /// The checks that hold their own item without a shuffle, by hash: the
+    /// ones a setting keeps (`pool`), and in vanilla mode every free one.
+    pub kept: Vec<u64>,
 }
 
 /// `fixed` placements, and the free checks with the items to deal them.
@@ -116,6 +119,8 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         .map(|i| d.level(i))
         .collect();
     let traded = starter_bags::swap_in(&mut pool.items, &added);
+    let unshuffled = new_game.vanilla.then_some(&free).into_iter().flatten();
+    let kept_at = kept.iter().chain(unshuffled).map(|c| c.hash).collect();
     let (started, items) = d.finish(kept, pool, &mut placed)?;
     Ok(Deal {
         placed,
@@ -124,6 +129,7 @@ pub fn deal<'a>(checks: &'a [ItemCheck], fixed: &'a Fixed, new_game: &NewGame) -
         started,
         added,
         traded,
+        kept: kept_at,
     })
 }
 
@@ -735,6 +741,30 @@ mod tests {
         assert_eq!(d.items.len(), d.free.len());
         let held = |h| d.placed.iter().find(|p| p.check.hash == h).unwrap().item;
         assert_eq!((held(2), held(20)), ("Item_B", &**starting::FILLER));
+    }
+
+    /// The deal names the checks it kept, so the report can tell a kept
+    /// check from a shuffled one that drew its own item. Vanilla mode keeps
+    /// every free check too.
+    #[test]
+    fn the_deal_names_the_checks_it_kept() {
+        needs_names!();
+        let sword = item::SWORD_KOKIRI.get();
+        let mut checks = with_gifts();
+        checks.push(chest(20, sword));
+        let none = Fixed::new();
+        let mut new_game = NewGame {
+            keep_chests: true,
+            ..game(false, &[])
+        };
+        let d = deal(&checks, &none, &new_game).unwrap();
+        assert!(d.kept.contains(&20));
+        assert!(d.free.iter().all(|c| !d.kept.contains(&c.hash)));
+        new_game.keep_chests = false;
+        assert!(deal(&checks, &none, &new_game).unwrap().kept.is_empty());
+        new_game.vanilla = true;
+        let d = deal(&checks, &none, &new_game).unwrap();
+        assert!(d.free.iter().all(|c| d.kept.contains(&c.hash)));
     }
 
     #[test]

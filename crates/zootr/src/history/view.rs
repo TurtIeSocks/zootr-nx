@@ -31,6 +31,8 @@ pub struct Summary {
     pub(super) label: Label,
     pub(super) chests: u32,
     pub(super) changed: u32,
+    /// Of `chests`, how many weren't shuffled. `None` for an older seed.
+    pub(super) kept: Option<u32>,
     /// Built with a test setup: a spawn, items, flags or quest steps.
     pub(super) test: bool,
     /// Built with a plando: items pinned to checks.
@@ -75,6 +77,7 @@ impl From<&Entry> for Summary {
             label: e.label.clone(),
             chests: e.brief.chests,
             changed: e.brief.changed,
+            kept: e.brief.kept,
             test: !Extras {
                 place: Fixed::new(),
                 ap: None,

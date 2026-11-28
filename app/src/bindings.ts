@@ -1167,6 +1167,11 @@ export type Spot = {
 	 */
 	given?: boolean,
 	/**
+	 *  Holds its own item without a shuffle: a setting kept it, or the
+	 *  seed is vanilla (`shuffle::Deal::kept`).
+	 */
+	kept?: boolean,
+	/**
 	 *  The Bools its stand-ins set once taken, which tick it without the
 	 *  hook (`pickups::taken`).
 	 */
@@ -1273,6 +1278,8 @@ export type Summary = {
 	label: Label,
 	chests: number,
 	changed: number,
+	/**  Of `chests`, how many weren't shuffled. `None` for an older seed. */
+	kept: number | null,
 	/**  Built with a test setup: a spawn, items, flags or quest steps. */
 	test: boolean,
 	/**  Built with a plando: items pinned to checks. */

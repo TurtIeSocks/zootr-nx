@@ -65,6 +65,10 @@ pub struct Brief {
     pub chests: u32,
     /// How many of them hold another item than the vanilla game's.
     pub changed: u32,
+    /// How many of them weren't shuffled ([`Report::kept`]). `None` for a
+    /// seed briefed before it was counted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kept: Option<u32>,
     /// The build of the game it was made for.
     pub release: Release,
 }
@@ -75,6 +79,7 @@ impl From<&Report> for Brief {
             seed: r.seed,
             chests: r.spots.len() as u32,
             changed: r.changed() as u32,
+            kept: Some(r.kept() as u32),
             release: r.written.release,
         }
     }
