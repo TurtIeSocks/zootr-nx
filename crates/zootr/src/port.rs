@@ -622,7 +622,12 @@ mod tests {
         // The string is the evidence: one the window never loads fails.
         let (site, count) = (V131072.calls.pickup_count, V131072.funcs.count);
         assert!(sole_call(update, site, count, "LayoutMsg/PickUpWin_00"));
-        assert!(!sole_call(update, site, count, "a string no function loads"));
+        assert!(!sole_call(
+            update,
+            site,
+            count,
+            "a string no function loads"
+        ));
         // As is the callee: the window calls nothing else at the site.
         assert!(!sole_call(
             update,
