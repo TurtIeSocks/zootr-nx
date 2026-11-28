@@ -177,6 +177,7 @@ mod tests {
 
     #[test]
     fn normal_opens_each_cell_by_beating_its_thief() {
+        needs_names!();
         let ctx = ctx("normal", "vanilla");
         assert!(!card(&ctx, &have(&[SWORD], 0)));
         assert!(card(&ctx, &have(&[SWORD, HOOK], 0)));
@@ -190,6 +191,7 @@ mod tests {
 
     #[test]
     fn fast_leaves_the_one_torch_jail_to_open() {
+        needs_names!();
         let ctx = ctx("fast", "vanilla");
         assert!(!card(&ctx, &have(&[], 0)));
         assert!(card(&ctx, &have(&[SWORD], 0)));
@@ -199,6 +201,7 @@ mod tests {
 
     #[test]
     fn freed_opens_every_cell_from_the_start() {
+        needs_names!();
         let ctx = ctx("freed", "singles");
         assert!(card(&ctx, &have(&[], 0)));
         assert_eq!(pots(&ctx, &have(&[], 0)), [true, false]);
@@ -207,6 +210,7 @@ mod tests {
 
     #[test]
     fn keysanity_asks_a_key_for_every_jailed_cell() {
+        needs_names!();
         let all = [SWORD, HOOK];
         let normal = ctx("normal", "singles");
         assert!(!card(&normal, &have(&all, 3)) && card(&normal, &have(&all, 4)));
@@ -217,6 +221,7 @@ mod tests {
 
     #[test]
     fn a_ring_opens_every_cell_and_start_needs_no_key() {
+        needs_names!();
         let all = [SWORD, HOOK];
         let rings = ctx("normal", "rings");
         assert!(!card(&rings, &have(&all, 0)) && card(&rings, &have(&all, 1)));
@@ -225,6 +230,7 @@ mod tests {
 
     #[test]
     fn other_checks_ask_nothing_of_the_quest() {
+        needs_names!();
         let book = Book::load().unwrap();
         let need = check_need(&book, &ctx("normal", "singles"), 1, "").unwrap();
         assert!(need.is_none());
