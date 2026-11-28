@@ -637,9 +637,11 @@ mod tests {
         };
         let settings = settings().unwrap();
         let holders = loads::holders(&romfs, &settings).unwrap();
-        let rounds = loads::rounds(&holders, &loads::kinds(&loads::KINDS, &[]));
         let dir = std::env::temp_dir().join(format!("zootr-gauntlet-loads-{}", std::process::id()));
-        // Round 0 stands for the rest: all seven generate (92 s together).
+        // The quick kinds pin no key, so each pinned key chest must leave
+        // its stand-in to the keys. Round 0 stands for the rest: all
+        // seven full rounds generate too (92 s together).
+        let rounds = loads::rounds(&holders, &loads::kinds(&loads::QUICK, &[]));
         for (r, round) in rounds.iter().enumerate().take(1) {
             let pins = load_pins(round);
             let why = refused(&romfs, &settings, &pins).unwrap();

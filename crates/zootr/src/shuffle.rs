@@ -65,9 +65,15 @@ impl<'a> Pool<'a> {
 
     /// Remove one `item`, else one `fallback`, else any item, with its
     /// slot. Keeps the pool one item per free chest whatever was placed.
+    /// A key copy needs a Red Rupee stand-in ([`keys::deal_copies`]), so
+    /// a fallback that is one goes last: a pinned key chest whose item the
+    /// pool has no more of leaves its stand-in to the keys.
     fn take(&mut self, item: &str, fallback: &str) {
-        let at = self.items.iter().position(|&i| i == item);
-        let at = at.or_else(|| self.items.iter().position(|&i| i == fallback));
+        let stand_in = |i: &str| *keys::INSTEAD == *i;
+        let first = |want: &str| self.items.iter().position(|&i| i == want);
+        let at = (first(item))
+            .or_else(|| first(fallback).filter(|_| !stand_in(fallback)))
+            .or_else(|| self.items.iter().rposition(|&i| !stand_in(i)));
         if let Some(at) = at.or(self.items.len().checked_sub(1)) {
             self.items.swap_remove(at);
             self.from.swap_remove(at);
@@ -466,6 +472,23 @@ mod tests {
         let p = shuffle(&checks, 7, &none, &game(false, &[])).unwrap();
         assert_eq!(p.len(), 2);
         assert!(p.iter().all(|p| p.check.hash < 3));
+    }
+
+    #[test]
+    fn a_pin_the_pool_lacks_leaves_the_key_stand_ins() {
+        needs_names!();
+        let red = keys::INSTEAD.get();
+        let mut pool = Pool {
+            items: vec!["Item_A", red, "Item_B", red],
+            from: vec![1, 2, 3, 4],
+        };
+        pool.take("Item_Fake", red);
+        assert_eq!(pool.items, ["Item_A", red, red]);
+        pool.take("Item_A", red);
+        assert_eq!(pool.items, [red, red]);
+        // With only stand-ins left, one goes.
+        pool.take("Item_Fake", red);
+        assert_eq!(pool.items, [red]);
     }
 
     #[test]
